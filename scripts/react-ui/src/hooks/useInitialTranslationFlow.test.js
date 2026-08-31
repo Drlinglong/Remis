@@ -5,7 +5,7 @@ import api from '../utils/api';
 import translationService from '../services/translationService';
 import { useInitialTranslationFlow } from './useInitialTranslationFlow';
 
-vi.mock('../utils/api', () => ({ default: { post: vi.fn(), delete: vi.fn() } }));
+vi.mock('../utils/api', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
 vi.mock('../services/translationService', () => ({
   default: { getReferenceLibraryStatus: vi.fn() },
 }));
@@ -34,6 +34,7 @@ const values = {
 describe('useInitialTranslationFlow reference gate', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    api.get.mockResolvedValue({ data: { checkpoint: null, allowed_actions: [] } });
     translationService.getReferenceLibraryStatus.mockResolvedValue({
       data: { libraries: [{ game_id: 'victoria3', available: false }] },
     });
@@ -96,8 +97,13 @@ describe('useInitialTranslationFlow reference gate', () => {
     expect(setTaskId).toHaveBeenLastCalledWith(null);
   });
 
-  it('checks and clears checkpoints by stable project id', async () => {
-    api.post.mockResolvedValueOnce({ data: { exists: true, completed_count: 1 } });
+  it('uses the backend recovery task action instead of legacy checkpoint endpoints', async () => {
+    api.get.mockResolvedValue({ data: {
+      task_id: 'task-interrupted',
+      checkpoint: { available: true, resumable: true },
+      allowed_actions: ['resume_task', 'start_over_task'],
+    } });
+    api.post.mockResolvedValueOnce({ data: { task_id: 'task-resumed', status: 'queued' } });
     const { result } = renderHook(() => useInitialTranslationFlow({
       config: { languages: [] },
       notificationStyle: {},
@@ -116,18 +122,45 @@ describe('useInitialTranslationFlow reference gate', () => {
       reference_reuse_enabled: false,
       use_resume: true,
     }));
-    expect(api.post).toHaveBeenCalledWith('/api/translation/checkpoint-status', {
-      project_id: 'project-stable-id',
-      target_lang_codes: ['zh-CN'],
-    });
+    expect(api.get).toHaveBeenCalledWith('/api/projects/project-stable-id/translation-recovery');
 
     await act(() => result.current.handleStartOver());
-    expect(api.delete).toHaveBeenCalledWith('/api/translation/checkpoint', {
-      data: {
-        project_id: 'project-stable-id',
-        target_lang_codes: ['zh-CN'],
-      },
-    });
+    expect(api.post).toHaveBeenCalledWith('/api/tasks/task-interrupted/start-over', {});
+    expect(api.post).not.toHaveBeenCalledWith('/api/translation/checkpoint-status', expect.anything());
+    expect(api.post).not.toHaveBeenCalledWith('/api/translation/checkpoint', expect.anything());
+  });
+
+  it('resumes the backend task instead of starting a new translation task', async () => {
+    api.get.mockResolvedValue({ data: {
+      task_id: 'task-interrupted',
+      checkpoint: { available: true, resumable: true },
+      allowed_actions: ['resume_task'],
+    } });
+    api.post.mockResolvedValueOnce({ data: { task_id: 'task-resumed', status: 'queued' } });
+    const setTaskId = vi.fn();
+    const { result } = renderHook(() => useInitialTranslationFlow({
+      config: { languages: [] },
+      notificationStyle: {},
+      selectedProject: { game_id: 'victoria3', label: 'Demo', source_language: 'en' },
+      selectedProjectId: 'project-1',
+      setActive: vi.fn(),
+      setIsProcessing: vi.fn(),
+      setStatus: vi.fn(),
+      setTaskId,
+      setTranslationDetails: vi.fn(),
+      resumeEnabled: true,
+    }));
+
+    await act(() => result.current.handleStartClick({
+      ...values,
+      reference_reuse_enabled: false,
+      use_resume: true,
+    }));
+    await act(() => result.current.handleResume());
+
+    expect(api.post).toHaveBeenCalledWith('/api/tasks/task-interrupted/resume', {});
+    expect(api.post).not.toHaveBeenCalledWith('/api/translate/start', expect.anything());
+    expect(setTaskId).toHaveBeenLastCalledWith('task-resumed');
   });
 
   it('forces a fresh run when checkpoint resume is disabled', async () => {
@@ -150,7 +183,34 @@ describe('useInitialTranslationFlow reference gate', () => {
       use_resume: true,
     }));
 
-    expect(api.post).not.toHaveBeenCalledWith('/api/translation/checkpoint-status', expect.anything());
+    expect(api.get).not.toHaveBeenCalled();
+    expect(api.post).toHaveBeenCalledWith(
+      '/api/translate/start',
+      expect.objectContaining({ use_resume: false }),
+    );
+  });
+
+  it('starts fresh when backend recovery discovery fails', async () => {
+    api.get.mockRejectedValue(new Error('recovery unavailable'));
+    const { result } = renderHook(() => useInitialTranslationFlow({
+      config: { languages: [] },
+      notificationStyle: {},
+      selectedProject: { game_id: 'victoria3', label: 'Demo', source_language: 'en' },
+      selectedProjectId: 'project-1',
+      setActive: vi.fn(),
+      setIsProcessing: vi.fn(),
+      setStatus: vi.fn(),
+      setTaskId: vi.fn(),
+      setTranslationDetails: vi.fn(),
+      resumeEnabled: true,
+    }));
+
+    await act(() => result.current.handleStartClick({
+      ...values,
+      reference_reuse_enabled: false,
+      use_resume: true,
+    }));
+
     expect(api.post).toHaveBeenCalledWith(
       '/api/translate/start',
       expect.objectContaining({ use_resume: false }),

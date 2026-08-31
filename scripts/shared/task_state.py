@@ -5,7 +5,16 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, Optional
 
-from scripts.core.repositories.task_repository import TaskRepository
+from scripts.core.repositories.task_repository import (
+    TaskIdempotencyConflictError,
+    TaskRepository,
+)
+from scripts.core.services.translation_task_lifecycle import (
+    TERMINAL_STATUSES as TRANSLATION_TERMINAL_STATUSES,
+    TRANSLATION_TASK_KINDS,
+    TranslationTaskLifecycle,
+)
+from scripts.core.services.translation_recovery_service import TranslationRecoveryService
 from scripts.shared.state import tasks
 from scripts.shared.ws_manager import ws_manager
 
@@ -29,6 +38,7 @@ ACTIVE_TASK_STATUSES = {
 }
 TERMINAL_TASK_STATUSES = {"completed", "complete", "success", "failed", "partial_failed", "cancelled", "canceled", "interrupted"}
 _repository: Optional[TaskRepository] = None
+_translation_lifecycle: Optional[TranslationTaskLifecycle] = None
 _CANCELLATION_EVENTS: Dict[str, threading.Event] = {}
 
 
@@ -43,6 +53,10 @@ class TaskPersistenceError(RuntimeError):
         self.task_id = task_id
         self.failure = deepcopy(failure)
         super().__init__(f"Task {task_id} could not be persisted")
+
+
+def _is_translation_task(task: Dict[str, Any]) -> bool:
+    return str(task.get("kind") or task.get("task_kind") or "") in TRANSLATION_TASK_KINDS
 
 
 DEFAULT_PROGRESS = {
@@ -116,9 +130,12 @@ def configure_repository(
     replace: bool = False,
 ) -> None:
     """Attach the persistent ledger after database initialization."""
-    global _repository
+    global _repository, _translation_lifecycle
     with _LOCK:
         _repository = repository
+        _translation_lifecycle = (
+            TranslationTaskLifecycle(repository) if repository is not None else None
+        )
         if not hydrate or repository is None:
             return
         try:
@@ -129,6 +146,16 @@ def configure_repository(
             )
         except (OSError, sqlite3.Error, ValueError) as exc:
             logging.error("Failed to apply task retention policy: %s", exc)
+        recovered_translation_tasks: list[Dict[str, Any]] = []
+        if _translation_lifecycle is not None:
+            try:
+                recovered_translation_tasks = _translation_lifecycle.recover_orphaned_tasks()
+                for task in recovered_translation_tasks:
+                    TranslationRecoveryService(repository).decorate_interrupted_task(task)
+                    repository.save_task(task)
+            except (OSError, sqlite3.Error, ValueError, KeyError, AttributeError) as exc:
+                logging.error("Failed to recover orphaned translation tasks: %s", exc)
+
         # Only active work needs an in-memory mirror for live updates and
         # duplicate-write protection. Historical tasks remain queryable from
         # SQLite by exact ID and through the paginated task API.
@@ -138,6 +165,10 @@ def configure_repository(
         )
         if replace:
             tasks.clear()
+        for task in recovered_translation_tasks:
+            task_id = str(task.get("task_id") or "")
+            if task_id:
+                tasks[task_id] = task
         for task in persisted:
             task_id = str(task.get("task_id") or "")
             if not task_id:
@@ -203,17 +234,20 @@ def find_active_task_by_dedupe_key(dedupe_key: str) -> Optional[Dict[str, Any]]:
 
 def find_task_by_idempotency_key(idempotency_key: str) -> Optional[Dict[str, Any]]:
     """Return the exact task already bound to a caller-stable operation key."""
+    normalized_key = str(idempotency_key or "").strip()
+    if not normalized_key:
+        return None
     with _LOCK:
         existing = next(
             (
                 item
                 for item in tasks.values()
-                if item.get("idempotency_key") == idempotency_key
+                if str(item.get("idempotency_key") or "").strip() == normalized_key
             ),
             None,
         )
         if existing is None and _repository is not None:
-            existing = _repository.find_by_idempotency_key(idempotency_key)
+            existing = _repository.find_by_idempotency_key(normalized_key)
         return deepcopy(existing) if existing is not None else None
 
 
@@ -326,6 +360,8 @@ def _persist_task(
             }
         _repository.save_task(task, event=event)
         return True
+    except TaskIdempotencyConflictError as exc:
+        raise DuplicateTaskError(exc.existing_task) from exc
     except (OSError, sqlite3.Error, ValueError, KeyError, TypeError) as exc:
         _mark_persistence_failure(task, exc)
         logging.error("Failed to persist task %s: %s", task.get("task_id"), exc)
@@ -370,7 +406,7 @@ def create_task(
                 (
                     item
                     for item in tasks.values()
-                    if item.get("idempotency_key") == idempotency_key
+                    if str(item.get("idempotency_key") or "").strip() == idempotency_key
                 ),
                 None,
             )
@@ -407,6 +443,10 @@ def create_task(
         }
         if fields:
             _merge_dict(tasks[task_id], deepcopy(fields))
+        if idempotency_key:
+            tasks[task_id]["idempotency_key"] = idempotency_key
+        elif "idempotency_key" in tasks[task_id]:
+            tasks[task_id]["idempotency_key"] = None
         if dedupe_key:
             tasks[task_id]["dedupe_key"] = dedupe_key
         _append_log(tasks[task_id], log_message)
@@ -415,12 +455,16 @@ def create_task(
             tasks[task_id]["started_at"] = now
         if normalized_status in TERMINAL_TASK_STATUSES:
             tasks[task_id]["finished_at"] = now
-        persisted = _persist_task(
-            tasks[task_id],
-            event_message=log_message,
-            event_type="task_created",
-            event_audience=event_audience,
-        )
+        try:
+            persisted = _persist_task(
+                tasks[task_id],
+                event_message=log_message,
+                event_type="task_created",
+                event_audience=event_audience,
+            )
+        except DuplicateTaskError:
+            tasks.pop(task_id, None)
+            raise
         if require_persistence and not persisted:
             failed_task = tasks.pop(task_id)
             raise TaskPersistenceError(task_id, failed_task["persistence_failure"])
@@ -458,6 +502,15 @@ def update_task(
         if status is not None:
             current_status = str(task.get("status") or "").lower()
             requested_status = str(status or "").lower()
+            if (
+                _is_translation_task(task)
+                and current_status in TRANSLATION_TERMINAL_STATUSES
+                and requested_status != current_status
+            ):
+                raise ValueError(
+                    f"Translation task {task_id} is terminal ({current_status}) "
+                    f"and cannot transition to {requested_status}"
+                )
             if not (
                 current_status == "cancelling"
                 and requested_status not in {"cancelling", "cancelled", "canceled"}
@@ -484,16 +537,35 @@ def update_task(
         if normalized_status in TERMINAL_TASK_STATUSES:
             task.setdefault("finished_at", now)
             _CANCELLATION_EVENTS.pop(task_id, None)
+            if _is_translation_task(task):
+                task["blocking"] = False
         task["updated_at"] = now
         if event_audience == "user":
             _append_log(task, append_log)
-        _persist_task(
+        persisted = _persist_task(
             task,
             event_message=append_log or message,
             event_type="status_changed" if status is not None else "log",
             event_audience=event_audience,
             event_level=event_level,
         )
+        if (
+            persisted
+            and _translation_lifecycle is not None
+            and _is_translation_task(task)
+            and normalized_status in TRANSLATION_TERMINAL_STATUSES
+        ):
+            try:
+                project_id = str(task.get("project_id") or "")
+                if project_id and _translation_lifecycle.get_project_lock(project_id):
+                    _translation_lifecycle.transition(
+                        task_id,
+                        normalized_status,
+                        message=message or append_log,
+                        event_type="terminal_transition",
+                    )
+            except (OSError, sqlite3.Error, ValueError, KeyError, AttributeError) as exc:
+                logging.error("Failed to finalize translation task %s: %s", task_id, exc)
         snapshot = deepcopy(task)
     _notify_task_update_listeners(task_id, snapshot)
     if push:
@@ -507,6 +579,17 @@ def request_task_cancellation(task_id: str) -> Dict[str, Any]:
         task = _ensure_task(task_id)
         event = _CANCELLATION_EVENTS.setdefault(task_id, threading.Event())
         event.set()
+        if _translation_lifecycle is not None and _is_translation_task(task):
+            try:
+                updated = _translation_lifecycle.request_cancellation(task_id)
+            except (OSError, sqlite3.Error, ValueError, KeyError, AttributeError):
+                updated = None
+            if updated is not None:
+                tasks[task_id] = updated
+                snapshot = deepcopy(updated)
+                _notify_task_update_listeners(task_id, snapshot)
+                push_task_update(task_id)
+                return snapshot
     return update_task(
         task_id,
         status="cancelling",
@@ -520,7 +603,27 @@ def request_task_cancellation(task_id: str) -> Dict[str, Any]:
 def is_task_cancellation_requested(task_id: str) -> bool:
     with _LOCK:
         event = _CANCELLATION_EVENTS.get(task_id)
-        return bool(event and event.is_set())
+        if event and event.is_set():
+            return True
+        task = tasks.get(task_id)
+        if task is not None:
+            status = str(task.get("status") or "").lower()
+            if status in TERMINAL_TASK_STATUSES:
+                return False
+            if status == "cancelling" or task.get("cancellation_requested_at"):
+                return True
+        if _repository is not None:
+            try:
+                persisted = _repository.get_task(task_id)
+            except AttributeError:
+                persisted = None
+            if persisted is not None:
+                status = str(persisted.get("status") or "").lower()
+                return (
+                    status not in TERMINAL_TASK_STATUSES
+                    and (status == "cancelling" or bool(persisted.get("cancellation_requested_at")))
+                )
+        return False
 
 
 def update_progress(

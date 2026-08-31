@@ -11,6 +11,11 @@ class TranslationTaskResponse(BaseModel):
     warning: Optional[Dict[str, Any]] = None
 
 
+class ResumeTranslationTaskRequest(BaseModel):
+    idempotency_key: Optional[str] = None
+    expected_checkpoint_revision: Optional[int] = None
+
+
 class SourceModResponse(BaseModel):
     name: str
     path: str
@@ -74,6 +79,7 @@ class EmbeddedWorkshopConfig(BaseModel):
 class InitialTranslationRequest(BaseModel):
     project_id: str
     idempotency_key: Optional[str] = None
+    resume_from_task_id: Optional[str] = None
     source_lang_code: LanguageCode
     target_lang_codes: List[LanguageCode] = [LanguageCode.ZH_CN]
     api_provider: str = "gemini"

@@ -110,18 +110,37 @@ def _allowed_actions(
     status: str,
     archived_at: Optional[str] = None,
     kind: Optional[str] = None,
+    checkpoint: Optional[Dict[str, Any]] = None,
 ) -> list[str]:
     if archived_at:
         return ["view_task", "restore_task"]
     if status in ACTIVE_STATUSES:
         actions = ["view_task"]
-        if status != "cancelling" and kind in {"initial_translation", "translation"}:
+        if status != "cancelling" and kind in {
+            "initial_translation",
+            "translation",
+            "incremental_translation",
+        }:
             actions.append("cancel_task")
         return actions
-    if status in {"failed", "interrupted"}:
+    if status == "interrupted" and kind in {
+        "initial_translation",
+        "translation",
+        "incremental_translation",
+    }:
+        checkpoint = checkpoint or {}
+        actions = ["view_task"]
+        compatibility = checkpoint.get("compatibility")
+        if checkpoint.get("resumable") is True and compatibility == "compatible":
+            actions.append("resume_task")
+        actions.extend(["start_over_task", "archive_task"])
+        return actions
+    if status == "failed":
         # Remis workflows have different retry inputs and approval boundaries.
         # Route users back to the owning workflow instead of advertising a
         # generic restart or cancellation operation that cannot be honored.
+        return ["view_task", "return_to_workflow", "archive_task"]
+    if status == "interrupted":
         return ["view_task", "return_to_workflow", "archive_task"]
     if status == "completed":
         return ["view_task", "archive_task"]
@@ -205,7 +224,12 @@ def _from_live_task(task: Dict[str, Any], agent_job: Optional[Dict[str, Any]]) -
         idempotency_key=task.get("idempotency_key"),
         source_route=str(task.get("source_route") or ROUTE_BY_KIND.get(kind, "/")),
         workflow_context=dict(task.get("workflow_context") or {}),
-        allowed_actions=_allowed_actions(status, task.get("archived_at"), kind),
+        allowed_actions=_allowed_actions(
+            status,
+            task.get("archived_at"),
+            kind,
+            checkpoint,
+        ),
     )
 
 
@@ -577,7 +601,7 @@ async def cancel_task(task_id: str):
         raise HTTPException(status_code=404, detail="Task not found")
     kind = str(task.get("kind") or task.get("task_kind") or "")
     status = _status(task.get("status"))
-    if kind not in {"initial_translation", "translation"}:
+    if kind not in {"initial_translation", "translation", "incremental_translation"}:
         raise HTTPException(status_code=409, detail="This task does not support cancellation")
     if status == "cancelling":
         return {"task_id": task_id, "status": "cancelling"}

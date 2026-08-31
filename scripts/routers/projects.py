@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import asyncio
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pathlib import Path
 from typing import Optional, Dict, Any, Callable, List
@@ -28,6 +29,14 @@ from scripts.schemas.config import UpdateConfigRequest
 from scripts.core.services.validation_sidecar_service import ValidationSidecarService
 from scripts.core.services.translation_context_readiness_service import (
     TranslationContextReadinessService,
+)
+from scripts.core.services.initial_translation_start_service import (
+    ProjectTranslationLockError,
+    claim_project_translation_lock,
+)
+from scripts.core.translation_cancellation import (
+    ProcessingCancelledError,
+    cancellable_translation_workflow,
 )
 from scripts.routers.provider_runtime import provider_task_fields, resolve_runtime_or_400
 from scripts.core.neologism_manager import neologism_manager
@@ -442,10 +451,8 @@ async def _run_incremental_workflow(request, progress_callback, provider_runtime
     )
 
 
+@cancellable_translation_workflow
 def run_incremental_update_background(task_id: str, project_id: str, request: IncrementalUpdateRequest, provider_runtime=None):
-    from scripts.shared import task_state
-    import asyncio
-
     task_state.update_task(
         task_id,
         status="processing",
@@ -457,8 +464,9 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
         },
         push=True,
     )
-    
     def progress_callback(data: Dict[str, Any]):
+        if task_state.is_task_cancellation_requested(task_id):
+            raise ProcessingCancelledError("Incremental translation cancelled by user.")
         task_state.update_task(
             task_id,
             progress=data,
@@ -467,9 +475,7 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
         )
 
     try:
-        # Run the async workflow in this thread's event loop
         result = asyncio.run(_run_incremental_workflow(request, progress_callback, provider_runtime))
-        
         if result.get("status") == "error":
             failure_message = str(result.get("message") or "Unknown incremental translation error")
             task_state.update_task(
@@ -582,6 +588,8 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
             )
             logging.info(f"Incremental task {task_id} completed successfully.")
 
+    except ProcessingCancelledError:
+        raise
     except Exception as e:
         import traceback
         logging.error(f"Incremental update background task failed: {e}")
@@ -618,6 +626,9 @@ async def run_incremental_update(project_id: str, request: IncrementalUpdateRequ
     """Triggers the incremental update workflow in background."""
     import uuid
     provider_runtime = resolve_runtime_or_400(request.api_provider, request.model)
+    # Incremental checkpoints still use the legacy file-only contract. Never
+    # consume them until that workflow is migrated to task-owned recovery.
+    request.use_resume = False
 
     project = await project_manager.get_project(project_id)
     if not project:
@@ -660,6 +671,7 @@ async def run_incremental_update(project_id: str, request: IncrementalUpdateRequ
             dedupe_key=f"project_translation_write:{project_id}",
             reject_duplicate=True,
         )
+        claim_project_translation_lock(task_id=task_id, project_id=project_id)
     except task_state.DuplicateTaskError as exc:
         raise HTTPException(
             status_code=409,
@@ -667,6 +679,15 @@ async def run_incremental_update(project_id: str, request: IncrementalUpdateRequ
                 "code": "duplicate_task",
                 "message": "This project already has a translation task in progress.",
                 "existing_task_id": exc.existing_task.get("task_id"),
+            },
+        ) from exc
+    except ProjectTranslationLockError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "duplicate_task",
+                "message": "This project already has a translation task in progress.",
+                "existing_task_id": exc.existing_task_id,
             },
         ) from exc
     

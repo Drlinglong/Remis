@@ -477,6 +477,117 @@ async def test_legacy_translation_validation_has_no_agent_actions(monkeypatch):
     task_state.tasks.pop(job_id, None)
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize("status", ["failed", "cancelled", "interrupted"])
+async def test_terminal_agent_job_without_result_hides_project_validation(
+    isolated_registry,
+    monkeypatch,
+    status,
+):
+    job_id = f"agent-{status}-without-result"
+    isolated_registry.record_job(
+        job_id=job_id,
+        project_id="project-with-history",
+        plan_id="plan-1",
+        kind="translation",
+        execution_args={},
+    )
+    task_state.create_task(
+        job_id,
+        status=status,
+        fields={
+            "project_id": "project-with-history",
+            "agent_job_kind": "translation",
+        },
+    )
+
+    async def fake_validation(_project_id, include_items=False):
+        return {
+            "summary": AgentValidationSummary(
+                available=True,
+                errors=2,
+                total=2,
+            ),
+            "items": (
+                [
+                    {"category": "error", "code": "historical_error"},
+                    {"category": "error", "code": "historical_error_2"},
+                ]
+                if include_items
+                else []
+            ),
+            "_raw_items": [
+                {"severity": "error", "error_code": "historical_error"},
+                {"severity": "error", "error_code": "historical_error_2"},
+            ],
+            "last_updated_at": "historical",
+            "scope": "old-run",
+        }
+
+    monkeypatch.setattr(agent_router, "_validation_payload", fake_validation)
+    try:
+        response = await agent_router.get_agent_job(job_id)
+        validation = await agent_router.get_agent_job_validation(job_id)
+    finally:
+        task_state.tasks.pop(job_id, None)
+
+    assert response.status == status
+    assert response.validation == AgentValidationSummary()
+    assert response.allowed_actions == (
+        ["retry"] if status in {"failed", "interrupted"} else []
+    )
+    assert validation["summary"] == AgentValidationSummary()
+    assert validation["items"] == []
+    assert validation["last_updated_at"] is None
+    assert validation["scope"] is None
+    assert validation["allowed_actions"] == []
+
+
+@pytest.mark.asyncio
+async def test_completed_agent_job_with_output_keeps_project_validation(
+    isolated_registry,
+    monkeypatch,
+):
+    job_id = "agent-completed-with-output"
+    isolated_registry.record_job(
+        job_id=job_id,
+        project_id="project-with-current-output",
+        plan_id="plan-1",
+        kind="translation",
+        execution_args={},
+    )
+    task_state.create_task(
+        job_id,
+        status="completed",
+        fields={
+            "project_id": "project-with-current-output",
+            "agent_job_kind": "translation",
+            "output_dirs": ["C:/current-output"],
+        },
+    )
+
+    async def fake_validation(_project_id, include_items=False):
+        return {
+            "summary": AgentValidationSummary(available=True),
+            "items": [],
+            "_raw_items": [],
+        }
+
+    monkeypatch.setattr(agent_router, "_validation_payload", fake_validation)
+    try:
+        response = await agent_router.get_agent_job(job_id)
+        validation = await agent_router.get_agent_job_validation(job_id)
+    finally:
+        task_state.tasks.pop(job_id, None)
+
+    assert response.status == "completed"
+    assert response.validation.available is True
+    assert response.output_paths == ["C:/current-output"]
+    assert response.allowed_actions == ["inspect_validation", "approve_export"]
+    assert validation["summary"].available is True
+    assert validation["allowed_actions"] == ["approve_export"]
+
+
 def test_project_import_path_rejects_home_directory():
     with pytest.raises(HTTPException) as exc_info:
         agent_router._validate_agent_import_path(str(Path.home()))

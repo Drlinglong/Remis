@@ -1,16 +1,14 @@
-"""Build-channel feature policy for unfinished production workflows."""
-
-from scripts.app_settings import BUILD_PROFILE
+"""Feature policy for governed production workflows."""
 
 
 def mod_archive_enabled() -> bool:
-    """Expose project archive workflows only in the isolated Agent Preview build."""
-    return BUILD_PROFILE.channel == "agent-preview"
+    """Project Archive now uses persisted, source-snapshot-bound readiness state."""
+    return True
 
 
 def checkpoint_resume_enabled() -> bool:
-    """Keep checkpoint consumption out of stable builds until its state model is rebuilt."""
-    return BUILD_PROFILE.channel == "agent-preview"
+    """Checkpoint recovery is owned by the persisted translation task lifecycle."""
+    return True
 
 
 def enforce_checkpoint_resume_policy(requested: bool) -> bool:
@@ -45,7 +43,7 @@ def apply_agent_capability_policy(actions: dict) -> dict:
         "supported": True,
         "requires_approval": True,
         "endpoint": "/api/tasks/{task_id}/cancel",
-        "task_kinds": ["initial_translation", "translation"],
+        "task_kinds": ["initial_translation", "translation", "incremental_translation"],
     }
     if not mod_archive_enabled():
         for name in (

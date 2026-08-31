@@ -102,6 +102,7 @@ def _process_file_tasks(
                     project_id,
                     version_id,
                     all_files_content,
+                    progress_metadata=run_state.checkpoint_progress(),
                 )
 
 
@@ -124,6 +125,64 @@ def _prepare_reference_run(reference_reuse, game_profile, source_lang, target_la
     return resolver, [], {"model_submitted": 0}
 
 
+def _finalize_language_translation(
+    *, mod_name, game_profile, target_lang, source_lang, output_folder_name,
+    proofreading_tracker, update_progress, override_path, output_dir_path,
+    project_id, embedded_workshop, reference_protected_entries,
+    reference_resolver, reference_run_metrics, selected_provider, model_name,
+    concurrency_limit, batch_size_limit, rpm_limit, provider_runtime,
+) -> dict:
+    dynamic_valid_tags = finalize_language_run(
+        mod_name,
+        game_profile,
+        target_lang,
+        source_lang,
+        output_folder_name,
+        proofreading_tracker,
+        update_progress,
+        override_path=override_path,
+    )
+    export_workshop_issues_for_language(
+        output_dir_path,
+        override_path,
+        mod_name,
+        project_id,
+        source_lang,
+        target_lang,
+        game_profile,
+        dynamic_valid_tags=dynamic_valid_tags,
+    )
+    workshop_config = dict(embedded_workshop or {})
+    workshop_config["protected_entries"] = reference_protected_entries
+    run_embedded_workshop_for_language(
+        workshop_config,
+        output_dir_path,
+        override_path,
+        mod_name,
+        project_id,
+        source_lang,
+        target_lang,
+        game_profile,
+        selected_provider,
+        model_name,
+        concurrency_limit=concurrency_limit,
+        batch_size_limit=batch_size_limit,
+        rpm_limit=rpm_limit,
+        dynamic_valid_tags=dynamic_valid_tags,
+        update_progress_callback=update_progress,
+        provider_runtime=provider_runtime,
+    )
+    reference_metrics = (
+        reference_resolver.metrics()
+        if reference_resolver is not None
+        else {"reference_enabled": False, "reference_matched": 0, "api_skipped": 0}
+    )
+    reference_metrics["target_lang"] = target_lang.get("code")
+    reference_metrics.update(reference_run_metrics)
+    logging.info("Vanilla reference reuse metrics: %s", reference_metrics)
+    return reference_metrics
+
+
 def run_language_translation(
     *,
     mod_name: str, source_lang: dict, target_lang: dict,
@@ -139,7 +198,10 @@ def run_language_translation(
     reference_reuse: Optional[dict] = None,
     source_context_overlap: int = 0,
     context_selection: Optional[Any] = None, provider_runtime: Any = None,
-    should_cancel: Optional[Any] = None,
+    should_cancel: Optional[Any] = None, task_id: Optional[str] = None,
+    run_id: Optional[str] = None, source_root: Optional[str] = None,
+    source_snapshot_hash: Optional[str] = None,
+    config_fingerprint: Optional[str] = None,
 ) -> dict:
     logging.info(i18n.t("translating_to_language", lang_name=target_lang["name"]))
     proofreading_tracker = create_proofreading_tracker(
@@ -152,8 +214,15 @@ def run_language_translation(
         source_lang,
         target_lang,
         use_resume, context_metadata=context_selection.metadata if context_selection else None,
+        task_id=task_id,
+        run_id=run_id,
+        project_id=project_id,
+        source_root=source_root,
+        source_snapshot_hash=source_snapshot_hash,
+        config_fingerprint=config_fingerprint,
+        provider_runtime=provider_runtime,
     )
-    run_state = LanguageRunState()
+    run_state = LanguageRunState.from_checkpoint(checkpoint_manager)
     progress_lock = threading.Lock()
     (
         reference_resolver,
@@ -211,55 +280,25 @@ def run_language_translation(
         logging.error(message)
         raise RuntimeError(message)
 
-    dynamic_valid_tags = finalize_language_run(
-        mod_name,
-        game_profile,
-        target_lang,
-        source_lang,
-        output_folder_name,
-        proofreading_tracker,
-        update_progress,
+    return _finalize_language_translation(
+        mod_name=mod_name,
+        game_profile=game_profile,
+        target_lang=target_lang,
+        source_lang=source_lang,
+        output_folder_name=output_folder_name,
+        proofreading_tracker=proofreading_tracker,
+        update_progress=update_progress,
         override_path=override_path,
-    )
-    export_workshop_issues_for_language(
-        output_dir_path,
-        override_path,
-        mod_name,
-        project_id,
-        source_lang,
-        target_lang,
-        game_profile,
-        dynamic_valid_tags=dynamic_valid_tags,
-    )
-    workshop_config = dict(embedded_workshop or {})
-    workshop_config["protected_entries"] = reference_protected_entries
-    run_embedded_workshop_for_language(
-        workshop_config,
-        output_dir_path,
-        override_path,
-        mod_name,
-        project_id,
-        source_lang,
-        target_lang,
-        game_profile,
-        selected_provider,
-        model_name,
+        output_dir_path=output_dir_path,
+        project_id=project_id,
+        embedded_workshop=embedded_workshop,
+        reference_protected_entries=reference_protected_entries,
+        reference_resolver=reference_resolver,
+        reference_run_metrics=reference_run_metrics,
+        selected_provider=selected_provider,
+        model_name=model_name,
         concurrency_limit=concurrency_limit,
         batch_size_limit=batch_size_limit,
         rpm_limit=rpm_limit,
-        dynamic_valid_tags=dynamic_valid_tags,
-        update_progress_callback=update_progress, provider_runtime=provider_runtime,
+        provider_runtime=provider_runtime,
     )
-    reference_metrics = (
-        reference_resolver.metrics()
-        if reference_resolver is not None
-        else {
-            "reference_enabled": False,
-            "reference_matched": 0,
-            "api_skipped": 0,
-        }
-    )
-    reference_metrics["target_lang"] = target_lang.get("code")
-    reference_metrics.update(reference_run_metrics)
-    logging.info("Vanilla reference reuse metrics: %s", reference_metrics)
-    return reference_metrics

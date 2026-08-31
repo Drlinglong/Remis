@@ -1,11 +1,18 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  isIncrementalTaskTerminal,
   resyncIncrementalTask,
   shouldResyncIncrementalTask,
 } from './incrementalTranslationTaskResync';
 
 describe('incrementalTranslationTaskResync', () => {
+  it('treats interruption and cancellation as terminal statuses', () => {
+    expect(isIncrementalTaskTerminal('interrupted')).toBe(true);
+    expect(isIncrementalTaskTerminal('cancelled')).toBe(true);
+    expect(isIncrementalTaskTerminal('running')).toBe(false);
+  });
+
   it('requires restored active work with a task id and mode', () => {
     expect(shouldResyncIncrementalTask({
       currentTaskId: 'task-1',
@@ -75,6 +82,29 @@ describe('incrementalTranslationTaskResync', () => {
     })).resolves.toEqual({ source: 'websocket', terminal: false });
 
     expect(connectWebSocket).toHaveBeenCalledWith('task-2', false);
+  });
+
+  it('routes interrupted tasks through the terminal update handler', async () => {
+    const projectService = {
+      getTaskStatus: vi.fn().mockResolvedValue({ data: { status: 'interrupted' } }),
+    };
+    const handleTaskUpdate = vi.fn();
+    const connectWebSocket = vi.fn();
+
+    await expect(resyncIncrementalTask({
+      connectWebSocket,
+      currentTaskId: 'task-interrupted',
+      currentTaskMode: 'execution',
+      handleTaskUpdate,
+      projectService,
+    })).resolves.toEqual({ source: 'polling', terminal: true });
+
+    expect(handleTaskUpdate).toHaveBeenCalledWith(
+      { status: 'interrupted' },
+      false,
+      'polling',
+    );
+    expect(connectWebSocket).not.toHaveBeenCalled();
   });
 
   it('falls back to websocket reconnect when status polling fails', async () => {

@@ -101,7 +101,13 @@ def test_initialize_database_builds_schema_and_imports_seed(tmp_path, monkeypatc
         (20, "add_context_synthesis_checkpoints"),
         (21, "add_context_tree_v2_storage"),
         (22, "extend_context_tree_v2_results"),
+        (23, "add_translation_task_lifecycle"),
+        (24, "add_task_idempotency_uniqueness"),
     ]
+
+    cursor.execute("PRAGMA index_list(background_tasks)")
+    task_indexes = {row[1]: row[2] for row in cursor.fetchall()}
+    assert task_indexes["ux_background_tasks_idempotency_key_nonempty"] == 1
 
     cursor.execute("SELECT source_path, target_path FROM projects WHERE project_id = 'proj_1'")
     source_path, target_path = cursor.fetchone()
@@ -370,6 +376,8 @@ def test_run_projects_db_migrations_upgrades_legacy_schema(tmp_path):
         (20,),
         (21,),
         (22,),
+        (23,),
+        (24,),
     ]
 
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='project_watches'")

@@ -1,3 +1,5 @@
+import hashlib
+import json
 import logging
 from contextlib import contextmanager
 from dataclasses import dataclass, field
@@ -17,6 +19,46 @@ class LanguageRunState:
     recovered_retries: int = 0
     format_issues: int = 0
 
+    @classmethod
+    def from_checkpoint(cls, checkpoint_manager: Any) -> "LanguageRunState":
+        """Hydrate counters from the task-owned checkpoint projection."""
+        progress = getattr(checkpoint_manager, "progress", {}) or {}
+        metadata = getattr(checkpoint_manager, "metadata", {}) or {}
+        values = {**metadata, **progress}
+        return cls(
+            completed_batches=max(0, int(values.get("completed_batches", 0) or 0)),
+            successful_batches=max(0, int(values.get("successful_batches", 0) or 0)),
+            failed_batches=max(0, int(values.get("failed_batches", 0) or 0)),
+        )
+
+    def checkpoint_progress(self) -> dict[str, int]:
+        return {
+            "completed_batches": self.completed_batches,
+            "successful_batches": self.successful_batches,
+            "failed_batches": self.failed_batches,
+        }
+
+
+def _config_fingerprint(
+    selected_provider: str,
+    model_name: Optional[str],
+    source_lang: dict,
+    target_lang: dict,
+    context_metadata: Optional[dict],
+    provider_runtime: Any,
+) -> Optional[str]:
+    if provider_runtime is not None and hasattr(provider_runtime, "safe_metadata"):
+        return provider_runtime.safe_metadata().get("config_fingerprint")
+    payload = {
+        "provider": selected_provider,
+        "model": model_name or selected_provider,
+        "source": source_lang.get("code"),
+        "target": target_lang.get("code"),
+        "context_release_id": (context_metadata or {}).get("context_release_id"),
+    }
+    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
 
 def build_checkpoint_manager(
     output_dir_path: str,
@@ -26,6 +68,14 @@ def build_checkpoint_manager(
     target_lang: dict,
     use_resume: bool,
     context_metadata: Optional[dict] = None,
+    *,
+    task_id: Optional[str] = None,
+    run_id: Optional[str] = None,
+    project_id: Optional[str] = None,
+    source_root: Optional[str] = None,
+    source_snapshot_hash: Optional[str] = None,
+    config_fingerprint: Optional[str] = None,
+    provider_runtime: Any = None,
 ) -> CheckpointManager:
     current_config = {
         "model_name": model_name or selected_provider,
@@ -34,13 +84,30 @@ def build_checkpoint_manager(
     }
     if context_metadata:
         current_config["context_release_id"] = context_metadata.get("context_release_id")
-        current_config["source_snapshot_hash"] = context_metadata.get("source_snapshot_hash")
+    source_snapshot_hash = source_snapshot_hash or (context_metadata or {}).get("source_snapshot_hash")
+    if source_snapshot_hash:
+        current_config["source_snapshot_hash"] = source_snapshot_hash
+    config_fingerprint = config_fingerprint or _config_fingerprint(
+        selected_provider,
+        model_name,
+        source_lang,
+        target_lang,
+        context_metadata,
+        provider_runtime,
+    )
     checkpoint_filename = f".remis_checkpoint_{target_lang.get('code', 'unknown')}.json"
     checkpoint_manager = CheckpointManager(
         output_dir_path,
         current_config=current_config,
         checkpoint_filename=checkpoint_filename,
+        source_root=source_root,
+        task_id=task_id,
+        run_id=run_id,
+        project_id=project_id,
+        config_fingerprint=config_fingerprint,
+        source_snapshot_hash=source_snapshot_hash,
     )
+    checkpoint_manager.resume_enabled = bool(use_resume)
     if not use_resume:
         checkpoint_manager.clear_checkpoint()
         logging.info(f"use_resume is False - cleared checkpoint for {target_lang.get('code')}")

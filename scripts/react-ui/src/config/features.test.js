@@ -8,5 +8,7 @@ describe('build-channel features', () => {
     expect(BUILD_CHANNEL).toBe(expectedPreview ? 'agent-preview' : 'stable');
     expect(IS_AGENT_PREVIEW).toBe(expectedPreview);
     expect(FEATURES.ENABLE_REMIS_COPILOT).toBe(expectedPreview);
+    expect(FEATURES.ENABLE_CHECKPOINT_RESUME).toBe(true);
+    expect(FEATURES.ENABLE_MOD_ARCHIVE).toBe(true);
   });
 });

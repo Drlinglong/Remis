@@ -152,7 +152,7 @@ def setup_app_routers():
     """Deferred import and registration of routers to speed up initial boot."""
     panic_log("Including routers...")
     from scripts.routers import (
-        projects, project_watches, translation, glossary, proofreading, docs, tools,
+        projects, project_watches, translation, translation_recovery, glossary, proofreading, docs, tools,
         neologism, validation, config, system, prompts,
         agent_workshop, agent,
         tasks,
@@ -164,6 +164,7 @@ def setup_app_routers():
     app.include_router(projects.router)
     app.include_router(project_watches.router)
     app.include_router(translation.router)
+    app.include_router(translation_recovery.router)
     app.include_router(glossary.router)
     app.include_router(proofreading.router)
     app.include_router(agent_workshop.router)

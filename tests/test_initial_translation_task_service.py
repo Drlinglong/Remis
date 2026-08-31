@@ -67,6 +67,34 @@ def test_build_file_task_iterator_skips_completed_files():
     assert result == []
 
 
+def test_checkpoint_lookup_uses_project_relative_file_path():
+    class TrackingCheckpoint(FakeCheckpoint):
+        def __init__(self):
+            super().__init__()
+            self.lookups = []
+
+        def is_file_completed(self, filename):
+            self.lookups.append(filename)
+            return False
+
+    checkpoint = TrackingCheckpoint()
+    files = [{
+        "filename": "events_l_english.yml",
+        "file_path": r"module_a\localization\english\events_l_english.yml",
+        "root": "root",
+        "texts_to_translate": ["text"],
+        "original_lines": [],
+        "key_map": [],
+        "is_custom_loc": False,
+    }]
+
+    list(_build_iterator(files, checkpoint=checkpoint))
+
+    assert checkpoint.lookups == [
+        "module_a/localization/english/events_l_english.yml"
+    ]
+
+
 def test_resume_after_restart_does_not_resubmit_completed_file(tmp_path):
     checkpoint = CheckpointManager(
         str(tmp_path),

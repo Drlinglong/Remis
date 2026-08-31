@@ -17,8 +17,8 @@ export const FEATURES = {
 
     // Mature workflow pages
     ENABLE_NEOLOGISM_TRIBUNAL: true,
-    ENABLE_MOD_ARCHIVE: IS_AGENT_PREVIEW,
-    ENABLE_CHECKPOINT_RESUME: IS_AGENT_PREVIEW,
+    ENABLE_MOD_ARCHIVE: true,
+    ENABLE_CHECKPOINT_RESUME: true,
 
     // Help Copilot is visible only in the explicit Agent Preview build channel.
     ENABLE_REMIS_COPILOT: IS_AGENT_PREVIEW,

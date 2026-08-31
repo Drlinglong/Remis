@@ -1,5 +1,6 @@
 import json
 import logging
+from types import SimpleNamespace
 
 from scripts.core.services.initial_translation_progress_service import (
     LanguageRunState,
@@ -52,6 +53,47 @@ def test_build_checkpoint_manager_clears_checkpoint_when_resume_disabled(tmp_pat
 
     assert manager.CHECKPOINT_FILENAME == ".remis_checkpoint_ja.json"
     assert not checkpoint_path.exists()
+
+
+def test_build_checkpoint_manager_carries_v2_recovery_identity(tmp_path):
+    source_root = tmp_path / "source"
+    manager = build_checkpoint_manager(
+        str(tmp_path / "output"),
+        selected_provider="gemini",
+        model_name="gemini-2.5-flash",
+        source_lang={"code": "en"},
+        target_lang={"code": "zh-CN"},
+        use_resume=True,
+        context_metadata={
+            "context_release_id": "release-213",
+            "source_snapshot_hash": "source-sha-213",
+        },
+        task_id="task-213",
+        run_id="run-213",
+        project_id="project-213",
+        source_root=str(source_root),
+    )
+
+    assert manager.identity["task_id"] == "task-213"
+    assert manager.identity["run_id"] == "run-213"
+    assert manager.identity["project_id"] == "project-213"
+    assert manager.identity["source_snapshot_hash"] == "source-sha-213"
+    assert manager.identity["config_fingerprint"]
+    assert str(manager.source_root) == str(source_root.resolve())
+    assert manager.resume_enabled is True
+
+
+def test_language_run_state_hydrates_cumulative_batch_counters():
+    state = LanguageRunState.from_checkpoint(SimpleNamespace(
+        progress={"completed_batches": 5, "successful_batches": 4, "failed_batches": 1},
+        metadata={"completed_batches": 2},
+    ))
+
+    assert state.checkpoint_progress() == {
+        "completed_batches": 5,
+        "successful_batches": 4,
+        "failed_batches": 1,
+    }
 
 
 def test_emit_progress_keeps_callback_payload_contract():

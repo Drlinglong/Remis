@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNotification } from '../context/NotificationContextCore';
 import { useTranslationContext } from '../context/TranslationContextCore';
@@ -38,7 +38,6 @@ import {
   findLanguageByCode,
   findProjectById,
 } from '../utils/initialTranslation';
-import api from '../utils/api';
 import { useTaskCenter } from '../context/TaskCenterContextCore';
 import { useInitialReferenceReuse } from '../hooks/useInitialReferenceReuse';
 import { FEATURES } from '../config/features';
@@ -177,9 +176,6 @@ const InitialTranslation = () => {
   const location = useLocation();
 
   const [, setStatus] = useState(null);
-  const [checkpointHintInfo, setCheckpointHintInfo] = useState(null);
-  const checkpointHintRequestRef = useRef(0);
-
   const form = useForm({
     initialValues: {
       source_lang_code: 'en',
@@ -236,9 +232,6 @@ const InitialTranslation = () => {
 
   const selectedProject = findProjectById(projects, selectedProjectId);
   const filteredProjects = filterProjects(projects, gameFilter, searchQuery);
-  const checkpointTargetSignature = form.values.english_disguise
-    ? 'custom'
-    : form.values.target_lang_codes.join('|');
   const referenceReuse = useInitialReferenceReuse({
     excludedEntries: form.values.reference_reuse_excluded_entries,
     localizationPath: form.values.reference_localization_path,
@@ -310,46 +303,6 @@ const InitialTranslation = () => {
   }, [active, setPageContext]);
 
   useEffect(() => {
-    if (!FEATURES.ENABLE_CHECKPOINT_RESUME || active !== 1 || !selectedProject?.label) {
-      setCheckpointHintInfo(null);
-      return;
-    }
-
-    const targetLangCodes = getTargetLangCodes(form.values);
-    if (!targetLangCodes.length) {
-      setCheckpointHintInfo(null);
-      return;
-    }
-
-    const requestId = checkpointHintRequestRef.current + 1;
-    checkpointHintRequestRef.current = requestId;
-
-    api.post('/api/translation/checkpoint-status', {
-      project_id: selectedProjectId,
-      target_lang_codes: targetLangCodes,
-    })
-      .then((response) => {
-        if (checkpointHintRequestRef.current !== requestId) {
-          return;
-        }
-        setCheckpointHintInfo(response.data?.exists ? response.data : null);
-      })
-      .catch((error) => {
-        if (checkpointHintRequestRef.current !== requestId) {
-          return;
-        }
-        console.error('Failed to check checkpoint hint:', error);
-        setCheckpointHintInfo(null);
-      });
-  }, [
-    active,
-    checkpointTargetSignature,
-    form.values,
-    selectedProject?.label,
-    selectedProjectId,
-  ]);
-
-  useEffect(() => {
     if (form.values.embedded_workshop_follow_primary_settings) {
       return;
     }
@@ -375,7 +328,7 @@ const InitialTranslation = () => {
   // Polling Logic removed from here (now in TranslationContext)
 
   const {
-    checkpointInfo,
+    checkpointInfo: recoveryInfo,
     handleResume,
     handleStartClick,
     handleStartOver,
@@ -396,6 +349,16 @@ const InitialTranslation = () => {
     setTranslationDetails,
     t,
   });
+
+  const checkpointHintInfo = recoveryInfo?.checkpoint?.available
+    ? {
+      exists: true,
+      completed_count: recoveryInfo.checkpoint.completed_units ?? 0,
+      total_files_estimate: recoveryInfo.checkpoint.total_files_estimate ?? 0,
+      metadata: recoveryInfo.checkpoint.metadata,
+      targets: recoveryInfo.checkpoint.targets || [],
+    }
+    : null;
 
   const handleBack = () => {
     if (active > 0) {
@@ -512,7 +475,7 @@ const InitialTranslation = () => {
 
       {FEATURES.ENABLE_CHECKPOINT_RESUME && (
         <ResumeCheckpointModal
-          checkpointInfo={checkpointInfo}
+          checkpointInfo={checkpointHintInfo}
           onClose={() => setResumeModalOpen(false)}
           onResume={handleResume}
           onStartOver={handleStartOver}

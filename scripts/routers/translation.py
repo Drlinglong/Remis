@@ -10,9 +10,6 @@ from scripts.shared.state import tasks
 from scripts.shared.services import project_manager, glossary_manager, archive_manager
 from scripts.shared import task_state
 from scripts.schemas.translation import (
-    CheckpointDeleteResponse,
-    CheckpointStatusRequest,
-    CheckpointStatusResponse,
     InitialTranslationRequest,
     SourceModResponse,
     TranslationRequestV2,
@@ -31,6 +28,16 @@ from scripts.app_settings import (
 )
 from scripts.core.services.reference_reuse_preview_service import ReferenceReusePreviewService
 from scripts.core.services.translation_progress_callback import build_translation_progress_callback
+from scripts.core.services.initial_translation_start_service import (
+    ProjectTranslationLockError,
+    create_initial_translation_task,
+)
+from scripts.core.services.translation_task_runtime import (
+    finalize_translation_task as finalize_task,
+    get_output_directories as _get_output_directories,
+    get_output_folder_name as _get_output_folder_name,
+    prepare_initial_recovery,
+)
 from scripts.core.services.translation_workflow_outcome import (
     history_completion_description as _history_completion_description,
     record_context_metadata as _record_context_metadata,
@@ -38,16 +45,17 @@ from scripts.core.services.translation_workflow_outcome import (
 )
 from scripts.workflows import initial_translate
 from scripts.utils import i18n
-from scripts.utils.system_utils import slugify_to_ascii
-from scripts.core.checkpoint_manager import CheckpointManager
-from scripts.core.provider_errors import provider_failure_task_fields
 from scripts.core.services.translation_context_service import context_workflow_kwargs
 from scripts.core.services.translation_resource_policy import resolve_translation_run_resources
 from scripts.routers.provider_runtime import provider_task_fields, resolve_runtime_or_400
 from scripts.core.services.translation_context_readiness_service import (
     TranslationContextReadinessService,
 )
-from scripts.core.feature_policy import apply_translation_request_policy, enforce_checkpoint_resume_policy
+from scripts.core.feature_policy import (
+    apply_translation_request_policy,
+    checkpoint_resume_enabled,
+    enforce_checkpoint_resume_policy,
+)
 from scripts.core.translation_cancellation import ProcessingCancelledError, cancellable_translation_workflow
 from scripts.core.neologism_manager import neologism_manager
 import asyncio
@@ -138,47 +146,6 @@ async def preview_reference_reuse(request: ReferenceReusePreviewRequest):
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-def _get_output_folder_name(mod_name: str, target_lang: dict) -> str:
-    prefix = target_lang.get("folder_prefix", f"{target_lang.get('code', 'unknown')}-")
-    return f"{prefix}{slugify_to_ascii(mod_name)}"
-
-
-def _get_output_directories(mod_name: str, target_languages: List[dict]) -> List[str]:
-    if len(target_languages) > 1:
-        return [os.path.join(DEST_DIR, f"Multilanguage-{slugify_to_ascii(mod_name)}")]
-    return [os.path.join(DEST_DIR, _get_output_folder_name(mod_name, target_lang)) for target_lang in target_languages]
-
-
-def _get_checkpoint_output_dir(mod_name: str, target_languages: List[dict]) -> str:
-    return _get_output_directories(mod_name, target_languages)[0]
-
-
-def finalize_task(
-    task_id: str,
-    status: str,
-    log_message: Optional[str] = None,
-    stage: Optional[str] = None,
-    error_count: Optional[int] = None,
-    error: Optional[BaseException] = None,
-):
-    """Persist terminal task state and force a final status push to the frontend."""
-    progress = {}
-    if status in {"completed", "partial_failed"}:
-        progress["percent"] = 100
-    if error_count is not None:
-        progress["error_count"] = error_count
-    if stage:
-        progress["stage"] = stage
-    task_state.update_task(
-        task_id,
-        status=status,
-        append_log=log_message,
-        progress=progress or None,
-        fields=provider_failure_task_fields(error) if error else None,
-        push=True,
-    )
-
-
 def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, source_lang_code: str, target_lang_codes: List[str], api_provider: str, mod_context: str, project_id: Optional[str] = None, provider_runtime=None):
     """
     A wrapper for the core translation logic to be run in the background.
@@ -218,6 +185,7 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
             selected_provider=api_provider,
             mod_context=mod_context,
             provider_runtime=provider_runtime,
+            use_resume=False,
         )
 
         task_state.update_task(
@@ -261,6 +229,16 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
                 logging.error(f"Failed to log failure activity: {e}")
 
 
+def _resolve_game_profile(game_profile_id: str):
+    normalized_game_id = "victoria3" if game_profile_id == "vic3" else game_profile_id
+    if normalized_game_id != game_profile_id:
+        logging.info("Normalized game_id 'vic3' to 'victoria3'")
+    return GAME_PROFILES.get(normalized_game_id) or next(
+        (profile for profile in GAME_PROFILES.values() if profile["id"] == normalized_game_id),
+        None,
+    )
+
+
 @cancellable_translation_workflow
 def run_translation_workflow_v2(
     task_id: str, mod_name: str, game_profile_id: str, source_lang_code: str,
@@ -280,6 +258,7 @@ def run_translation_workflow_v2(
     context_release_id: Optional[str] = None,
     context_character_budget: int = 4000,
     translation_context_mode: Optional[str] = None,
+    recovery_identity: Optional[dict] = None,
     provider_runtime=None,
 ):
     i18n.load_language('en_US')
@@ -306,13 +285,7 @@ def run_translation_workflow_v2(
     )
     try:
         logging.info(f"Starting V2 Workflow for Task {task_id}"); logging.info(f"Params: game_profile_id={game_profile_id}, source={source_lang_code}, targets={target_lang_codes}")
-        normalized_game_id = game_profile_id
-        if game_profile_id == 'vic3':
-            normalized_game_id = 'victoria3'
-            logging.info(f"Normalized game_id 'vic3' to '{normalized_game_id}'")
-        game_profile = GAME_PROFILES.get(normalized_game_id)
-        if not game_profile:
-            game_profile = next((p for p in GAME_PROFILES.values() if p['id'] == normalized_game_id), None)
+        game_profile = _resolve_game_profile(game_profile_id)
         source_lang = next((lang for lang in LANGUAGES.values() if lang["code"] == source_lang_code), None)
         target_languages = _resolve_target_languages(target_lang_codes)
         logging.info(f"Resolved: GameProfile={game_profile is not None}, SourceLang={source_lang is not None}, TargetLangs={len(target_languages)}")
@@ -365,6 +338,7 @@ def run_translation_workflow_v2(
             reference_reuse=reference_reuse,
             provider_runtime=provider_runtime,
             should_cancel=lambda: task_state.is_task_cancellation_requested(task_id),
+            recovery_identity=recovery_identity,
             **context_workflow_kwargs({
                 "use_project_context": resource_policy.include_project_context,
                 "context_release_id": context_release_id,
@@ -423,6 +397,33 @@ def run_translation_workflow_v2(
             except Exception as e:
                 logging.error(f"Failed to log failure activity (v2): {e}")
 
+
+def _enqueue_project_translation(
+    background_tasks: BackgroundTasks,
+    task_id: str,
+    mod_name: str,
+    project: dict,
+    request: InitialTranslationRequest,
+    provider_runtime,
+    recovery: dict,
+) -> None:
+    background_tasks.add_task(
+        run_translation_workflow_v2,
+        task_id, mod_name, project["game_id"], request.source_lang_code,
+        request.target_lang_codes, request.api_provider, request.mod_context,
+        request.selected_glossary_ids, request.model, request.use_main_glossary,
+        request.custom_lang_config, project_id=request.project_id,
+        use_resume=request.use_resume, clean_source=request.clean_source,
+        batch_size_limit=request.batch_size_limit,
+        source_context_overlap=request.source_context_overlap,
+        concurrency_limit=request.concurrency_limit, rpm_limit=request.rpm_limit,
+        embedded_workshop=request.embedded_workshop.model_dump() if request.embedded_workshop else None,
+        reference_reuse=request.reference_reuse.model_dump() if request.reference_reuse else None,
+        recovery_identity=recovery,
+        **({"provider_runtime": provider_runtime} if provider_runtime else {}),
+        **context_workflow_kwargs(request),
+    )
+
 @router.post(
     "/api/translate/start",
     response_model=TranslationTaskResponse,
@@ -435,6 +436,15 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
     project = await project_manager.get_project(request.project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+    source_path = str(project.get("source_path") or "")
+    if request.resume_from_task_id and not checkpoint_resume_enabled():
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "checkpoint_resume_disabled",
+                "message": "Checkpoint resume is not enabled for this build channel.",
+            },
+        )
     archive_disabled_warning = apply_translation_request_policy(request)
     provider_runtime = resolve_runtime_or_400(request.api_provider, request.model)
     context_resolution = await translation_context_readiness.resolve_mode(
@@ -451,34 +461,30 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
     )
     request.translation_context_mode = context_resolution.effective_mode
     task_id = str(uuid.uuid4())
+    mod_name = os.path.basename(os.path.normpath(source_path))
+    target_languages = _resolve_requested_target_languages(
+        [code.value for code in request.target_lang_codes],
+        request.custom_lang_config,
+    )
     try:
-        task_state.create_task(
-            task_id,
-            status="pending",
-            log_message=context_resolution.user_message,
-            fields={
-                "kind": "initial_translation",
-                "project_id": request.project_id,
-                "project_context": {"name": project["name"], "game_id": project.get("game_id")},
-                "title": f"Translate {project['name']}",
-                "source_route": "/translation",
-                "created_by": {"type": "user"},
-                "blocking": True,
-                "idempotency_key": request.idempotency_key,
-                "checkpoint": {
-                    "available": False,
-                    "resume_supported": True,
-                    "stage": "Queued",
-                    "metadata": {"resume_requested": request.use_resume},
-                },
-                "translation_context_mode": request.translation_context_mode,
-                **({
-                    "workflow_context": {"context_resolution": context_resolution.warning},
-                } if context_resolution.warning else {}),
-                **provider_task_fields(provider_runtime),
-            },
-            dedupe_key=f"project_translation_write:{request.project_id}",
-            reject_duplicate=True,
+        mod_name, recovery = prepare_initial_recovery(
+            request=request,
+            project=project,
+            task_id=task_id,
+            target_languages=target_languages,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    resume_supported = bool(request.use_resume and checkpoint_resume_enabled())
+    try:
+        create_initial_translation_task(
+            task_id=task_id,
+            project=project,
+            request=request,
+            context_resolution=context_resolution,
+            provider_fields=provider_task_fields(provider_runtime),
+            recovery=recovery,
+            resume_supported=resume_supported,
         )
     except task_state.DuplicateTaskError as exc:
         raise HTTPException(
@@ -489,11 +495,15 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
                 "existing_task_id": exc.existing_task.get("task_id"),
             },
         ) from exc
-
-    mod_name = os.path.basename(project['source_path'])
-    # Ensure source path exists
-    if not os.path.exists(project['source_path']):
-         raise HTTPException(status_code=400, detail=f"Project source path not found: {project['source_path']}")
+    except ProjectTranslationLockError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "duplicate_task",
+                "message": "This project already has a translation task in progress.",
+                "existing_task_id": exc.existing_task_id,
+            },
+        ) from exc
 
     task_state.update_task(
         task_id,
@@ -502,39 +512,13 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
         push=True,
     )
 
-    background_tasks.add_task(
-        run_translation_workflow_v2,
-        task_id,
-        mod_name,
-        project['game_id'], # Assuming game_id maps to game_profile_id
-        request.source_lang_code,
-        request.target_lang_codes,
-        request.api_provider,
-        request.mod_context,
-        request.selected_glossary_ids,
-        request.model,
-        request.use_main_glossary,
-        request.custom_lang_config,
-        project_id=request.project_id,
-        use_resume=request.use_resume,
-        clean_source=request.clean_source,
-        batch_size_limit=request.batch_size_limit,
-        source_context_overlap=request.source_context_overlap,
-        concurrency_limit=request.concurrency_limit,
-        rpm_limit=request.rpm_limit,
-        embedded_workshop=request.embedded_workshop.model_dump() if request.embedded_workshop else None,
-        reference_reuse=request.reference_reuse.model_dump() if request.reference_reuse else None,
-        **({"provider_runtime": provider_runtime} if provider_runtime else {}),
-        **context_workflow_kwargs(request),
+    _enqueue_project_translation(
+        background_tasks, task_id, mod_name, project, request, provider_runtime, recovery,
     )
 
     # Auto-register translation path (Optimistic registration)
     # We predict the output path based on the request
     try:
-        target_languages = _resolve_requested_target_languages(
-            [code.value for code in request.target_lang_codes],
-            request.custom_lang_config,
-        )
         for result_dir in _get_output_directories(mod_name, target_languages):
             await project_manager.add_translation_path(request.project_id, result_dir)
             logging.info(f"Auto-registered translation path: {result_dir}")
@@ -547,6 +531,7 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
         "message": f"Translation started for project {project['name']}",
         "warning": archive_disabled_warning or context_resolution.warning,
     }
+
 
 @router.post(
     "/api/translate",
@@ -681,7 +666,7 @@ async def start_translation_v2(
         payload.use_main_glossary,
         payload.custom_lang_config,
         project_id=None, # Path-based upload might not have project ID
-        use_resume=payload.use_resume,
+        use_resume=False,
         clean_source=payload.clean_source,
         embedded_workshop=payload.embedded_workshop.model_dump() if payload.embedded_workshop else None,
         reference_reuse=payload.reference_reuse.model_dump() if payload.reference_reuse else None,
@@ -743,53 +728,17 @@ def get_result(task_id: str):
     raise HTTPException(status_code=410, detail="ZIP result downloads have been removed. Open the output folder instead.")
 
 
-async def _resolve_checkpoint_inputs(payload: CheckpointStatusRequest):
-    project = await project_manager.get_project(payload.project_id) if payload.project_id else None
-    if payload.project_id and not project:
-        raise HTTPException(status_code=404, detail="Project not found")
-    source_path = project.get("source_path") if project else os.path.join(SOURCE_DIR, payload.mod_name or "")
-    mod_name = os.path.basename(os.path.normpath(source_path)) if project else payload.mod_name
-    if not mod_name:
-        raise HTTPException(status_code=400, detail="project_id or mod_name is required")
-    target_codes = [code.value if hasattr(code, "value") else str(code) for code in payload.target_lang_codes]
-    target_languages = _resolve_requested_target_languages(target_codes)
-    return source_path, target_languages, _get_checkpoint_output_dir(mod_name, target_languages)
+@router.post("/api/translation/checkpoint-status")
+async def check_checkpoint_status():
+    raise HTTPException(
+        status_code=410,
+        detail="Use GET /api/projects/{project_id}/translation-recovery.",
+    )
 
 
-@router.post(
-    "/api/translation/checkpoint-status",
-    response_model=CheckpointStatusResponse,
-)
-async def check_checkpoint_status(payload: CheckpointStatusRequest):
-    """Checks if a checkpoint exists for the given configuration."""
-    source_path, target_languages, output_dir = await _resolve_checkpoint_inputs(payload)
-    checkpoint_infos = []
-    for target_lang in target_languages:
-        filename = f".remis_checkpoint_{target_lang['code']}.json"
-        info = CheckpointManager(output_dir, checkpoint_filename=filename).get_checkpoint_info()
-        checkpoint_infos.append({"target_lang_code": target_lang["code"], **info})
-    exists = any(item["exists"] for item in checkpoint_infos)
-    total_files = sum(
-        filename.endswith((".yml", ".txt"))
-        for _, _, files in os.walk(source_path)
-        for filename in files
-    ) if exists else 0
-    return {
-        "exists": exists,
-        "completed_count": sum(item["completed_count"] for item in checkpoint_infos),
-        "total_files_estimate": total_files,
-        "metadata": checkpoint_infos[0]["metadata"] if len(checkpoint_infos) == 1 else {"targets": checkpoint_infos},
-        "targets": checkpoint_infos,
-    }
-
-@router.delete(
-    "/api/translation/checkpoint",
-    response_model=CheckpointDeleteResponse,
-)
-async def delete_checkpoint(payload: CheckpointStatusRequest):
-    """Deletes the checkpoint file for the given configuration."""
-    _, target_languages, output_dir = await _resolve_checkpoint_inputs(payload)
-    for target_lang in target_languages:
-        filename = f".remis_checkpoint_{target_lang['code']}.json"
-        CheckpointManager(output_dir, checkpoint_filename=filename).clear_checkpoint()
-    return {"status": "success", "message": "Checkpoint deleted."}
+@router.delete("/api/translation/checkpoint")
+async def delete_checkpoint():
+    raise HTTPException(
+        status_code=410,
+        detail="Use POST /api/tasks/{task_id}/start-over.",
+    )

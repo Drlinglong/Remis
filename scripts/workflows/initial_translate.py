@@ -1,4 +1,6 @@
 import logging
+import os
+import uuid
 from dataclasses import dataclass
 from typing import Any, Optional, List
 
@@ -22,6 +24,7 @@ from scripts.core.services.initial_translation_workspace_service import (
     load_glossaries_for_run,
     prepare_output_workspace,
 )
+from scripts.core.services.source_snapshot_service import SourceFileInput, SourceSnapshotService
 from scripts.core.services.translation_context_service import prepare_workflow_context
 from scripts.core.services.translation_context_gate import (
     prepare_and_require_workflow_context,
@@ -48,6 +51,20 @@ class InitialTranslationOutcome:
             f"{self.recovered_entry_count} invalid entries replaced with empty values; "
             f"{self.dropped_file_count} files dropped."
         )
+
+
+@dataclass(frozen=True)
+class PreparedTranslationRun:
+    output_dir_path: str
+    source_result: SourceReadResult
+    all_files_content: list[dict]
+    context_selection: Any
+    total_files: int
+    total_batches: int
+    effective_chunk_size: int
+    version_id: int
+    source_root: str
+    source_snapshot_hash: str
 
 
 def _prepare_source_files(
@@ -93,6 +110,122 @@ def _prepare_context_selection(
     )
 
 
+def _source_snapshot_hash(files: list[dict], source_root: str) -> str:
+    inputs = []
+    for file_data in files:
+        source_path = file_data.get("path")
+        relative_path = file_data.get("file_path")
+        if not relative_path and source_path:
+            try:
+                relative_path = os.path.relpath(source_path, source_root)
+            except ValueError:
+                relative_path = file_data.get("filename") or os.path.basename(source_path)
+        relative_path = str(
+            relative_path or file_data.get("filename") or os.path.basename(source_path or "source")
+        ).replace("\\", "/")
+        if source_path and os.path.isfile(source_path):
+            inputs.append(SourceFileInput(relative_path=relative_path, path=source_path))
+        else:
+            content = "".join(str(line) for line in file_data.get("original_lines") or [])
+            inputs.append(SourceFileInput(relative_path=relative_path, content=content))
+    return SourceSnapshotService().build_snapshot(inputs).source_snapshot_hash
+
+
+def _run_language_targets(
+    *, target_languages, mod_name, source_lang, game_profile, mod_context,
+    handler, output_folder_name, output_dir_path, selected_provider, model_name,
+    all_files_content, total_batches, effective_chunk_size, progress_callback,
+    project_id, version_id, override_path, use_resume, concurrency_limit, rpm_limit,
+    batch_size_limit, embedded_workshop, reference_reuse, source_context_overlap,
+    context_selection, provider_runtime, should_cancel, task_id, run_id, source_root,
+    source_snapshot_hash, config_fingerprint,
+) -> tuple[dict, ...]:
+    metrics = []
+    for target_lang in target_languages:
+        metrics.append(run_language_translation(
+            mod_name=mod_name,
+            source_lang=source_lang,
+            target_lang=target_lang,
+            game_profile=game_profile,
+            mod_context=mod_context,
+            handler=handler,
+            output_folder_name=output_folder_name,
+            output_dir_path=output_dir_path,
+            selected_provider=selected_provider,
+            model_name=model_name,
+            all_files_content=all_files_content,
+            total_batches=total_batches,
+            effective_chunk_size=effective_chunk_size,
+            progress_callback=progress_callback,
+            project_id=project_id,
+            version_id=version_id,
+            override_path=override_path,
+            use_resume=use_resume,
+            concurrency_limit=concurrency_limit,
+            rpm_limit=rpm_limit,
+            batch_size_limit=batch_size_limit,
+            embedded_workshop=embedded_workshop,
+            reference_reuse=reference_reuse,
+            source_context_overlap=source_context_overlap,
+            context_selection=context_selection,
+            provider_runtime=provider_runtime,
+            should_cancel=should_cancel,
+            task_id=task_id,
+            run_id=run_id,
+            source_root=source_root,
+            source_snapshot_hash=source_snapshot_hash,
+            config_fingerprint=config_fingerprint,
+        ))
+    return tuple(metrics)
+
+
+def _prepare_translation_run(
+    *, mod_name, output_folder_name, game_profile, source_lang, selected_provider, selected_glossary_ids,
+    use_glossary, clean_source, override_path, progress_callback, project_id,
+    use_project_context, translation_context_mode, context_release_id,
+    context_character_budget, context_service, snapshot_service, batch_size_limit,
+) -> PreparedTranslationRun:
+    load_glossaries_for_run(game_profile.get("id", ""), use_glossary, selected_glossary_ids)
+    output_dir_path = prepare_output_workspace(mod_name, output_folder_name, game_profile)
+    if clean_source:
+        clean_source_directory(mod_name, override_path=override_path)
+    source_result, total_files = _prepare_source_files(
+        mod_name, game_profile, source_lang, override_path, progress_callback
+    )
+    all_files_content = source_result.files
+    context_selection = _prepare_context_selection(
+        project_id, all_files_content,
+        use_project_context or translation_context_mode == "archive",
+        context_release_id, context_character_budget, context_service, snapshot_service,
+        translation_context_mode,
+    )
+    source_root = override_path or os.path.join(SOURCE_DIR, mod_name)
+    source_snapshot_hash = (
+        (context_selection.metadata or {}).get("source_snapshot_hash")
+        or _source_snapshot_hash(all_files_content, source_root)
+    )
+    effective_chunk_size = get_chunk_size_for_provider(selected_provider, batch_size_limit)
+    total_batches = calculate_total_batches(all_files_content, effective_chunk_size)
+    _, version_id = create_source_snapshot(
+        mod_name, all_files_content, total_files, total_batches,
+        progress_callback, project_id,
+    )
+    if not version_id:
+        raise RuntimeError("Failed to create the source archive snapshot.")
+    return PreparedTranslationRun(
+        output_dir_path=output_dir_path,
+        source_result=source_result,
+        all_files_content=all_files_content,
+        context_selection=context_selection,
+        total_files=total_files,
+        total_batches=total_batches,
+        effective_chunk_size=effective_chunk_size,
+        version_id=version_id,
+        source_root=source_root,
+        source_snapshot_hash=source_snapshot_hash,
+    )
+
+
 def run(
     mod_name: str, source_lang: dict, target_languages: list[dict],
     game_profile: dict, mod_context: str, selected_provider: str = "gemini",
@@ -108,12 +241,14 @@ def run(
     context_release_id: Optional[str] = None, context_character_budget: int = 4000,
     context_service: Any = None, snapshot_service: Any = None,
     translation_context_mode: Optional[str] = None, provider_runtime: Any = None,
-    should_cancel: Optional[Any] = None,
+    task_id: Optional[str] = None, run_id: Optional[str] = None,
+    should_cancel: Optional[Any] = None, recovery_identity: Optional[dict] = None,
 ):
     """【最终版】初次翻译工作流（多语言 & 多游戏兼容）- 流式处理 & 断点续传版"""
-    logging.info("Entered initial_translate.run")
     logging.info(f"--- Starting 'Initial Translation' workflow for: {mod_name} ---")
-    # ───────────── 1. 路径与模式 ─────────────
+    recovery_identity = recovery_identity or {}
+    task_id = recovery_identity.get("checkpoint_owner_task_id") or task_id or getattr(progress_callback, "task_id", None)
+    run_id = recovery_identity.get("checkpoint_owner_run_id") or run_id or getattr(progress_callback, "run_id", None) or str(uuid.uuid4())
     run_plan = build_run_plan(mod_name, target_languages)
     output_folder_name = run_plan.output_folder_name
     primary_target_lang = run_plan.primary_target_lang
@@ -121,76 +256,71 @@ def run(
                  workflow_name=i18n.t("workflow_initial_translate_name"),
                  mod_name=mod_name))
     logging.info(i18n.t("log_selected_provider", provider=selected_provider))
-    # ───────────── 2. 初始化客户端 ─────────────
     resolved_model_name = resolve_provider_model(selected_provider, model_name)
     handler = create_translation_handler(selected_provider, resolved_model_name, provider_runtime)
     if not handler:
         raise RuntimeError("Failed to initialize the selected translation provider.")
-    # ───────────── 2.5. 加载词典 ─────────────
-    game_id = game_profile.get("id", "")
-    load_glossaries_for_run(game_id, use_glossary, selected_glossary_ids)
-
-    # ───────────── 3. 创建输出目录 & 初始化断点管理器 ─────────────
-    output_dir_path = prepare_output_workspace(mod_name, output_folder_name, game_profile)
-    
-    # ───────────── 3.5. [NEW] 清理源文件 (如果启用) ─────────────
-    if clean_source:
-        clean_source_directory(mod_name, override_path=override_path)
-    # ───────────── 4.5. 强制全量备份 (Brute Force Backup) ─────────────
-    # 策略变更：数据安全第一。在开始任何翻译前，强制将所有源文件读入内存并创建快照。
-    # 即使是大 Mod，文本数据通常也不超过 50MB，内存不是瓶颈。
-    source_result, total_files = _prepare_source_files(
-        mod_name, game_profile, source_lang, override_path, progress_callback)
-    all_files_content = source_result.files
-
-    context_selection = _prepare_context_selection(
-        project_id, all_files_content, use_project_context or translation_context_mode == "archive",
-        context_release_id, context_character_budget, context_service, snapshot_service,
-        translation_context_mode,
+    prepared = _prepare_translation_run(
+        mod_name=mod_name,
+        output_folder_name=output_folder_name,
+        game_profile=game_profile,
+        source_lang=source_lang,
+        selected_provider=selected_provider,
+        selected_glossary_ids=selected_glossary_ids,
+        use_glossary=use_glossary,
+        clean_source=clean_source,
+        override_path=override_path,
+        progress_callback=progress_callback,
+        project_id=project_id,
+        use_project_context=use_project_context,
+        translation_context_mode=translation_context_mode,
+        context_release_id=context_release_id,
+        context_character_budget=context_character_budget,
+        context_service=context_service,
+        snapshot_service=snapshot_service,
+        batch_size_limit=batch_size_limit,
     )
-    # Calculate Total Batches (Pre-calculation)
-    effective_chunk_size = get_chunk_size_for_provider(selected_provider, batch_size_limit)
-    total_batches = calculate_total_batches(all_files_content, effective_chunk_size)
-    mod_id, version_id = create_source_snapshot(
-        mod_name, all_files_content, total_files, total_batches,
-        progress_callback, project_id)
-    if not mod_id or not version_id:
-        raise RuntimeError("Failed to create the source archive snapshot.")
-    # ───────────── 5. 多语言并行翻译 (Streaming from Memory) ─────────────
-    last_target_lang = None
-    reference_metrics = []
-    for target_lang in target_languages:
-        last_target_lang = target_lang
-        reference_metrics.append(run_language_translation(
-            mod_name=mod_name,
-            source_lang=source_lang,
-            target_lang=target_lang,
-            game_profile=game_profile,
-            mod_context=mod_context,
-            handler=handler,
-            output_folder_name=output_folder_name,
-            output_dir_path=output_dir_path,
-            selected_provider=selected_provider,
-            model_name=resolved_model_name,
-            all_files_content=all_files_content,
-            total_batches=total_batches,
-            effective_chunk_size=effective_chunk_size,
-            progress_callback=progress_callback,
-            project_id=project_id,
-            version_id=version_id,
-            override_path=override_path,
-            use_resume=use_resume,
-            concurrency_limit=concurrency_limit,
-            rpm_limit=rpm_limit,
-            batch_size_limit=batch_size_limit,
-            embedded_workshop=embedded_workshop,
-            reference_reuse=reference_reuse,
-            source_context_overlap=source_context_overlap,
-            context_selection=context_selection, provider_runtime=provider_runtime,
-            should_cancel=should_cancel,
-        )
-        )
-
+    output_dir_path, source_result = prepared.output_dir_path, prepared.source_result
+    all_files_content, context_selection = prepared.all_files_content, prepared.context_selection
+    total_batches, version_id = prepared.total_batches, prepared.version_id
+    source_root = prepared.source_root
+    source_snapshot_hash = recovery_identity.get("source_snapshot_hash") or prepared.source_snapshot_hash
+    effective_chunk_size = prepared.effective_chunk_size
+    last_target_lang = target_languages[-1]
+    reference_metrics = _run_language_targets(
+        target_languages=target_languages,
+        mod_name=mod_name,
+        source_lang=source_lang,
+        game_profile=game_profile,
+        mod_context=mod_context,
+        handler=handler,
+        output_folder_name=output_folder_name,
+        output_dir_path=output_dir_path,
+        selected_provider=selected_provider,
+        model_name=resolved_model_name,
+        all_files_content=all_files_content,
+        total_batches=total_batches,
+        effective_chunk_size=effective_chunk_size,
+        progress_callback=progress_callback,
+        project_id=project_id,
+        version_id=version_id,
+        override_path=override_path,
+        use_resume=use_resume,
+        concurrency_limit=concurrency_limit,
+        rpm_limit=rpm_limit,
+        batch_size_limit=batch_size_limit,
+        embedded_workshop=embedded_workshop,
+        reference_reuse=reference_reuse,
+        source_context_overlap=source_context_overlap,
+        context_selection=context_selection,
+        provider_runtime=provider_runtime,
+        should_cancel=should_cancel,
+        task_id=task_id,
+        run_id=run_id,
+        source_root=source_root,
+        source_snapshot_hash=source_snapshot_hash,
+        config_fingerprint=recovery_identity.get("config_fingerprint"),
+    )
     finalize_workflow_run(
         run_plan.is_batch_mode,
         mod_name,

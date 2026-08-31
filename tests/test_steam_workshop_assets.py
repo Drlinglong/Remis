@@ -140,6 +140,13 @@ def test_migration_upgrades_managed_database_with_asset_tables(tmp_path):
         connection.executescript(
             """
             CREATE TABLE projects (project_id TEXT PRIMARY KEY);
+            CREATE TABLE background_tasks (
+                task_id TEXT PRIMARY KEY,
+                idempotency_key TEXT,
+                updated_at TEXT,
+                created_at TEXT,
+                payload JSON NOT NULL DEFAULT '{}'
+            );
             CREATE TABLE schema_migrations (
                 version INTEGER PRIMARY KEY,
                 name TEXT NOT NULL,

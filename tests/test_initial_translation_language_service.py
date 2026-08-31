@@ -82,7 +82,11 @@ def _run_language(
     monkeypatch.setattr(language_service, "progress_log_bridge", lambda logger: _null_context(calls, "progress_log"))
     monkeypatch.setattr(language_service, "log_batch_warnings", lambda *args: calls.append(("warnings", args)))
     monkeypatch.setattr(language_service, "log_recovered_retries", lambda *args: calls.append(("retries", args)))
-    monkeypatch.setattr(language_service, "finalize_translated_file", lambda *args: calls.append(("finalize_file", args)))
+    monkeypatch.setattr(
+        language_service,
+        "finalize_translated_file",
+        lambda *args, **kwargs: calls.append(("finalize_file", args, kwargs)),
+    )
     monkeypatch.setattr(language_service, "finalize_language_run", lambda *args, **kwargs: calls.append(("postprocess", args)) or ["tag"])
     monkeypatch.setattr(language_service, "export_workshop_issues_for_language", lambda *args, **kwargs: calls.append(("export", args, kwargs)))
     monkeypatch.setattr(language_service, "run_embedded_workshop_for_language", lambda *args, **kwargs: calls.append(("workshop", args, kwargs)))

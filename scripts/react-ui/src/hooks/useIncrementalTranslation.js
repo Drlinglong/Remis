@@ -5,6 +5,7 @@ import projectService from '../services/projectService';
 import configService from '../services/configService';
 import translationService from '../services/translationService';
 import notificationService from '../services/notificationService';
+import { FEATURES } from '../config/features';
 import { open } from '@tauri-apps/plugin-dialog';
 import {
     getArchivedTargetLanguages,
@@ -19,8 +20,8 @@ import {
     writeIncrementalStateSnapshot,
 } from './incrementalTranslationPersistence';
 import { buildProviderSelection, buildEmbeddedWorkshopSelection } from './incrementalTranslationProviders';
-import { requestIncrementalCheckpointStatus } from './incrementalTranslationCheckpoint';
 import { resyncIncrementalTask, shouldResyncIncrementalTask } from './incrementalTranslationTaskResync';
+import { useIncrementalCheckpointRecovery } from './useIncrementalCheckpointRecovery';
 import { useIncrementalTaskMonitor } from './useIncrementalTaskMonitor';
 import { formatLocalizedDateTime, getResolvedInterfaceLocale } from '../utils/localizedDateTime';
 import { useReferenceReuseSettings } from './useReferenceReuseSettings';
@@ -62,10 +63,6 @@ export const useIncrementalTranslation = (notificationStyle) => {
     const [currentTaskId, setCurrentTaskId] = useState(null);
     const [currentTaskMode, setCurrentTaskMode] = useState(null);
     const [conflictingTaskId, setConflictingTaskId] = useState(null);
-    const [checkpointFound, setCheckpointFound] = useState(false);
-    const [checkpointInfo, setCheckpointInfo] = useState(null);
-    const [useResume, setUseResume] = useState(false);
-    const [showResumeDetails, setShowResumeDetails] = useState(false);
     const [embeddedWorkshopEnabled, setEmbeddedWorkshopEnabled] = useState(true);
     const [embeddedWorkshopFollowPrimary, setEmbeddedWorkshopFollowPrimary] = useState(true);
     const [embeddedWorkshopProvider, setEmbeddedWorkshopProvider] = useState('');
@@ -91,6 +88,16 @@ export const useIncrementalTranslation = (notificationStyle) => {
     const routeSelectionAppliedRef = useRef(false);
     const [projectsLoaded, setProjectsLoaded] = useState(false);
     const [configLoaded, setConfigLoaded] = useState(false);
+    const {
+        checkpointFound,
+        checkpointInfo,
+        effectiveUseResume,
+        setCheckpointFound,
+        setCheckpointInfo,
+        setShowResumeDetails,
+        setUseResume,
+        showResumeDetails,
+    } = useIncrementalCheckpointRecovery(selectedProject?.project_id);
 
     const addLog = useCallback((msg) => {
         setLogs(prev => [...prev, `[${formatLocalizedDateTime(Date.now(), getResolvedInterfaceLocale(i18n), { timeStyle: 'medium' })}] ${msg}`]);
@@ -143,28 +150,6 @@ export const useIncrementalTranslation = (notificationStyle) => {
         statusResyncRef.current = false;
     }, [completionSourceRef]);
 
-    const checkCheckpoint = useCallback(async (project, sourcePath, targetLangs) => {
-        try {
-            const checkpoint = await requestIncrementalCheckpointStatus({
-                project,
-                sourcePath,
-                targetLangs,
-                translationService,
-            });
-            if (checkpoint.found) {
-                setCheckpointFound(true);
-                setCheckpointInfo(checkpoint.info);
-                notificationService.info(t('incremental_translation.checkpoint_detected', { count: checkpoint.info.completed_count }), notificationStyle);
-            } else {
-                setCheckpointFound(false);
-                setCheckpointInfo(null);
-            }
-        } catch (err) {
-            console.error('Failed to check checkpoint status', err);
-            setCheckpointInfo(null);
-        }
-    }, [notificationStyle, t]);
-
     const handleSelectFolder = useCallback(async () => {
         try {
             const selected = await open({
@@ -174,15 +159,12 @@ export const useIncrementalTranslation = (notificationStyle) => {
             });
             if (selected && typeof selected === 'string') {
                 setCustomSourcePath(selected);
-                if (selectedProject) {
-                    checkCheckpoint(selectedProject, selected, selectedLangs);
-                }
             }
         } catch (err) {
             console.error('Failed to open folder dialog:', err);
             notificationService.error(t('notification.error_generic'), notificationStyle);
         }
-    }, [checkCheckpoint, notificationStyle, selectedLangs, selectedProject, t]);
+    }, [notificationStyle, t]);
 
     const fetchProjects = useCallback(async () => {
         try {
@@ -243,6 +225,9 @@ export const useIncrementalTranslation = (notificationStyle) => {
         setProgressInfo({});
         setExecuting(Boolean(inFlightTaskId && currentTaskMode === 'execution'));
         setCheckpointFound(false);
+        setCheckpointInfo(null);
+        setUseResume(false);
+        setShowResumeDetails(false);
         if (inFlightTaskId) {
             setCurrentTaskId(inFlightTaskId);
             setConflictingTaskId(inFlightTaskId);
@@ -266,7 +251,6 @@ export const useIncrementalTranslation = (notificationStyle) => {
                 setArchiveInfo(res.data);
                 const availableLangs = getArchivedTargetLanguages(res.data);
                 setSelectedLangs(availableLangs);
-                checkCheckpoint(project, nextSourcePath, availableLangs);
                 if (availableLangs.length === 0) {
                     setErrorKey('incremental_translation.no_archived_target_languages');
                     setError(null);
@@ -282,13 +266,16 @@ export const useIncrementalTranslation = (notificationStyle) => {
             setLoading(false);
         }
     }, [
-        checkCheckpoint,
         completionSourceRef,
         currentTaskId,
         currentTaskMode,
         notificationStyle,
         resetReferenceGate,
         resetReferencePreview,
+        setCheckpointFound,
+        setCheckpointInfo,
+        setShowResumeDetails,
+        setUseResume,
         t,
     ]);
     const runPreScan = useIncrementalPreScan({
@@ -299,7 +286,7 @@ export const useIncrementalTranslation = (notificationStyle) => {
         notificationStyle, preScanInFlightRef, referenceLocalizationPath, referenceReuseBypassed,
         referenceReuseEnabled, referenceReuseExcludedEntries, rpmLimit, selectedLangs, selectedModel,
         selectedProject, selectedProvider, setActive, setConflictingTaskId, setCurrentTaskId,
-        setCurrentTaskMode, setLoading, setLogs, setProgress, setProgressInfo, setScanResults, t, useResume,
+        setCurrentTaskMode, setLoading, setLogs, setProgress, setProgressInfo, setScanResults, t, useResume: effectiveUseResume,
     });
     const startTranslation = useIncrementalExecution({
         addLog, archiveInfo, batchSizeLimit, completionSourceRef, concurrencyLimit,
@@ -309,7 +296,7 @@ export const useIncrementalTranslation = (notificationStyle) => {
         notificationStyle, preScanInFlightRef, referenceLocalizationPath, referenceReuseBypassed,
         referenceReuseEnabled, referenceReuseExcludedEntries, rpmLimit, selectedLangs, selectedModel,
         selectedProject, selectedProvider, setActive, setConflictingTaskId, setCurrentTaskId,
-        setCurrentTaskMode, setExecuting, setFinalSummary, setLogs, setProgress, setProgressInfo, t, useResume,
+        setCurrentTaskMode, setExecuting, setFinalSummary, setLogs, setProgress, setProgressInfo, t, useResume: effectiveUseResume,
     });
     const openOutputFolder = useCallback(async () => {
         const folderPath = finalSummary?.output_dir;
@@ -360,8 +347,8 @@ export const useIncrementalTranslation = (notificationStyle) => {
         applyIncrementalStateSnapshot(persistedState, {
             setActive,
             setArchiveInfo,
-            setCheckpointFound,
-            setCheckpointInfo,
+            setCheckpointFound: FEATURES.ENABLE_CHECKPOINT_RESUME ? setCheckpointFound : () => {},
+            setCheckpointInfo: FEATURES.ENABLE_CHECKPOINT_RESUME ? setCheckpointInfo : () => {},
             setCurrentTaskId,
             setCurrentTaskMode,
             setCustomSourcePath,
@@ -383,9 +370,9 @@ export const useIncrementalTranslation = (notificationStyle) => {
             setScanResults,
             setSelectedLangs,
             setSelectedProject,
-            setShowResumeDetails,
+            setShowResumeDetails: FEATURES.ENABLE_CHECKPOINT_RESUME ? setShowResumeDetails : () => {},
             setShowWorkshopSettings,
-            setUseResume,
+            setUseResume: FEATURES.ENABLE_CHECKPOINT_RESUME ? setUseResume : () => {},
         }, {
             completionSourceRef,
             projects,
@@ -400,7 +387,10 @@ export const useIncrementalTranslation = (notificationStyle) => {
         }
         if (persistedState.rpmLimit) setRpmLimit(String(persistedState.rpmLimit));
         restorationAppliedRef.current = true;
-    }, [completionSourceRef, configLoaded, handleSelectProject, location.state, projects, projectsLoaded, applyProviderSelection, resetPersistedState, setReferenceLocalizationPath, setReferenceReuseEnabled, setReferenceReuseExcludedEntries]);
+    }, [completionSourceRef, configLoaded, handleSelectProject, location.state, projects, projectsLoaded,
+        applyProviderSelection, resetPersistedState, setCheckpointFound, setCheckpointInfo,
+        setReferenceLocalizationPath, setReferenceReuseEnabled, setReferenceReuseExcludedEntries,
+        setShowResumeDetails, setUseResume]);
     // SYNC STATE TO SESSION STORAGE
     useEffect(() => {
         if (!restorationAppliedRef.current) return;
@@ -408,8 +398,8 @@ export const useIncrementalTranslation = (notificationStyle) => {
             active,
             archiveInfo,
             batchSizeLimit,
-            checkpointFound,
-            checkpointInfo,
+            checkpointFound: FEATURES.ENABLE_CHECKPOINT_RESUME && checkpointFound,
+            checkpointInfo: FEATURES.ENABLE_CHECKPOINT_RESUME ? checkpointInfo : null,
             completionSource: completionSourceRef.current,
             concurrencyLimit,
             currentTaskId,
@@ -436,9 +426,9 @@ export const useIncrementalTranslation = (notificationStyle) => {
             selectedModel,
             selectedProject,
             selectedProvider,
-            showResumeDetails,
+            showResumeDetails: FEATURES.ENABLE_CHECKPOINT_RESUME && showResumeDetails,
             showWorkshopSettings,
-            useResume,
+            useResume: effectiveUseResume,
         });
 
         try {
@@ -453,7 +443,7 @@ export const useIncrementalTranslation = (notificationStyle) => {
         embeddedWorkshopRpm, executing, finalSummary, loading, logs, progress, progressInfo, rpmLimit, scanResults,
         selectedLangs, selectedModel, selectedProject, selectedProvider, showResumeDetails, showWorkshopSettings,
         referenceLocalizationPath, referenceReuseEnabled, referenceReuseExcludedEntries,
-        completionSourceRef, errorKey, useResume
+        completionSourceRef, errorKey, effectiveUseResume
     ]);
 
     // LOAD BASICS ON MOUNT
@@ -522,7 +512,10 @@ export const useIncrementalTranslation = (notificationStyle) => {
         rpmLimit, setRpmLimit,
         archiveInfo, scanResults, error, errorKey,setErrorKey,
         executing, progress, progressInfo, logs, finalSummary, currentTaskId, conflictingTaskId,
-        checkpointFound, checkpointInfo, useResume, setUseResume,
+        checkpointFound,
+        checkpointInfo,
+        useResume: effectiveUseResume,
+        setUseResume: (value) => setUseResume(FEATURES.ENABLE_CHECKPOINT_RESUME && value),
         showResumeDetails, setShowResumeDetails,
         embeddedWorkshopEnabled, setEmbeddedWorkshopEnabled,
         embeddedWorkshopFollowPrimary, setEmbeddedWorkshopFollowPrimary,

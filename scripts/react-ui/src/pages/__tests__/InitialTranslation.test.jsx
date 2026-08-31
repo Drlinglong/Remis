@@ -86,20 +86,16 @@ const { apiDeleteMock, apiGetMock, apiPostMock } = vi.hoisted(() => {
       });
     }
 
-    return Promise.reject(new Error(`Unhandled GET ${url}`));
-  });
-
-  const post = vi.fn((url) => {
-    if (url === '/api/translation/checkpoint-status') {
+    if (url === '/api/projects/proj-1/translation-recovery') {
       return Promise.resolve({
-        data: {
-          exists: false,
-        },
+        data: { task_id: null, status: 'none', checkpoint: {}, allowed_actions: [] },
       });
     }
 
-    return Promise.reject(new Error(`Unhandled POST ${url}`));
+    return Promise.reject(new Error(`Unhandled GET ${url}`));
   });
+
+  const post = vi.fn((url) => Promise.reject(new Error(`Unhandled POST ${url}`)));
 
   return {
     apiGetMock: get,
@@ -224,7 +220,7 @@ describe('InitialTranslation', () => {
     expect(screen.queryByText('Main Glossary')).not.toBeInTheDocument();
   });
 
-  it('refreshes checkpoint hint request when target languages change', async () => {
+  it('uses the project recovery projection instead of the retired checkpoint endpoint', async () => {
     renderPage(['/?projectId=proj-1']);
 
     await waitFor(() => {
@@ -234,15 +230,9 @@ describe('InitialTranslation', () => {
     fireEvent.click(screen.getByText('Russian'));
 
     await waitFor(() => {
-      const checkpointCalls = apiPostMock.mock.calls.filter(([url]) => url === '/api/translation/checkpoint-status');
-      expect(checkpointCalls.at(-1)).toEqual([
-        '/api/translation/checkpoint-status',
-        {
-          project_id: 'proj-1',
-          target_lang_codes: ['ru'],
-        },
-      ]);
+      expect(apiGetMock).toHaveBeenCalledWith('/api/projects/proj-1/translation-recovery');
     });
+    expect(apiPostMock).not.toHaveBeenCalledWith('/api/translation/checkpoint-status', expect.anything());
   });
 
   it('switches to the selected provider model set when the primary provider changes', async () => {
@@ -279,73 +269,66 @@ describe('InitialTranslation', () => {
   });
 
   it('renders checkpoint status alert and resume details card when checkpoints exist', async () => {
-    const mockCheckpointResponse = {
-      exists: true,
-      completed_count: 5,
-      total_files_estimate: 10,
-      metadata: {
-        current_batch: 2,
-        total_batches: 5,
-        last_saved_at: '2026-05-28 07:00:00',
-        last_completed_file: 'events/test.yml',
+    const mockRecoveryResponse = {
+      task_id: 'task-interrupted',
+      status: 'interrupted',
+      checkpoint: {
+        available: true,
+        resumable: true,
+        compatibility: 'compatible',
+        completed_units: 5,
+        targets: [
+          {
+            target_lang_code: 'zh-CN',
+            completed_count: 5,
+            last_saved_at: '2026-05-28 07:00:00',
+            metadata: {
+              current_batch: 2,
+              total_batches: 5,
+              last_completed_file: 'events/test.yml',
+            },
+          },
+        ],
       },
-      targets: [
-        {
-          target_lang_code: 'zh-CN',
-          completed_count: 5,
-          last_saved_at: '2026-05-28 07:00:00',
-          metadata: {
-            current_batch: 2,
-            total_batches: 5,
-            last_completed_file: 'events/test.yml',
-          }
-        }
-      ]
+      allowed_actions: ['resume_task', 'start_over_task'],
     };
 
-    apiPostMock.mockImplementation((url) => {
-      if (url === '/api/translation/checkpoint-status') {
-        return Promise.resolve({ data: mockCheckpointResponse });
+    const defaultGet = apiGetMock.getMockImplementation();
+    apiGetMock.mockImplementation((url, ...args) => {
+      if (url === '/api/projects/proj-1/translation-recovery') {
+        return Promise.resolve({ data: mockRecoveryResponse });
       }
-      return Promise.resolve({ data: { exists: false } });
+      return defaultGet(url, ...args);
     });
 
-    try {
-      renderPage(['/?projectId=proj-1']);
+    renderPage(['/?projectId=proj-1']);
 
-      await waitFor(() => {
-        expect(screen.getByText('Chinese')).toBeInTheDocument();
-      });
-      fireEvent.click(screen.getByText('Chinese'));
+    await waitFor(() => {
+      expect(screen.getByText('Chinese')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByText('Chinese'));
 
-      await waitFor(() => {
-        expect(screen.getByText('检测到可用断点')).toBeInTheDocument();
-      });
+    await waitFor(() => {
+      expect(screen.getByText('检测到可用断点')).toBeInTheDocument();
+    });
 
-      expect(screen.getByText('断点续传详情')).toBeInTheDocument();
-      expect(screen.queryByText('zh-CN')).not.toBeInTheDocument();
+    expect(screen.getByText('断点续传详情')).toBeInTheDocument();
+    expect(screen.queryByText('zh-CN')).not.toBeInTheDocument();
 
-      // 在 waitFor 之后，重新拉取并点击“展开”按钮以保证渲染稳定性
-      await waitFor(() => {
-        const expandButtons = screen.getAllByRole('button', { name: '展开' });
-        expect(expandButtons.length).toBeGreaterThan(0);
-      });
-
+    // 在 waitFor 之后，重新拉取并点击“展开”按钮以保证渲染稳定性
+    await waitFor(() => {
       const expandButtons = screen.getAllByRole('button', { name: '展开' });
-      fireEvent.click(expandButtons[0]);
+      expect(expandButtons.length).toBeGreaterThan(0);
+    });
 
-      await waitFor(() => {
-        expect(screen.getByText('zh-CN')).toBeInTheDocument();
-        expect(screen.getByText('已完成文件：{{count}}')).toBeInTheDocument();
-      });
-    } finally {
-      apiPostMock.mockImplementation((url) => {
-        if (url === '/api/translation/checkpoint-status') {
-          return Promise.resolve({ data: { exists: false } });
-        }
-        return Promise.reject(new Error(`Unhandled POST ${url}`));
-      });
-    }
+    const expandButtons = screen.getAllByRole('button', { name: '展开' });
+    fireEvent.click(expandButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText('zh-CN')).toBeInTheDocument();
+      expect(screen.getByText('已完成文件：{{count}}')).toBeInTheDocument();
+    });
+    expect(apiPostMock).not.toHaveBeenCalledWith('/api/translation/checkpoint-status', expect.anything());
   });
 
   it('manages embedded workshop toggle and custom provider/model linkage', async () => {

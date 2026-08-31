@@ -25,8 +25,11 @@ from scripts.core.copilot.workflow import inspect_mod_folder
 from scripts.core.services.agent_validation_policy import (
     classify_issues as _classify_issues,
     job_allowed_actions as _job_allowed_actions,
-    merge_task_validation_payload, repairable_issues, validation_allowed_actions,
+    merge_task_validation_payload,
+    repairable_issues,
+    validation_allowed_actions,
 )
+from scripts.core.services.agent_validation_projection_service import AgentValidationProjectionService
 from scripts.core.services.agent_translation_plan_service import (
     AgentTranslationPlanError,
     build_agent_translation_plan,
@@ -61,6 +64,7 @@ from scripts.utils.system_utils import sanitize_for_json
 
 router = APIRouter(prefix="/api/agent", tags=["Agent API"])
 validation_sidecars = ValidationSidecarService()
+validation_projection = AgentValidationProjectionService(project_manager, validation_sidecars)
 translation_context_readiness = TranslationContextReadinessService(
     glossary_manager,
     neologism_manager,
@@ -252,50 +256,14 @@ def _validate_agent_import_path(folder_path: str) -> Dict[str, Any]:
     return inspection
 
 
-
-
 async def _validation_payload(
     project_id: Optional[str], *, include_items: bool = False
 ) -> Dict[str, Any]:
-    empty = AgentValidationSummary()
-    if not project_id:
-        return {"summary": empty, "items": []}
-    project = await project_manager.get_project(project_id)
-    if not project:
-        return {"summary": empty, "items": []}
-    status = validation_sidecars.load_status(project["source_path"])
-    if not status:
-        return {"summary": empty, "items": []}
-    files = await project_manager.get_project_files(project_id)
-    issues = validation_sidecars.attach_project_file_ids(status["issues"], files)
-    public_items, summary = _classify_issues(issues)
-    if len(public_items) > 100:
-        public_items = public_items[:100]
-        summary.truncated = True
-    return {
-        "summary": summary,
-        "items": public_items if include_items else [],
-        "_raw_items": issues,
-        "last_updated_at": status.get("last_updated_at"),
-        "scope": status.get("sidecar_scope"),
-    }
+    return await validation_projection.project_payload(project_id, include_items=include_items)
 
 
-def _normalize_status(raw_status: Optional[str], *, recovered: bool = False) -> str:
-    if recovered and raw_status not in TERMINAL_TASK_STATUSES:
-        return "interrupted"
-    return {
-        "pending": "queued",
-        "queued": "queued",
-        "starting": "queued",
-        "running": "running",
-        "processing": "running",
-        "completed": "completed",
-        "failed": "failed",
-        "partial_failed": "partial_failed",
-        "cancelled": "cancelled",
-        "interrupted": "interrupted",
-    }.get(str(raw_status or "").lower(), "unknown")
+_task_output_paths = validation_projection.task_output_paths
+_normalize_status = validation_projection.normalize_status
 
 
 async def _build_job_response(job_id: str) -> AgentJobResponse:
@@ -315,21 +283,18 @@ async def _build_job_response(job_id: str) -> AgentJobResponse:
     kind = live_task.get("agent_job_kind") or (metadata or {}).get(
         "kind", "translation"
     )
-    validation_payload = merge_task_validation_payload(await _validation_payload(project_id), live_task)
+    output_paths = _task_output_paths(live_task)
+    status = _normalize_status(live_task.get("status"), recovered=recovered)
+    validation_payload = await validation_projection.task_payload(
+        project_id,
+        live_task,
+        status,
+        output_paths=output_paths,
+        project_payload=_validation_payload,
+    )
     validation = validation_payload["summary"]
     progress = live_task.get("progress") or {}
-    output_paths = [
-        str(path)
-        for path in live_task.get("output_dirs", [])
-        if path
-    ]
     result = live_task.get("result") or {}
-    for path in result.get("output_paths") or []:
-        if path and str(path) not in output_paths:
-            output_paths.append(str(path))
-    if live_task.get("result_path") and live_task["result_path"] not in output_paths:
-        output_paths.append(str(live_task["result_path"]))
-    status = _normalize_status(live_task.get("status"), recovered=recovered)
     agent_managed = metadata is not None
     checkpoint = live_task.get("checkpoint") or {}
     resume_supported = checkpoint.get("resume_supported")
@@ -738,14 +703,33 @@ async def get_agent_job(job_id: str):
 @router.get("/jobs/{job_id}/validation")
 async def get_agent_job_validation(job_id: str):
     metadata = agent_registry.get_job(job_id)
-    task = task_state.get_task(job_id) or {}
+    live_task = task_state.get_task(job_id)
+    task = (
+        live_task
+        if live_task is not None
+        else ((metadata or {}).get("last_snapshot") or {})
+    )
     project_id = task.get("project_id") or (metadata or {}).get("project_id")
     if not project_id:
         raise _error(404, "job_not_found", "Agent job not found")
-    payload = merge_task_validation_payload(await _validation_payload(project_id, include_items=True), task, include_items=True)
-    allowed_actions = validation_allowed_actions(
-        payload.get("_raw_items", []),
-        total=payload["summary"].total,
+    status = _normalize_status(
+        task.get("status"),
+        recovered=live_task is None,
+    )
+    payload = await validation_projection.task_payload(
+        project_id,
+        task,
+        status,
+        include_items=True,
+        project_payload=_validation_payload,
+    )
+    allowed_actions = (
+        []
+        if payload.get("_suppressed")
+        else validation_allowed_actions(
+            payload.get("_raw_items", []),
+            total=payload["summary"].total,
+        )
     )
     if not metadata:
         allowed_actions = []

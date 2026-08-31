@@ -596,3 +596,28 @@ async def test_non_translation_task_cannot_be_cancelled():
         await tasks_router.cancel_task("task-not-cancellable")
 
     assert exc_info.value.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_compatible_interrupted_translation_exposes_resume_and_start_over_actions():
+    task_state.create_task(
+        "interrupted-translation",
+        status="interrupted",
+        fields={
+            "kind": "initial_translation",
+            "checkpoint": {
+                "available": True,
+                "resumable": True,
+                "compatibility": "compatible",
+            },
+        },
+    )
+
+    summary = await tasks_router.get_task_detail("interrupted-translation")
+
+    assert summary.allowed_actions == [
+        "view_task",
+        "resume_task",
+        "start_over_task",
+        "archive_task",
+    ]

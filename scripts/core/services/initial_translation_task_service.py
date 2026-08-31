@@ -57,6 +57,28 @@ def _build_source_entries(texts: List[str], key_map: Any) -> List[dict]:
     return entries
 
 
+def _checkpoint_file_identity(file_data: dict) -> str:
+    """Use the project-relative path, never a basename, as the cursor."""
+    return str(file_data.get("file_path") or file_data["filename"]).replace("\\", "/")
+
+
+def _mark_checkpoint_completed(
+    checkpoint_manager: CheckpointManager,
+    file_data: dict,
+    run_state: LanguageRunState,
+) -> None:
+    if not getattr(checkpoint_manager, "resume_enabled", True):
+        return
+    identity = _checkpoint_file_identity(file_data)
+    if hasattr(checkpoint_manager, "progress"):
+        checkpoint_manager.mark_file_completed(
+            identity,
+            progress_metadata=run_state.checkpoint_progress(),
+        )
+    else:
+        checkpoint_manager.mark_file_completed(identity)
+
+
 def build_file_task_iterator(
     all_files_content: List[dict],
     checkpoint_manager: CheckpointManager,
@@ -77,8 +99,9 @@ def build_file_task_iterator(
     reference_run_metrics: Optional[dict] = None,
 ) -> Iterator[FileTask]:
     for file_data in all_files_content:
-        if checkpoint_manager.is_file_completed(file_data["filename"]):
-            logging.info(f"Skipping completed file: {file_data['filename']}")
+        file_identity = _checkpoint_file_identity(file_data)
+        if checkpoint_manager.is_file_completed(file_identity):
+            logging.info(f"Skipping completed file: {file_identity}")
             continue
 
         texts = file_data["texts_to_translate"]
@@ -100,7 +123,7 @@ def build_file_task_iterator(
                 version_id=version_id,
                 all_files_content=all_files_content,
             )
-            checkpoint_manager.mark_file_completed(file_data["filename"])
+            _mark_checkpoint_completed(checkpoint_manager, file_data, run_state)
             emit_progress(
                 progress_callback,
                 run_state,
