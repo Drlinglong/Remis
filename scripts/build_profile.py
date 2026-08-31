@@ -28,7 +28,7 @@ PROFILES = {
     STABLE_CHANNEL: BuildProfile(
         channel=STABLE_CHANNEL,
         product_name="remis-mod-factory",
-        version="3.1.7",
+        version="3.1.8",
         identifier="com.remis.modfactory",
         app_data_folder="RemisModFactory",
         backend_port=1453,
