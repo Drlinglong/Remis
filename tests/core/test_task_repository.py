@@ -335,6 +335,7 @@ def test_hydration_interrupts_initial_translation_preserves_checkpoint_and_relea
             assert recovered["checkpoint"] == checkpoint
             assert recovered["progress"]["stage"] == "Interrupted"
             assert recovered["finished_at"]
+            assert "Resume from the saved checkpoint" in recovered["attention_reason"]
             assert repository.get_task(task_id)["status"] == "interrupted"
 
         dedupe_key = "project_translation_write:project-212-processing"

@@ -40,7 +40,8 @@ class CheckpointDeleteResponse(BaseModel):
 
 
 class CheckpointStatusRequest(BaseModel):
-    mod_name: str
+    project_id: Optional[str] = None
+    mod_name: Optional[str] = None
     target_lang_codes: List[LanguageCode]
 
     @field_validator('target_lang_codes', mode='before')

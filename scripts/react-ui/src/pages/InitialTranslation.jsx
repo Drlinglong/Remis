@@ -324,7 +324,7 @@ const InitialTranslation = () => {
     checkpointHintRequestRef.current = requestId;
 
     api.post('/api/translation/checkpoint-status', {
-      mod_name: selectedProject.label,
+      project_id: selectedProjectId,
       target_lang_codes: targetLangCodes,
     })
       .then((response) => {
@@ -345,6 +345,7 @@ const InitialTranslation = () => {
     checkpointTargetSignature,
     form.values,
     selectedProject?.label,
+    selectedProjectId,
   ]);
 
   useEffect(() => {

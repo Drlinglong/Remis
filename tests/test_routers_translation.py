@@ -1,3 +1,4 @@
+import os
 from unittest.mock import AsyncMock, MagicMock
 from types import SimpleNamespace
 
@@ -188,15 +189,47 @@ def test_run_translation_workflow_v2_tracks_recovery_checkpoint(monkeypatch):
         [],
         None,
         False,
-        use_resume=True,
+        use_resume=False,
     )
 
     checkpoint = tasks["task-checkpoint"]["checkpoint"]
     assert checkpoint["available"] is True
     assert checkpoint["resume_supported"] is True
+    assert checkpoint["metadata"]["resume_requested"] is False
     assert checkpoint["cursor"] == "localisation/events.yml"
     assert checkpoint["metadata"]["completed"] == 2
     assert checkpoint["metadata"]["total"] == 5
+
+
+def test_checkpoint_status_resolves_real_project_source(monkeypatch, tmp_path):
+    source_path = tmp_path / "Real_Source_Mod"
+    (source_path / "localisation").mkdir(parents=True)
+    (source_path / "localisation" / "events.yml").write_text("l_english:\n", encoding="utf-8")
+    (source_path / "localisation" / "tech.txt").write_text("tech = {}\n", encoding="utf-8")
+    destination = tmp_path / "translations"
+    monkeypatch.setattr(translation, "DEST_DIR", str(destination))
+    manager = MagicMock()
+    manager.get_project = AsyncMock(return_value={"source_path": str(source_path)})
+    monkeypatch.setattr(translation, "project_manager", manager)
+    target_languages = translation._resolve_target_languages(["zh-CN"])
+    output_dir = translation._get_checkpoint_output_dir(source_path.name, target_languages)
+    os.makedirs(output_dir, exist_ok=True)
+    checkpoint = translation.CheckpointManager(
+        output_dir,
+        checkpoint_filename=".remis_checkpoint_zh-CN.json",
+    )
+    checkpoint.mark_file_completed("events.yml")
+
+    response = TestClient(app).post(
+        "/api/translation/checkpoint-status",
+        json={"project_id": "project-1", "target_lang_codes": ["zh-CN"]},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["exists"] is True
+    assert response.json()["completed_count"] == 1
+    assert response.json()["total_files_estimate"] == 2
+    manager.get_project.assert_awaited_once_with("project-1")
 
 
 def test_run_translation_workflow_v2_logs_project_history_through_async_bridge(monkeypatch, tmp_path):

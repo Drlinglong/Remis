@@ -242,10 +242,17 @@ def _restart_recovery(task: Dict[str, Any]) -> Optional[tuple[str, str, bool]]:
     kind = task.get("kind")
     checkpoint = task.get("checkpoint") or {}
     if kind == "initial_translation":
+        checkpoint_available = checkpoint.get("available") is True
         return (
             "The app restarted before this initial translation finished.",
-            "The previous translation worker is no longer running. Resume from the saved checkpoint or start a new translation.",
-            checkpoint.get("resume_supported") is True,
+            (
+                "The previous translation worker is no longer running. "
+                "Resume from the saved checkpoint or start a new translation."
+                if checkpoint_available
+                else "The previous translation worker is no longer running. "
+                "Return to Initial Translation to check for saved progress or start again."
+            ),
+            checkpoint_available,
         )
     if kind == "reference_library_maintenance":
         return (

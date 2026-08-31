@@ -95,4 +95,37 @@ describe('useInitialTranslationFlow reference gate', () => {
     expect(setStatus).toHaveBeenLastCalledWith('failed');
     expect(setTaskId).toHaveBeenLastCalledWith(null);
   });
+
+  it('checks and clears checkpoints by stable project id', async () => {
+    api.post.mockResolvedValueOnce({ data: { exists: true, completed_count: 1 } });
+    const { result } = renderHook(() => useInitialTranslationFlow({
+      config: { languages: [] },
+      notificationStyle: {},
+      selectedProject: { game_id: 'victoria3', label: 'Renamed Project', source_language: 'en' },
+      selectedProjectId: 'project-stable-id',
+      setActive: vi.fn(),
+      setIsProcessing: vi.fn(),
+      setStatus: vi.fn(),
+      setTaskId: vi.fn(),
+      setTranslationDetails: vi.fn(),
+    }));
+
+    await act(() => result.current.handleStartClick({
+      ...values,
+      reference_reuse_enabled: false,
+      use_resume: true,
+    }));
+    expect(api.post).toHaveBeenCalledWith('/api/translation/checkpoint-status', {
+      project_id: 'project-stable-id',
+      target_lang_codes: ['zh-CN'],
+    });
+
+    await act(() => result.current.handleStartOver());
+    expect(api.delete).toHaveBeenCalledWith('/api/translation/checkpoint', {
+      data: {
+        project_id: 'project-stable-id',
+        target_lang_codes: ['zh-CN'],
+      },
+    });
+  });
 });

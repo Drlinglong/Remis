@@ -63,8 +63,8 @@ def build_translation_progress_callback(
             push=should_push,
             fields={
                 "checkpoint": {
-                    "available": bool(use_resume and current > 0 and not is_final),
-                    "resume_supported": bool(use_resume),
+                    "available": bool(current > 0 and not is_final),
+                    "resume_supported": True,
                     "stage": stage,
                     "cursor": current_file or str(current),
                     "updated_at": task_state.utc_now_iso(),
@@ -73,6 +73,7 @@ def build_translation_progress_callback(
                         "total": total,
                         "current_batch": current_batch,
                         "total_batches": total_batches,
+                        "resume_requested": bool(use_resume),
                     },
                 },
             },

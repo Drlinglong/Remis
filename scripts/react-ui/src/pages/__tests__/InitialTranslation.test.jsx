@@ -232,7 +232,7 @@ describe('InitialTranslation', () => {
       expect(checkpointCalls.at(-1)).toEqual([
         '/api/translation/checkpoint-status',
         {
-          mod_name: 'Test Project',
+          project_id: 'proj-1',
           target_lang_codes: ['ru'],
         },
       ]);

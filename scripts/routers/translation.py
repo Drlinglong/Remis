@@ -463,8 +463,9 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
                 "idempotency_key": request.idempotency_key,
                 "checkpoint": {
                     "available": False,
-                    "resume_supported": request.use_resume,
+                    "resume_supported": True,
                     "stage": "Queued",
+                    "metadata": {"resume_requested": request.use_resume},
                 },
                 "translation_context_mode": request.translation_context_mode,
                 **({
@@ -737,63 +738,54 @@ async def websocket_status(websocket: WebSocket, task_id: str):
 def get_result(task_id: str):
     raise HTTPException(status_code=410, detail="ZIP result downloads have been removed. Open the output folder instead.")
 
+
+async def _resolve_checkpoint_inputs(payload: CheckpointStatusRequest):
+    project = await project_manager.get_project(payload.project_id) if payload.project_id else None
+    if payload.project_id and not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    source_path = project.get("source_path") if project else os.path.join(SOURCE_DIR, payload.mod_name or "")
+    mod_name = os.path.basename(os.path.normpath(source_path)) if project else payload.mod_name
+    if not mod_name:
+        raise HTTPException(status_code=400, detail="project_id or mod_name is required")
+    target_codes = [code.value if hasattr(code, "value") else str(code) for code in payload.target_lang_codes]
+    target_languages = _resolve_requested_target_languages(target_codes)
+    return source_path, target_languages, _get_checkpoint_output_dir(mod_name, target_languages)
+
+
 @router.post(
     "/api/translation/checkpoint-status",
     response_model=CheckpointStatusResponse,
 )
-def check_checkpoint_status(payload: CheckpointStatusRequest):
+async def check_checkpoint_status(payload: CheckpointStatusRequest):
     """Checks if a checkpoint exists for the given configuration."""
-    try:
-        # Determine output folder name logic (duplicated from initial_translate, ideally shared)
-        # NOTE: This logic must match initial_translate.py exactly
-        target_codes = [code.value if hasattr(code, "value") else str(code) for code in payload.target_lang_codes]
-        target_languages = _resolve_requested_target_languages(target_codes)
-        checkpoint_infos = []
-        output_dir = _get_checkpoint_output_dir(payload.mod_name, target_languages)
-        for target_lang in target_languages:
-            checkpoint_filename = f".remis_checkpoint_{target_lang['code']}.json"
-            cm = CheckpointManager(output_dir, checkpoint_filename=checkpoint_filename)
-            checkpoint_infos.append({
-                "target_lang_code": target_lang["code"],
-                **cm.get_checkpoint_info(),
-            })
-        
-        total_files = 0
-        if any(item["exists"] for item in checkpoint_infos):
-            source_path = os.path.join(SOURCE_DIR, payload.mod_name)
-            # Quick count
-            for root, _, files in os.walk(source_path):
-                for f in files:
-                    if f.endswith(".yml") or f.endswith(".txt"):
-                        total_files += 1
-        
-        return {
-            "exists": any(item["exists"] for item in checkpoint_infos),
-            "completed_count": sum(item["completed_count"] for item in checkpoint_infos),
-            "total_files_estimate": total_files,
-            "metadata": checkpoint_infos[0]["metadata"] if len(checkpoint_infos) == 1 else {"targets": checkpoint_infos},
-            "targets": checkpoint_infos,
-        }
-    except Exception as e:
-        logging.error(f"Error checking checkpoint: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    source_path, target_languages, output_dir = await _resolve_checkpoint_inputs(payload)
+    checkpoint_infos = []
+    for target_lang in target_languages:
+        filename = f".remis_checkpoint_{target_lang['code']}.json"
+        info = CheckpointManager(output_dir, checkpoint_filename=filename).get_checkpoint_info()
+        checkpoint_infos.append({"target_lang_code": target_lang["code"], **info})
+    exists = any(item["exists"] for item in checkpoint_infos)
+    total_files = sum(
+        filename.endswith((".yml", ".txt"))
+        for _, _, files in os.walk(source_path)
+        for filename in files
+    ) if exists else 0
+    return {
+        "exists": exists,
+        "completed_count": sum(item["completed_count"] for item in checkpoint_infos),
+        "total_files_estimate": total_files,
+        "metadata": checkpoint_infos[0]["metadata"] if len(checkpoint_infos) == 1 else {"targets": checkpoint_infos},
+        "targets": checkpoint_infos,
+    }
 
 @router.delete(
     "/api/translation/checkpoint",
     response_model=CheckpointDeleteResponse,
 )
-def delete_checkpoint(payload: CheckpointStatusRequest):
+async def delete_checkpoint(payload: CheckpointStatusRequest):
     """Deletes the checkpoint file for the given configuration."""
-    try:
-        # Determine output folder name logic (duplicated)
-        target_codes = [code.value if hasattr(code, "value") else str(code) for code in payload.target_lang_codes]
-        target_languages = _resolve_requested_target_languages(target_codes)
-        output_dir = _get_checkpoint_output_dir(payload.mod_name, target_languages)
-        for target_lang in target_languages:
-            checkpoint_filename = f".remis_checkpoint_{target_lang['code']}.json"
-            cm = CheckpointManager(output_dir, checkpoint_filename=checkpoint_filename)
-            cm.clear_checkpoint()
-        return {"status": "success", "message": "Checkpoint deleted."}
-    except Exception as e:
-        logging.error(f"Error deleting checkpoint: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    _, target_languages, output_dir = await _resolve_checkpoint_inputs(payload)
+    for target_lang in target_languages:
+        filename = f".remis_checkpoint_{target_lang['code']}.json"
+        CheckpointManager(output_dir, checkpoint_filename=filename).clear_checkpoint()
+    return {"status": "success", "message": "Checkpoint deleted."}

@@ -109,14 +109,13 @@ export function useInitialTranslationFlow({
       return startTranslation(values);
     }
 
-    const modName = selectedProject?.label;
-    if (!modName) {
+    if (!selectedProjectId) {
       return;
     }
 
     try {
       const response = await api.post('/api/translation/checkpoint-status', {
-        mod_name: modName,
+        project_id: selectedProjectId,
         target_lang_codes: getTargetLangCodes(values),
       });
 
@@ -146,11 +145,10 @@ export function useInitialTranslationFlow({
       return;
     }
 
-    const modName = selectedProject?.label;
     try {
       await api.delete('/api/translation/checkpoint', {
         data: {
-          mod_name: modName,
+          project_id: selectedProjectId,
           target_lang_codes: getTargetLangCodes(pendingFormValues),
         },
       });

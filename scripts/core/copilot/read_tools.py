@@ -246,10 +246,10 @@ async def execute_workflow_read_tool(
         if not project:
             raise ValueError("Project not found")
         payload = CheckpointStatusRequest(
-                mod_name=os.path.basename(project.get("source_path") or project.get("name") or ""),
-                target_lang_codes=target_lang_codes,
+            project_id=project_id,
+            target_lang_codes=target_lang_codes,
         )
-        status = await asyncio.to_thread(check_checkpoint_status, payload)
+        status = await check_checkpoint_status(payload)
         if hasattr(status, "model_dump"):
             status = status.model_dump()
         return _safe_checkpoint_summary(dict(status))
