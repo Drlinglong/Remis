@@ -137,6 +137,28 @@ describe('TaskDetailPage', () => {
     expect(navigateMock).toHaveBeenCalledWith('/project-management/project-demo');
   });
 
+  it('requests cooperative cancellation for an active translation task', async () => {
+    const activeTask = {
+      ...failedTask,
+      status: 'running',
+      finished_at: null,
+      blocking: true,
+      allowed_actions: ['view_task', 'cancel_task'],
+    };
+    api.get.mockResolvedValue({ data: activeTask });
+    api.post.mockResolvedValue({ data: { task_id: 'failed-task', status: 'cancelling' } });
+    vi.stubGlobal('confirm', vi.fn(() => true));
+
+    render(<MantineProvider><TaskDetailPage /></MantineProvider>);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel task' }));
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith('/api/tasks/failed-task/cancel');
+    });
+    expect(refreshTasksMock).toHaveBeenCalledWith({ quiet: true });
+  });
+
   it('shows an explicit forbidden error with a corrective next step', async () => {
     api.get.mockResolvedValue({
       data: {

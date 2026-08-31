@@ -25,9 +25,11 @@ ACTIVE_TASK_STATUSES = {
     "in_progress",
     "awaiting_approval",
     "waiting_approval",
+    "cancelling",
 }
 TERMINAL_TASK_STATUSES = {"completed", "complete", "success", "failed", "partial_failed", "cancelled", "canceled", "interrupted"}
 _repository: Optional[TaskRepository] = None
+_CANCELLATION_EVENTS: Dict[str, threading.Event] = {}
 
 
 class DuplicateTaskError(RuntimeError):
@@ -361,6 +363,7 @@ def create_task(
     require_persistence: bool = False,
 ) -> Dict[str, Any]:
     with _LOCK:
+        _CANCELLATION_EVENTS.pop(task_id, None)
         idempotency_key = str((fields or {}).get("idempotency_key") or "").strip() or None
         if idempotency_key:
             existing = next(
@@ -453,7 +456,13 @@ def update_task(
     with _LOCK:
         task = _ensure_task(task_id)
         if status is not None:
-            task["status"] = status
+            current_status = str(task.get("status") or "").lower()
+            requested_status = str(status or "").lower()
+            if not (
+                current_status == "cancelling"
+                and requested_status not in {"cancelling", "cancelled", "canceled"}
+            ):
+                task["status"] = status
         if message is not None:
             task["message"] = message
         if progress is not None:
@@ -474,6 +483,7 @@ def update_task(
             task.setdefault("started_at", now)
         if normalized_status in TERMINAL_TASK_STATUSES:
             task.setdefault("finished_at", now)
+            _CANCELLATION_EVENTS.pop(task_id, None)
         task["updated_at"] = now
         if event_audience == "user":
             _append_log(task, append_log)
@@ -489,6 +499,28 @@ def update_task(
     if push:
         push_task_update(task_id)
     return snapshot
+
+
+def request_task_cancellation(task_id: str) -> Dict[str, Any]:
+    """Request cooperative cancellation without releasing the task's lock early."""
+    with _LOCK:
+        task = _ensure_task(task_id)
+        event = _CANCELLATION_EVENTS.setdefault(task_id, threading.Event())
+        event.set()
+    return update_task(
+        task_id,
+        status="cancelling",
+        message="Cancellation requested. Waiting for the active provider request to stop safely.",
+        append_log="Cancellation requested. No new translation batches will be started.",
+        fields={"cancellation_requested_at": _utc_now_iso()},
+        push=True,
+    )
+
+
+def is_task_cancellation_requested(task_id: str) -> bool:
+    with _LOCK:
+        event = _CANCELLATION_EVENTS.get(task_id)
+        return bool(event and event.is_set())
 
 
 def update_progress(

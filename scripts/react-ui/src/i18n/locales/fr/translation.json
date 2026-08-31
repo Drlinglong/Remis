@@ -113,7 +113,7 @@
     "show_diagnostics": "Afficher les diagnostics", "diagnostic": "Données de diagnostic", "export_log": "Exporter le journal",
     "live_updates": "Mise à jour en direct", "event_count": "{{count}} événements", "no_events": "Aucun événement d’exécution enregistré",
     "task_info": "Détails de la tâche", "task_id": "ID de tâche", "project": "Projet", "project_name": "Nom du projet", "project_id": "ID du projet", "task_flow": "Flux de la tâche", "technical_info": "Identifiants techniques", "blocking_description": "Cette tâche modifie actuellement les fichiers du projet. Remis empêche temporairement les écritures concurrentes sur ce projet ; la restriction disparaît à la fin de l’exécution.", "started_at": "Démarrée", "finished_at": "Terminée",
-    "result": "Résultat", "output_paths": "Chemins de sortie", "child_tasks": "Sous-tâches", "repair_item_results": "Éléments de ce lot", "repair_item_fixed": "Corrigés", "repair_item_needs_review": "À vérifier", "repair_item_reason": "Raison", "back_to_workflow": "Retour au flux de travail"
+    "result": "Résultat", "output_paths": "Chemins de sortie", "child_tasks": "Sous-tâches", "repair_item_results": "Éléments de ce lot", "repair_item_fixed": "Corrigés", "repair_item_needs_review": "À vérifier", "repair_item_reason": "Raison", "back_to_workflow": "Retour au flux de travail", "cancel_task": "Annuler la tâche", "cancel_confirm": "Annuler cette tâche de traduction ? La requête en cours auprès du fournisseur peut prendre un moment pour s’arrêter en toute sécurité.", "cancel_error": "Impossible d’annuler la tâche."
   },
   "task_presentation": {
     "provider_failure": {
@@ -2767,6 +2767,7 @@
     "status": {
       "queued": "Dans la file",
       "running": "En cours",
+      "cancelling": "Annulation en cours",
       "awaiting_approval": "Approbation requise",
       "completed": "Terminée",
       "failed": "En échec",

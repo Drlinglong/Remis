@@ -57,6 +57,7 @@ import {
   sortTaskEventsNewestFirst,
 } from '../utils/taskPresentation';
 import { TaskFailureAlert } from '../components/tasks/TaskFailureAlert';
+import { TaskCancellationButton } from '../components/tasks/TaskCancellationButton';
 import { glossaryHealthReviewRoute, taskDetailRoute, taskWorkflowTarget } from '../utils/taskRoutes';
 import styles from './TaskDetailPage.module.css';
 const STATUS_COLORS = {
@@ -135,7 +136,6 @@ export default function TaskDetailPage() {
   const [mutating, setMutating] = useState(false);
   const [logExpanded, setLogExpanded] = useState(false);
   const [actionError, setActionError] = useState('');
-
   const loadTask = useCallback(async ({ quiet = false } = {}) => {
     if (!quiet) setLoading(true);
     try {
@@ -150,7 +150,6 @@ export default function TaskDetailPage() {
       if (!quiet) setLoading(false);
     }
   }, [decodedTaskId, t]);
-
   useEffect(() => {
     loadTask();
   }, [loadTask]);
@@ -160,7 +159,6 @@ export default function TaskDetailPage() {
   }, [setPageContext]);
 
   const taskStatus = task?.status;
-
   useEffect(() => {
     setLogExpanded(['failed', 'interrupted'].includes(taskStatus));
   }, [decodedTaskId, taskStatus]);
@@ -340,6 +338,11 @@ export default function TaskDetailPage() {
             <Text c="dimmed">{localizedTaskTitle}</Text>
           </Stack>
           <Group gap="sm">
+            <TaskCancellationButton
+              task={task}
+              onError={setActionError}
+              onRefresh={() => Promise.all([loadTask({ quiet: true }), refreshTasks({ quiet: true })])}
+            />
             <Group gap={7} className={styles.timer} aria-label={t('task_detail.elapsed')}>
               <IconClock size={18} />
               <Text fw={700}>{duration}</Text>

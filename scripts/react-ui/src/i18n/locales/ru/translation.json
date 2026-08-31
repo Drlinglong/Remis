@@ -158,7 +158,7 @@
     "live_updates": "Обновляется в реальном времени", "event_count": "Событий: {{count}}", "no_events": "События выполнения не записаны",
     "task_info": "Сведения о задаче", "task_id": "ID задачи", "project": "Проект", "project_name": "Название проекта", "project_id": "ID проекта", "task_flow": "Процесс задачи", "technical_info": "Технические идентификаторы", "blocking_description": "Эта задача изменяет файлы проекта. Remis временно предотвращает одновременную запись конфликтующих задач в один проект; ограничение снимается после завершения запуска.", "started_at": "Начало", "finished_at": "Завершение",
     "user_summary": "Что выполняет эта задача", "current_stage": "Текущий этап", "next_step": "Следующий шаг", "detailed_result_below": "Подробный результат доступен ниже.", "technical_logs": "Технические журналы и диагностика", "newest_first": "Сначала новые",
-    "result": "Результат", "output_paths": "Пути вывода", "child_tasks": "Дочерние задачи", "repair_item_results": "Элементы этого пакета", "repair_item_fixed": "Исправлено", "repair_item_needs_review": "Требует проверки", "repair_item_reason": "Причина", "back_to_workflow": "Вернуться к процессу"
+    "result": "Результат", "output_paths": "Пути вывода", "child_tasks": "Дочерние задачи", "repair_item_results": "Элементы этого пакета", "repair_item_fixed": "Исправлено", "repair_item_needs_review": "Требует проверки", "repair_item_reason": "Причина", "back_to_workflow": "Вернуться к процессу", "cancel_task": "Отменить задачу", "cancel_confirm": "Отменить эту задачу перевода? Для безопасной остановки текущего запроса к провайдеру может потребоваться некоторое время.", "cancel_error": "Не удалось отменить задачу."
   },
   "task_presentation": {
     "provider_failure": {
@@ -2788,6 +2788,7 @@
     "status": {
       "queued": "Поставлено в очередь",
       "running": "Выполняется",
+      "cancelling": "Отмена",
       "awaiting_approval": "Ожидает разрешения",
       "completed": "Завершено",
       "failed": "Завершилось ошибкой",

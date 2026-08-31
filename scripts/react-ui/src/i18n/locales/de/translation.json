@@ -113,7 +113,7 @@
     "show_diagnostics": "Diagnoseprotokoll anzeigen", "diagnostic": "Diagnose", "export_log": "Protokoll exportieren",
     "live_updates": "Live-Aktualisierung", "event_count": "{{count}} Ereignisse", "no_events": "Keine Ausführungsereignisse aufgezeichnet",
     "task_info": "Aufgabendetails", "task_id": "Aufgaben-ID", "project": "Projekt", "project_name": "Projektname", "project_id": "Projekt-ID", "task_flow": "Aufgabenablauf", "technical_info": "Technische IDs", "blocking_description": "Diese Aufgabe ändert gerade Projektdateien. Remis verhindert vorübergehend konkurrierende Schreibvorgänge; nach Ende der Ausführung wird die Sperre aufgehoben.", "started_at": "Gestartet", "finished_at": "Beendet",
-    "result": "Ergebnis", "output_paths": "Ausgabepfade", "child_tasks": "Unteraufgaben", "repair_item_results": "Elemente in diesem Stapel", "repair_item_fixed": "Behoben", "repair_item_needs_review": "Überprüfung erforderlich", "repair_item_reason": "Grund", "back_to_workflow": "Zurück zum Arbeitsablauf"
+    "result": "Ergebnis", "output_paths": "Ausgabepfade", "child_tasks": "Unteraufgaben", "repair_item_results": "Elemente in diesem Stapel", "repair_item_fixed": "Behoben", "repair_item_needs_review": "Überprüfung erforderlich", "repair_item_reason": "Grund", "back_to_workflow": "Zurück zum Arbeitsablauf", "cancel_task": "Aufgabe abbrechen", "cancel_confirm": "Diese Übersetzungsaufgabe abbrechen? Die aktuelle Anbieteranfrage benötigt möglicherweise einen Moment, um sicher beendet zu werden.", "cancel_error": "Die Aufgabe konnte nicht abgebrochen werden."
   },
   "task_presentation": {
     "provider_failure": {
@@ -2767,6 +2767,7 @@
     "status": {
       "queued": "Eingereiht",
       "running": "Wird ausgeführt",
+      "cancelling": "Wird abgebrochen",
       "awaiting_approval": "Freigabe erforderlich",
       "completed": "Abgeschlossen",
       "failed": "Fehlgeschlagen",

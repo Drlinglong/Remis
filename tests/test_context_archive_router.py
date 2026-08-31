@@ -1,11 +1,13 @@
 from unittest.mock import AsyncMock
 
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from scripts.routers import context_archive as context_archive_router
-from scripts.web_server import app
 
 
+app = FastAPI()
+app.include_router(context_archive_router.router)
 client = TestClient(app)
 
 

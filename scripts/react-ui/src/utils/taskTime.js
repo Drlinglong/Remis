@@ -4,7 +4,7 @@ const parseTimestamp = (value) => {
   return Number.isFinite(timestamp) ? timestamp : null;
 };
 
-export const ACTIVE_TASK_STATUSES = new Set(['queued', 'running', 'awaiting_approval']);
+export const ACTIVE_TASK_STATUSES = new Set(['queued', 'running', 'awaiting_approval', 'cancelling']);
 
 export const taskDurationMs = (task, now = Date.now()) => {
   const startedAt = parseTimestamp(task?.started_at) ?? parseTimestamp(task?.created_at);

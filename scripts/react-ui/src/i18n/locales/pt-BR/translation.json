@@ -111,7 +111,7 @@
     "live_updates": "Atualização ao vivo", "event_count": "{{count}} ocorrências", "no_events": "Nenhum evento de execução registrado",
     "task_info": "Detalhes da tarefa", "task_id": "ID da tarefa", "project": "Projeto", "project_name": "Nome do projeto", "project_id": "ID do projeto", "task_flow": "Fluxo da tarefa", "technical_info": "Dados técnicos", "blocking_description": "Esta tarefa está alterando arquivos do projeto. O Remis impede temporariamente gravações concorrentes no mesmo projeto; a restrição termina quando a execução acaba.", "started_at": "Começou em", "finished_at": "Concluída em",
     "user_summary": "O que esta tarefa está fazendo", "current_stage": "Etapa atual", "next_step": "Próxima etapa", "detailed_result_below": "Um resultado detalhado está disponível abaixo.", "technical_logs": "Logs técnicos e diagnósticos", "newest_first": "Mais recentes primeiro",
-    "result": "Resultado da tarefa", "output_paths": "Caminhos de saída", "child_tasks": "Tarefas filhas", "repair_item_results": "Itens deste lote", "repair_item_fixed": "Corrigidos", "repair_item_needs_review": "Precisam de revisão", "repair_item_reason": "Justificativa", "back_to_workflow": "Voltar ao fluxo de trabalho"
+    "result": "Resultado da tarefa", "output_paths": "Caminhos de saída", "child_tasks": "Tarefas filhas", "repair_item_results": "Itens deste lote", "repair_item_fixed": "Corrigidos", "repair_item_needs_review": "Precisam de revisão", "repair_item_reason": "Justificativa", "back_to_workflow": "Voltar ao fluxo de trabalho", "cancel_task": "Cancelar tarefa", "cancel_confirm": "Cancelar esta tarefa de tradução? A solicitação atual ao provedor pode levar um momento para parar com segurança.", "cancel_error": "Não foi possível cancelar a tarefa."
   },
   "task_presentation": {
     "provider_failure": {
@@ -2766,6 +2766,7 @@
     "status": {
       "queued": "Na fila",
       "running": "Em execução agora",
+      "cancelling": "Cancelamento em andamento",
       "awaiting_approval": "Aguardando aprovação",
       "completed": "Concluída",
       "failed": "Com falha",

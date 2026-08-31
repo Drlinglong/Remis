@@ -24,12 +24,13 @@ from scripts.shared.services import project_manager
 
 router = APIRouter(prefix="/api/tasks", tags=["Tasks"])
 
-ACTIVE_STATUSES = {"queued", "running", "awaiting_approval"}
+ACTIVE_STATUSES = {"queued", "running", "awaiting_approval", "cancelling"}
 ATTENTION_STATUSES = {"awaiting_approval", "failed", "interrupted"}
 RAW_STATUS_BY_NORMALIZED = {
     "queued": {"pending", "starting", "queued"},
     "running": {"running", "processing", "in_progress"},
     "awaiting_approval": {"awaiting_approval", "waiting_approval"},
+    "cancelling": {"cancelling"},
     "completed": {"completed", "complete", "success"},
     "failed": {"failed", "partial_failed"},
     "cancelled": {"cancelled", "canceled"},
@@ -90,6 +91,8 @@ def _status(raw_status: Optional[str]) -> str:
         return "running"
     if value in {"awaiting_approval", "waiting_approval"}:
         return "awaiting_approval"
+    if value == "cancelling":
+        return "cancelling"
     return "unknown"
 
 
@@ -103,11 +106,18 @@ def _progress(task: Dict[str, Any]) -> int:
     return max(0, min(100, int(percent or 0)))
 
 
-def _allowed_actions(status: str, archived_at: Optional[str] = None) -> list[str]:
+def _allowed_actions(
+    status: str,
+    archived_at: Optional[str] = None,
+    kind: Optional[str] = None,
+) -> list[str]:
     if archived_at:
         return ["view_task", "restore_task"]
     if status in ACTIVE_STATUSES:
-        return ["view_task"]
+        actions = ["view_task"]
+        if status != "cancelling" and kind in {"initial_translation", "translation"}:
+            actions.append("cancel_task")
+        return actions
     if status in {"failed", "interrupted"}:
         # Remis workflows have different retry inputs and approval boundaries.
         # Route users back to the owning workflow instead of advertising a
@@ -195,7 +205,7 @@ def _from_live_task(task: Dict[str, Any], agent_job: Optional[Dict[str, Any]]) -
         idempotency_key=task.get("idempotency_key"),
         source_route=str(task.get("source_route") or ROUTE_BY_KIND.get(kind, "/")),
         workflow_context=dict(task.get("workflow_context") or {}),
-        allowed_actions=_allowed_actions(status, task.get("archived_at")),
+        allowed_actions=_allowed_actions(status, task.get("archived_at"), kind),
     )
 
 
@@ -558,6 +568,25 @@ async def archive_task(task_id: str):
     if job is not None:
         agent_registry.update_snapshot(task_id, updated)
     return {"task_id": task_id, "archived_at": archived_at}
+
+
+@router.post("/{task_id}/cancel")
+async def cancel_task(task_id: str):
+    task, job = _raw_task_and_job(task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+    kind = str(task.get("kind") or task.get("task_kind") or "")
+    status = _status(task.get("status"))
+    if kind not in {"initial_translation", "translation"}:
+        raise HTTPException(status_code=409, detail="This task does not support cancellation")
+    if status == "cancelling":
+        return {"task_id": task_id, "status": "cancelling"}
+    if status not in ACTIVE_STATUSES:
+        raise HTTPException(status_code=409, detail="Only active translation tasks can be cancelled")
+    updated = task_state.request_task_cancellation(task_id)
+    if job is not None:
+        agent_registry.update_snapshot(task_id, updated)
+    return {"task_id": task_id, "status": "cancelling"}
 
 
 @router.post("/{task_id}/restore")

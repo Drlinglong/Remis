@@ -113,7 +113,7 @@
     "show_diagnostics": "Mostrar diagnósticos", "diagnostic": "Diagnóstico", "export_log": "Exportar registro",
     "live_updates": "Actualización en directo", "event_count": "{{count}} eventos", "no_events": "No hay eventos de ejecución registrados",
     "task_info": "Detalles de la tarea", "task_id": "ID de tarea", "project": "Proyecto", "project_name": "Nombre del proyecto", "project_id": "ID del proyecto", "task_flow": "Flujo de la tarea", "technical_info": "Identificadores técnicos", "blocking_description": "Esta tarea está modificando archivos del proyecto. Remis evita temporalmente escrituras simultáneas en el mismo proyecto; la restricción termina al finalizar la ejecución.", "started_at": "Iniciada", "finished_at": "Finalizada",
-    "result": "Resultado", "output_paths": "Rutas de salida", "child_tasks": "Tareas secundarias", "repair_item_results": "Elementos de este lote", "repair_item_fixed": "Corregidos", "repair_item_needs_review": "Requieren revisión", "repair_item_reason": "Motivo", "back_to_workflow": "Volver al flujo de trabajo"
+    "result": "Resultado", "output_paths": "Rutas de salida", "child_tasks": "Tareas secundarias", "repair_item_results": "Elementos de este lote", "repair_item_fixed": "Corregidos", "repair_item_needs_review": "Requieren revisión", "repair_item_reason": "Motivo", "back_to_workflow": "Volver al flujo de trabajo", "cancel_task": "Cancelar tarea", "cancel_confirm": "¿Cancelar esta tarea de traducción? La solicitud actual al proveedor puede tardar un momento en detenerse de forma segura.", "cancel_error": "No se pudo cancelar la tarea."
   },
   "task_presentation": {
     "provider_failure": {
@@ -2768,6 +2768,7 @@
     "status": {
       "queued": "En cola",
       "running": "En ejecución",
+      "cancelling": "Cancelando",
       "awaiting_approval": "Requiere aprobación",
       "completed": "Finalizada",
       "failed": "Fallida",

@@ -146,6 +146,7 @@
     "status": {
       "queued": "Queued",
       "running": "Running",
+      "cancelling": "Cancelling",
       "awaiting_approval": "Needs approval",
       "completed": "Completed",
       "failed": "Failed",
@@ -212,7 +213,10 @@
     "repair_item_fixed": "Fixed",
     "repair_item_needs_review": "Needs review",
     "repair_item_reason": "Reason",
-    "back_to_workflow": "Back to workflow"
+    "back_to_workflow": "Back to workflow",
+    "cancel_task": "Cancel task",
+    "cancel_confirm": "Cancel this translation task? The current provider request may need a moment to stop safely.",
+    "cancel_error": "Failed to cancel the task."
   },
   "task_presentation": {
     "provider_failure": {

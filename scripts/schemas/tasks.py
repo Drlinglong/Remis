@@ -57,6 +57,7 @@ class TaskSummary(BaseModel):
         "queued",
         "running",
         "awaiting_approval",
+        "cancelling",
         "completed",
         "failed",
         "cancelled",

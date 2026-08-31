@@ -17,6 +17,10 @@ from scripts.utils import i18n
 from scripts.app_settings import CHUNK_SIZE, LOCAL_LLM_CHUNK_SIZE, OLLAMA_CHUNK_SIZE
 
 
+class ProcessingCancelledError(RuntimeError):
+    """Raised after cooperative cancellation has stopped batch scheduling."""
+
+
 class ParallelProcessor:
     LOCAL_PROVIDERS = {"ollama", "lm_studio", "vllm", "koboldcpp", "oobabooga", "text-generation-webui"}
 
@@ -261,6 +265,8 @@ class ParallelProcessor:
     ) -> Tuple[BatchTask, List[Dict[str, Any]]]:
         try:
             return future.result()
+        except ProcessingCancelledError:
+            raise
         except ProviderFatalError:
             raise
         except Exception as e:
@@ -315,9 +321,11 @@ class ParallelProcessor:
         batch_task: BatchTask,
         translation_function: Callable,
         abort_event: threading.Event,
+        should_cancel: Optional[Callable[[], bool]] = None,
     ) -> Tuple[BatchTask, List[Dict[str, Any]]]:
-        if abort_event.is_set():
-            raise concurrent.futures.CancelledError()
+        if abort_event.is_set() or (should_cancel and should_cancel()):
+            abort_event.set()
+            raise ProcessingCancelledError("Translation cancelled by user.")
         try:
             return self._process_single_batch(batch_task, translation_function)
         except ProviderFatalError:
@@ -335,12 +343,14 @@ class ParallelProcessor:
         batch_task: BatchTask,
         translation_function: Callable,
         abort_event: threading.Event,
+        should_cancel: Optional[Callable[[], bool]] = None,
     ) -> concurrent.futures.Future:
         return executor.submit(
             self._process_single_batch_guarded,
             batch_task,
             translation_function,
             abort_event,
+            should_cancel,
         )
 
     def _resolve_stream_batch_future(
@@ -354,7 +364,7 @@ class ParallelProcessor:
     ) -> Tuple[BatchTask, List[Dict[str, Any]]]:
         try:
             return self._resolve_batch_future(future, batch_task, filename, batch_index)
-        except ProviderFatalError:
+        except (ProviderFatalError, ProcessingCancelledError):
             abort_event.set()
             self._cancel_pending(pending_futures)
             raise
@@ -364,6 +374,7 @@ class ParallelProcessor:
         file_tasks_generator: Any, # Iterator[FileTask]
         translation_function: Callable,
         batch_progress_callback: Optional[Callable[[BatchTask], None]] = None,
+        should_cancel: Optional[Callable[[], bool]] = None,
     ) -> Any: # Iterator[Tuple[str, List[str], List[Dict[str, Any]]]]
         """
         Stream processing of files.
@@ -374,30 +385,15 @@ class ParallelProcessor:
         # Track total batches expected per file: {filename: total_batches}
         file_batch_counts: Dict[str, int] = {}
         file_warning_buffers: Dict[str, List[Dict[str, Any]]] = {}
-        
-        # We need a way to map futures back to their file and batch index
-        # But since we are consuming a generator, we can't submit everything at once if we want to be lazy?
-        # Actually, for "streaming" input, we should submit as we consume.
-        # But we also need to yield results as they complete.
-        
-        # Use a bounded executor or semaphore to prevent submitting too many tasks at once if the generator is infinite?
-        # For now, assuming the generator yields all files, but we want to process them in parallel and yield results ASAP.
-        
         with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             abort_event = threading.Event()
-            # We need to manage submission and completion simultaneously.
-            # Since we can't easily "select" on both generator and futures, 
-            # we can submit all tasks (if memory allows) or use a separate thread for submission.
-            # Given the requirement is to reduce memory usage, we shouldn't generate ALL BatchTasks at once if there are millions.
-            # But typically we have thousands. 
-            
-            # However, the main memory bottleneck is loading ALL file contents into memory.
-            # The `file_tasks_generator` should yield FileTasks one by one (reading file content on demand).
-            
             future_to_info = {}
             
             # Helper to submit batches for a file
             def submit_file(file_task: FileTask):
+                if should_cancel and should_cancel():
+                    abort_event.set()
+                    raise ProcessingCancelledError("Translation cancelled by user.")
                 if not file_task.texts_to_translate:
                     # Handle empty file immediately
                     return True, (file_task, [], [], False)
@@ -421,28 +417,13 @@ class ParallelProcessor:
                         batch_texts,
                         translation_indices[i:],
                     )
-                    future = self._submit_guarded_batch(executor, batch_task, translation_function, abort_event)
+                    future = self._submit_guarded_batch(
+                        executor, batch_task, translation_function, abort_event, should_cancel
+                    )
                     future_to_info[future] = (file_task.filename, batch_index, batch_task)
                 return False, None
 
-            # We iterate through the generator and submit tasks. 
-            # To avoid loading EVERYTHING, we can't just loop to end.
-            # But `as_completed` requires a set of futures.
-            
-            # Strategy: 
-            # 1. Submit a chunk of files.
-            # 2. Loop while there are pending futures.
-            # 3. In the loop, check for completed futures.
-            # 4. Also try to submit more files if we have capacity (optional, for now let's just submit all or use a smart loop).
-            
-            # Simpler approach for V1: 
-            # The generator yields FileTasks. We iterate it.
-            # If we just iterate and submit, we still hold all Futures in memory. 
-            # But Futures are small. The FileTask content is what's big.
-            # Wait, `BatchTask` holds reference to `FileTask`. 
-            # So if we submit all, we hold all FileTasks in memory. That defeats the purpose.
-            
-            # So we MUST limit the number of active files/batches.
+            # Bound pending batches because each future retains its FileTask.
             MAX_PENDING_BATCHES = self.max_workers * 4
             pending_batches_count = 0
             
@@ -450,6 +431,10 @@ class ParallelProcessor:
             done_consuming = False
             
             while not done_consuming or future_to_info:
+                if should_cancel and should_cancel():
+                    abort_event.set()
+                    self._cancel_pending(future_to_info)
+                    raise ProcessingCancelledError("Translation cancelled by user.")
                 # 1. Submit new tasks if we have capacity
                 while not done_consuming and pending_batches_count < MAX_PENDING_BATCHES:
                     try:
@@ -467,11 +452,16 @@ class ParallelProcessor:
                 if future_to_info:
                     # wait for first completed
                     done, _ = concurrent.futures.wait(
-                        future_to_info.keys(), 
+                        future_to_info.keys(),
+                        timeout=0.25,
                         return_when=concurrent.futures.FIRST_COMPLETED
                     )
                     
                     for future in done:
+                        if should_cancel and should_cancel():
+                            abort_event.set()
+                            self._cancel_pending(future_to_info)
+                            raise ProcessingCancelledError("Translation cancelled by user.")
                         filename, batch_index, batch_task = future_to_info.pop(future)
                         pending_batches_count -= 1
                         warnings = []

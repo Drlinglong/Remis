@@ -28,6 +28,7 @@ from scripts.schemas.neologism import (
 )
 from scripts.schemas.common import LanguageCode
 from scripts.app_settings import GAME_PROFILES_BY_ID, PROJECTS_DB_PATH
+from scripts.core.feature_policy import mod_archive_enabled
 from scripts.routers.provider_runtime import provider_task_fields, resolve_runtime_or_400
 
 logger = logging.getLogger(__name__)
@@ -121,6 +122,28 @@ def _mining_task_identity(payload: MineNeologismsRequest, project: dict) -> tupl
     if payload.analysis_scope == "narrative_context":
         return "context_archive_analysis", f"Build project archive for {project_name}"
     return "neologism_mining", f"Mine neologisms for {project_name}"
+
+
+def _reject_disabled_archive_scope(payload: MineNeologismsRequest) -> None:
+    if payload.analysis_scope == "narrative_context" and not mod_archive_enabled():
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": "project_archive_disabled",
+                "message": "Project Archive is not available in the stable build.",
+            },
+        )
+
+
+def _require_mod_archive() -> None:
+    if not mod_archive_enabled():
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": "project_archive_disabled",
+                "message": "Project Archive is not available in the stable build.",
+            },
+        )
 
 async def _build_glossary_duplicate_index(
     game_id: str,
@@ -355,6 +378,7 @@ async def restore_neologism(candidate_id: str, payload: RestoreNeologismRequest)
 @router.post("/api/neologisms/mine")
 async def trigger_mining(payload: MineNeologismsRequest, background_tasks: BackgroundTasks):
     """Trigger neologism mining for a project."""
+    _reject_disabled_archive_scope(payload)
     project = await project_manager.get_project(payload.project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -545,6 +569,7 @@ def get_mining_status(project_id: str):
 
 @router.get("/api/context/releases/{project_id}/latest")
 def get_latest_context_release(project_id: str, optional: bool = False):
+    _require_mod_archive()
     release = context_repository.list_releases(project_id)
     if not release:
         if optional:
@@ -557,6 +582,7 @@ def get_latest_context_release(project_id: str, optional: bool = False):
 
 @router.get("/api/context/releases/{release_id}")
 def get_context_release(release_id: str):
+    _require_mod_archive()
     release = context_repository.get_release(release_id)
     if release is None:
         raise HTTPException(status_code=404, detail="Context release not found")
@@ -565,6 +591,7 @@ def get_context_release(release_id: str):
 
 @router.get("/api/context/projects/{project_id}/analysis-preview")
 def get_context_analysis_preview(project_id: str, optional: bool = False):
+    _require_mod_archive()
     preview = context_analysis_preview_service.latest(project_id)
     if preview is None:
         if optional:
@@ -578,6 +605,7 @@ def get_context_analysis_preview(project_id: str, optional: bool = False):
 
 @router.get("/api/context/releases/{release_id}/effective")
 def get_effective_context(release_id: str):
+    _require_mod_archive()
     effective = context_service.effective_context(release_id)
     if effective is None:
         raise HTTPException(status_code=404, detail="Context release not found")
@@ -586,6 +614,7 @@ def get_effective_context(release_id: str):
 
 @router.get("/api/context/releases/{release_id}/traceability")
 def get_context_traceability(release_id: str):
+    _require_mod_archive()
     if context_repository.get_release(release_id) is None:
         raise HTTPException(status_code=404, detail="Context release not found")
     return context_service.traceability(release_id)

@@ -108,6 +108,7 @@ describe('useInitialTranslationFlow reference gate', () => {
       setStatus: vi.fn(),
       setTaskId: vi.fn(),
       setTranslationDetails: vi.fn(),
+      resumeEnabled: true,
     }));
 
     await act(() => result.current.handleStartClick({
@@ -127,5 +128,32 @@ describe('useInitialTranslationFlow reference gate', () => {
         target_lang_codes: ['zh-CN'],
       },
     });
+  });
+
+  it('forces a fresh run when checkpoint resume is disabled', async () => {
+    const { result } = renderHook(() => useInitialTranslationFlow({
+      config: { languages: [] },
+      notificationStyle: {},
+      selectedProject: { game_id: 'victoria3', label: 'Demo', source_language: 'en' },
+      selectedProjectId: 'demo',
+      setActive: vi.fn(),
+      setIsProcessing: vi.fn(),
+      setStatus: vi.fn(),
+      setTaskId: vi.fn(),
+      setTranslationDetails: vi.fn(),
+      resumeEnabled: false,
+    }));
+
+    await act(() => result.current.handleStartClick({
+      ...values,
+      reference_reuse_enabled: false,
+      use_resume: true,
+    }));
+
+    expect(api.post).not.toHaveBeenCalledWith('/api/translation/checkpoint-status', expect.anything());
+    expect(api.post).toHaveBeenCalledWith(
+      '/api/translate/start',
+      expect.objectContaining({ use_resume: false }),
+    );
   });
 });

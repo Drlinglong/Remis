@@ -410,6 +410,21 @@ def test_run_translation_workflow_v2_none_mode_mounts_no_context_resources(
     assert call["selected_glossary_ids"] == []
     assert call["use_glossary"] is False
     assert call["use_project_context"] is False
+    assert call["use_resume"] is False
     assert call["override_path"] == str(tmp_path)
     glossary_manager.get_available_glossaries.assert_not_awaited()
     glossary_manager.get_project_glossary.assert_not_awaited()
+
+
+def test_cancelled_task_never_enters_translation_workflow():
+    task_state.create_task(
+        "task-cancel-before-start",
+        status="starting",
+        fields={"kind": "initial_translation"},
+    )
+    task_state.request_task_cancellation("task-cancel-before-start")
+
+    result = translation.run_translation_workflow_v2("task-cancel-before-start")
+
+    assert result is None
+    assert task_state.get_task("task-cancel-before-start")["status"] == "cancelled"

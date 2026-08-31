@@ -145,7 +145,7 @@ class CheckpointManager:
         return pending
 
     def clear_checkpoint(self):
-        """Deletes the checkpoint file upon successful completion."""
+        """Clear both persisted and in-memory checkpoint state."""
         with self._lock:
             if os.path.exists(self.checkpoint_path):
                 try:
@@ -153,6 +153,8 @@ class CheckpointManager:
                     self.logger.info("Checkpoint file cleared.")
                 except Exception as e:
                     self.logger.warning(f"Failed to clear checkpoint file: {e}")
+            self.completed_files.clear()
+            self.metadata = dict(self.current_config)
 
     def get_checkpoint_info(self) -> Dict[str, Any]:
         """Returns info about the checkpoint for UI display."""

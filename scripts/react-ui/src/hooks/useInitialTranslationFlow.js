@@ -3,6 +3,7 @@ import { useState } from 'react';
 import api from '../utils/api';
 import translationService from '../services/translationService';
 import notificationService from '../services/notificationService';
+import { FEATURES } from '../config/features';
 import {
   buildTranslationDetails,
   buildTranslationPayload,
@@ -20,6 +21,7 @@ export function useInitialTranslationFlow({
   setTranslationDetails,
   setStatus,
   t = (_key, fallback) => fallback,
+  resumeEnabled = FEATURES.ENABLE_CHECKPOINT_RESUME,
 }) {
   const [resumeModalOpen, setResumeModalOpen] = useState(false);
   const [checkpointInfo, setCheckpointInfo] = useState(null);
@@ -28,6 +30,7 @@ export function useInitialTranslationFlow({
   const [pendingReferenceValues, setPendingReferenceValues] = useState(null);
 
   const startTranslation = async (values, { skipReferenceCheck = false } = {}) => {
+    const effectiveValues = resumeEnabled ? values : { ...values, use_resume: false };
     if (!selectedProjectId) {
       notificationService.error('Please select a project first.', notificationStyle);
       return;
@@ -35,8 +38,8 @@ export function useInitialTranslationFlow({
 
     if (
       !skipReferenceCheck
-      && values.reference_reuse_enabled !== false
-      && !values.reference_localization_path
+      && effectiveValues.reference_reuse_enabled !== false
+      && !effectiveValues.reference_localization_path
     ) {
       try {
         const response = await translationService.getReferenceLibraryStatus();
@@ -45,7 +48,7 @@ export function useInitialTranslationFlow({
           (library) => library.game_id === gameId && library.available,
         );
         if (!available) {
-          setPendingReferenceValues(values);
+          setPendingReferenceValues(effectiveValues);
           setReferencePromptOpen(true);
           return;
         }
@@ -54,9 +57,9 @@ export function useInitialTranslationFlow({
       }
     }
 
-    setTranslationDetails(buildTranslationDetails(values, selectedProject, config.languages));
+    setTranslationDetails(buildTranslationDetails(effectiveValues, selectedProject, config.languages));
 
-    const payload = buildTranslationPayload(values, selectedProjectId, selectedProject);
+    const payload = buildTranslationPayload(effectiveValues, selectedProjectId, selectedProject);
 
     setTaskId(null);
     setStatus('pending');
@@ -105,6 +108,9 @@ export function useInitialTranslationFlow({
   };
 
   const handleStartClick = async (values) => {
+    if (!resumeEnabled) {
+      return startTranslation({ ...values, use_resume: false });
+    }
     if (!values.use_resume) {
       return startTranslation(values);
     }

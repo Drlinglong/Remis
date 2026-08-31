@@ -111,7 +111,7 @@
     "live_updates": "Aktualizacja na żywo", "event_count": "Liczba zdarzeń: {{count}}", "no_events": "Brak zapisanych zdarzeń wykonania",
     "task_info": "Szczegóły zadania", "task_id": "Identyfikator zadania", "project": "Powiązany projekt", "project_name": "Nazwa projektu", "project_id": "Identyfikator projektu", "task_flow": "Przebieg zadania", "technical_info": "Dane techniczne", "blocking_description": "To zadanie modyfikuje pliki projektu. Remis tymczasowo blokuje równoczesny zapis do tego samego projektu; ograniczenie znika po zakończeniu uruchomienia.", "started_at": "Rozpoczęto", "finished_at": "Zakończono",
     "user_summary": "Co wykonuje to zadanie", "current_stage": "Bieżący etap", "next_step": "Następny krok", "detailed_result_below": "Szczegółowy wynik jest dostępny poniżej.", "technical_logs": "Dzienniki techniczne i diagnostyka", "newest_first": "Najnowsze najpierw",
-    "result": "Wynik", "output_paths": "Ścieżki wyjściowe", "child_tasks": "Zadania podrzędne", "repair_item_results": "Elementy w tej partii", "repair_item_fixed": "Naprawione", "repair_item_needs_review": "Wymagają sprawdzenia", "repair_item_reason": "Powód", "back_to_workflow": "Wróć do przepływu pracy"
+    "result": "Wynik", "output_paths": "Ścieżki wyjściowe", "child_tasks": "Zadania podrzędne", "repair_item_results": "Elementy w tej partii", "repair_item_fixed": "Naprawione", "repair_item_needs_review": "Wymagają sprawdzenia", "repair_item_reason": "Powód", "back_to_workflow": "Wróć do przepływu pracy", "cancel_task": "Anuluj zadanie", "cancel_confirm": "Anulować to zadanie tłumaczenia? Bezpieczne zatrzymanie bieżącego żądania dostawcy może chwilę potrwać.", "cancel_error": "Nie udało się anulować zadania."
   },
   "task_presentation": {
     "provider_failure": {
@@ -2765,6 +2765,7 @@
     "status": {
       "queued": "W kolejce",
       "running": "W trakcie",
+      "cancelling": "Anulowanie",
       "awaiting_approval": "Wymaga zatwierdzenia",
       "completed": "Ukończone",
       "failed": "Niepowodzenie",

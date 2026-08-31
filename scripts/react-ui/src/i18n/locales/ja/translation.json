@@ -110,7 +110,7 @@
     "show_diagnostics": "診断ログを表示", "diagnostic": "診断", "export_log": "ログをエクスポート",
     "live_updates": "リアルタイム更新中", "event_count": "{{count}} 件のイベント", "no_events": "実行イベントは記録されていません",
     "task_info": "タスクの詳細", "task_id": "タスク ID", "project": "プロジェクト", "project_name": "プロジェクト名", "project_id": "プロジェクト ID", "task_flow": "タスク工程", "technical_info": "技術情報", "blocking_description": "このタスクはプロジェクトファイルを変更中です。同じプロジェクトへの同時書き込みを防ぐため、Remis は競合操作を一時的に制限します。実行終了時に解除されます。", "started_at": "開始日時", "finished_at": "終了日時",
-    "result": "結果", "output_paths": "出力パス", "child_tasks": "子タスク", "repair_item_results": "このバッチの項目", "repair_item_fixed": "修正済み", "repair_item_needs_review": "要確認", "repair_item_reason": "理由", "back_to_workflow": "ワークフローに戻る",
+    "result": "結果", "output_paths": "出力パス", "child_tasks": "子タスク", "repair_item_results": "このバッチの項目", "repair_item_fixed": "修正済み", "repair_item_needs_review": "要確認", "repair_item_reason": "理由", "back_to_workflow": "ワークフローに戻る", "cancel_task": "タスクをキャンセル", "cancel_confirm": "この翻訳タスクをキャンセルしますか？現在のプロバイダー要求が安全に停止するまで少し時間がかかる場合があります。", "cancel_error": "タスクをキャンセルできませんでした。",
     "user_summary": "このタスクの実行内容",
     "current_stage": "現在のステージ",
     "next_step": "次のステップ",
@@ -2770,6 +2770,7 @@
     "status": {
       "queued": "待機中",
       "running": "実行中",
+      "cancelling": "キャンセル中",
       "awaiting_approval": "承認待ち",
       "completed": "完了済み",
       "failed": "失敗",

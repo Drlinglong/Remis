@@ -110,7 +110,7 @@
     "show_diagnostics": "진단 로그 표시", "diagnostic": "진단", "export_log": "로그 내보내기",
     "live_updates": "실시간 업데이트 중", "event_count": "이벤트 {{count}}개", "no_events": "기록된 실행 이벤트가 없습니다",
     "task_info": "작업 상세 정보", "task_id": "작업 ID", "project": "프로젝트", "project_name": "프로젝트 이름", "project_id": "프로젝트 ID", "task_flow": "작업 흐름", "technical_info": "기술 정보", "blocking_description": "이 작업은 현재 프로젝트 파일을 수정하고 있습니다. 같은 프로젝트에 동시에 쓰는 충돌 작업을 Remis가 일시적으로 제한하며, 실행이 끝나면 자동 해제됩니다.", "started_at": "시작 시간", "finished_at": "완료 시간",
-    "result": "결과", "output_paths": "출력 경로", "child_tasks": "하위 작업", "repair_item_results": "이 배치의 항목", "repair_item_fixed": "수정됨", "repair_item_needs_review": "검토 필요", "repair_item_reason": "이유", "back_to_workflow": "워크플로로 돌아가기",
+    "result": "결과", "output_paths": "출력 경로", "child_tasks": "하위 작업", "repair_item_results": "이 배치의 항목", "repair_item_fixed": "수정됨", "repair_item_needs_review": "검토 필요", "repair_item_reason": "이유", "back_to_workflow": "워크플로로 돌아가기", "cancel_task": "작업 취소", "cancel_confirm": "이 번역 작업을 취소하시겠습니까? 현재 공급자 요청이 안전하게 중지되기까지 잠시 걸릴 수 있습니다.", "cancel_error": "작업을 취소하지 못했습니다.",
     "user_summary": "이 작업에서 수행하는 내용",
     "current_stage": "현재 단계",
     "next_step": "다음 단계",
@@ -2770,6 +2770,7 @@
     "status": {
       "queued": "대기열",
       "running": "실행 중",
+      "cancelling": "취소 중",
       "awaiting_approval": "승인 필요",
       "completed": "완료",
       "failed": "실패함",

@@ -18,6 +18,7 @@ from scripts.app_settings import (
     get_api_key,
 )
 from scripts.core import deploy_manager
+from scripts.core.feature_policy import apply_agent_capability_policy
 from scripts.core.agent_service import AGENT_API_VERSION, agent_registry
 from scripts.core.copilot.workflow import create_translation_plan
 from scripts.core.copilot.workflow import inspect_mod_folder
@@ -65,7 +66,6 @@ translation_context_readiness = TranslationContextReadinessService(
     neologism_manager,
 )
 logger = logging.getLogger(__name__)
-
 LOCAL_PROVIDER_IDS = {
     "ollama",
     "lm_studio",
@@ -442,7 +442,7 @@ async def get_capabilities():
             _public_provider(provider_id, config)
             for provider_id, config in API_PROVIDERS.items()
         ],
-        "actions": {
+        "actions": apply_agent_capability_policy({
             "read_projects": {"supported": True, "requires_approval": False},
             "plan_translation": {"supported": True, "requires_approval": False},
             "run_dry_run": {"supported": True, "requires_approval": False},
@@ -462,7 +462,7 @@ async def get_capabilities():
             "repair": {"supported": True, "requires_approval": True},
             "export": {"supported": True, "requires_approval": True},
             **AGENT_CONTEXT_CAPABILITIES,
-        },
+        }),
         "safety": {
             "api_keys_returned": False,
             "direct_database_writes_allowed": False,

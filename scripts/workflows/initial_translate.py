@@ -108,6 +108,7 @@ def run(
     context_release_id: Optional[str] = None, context_character_budget: int = 4000,
     context_service: Any = None, snapshot_service: Any = None,
     translation_context_mode: Optional[str] = None, provider_runtime: Any = None,
+    should_cancel: Optional[Any] = None,
 ):
     """【最终版】初次翻译工作流（多语言 & 多游戏兼容）- 流式处理 & 断点续传版"""
     logging.info("Entered initial_translate.run")
@@ -138,7 +139,6 @@ def run(
     # ───────────── 4.5. 强制全量备份 (Brute Force Backup) ─────────────
     # 策略变更：数据安全第一。在开始任何翻译前，强制将所有源文件读入内存并创建快照。
     # 即使是大 Mod，文本数据通常也不超过 50MB，内存不是瓶颈。
-    
     source_result, total_files = _prepare_source_files(
         mod_name, game_profile, source_lang, override_path, progress_callback)
     all_files_content = source_result.files
@@ -157,7 +157,6 @@ def run(
     if not mod_id or not version_id:
         raise RuntimeError("Failed to create the source archive snapshot.")
     # ───────────── 5. 多语言并行翻译 (Streaming from Memory) ─────────────
-    
     last_target_lang = None
     reference_metrics = []
     for target_lang in target_languages:
@@ -188,6 +187,7 @@ def run(
             reference_reuse=reference_reuse,
             source_context_overlap=source_context_overlap,
             context_selection=context_selection, provider_runtime=provider_runtime,
+            should_cancel=should_cancel,
         )
         )
 

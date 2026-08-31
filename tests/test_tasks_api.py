@@ -554,3 +554,45 @@ async def test_task_summary_resolves_human_project_context(monkeypatch):
     assert detail.project_context.name == "Remis Plan - Demo Mod"
     assert detail.project_context.game_id == "victoria3"
     assert detail.blocking is True
+
+
+@pytest.mark.asyncio
+async def test_cancel_translation_keeps_lock_until_worker_acknowledges():
+    task_state.create_task(
+        "task-cancel",
+        status="running",
+        fields={"kind": "initial_translation", "blocking": True},
+        dedupe_key="project_translation_write:project-cancel",
+    )
+
+    response = await tasks_router.cancel_task("task-cancel")
+
+    assert response == {"task_id": "task-cancel", "status": "cancelling"}
+    task = task_state.get_task("task-cancel")
+    assert task["status"] == "cancelling"
+    assert task_state.is_task_cancellation_requested("task-cancel") is True
+    assert task_state.find_active_task_by_dedupe_key(
+        "project_translation_write:project-cancel"
+    )["task_id"] == "task-cancel"
+    summary = (await tasks_router.get_task_detail("task-cancel"))
+    assert summary.allowed_actions == ["view_task"]
+
+    task_state.update_task("task-cancel", status="processing")
+    assert task_state.get_task("task-cancel")["status"] == "cancelling"
+
+    task_state.update_task("task-cancel", status="cancelled")
+
+    assert task_state.find_active_task_by_dedupe_key(
+        "project_translation_write:project-cancel"
+    ) is None
+    assert task_state.is_task_cancellation_requested("task-cancel") is False
+
+
+@pytest.mark.asyncio
+async def test_non_translation_task_cannot_be_cancelled():
+    task_state.create_task("task-not-cancellable", status="running", fields={"kind": "repair"})
+
+    with pytest.raises(HTTPException) as exc_info:
+        await tasks_router.cancel_task("task-not-cancellable")
+
+    assert exc_info.value.status_code == 409

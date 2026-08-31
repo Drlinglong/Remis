@@ -37,6 +37,8 @@ class TestCheckpointManager(unittest.TestCase):
         self.assertTrue(os.path.exists(self.manager.checkpoint_path))
         self.manager.clear_checkpoint()
         self.assertFalse(os.path.exists(self.manager.checkpoint_path))
+        self.assertFalse(self.manager.is_file_completed("file1.txt"))
+        self.assertEqual(self.manager.get_checkpoint_info()["completed_count"], 0)
 
 class TestParallelProcessorStreaming(unittest.TestCase):
     def setUp(self):
@@ -50,6 +52,8 @@ class TestParallelProcessorStreaming(unittest.TestCase):
             task.filename = f"file_{i}.txt"
             task.texts_to_translate = [f"text_{i}_{j}" for j in range(10)]
             task.provider_name = "mock"
+            task.translation_entry_indices = []
+            task.source_entries = []
             tasks.append(task)
 
         # Mock translation function
@@ -66,7 +70,8 @@ class TestParallelProcessorStreaming(unittest.TestCase):
         results = []
         stream = self.processor.process_files_stream(task_generator(), mock_translate)
         
-        for file_task, translated_texts, warnings in stream:
+        for file_task, translated_texts, warnings, is_failed in stream:
+            self.assertFalse(is_failed)
             results.append((file_task.filename, translated_texts))
 
         self.assertEqual(len(results), 3)

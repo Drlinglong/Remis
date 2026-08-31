@@ -111,7 +111,7 @@
     "live_updates": "Canlı güncelleniyor", "event_count": "{{count}} olay", "no_events": "Kaydedilmiş çalıştırma olayı yok",
     "task_info": "Görev ayrıntıları", "task_id": "Görev kimliği", "project": "Proje", "project_name": "Proje adı", "project_id": "Proje kimliği", "task_flow": "Görev akışı", "technical_info": "Teknik kimlikler", "blocking_description": "Bu görev proje dosyalarını değiştiriyor. Remis aynı projeye eşzamanlı yazan çakışan görevleri geçici olarak engeller; çalışma bitince kısıtlama kalkar.", "started_at": "Başlangıç", "finished_at": "Bitiş",
     "user_summary": "Bu görevin yaptığı işlem", "current_stage": "Geçerli aşama", "next_step": "Sonraki adım", "detailed_result_below": "Ayrıntılı sonuç aşağıda yer alıyor.", "technical_logs": "Teknik günlükler ve tanılama", "newest_first": "En yeniler önce",
-    "result": "Sonuç", "output_paths": "Çıktı yolları", "child_tasks": "Alt görevler", "repair_item_results": "Bu gruptaki öğeler", "repair_item_fixed": "Düzeltildi", "repair_item_needs_review": "İnceleme gerekiyor", "repair_item_reason": "Neden", "back_to_workflow": "İş akışına dön"
+    "result": "Sonuç", "output_paths": "Çıktı yolları", "child_tasks": "Alt görevler", "repair_item_results": "Bu gruptaki öğeler", "repair_item_fixed": "Düzeltildi", "repair_item_needs_review": "İnceleme gerekiyor", "repair_item_reason": "Neden", "back_to_workflow": "İş akışına dön", "cancel_task": "Görevi iptal et", "cancel_confirm": "Bu çeviri görevi iptal edilsin mi? Geçerli sağlayıcı isteğinin güvenli biçimde durması biraz zaman alabilir.", "cancel_error": "Görev iptal edilemedi."
   },
   "task_presentation": {
     "provider_failure": {
@@ -2765,6 +2765,7 @@
     "status": {
       "queued": "Kuyruğa alındı",
       "running": "Çalışıyor",
+      "cancelling": "İptal ediliyor",
       "awaiting_approval": "Onay bekliyor",
       "completed": "Tamamlandı",
       "failed": "Başarısız oldu",

@@ -16,6 +16,11 @@ from scripts.web_server import app
 client = TestClient(app)
 
 
+@pytest.fixture(autouse=True)
+def enable_preview_archive_contract(monkeypatch):
+    monkeypatch.setattr(neologism_router, "mod_archive_enabled", lambda: True)
+
+
 def test_latest_context_release_includes_model_facing_prompt_example(monkeypatch):
     release = ContextRelease(
         release_id="release-1",

@@ -6,8 +6,24 @@ from pydantic import ValidationError
 
 from scripts.core.services.context_workflow_status_service import ContextWorkflowStatusService
 from scripts.routers import neologism
-from scripts.schemas.neologism import ApproveNeologismRequest
-from scripts.schemas.neologism import MineNeologismsRequest
+from scripts.schemas.neologism import ApproveNeologismRequest, MineNeologismsRequest
+
+
+def test_stable_build_rejects_project_archive_analysis(monkeypatch):
+    payload = MineNeologismsRequest(
+        project_id="project-1",
+        target_lang="zh-CN",
+        api_provider="gemini",
+        model_name="test-model",
+        analysis_scope="narrative_context",
+    )
+    monkeypatch.setattr(neologism, "mod_archive_enabled", lambda: False)
+
+    with pytest.raises(HTTPException) as exc_info:
+        neologism._reject_disabled_archive_scope(payload)
+
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail["code"] == "project_archive_disabled"
 
 
 class _RecordingTaskBackend:

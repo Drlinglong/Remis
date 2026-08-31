@@ -1,7 +1,7 @@
 import pytest
 
 from scripts.core.base_handler import BaseApiHandler
-from scripts.core.parallel_processor import ParallelProcessor
+from scripts.core.parallel_processor import ParallelProcessor, ProcessingCancelledError
 from scripts.core.parallel_types import BatchTask, FileTask
 from scripts.core.provider_errors import (
     ProviderFatalError,
@@ -174,6 +174,29 @@ def test_stream_processor_stops_queued_batches_after_provider_fatal_error():
 
     with pytest.raises(ProviderFatalError, match="invalid model"):
         list(processor.process_files_stream(iter([file_task]), fatal_translation))
+
+    assert calls == [0]
+
+
+def test_stream_processor_discards_in_flight_result_after_cancellation():
+    processor = ParallelProcessor(max_workers=1, chunk_size_override=1)
+    file_task = _file_task()
+    file_task.texts_to_translate = ["one", "two", "three"]
+    calls = []
+    cancellation = {"requested": False}
+
+    def translation_that_finishes_after_cancel(task: BatchTask) -> BatchTask:
+        calls.append(task.batch_index)
+        cancellation["requested"] = True
+        task.translated_texts = ["late result"]
+        return task
+
+    with pytest.raises(ProcessingCancelledError, match="cancelled by user"):
+        list(processor.process_files_stream(
+            iter([file_task]),
+            translation_that_finishes_after_cancel,
+            should_cancel=lambda: cancellation["requested"],
+        ))
 
     assert calls == [0]
 

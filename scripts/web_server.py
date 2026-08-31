@@ -153,12 +153,13 @@ def setup_app_routers():
     panic_log("Including routers...")
     from scripts.routers import (
         projects, project_watches, translation, glossary, proofreading, docs, tools,
-        context, context_archive, context_tree_v2, neologism, validation, config, system, prompts,
+        neologism, validation, config, system, prompts,
         agent_workshop, agent,
-        agent_context, tasks,
+        tasks,
         model_arena,
         steam_workshop,
     )
+    from scripts.core.feature_policy import mod_archive_enabled
     
     app.include_router(projects.router)
     app.include_router(project_watches.router)
@@ -168,16 +169,19 @@ def setup_app_routers():
     app.include_router(agent_workshop.router)
     app.include_router(docs.router)
     app.include_router(tools.router)
-    app.include_router(context.router)
-    app.include_router(context_archive.router)
-    app.include_router(context_tree_v2.router)
+    if mod_archive_enabled():
+        from scripts.routers import context, context_archive, context_tree_v2, agent_context
+
+        app.include_router(context.router)
+        app.include_router(context_archive.router)
+        app.include_router(context_tree_v2.router)
+        app.include_router(agent_context.router)
     app.include_router(neologism.router)
     app.include_router(validation.router)
     app.include_router(config.router)
     app.include_router(system.router)
     app.include_router(prompts.router)
     app.include_router(agent.router)
-    app.include_router(agent_context.router)
     app.include_router(tasks.router)
     app.include_router(model_arena.router)
     app.include_router(steam_workshop.router)

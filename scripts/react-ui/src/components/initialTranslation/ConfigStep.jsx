@@ -57,6 +57,7 @@ export default function ConfigStep({
   referencePreviewError = '',
   referencePreviewLoading = false,
   showModArchive = FEATURES.ENABLE_MOD_ARCHIVE,
+  showResume = FEATURES.ENABLE_CHECKPOINT_RESUME,
   t,
 }) {
   const translationBatchOptions = [
@@ -391,7 +392,7 @@ export default function ConfigStep({
                 </Box>
               </Group>
 
-              {checkpointHintInfo && !form.values.use_resume && (
+              {showResume && checkpointHintInfo && !form.values.use_resume && (
                 <Alert color="yellow" variant="light" radius="md" title={t('translation_page.resume_hint.title', { defaultValue: '检测到可用断点' })}>
                   <Stack gap={6}>
                     <Text size="sm">
@@ -409,11 +410,13 @@ export default function ConfigStep({
                 </Alert>
               )}
 
-              <ResumeSettingsCard
-                checkpointHintInfo={checkpointHintInfo}
-                form={form}
-                t={t}
-              />
+              {showResume && (
+                <ResumeSettingsCard
+                  checkpointHintInfo={checkpointHintInfo}
+                  form={form}
+                  t={t}
+                />
+              )}
 
               <ReferenceLibraryAvailabilityNotice
                 enabled={form.values.reference_reuse_enabled}

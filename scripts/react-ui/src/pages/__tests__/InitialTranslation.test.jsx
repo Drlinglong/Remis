@@ -6,6 +6,12 @@ import { MemoryRouter } from 'react-router';
 
 import InitialTranslation from '../InitialTranslation';
 
+vi.mock('../../config/features', () => ({
+  FEATURES: {
+    ENABLE_CHECKPOINT_RESUME: true,
+  },
+}));
+
 const setPageContextMock = vi.fn();
 const startTourMock = vi.fn();
 const { apiDeleteMock, apiGetMock, apiPostMock } = vi.hoisted(() => {

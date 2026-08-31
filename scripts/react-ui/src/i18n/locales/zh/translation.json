@@ -193,6 +193,7 @@
     "status": {
       "queued": "排队中",
       "running": "运行中",
+      "cancelling": "正在取消",
       "awaiting_approval": "等待确认",
       "completed": "已完成",
       "failed": "失败",
@@ -259,7 +260,10 @@
     "repair_item_fixed": "已修复",
     "repair_item_needs_review": "仍需处理",
     "repair_item_reason": "未通过原因",
-    "back_to_workflow": "返回工作流"
+    "back_to_workflow": "返回工作流",
+    "cancel_task": "取消任务",
+    "cancel_confirm": "确定要取消这个翻译任务吗？当前正在执行的 Provider 请求可能需要一点时间才能安全停止。",
+    "cancel_error": "取消任务失败。"
   },
   "task_presentation": {
     "provider_failure": {

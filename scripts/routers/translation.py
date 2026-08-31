@@ -47,6 +47,8 @@ from scripts.routers.provider_runtime import provider_task_fields, resolve_runti
 from scripts.core.services.translation_context_readiness_service import (
     TranslationContextReadinessService,
 )
+from scripts.core.feature_policy import apply_translation_request_policy, enforce_checkpoint_resume_policy
+from scripts.core.translation_cancellation import ProcessingCancelledError, cancellable_translation_workflow
 from scripts.core.neologism_manager import neologism_manager
 import asyncio
 from scripts.shared.ws_manager import ws_manager
@@ -259,6 +261,7 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
                 logging.error(f"Failed to log failure activity: {e}")
 
 
+@cancellable_translation_workflow
 def run_translation_workflow_v2(
     task_id: str, mod_name: str, game_profile_id: str, source_lang_code: str,
     target_lang_codes: List[str], api_provider: str, mod_context: str,
@@ -280,6 +283,7 @@ def run_translation_workflow_v2(
     provider_runtime=None,
 ):
     i18n.load_language('en_US')
+    use_resume = enforce_checkpoint_resume_policy(use_resume)
     task_state.update_task(
         task_id,
         status="processing",
@@ -309,19 +313,15 @@ def run_translation_workflow_v2(
         game_profile = GAME_PROFILES.get(normalized_game_id)
         if not game_profile:
             game_profile = next((p for p in GAME_PROFILES.values() if p['id'] == normalized_game_id), None)
-
         source_lang = next((lang for lang in LANGUAGES.values() if lang["code"] == source_lang_code), None)
         target_languages = _resolve_target_languages(target_lang_codes)
-
         logging.info(f"Resolved: GameProfile={game_profile is not None}, SourceLang={source_lang is not None}, TargetLangs={len(target_languages)}")
-
         if custom_lang_config:
             custom_lang = custom_lang_config.model_dump()
             if not custom_lang.get('name_en'):
                 custom_lang['name_en'] = custom_lang['name']
             target_languages = [custom_lang]
             logging.info(f"Using Custom Language Config: {custom_lang}")
-
         if not all([game_profile, source_lang]) or (not target_languages and not custom_lang_config):
             logging.error(f"Validation Failed: GameProfile={game_profile}, SourceLang={source_lang}, TargetLangs={target_languages}")
             raise ValueError("Failed to resolve game profile, source language, or target languages.")
@@ -364,6 +364,7 @@ def run_translation_workflow_v2(
             embedded_workshop=embedded_workshop,
             reference_reuse=reference_reuse,
             provider_runtime=provider_runtime,
+            should_cancel=lambda: task_state.is_task_cancellation_requested(task_id),
             **context_workflow_kwargs({
                 "use_project_context": resource_policy.include_project_context,
                 "context_release_id": context_release_id,
@@ -398,6 +399,8 @@ def run_translation_workflow_v2(
                 ))
             except Exception as e:
                 logging.error(f"Failed to log completion activity (v2): {e}")
+    except ProcessingCancelledError:
+        raise
     except Exception as e:
         tb_str = traceback.format_exc()
         user_error = f"Translation workflow failed: {e}"
@@ -432,6 +435,7 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
     project = await project_manager.get_project(request.project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+    archive_disabled_warning = apply_translation_request_policy(request)
     provider_runtime = resolve_runtime_or_400(request.api_provider, request.model)
     context_resolution = await translation_context_readiness.resolve_mode(
         request.project_id,
@@ -541,7 +545,7 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
         "task_id": task_id,
         "status": "started",
         "message": f"Translation started for project {project['name']}",
-        "warning": context_resolution.warning,
+        "warning": archive_disabled_warning or context_resolution.warning,
     }
 
 @router.post(

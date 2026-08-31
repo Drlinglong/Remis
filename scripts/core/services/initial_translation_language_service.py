@@ -45,6 +45,7 @@ def _process_file_tasks(
     project_id: Optional[str],
     version_id: Optional[int],
     all_files_content: List[dict],
+    should_cancel: Optional[Any] = None,
 ) -> None:
     def translation_wrapper(batch_task):
         return handler.translate_batch(batch_task)
@@ -60,10 +61,13 @@ def _process_file_tasks(
 
     with temporary_rpm_limit(rpm_limit):
         with progress_log_bridge(update_progress):
+            stream_options = {"batch_progress_callback": on_batch_completed}
+            if should_cancel is not None:
+                stream_options["should_cancel"] = should_cancel
             for file_task, translated_texts, warnings, is_failed in processor.process_files_stream(
                 file_task_generator,
                 translation_wrapper,
-                batch_progress_callback=on_batch_completed,
+                **stream_options,
             ):
                 classification = classify_batch_warnings(
                     file_task.filename,
@@ -135,6 +139,7 @@ def run_language_translation(
     reference_reuse: Optional[dict] = None,
     source_context_overlap: int = 0,
     context_selection: Optional[Any] = None, provider_runtime: Any = None,
+    should_cancel: Optional[Any] = None,
 ) -> dict:
     logging.info(i18n.t("translating_to_language", lang_name=target_lang["name"]))
     proofreading_tracker = create_proofreading_tracker(
@@ -176,7 +181,6 @@ def run_language_translation(
         reference_protected_entries=reference_protected_entries,
         reference_run_metrics=reference_run_metrics,
     )
-
     max_workers = resolve_max_workers(concurrency_limit, selected_provider)
     processor = _build_parallel_processor(
         max_workers,
@@ -200,8 +204,8 @@ def run_language_translation(
         project_id=project_id,
         version_id=version_id,
         all_files_content=all_files_content,
+        should_cancel=should_cancel,
     )
-
     if run_state.error_count:
         message = f"Translation failed for {run_state.error_count} file(s) while translating to {target_lang['name']}."
         logging.error(message)

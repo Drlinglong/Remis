@@ -41,6 +41,7 @@ import {
 import api from '../utils/api';
 import { useTaskCenter } from '../context/TaskCenterContextCore';
 import { useInitialReferenceReuse } from '../hooks/useInitialReferenceReuse';
+import { FEATURES } from '../config/features';
 const formatModelSummary = (modelName = '') => {
   const knownModels = {
     'gemini-3.1-pro-preview': 'Gemini 3.1 Pro',
@@ -309,7 +310,7 @@ const InitialTranslation = () => {
   }, [active, setPageContext]);
 
   useEffect(() => {
-    if (active !== 1 || !selectedProject?.label) {
+    if (!FEATURES.ENABLE_CHECKPOINT_RESUME || active !== 1 || !selectedProject?.label) {
       setCheckpointHintInfo(null);
       return;
     }
@@ -509,14 +510,16 @@ const InitialTranslation = () => {
         </Stack >
       </Box>
 
-      <ResumeCheckpointModal
-        checkpointInfo={checkpointInfo}
-        onClose={() => setResumeModalOpen(false)}
-        onResume={handleResume}
-        onStartOver={handleStartOver}
-        opened={resumeModalOpen}
-        t={t}
-      />
+      {FEATURES.ENABLE_CHECKPOINT_RESUME && (
+        <ResumeCheckpointModal
+          checkpointInfo={checkpointInfo}
+          onClose={() => setResumeModalOpen(false)}
+          onResume={handleResume}
+          onStartOver={handleStartOver}
+          opened={resumeModalOpen}
+          t={t}
+        />
+      )}
 
       <Modal
         opened={referencePromptOpen}

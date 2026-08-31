@@ -1,11 +1,18 @@
 from __future__ import annotations
 
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock
 
 from scripts.core.services.agent_context_service import AgentContextService
 from scripts.routers import agent_context as agent_context_router
 from scripts.schemas.context import ContextRelease, ContextReleaseMetadata, EffectiveContext
+
+
+def _agent_context_client() -> TestClient:
+    app = FastAPI()
+    app.include_router(agent_context_router.router)
+    return TestClient(app)
 
 
 def _release() -> ContextRelease:
@@ -177,10 +184,8 @@ def test_agent_context_effective_and_traceability_are_selected_and_bounded():
 
 
 def test_agent_context_routes_have_structured_selection_errors(monkeypatch):
-    from scripts.web_server import app
-
     monkeypatch.setattr(agent_context_router, "agent_context_service", _service())
-    client = TestClient(app)
+    client = _agent_context_client()
 
     response = client.get(
         "/api/agent/context/releases/release-1/traceability"
@@ -226,22 +231,18 @@ def test_agent_context_capabilities_separate_reads_from_approved_removal():
     from scripts.routers import agent as agent_router
 
     capabilities = asyncio.run(agent_router.get_capabilities())
-    assert capabilities["actions"]["read_context_release"]["requires_approval"] is False
-    assert capabilities["actions"]["read_context_release"]["read_only"] is True
+    assert capabilities["actions"]["read_context_release"]["supported"] is False
+    assert capabilities["actions"]["read_context_release"]["reason"] == (
+        "Project Archive is disabled in the stable build."
+    )
     assert capabilities["actions"]["context_analysis"]["supported"] is False
     assert capabilities["actions"]["context_analysis"]["requires_approval"] is True
-    assert capabilities["actions"]["remove_context_archive"] == {
-        "supported": True,
-        "read_only": False,
-        "requires_approval": True,
-        "preflight_required": True,
-        "endpoints": ["/api/agent/context/projects/{project_id}/archive"],
-    }
+    assert capabilities["actions"]["remove_context_archive"]["supported"] is False
+    assert capabilities["actions"]["resume_from_checkpoint"]["supported"] is False
+    assert capabilities["actions"]["cancel"]["supported"] is True
 
 
 def test_agent_context_removal_is_approval_gated_and_structured(monkeypatch):
-    from scripts.web_server import app
-
     monkeypatch.setattr(
         agent_context_router.project_manager,
         "get_project",
@@ -257,7 +258,7 @@ def test_agent_context_removal_is_approval_gated_and_structured(monkeypatch):
         "remove",
         lambda _project_id: {"removed": True, "counts": {"releases": 1}},
     )
-    client = TestClient(app)
+    client = _agent_context_client()
 
     refused = client.request(
         "DELETE",
