@@ -15,7 +15,7 @@
     "scripts/routers/agent_workshop.py": 1375
   },
   "function_line_exceptions": {
-    "scripts/build_pipeline.py::main": 253,
+    "scripts/build_pipeline.py::main": 252,
     "scripts/core/agents/fix_agent.py::ReflexionFixAgent.fix_batch_loop": 164,
     "scripts/core/copilot/service.py::run_copilot_chat": 290,
     "scripts/core/db_initializer.py::fix_demo_paths": 140,

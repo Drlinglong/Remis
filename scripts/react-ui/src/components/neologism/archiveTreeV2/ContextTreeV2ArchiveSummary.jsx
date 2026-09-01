@@ -9,6 +9,7 @@ import { useContextWorkbenchSelection } from './useContextWorkbenchSelection';
 import PublishedContextEntitySummary from './PublishedContextEntitySummary';
 import PublishedContextEventDetail from './PublishedContextEventDetail';
 import PublishedContextMap from './PublishedContextMap';
+import PublishedContextProjectSummary from './PublishedContextProjectSummary';
 import styles from './PublishedContextWorkbench.module.css';
 
 const text = (t, key, fallback, options = {}) => t(key, { defaultValue: fallback, ...options });
@@ -31,6 +32,7 @@ export const ContextTreeV2ArchiveSummary = ({ tree, mode = 'published' }) => {
         fragments: normalizedTree.fragments,
         identity: tree?.release_id || tree?.releaseId,
     });
+    const detailState = selection.selectedFragmentId || selection.selectedGroupId ? 'selected' : 'empty';
 
     const deleteGroup = (groupId) => {
         archiveState.deleteGroup(groupId);
@@ -43,9 +45,7 @@ export const ContextTreeV2ArchiveSummary = ({ tree, mode = 'published' }) => {
                 <div className={styles.titleBlock}>
                     <Text className={styles.eyebrow}>{text(t, 'mod_archive.tree_v2.eyebrow', 'CONTEXT ARCHIVE')}</Text>
                     <Title order={1} className={styles.title}>{normalizedTree.title}</Title>
-                    {normalizedTree.projectSummary && (
-                        <Text className={styles.projectSummary} size="sm">{normalizedTree.projectSummary}</Text>
-                    )}
+                    <PublishedContextProjectSummary summary={normalizedTree.projectSummary} t={t} />
                 </div>
                 <Group className={styles.pageActions} gap="xs" wrap="wrap">
                     <Badge variant={mode === 'published' ? 'light' : 'outline'}>
@@ -69,7 +69,11 @@ export const ContextTreeV2ArchiveSummary = ({ tree, mode = 'published' }) => {
                     {archiveState.error}
                 </Alert>
             )}
-            <div className={styles.workbench} data-testid="published-context-workbench">
+            <div
+                className={styles.workbench}
+                data-detail-state={detailState}
+                data-testid="published-context-workbench"
+            >
                 <PublishedContextMap
                     tree={normalizedTree}
                     selectedFragmentId={selection.selectedFragmentId}

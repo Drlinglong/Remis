@@ -24,7 +24,7 @@ describe('Tauri sidecar configuration', () => {
     const preview = readConfig('tauri.agent-preview.conf.json');
 
     expect(preview.productName).toBe('Remis Agent Preview');
-    expect(preview.version).toBe('3.1.7-agent-preview.1');
+    expect(preview.version).toBe('3.1.8-agent-preview.1');
     expect(preview.productName).not.toBe(stable.productName);
     expect(preview.identifier).not.toBe(stable.identifier);
     expect(preview.bundle.targets).toEqual(['nsis']);

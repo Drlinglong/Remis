@@ -17,7 +17,7 @@ try:
 except ModuleNotFoundError:
     from build_profile import PROFILES, write_profile_manifest
 
-MIN_GOOGLE_GENAI_VERSION = (2, 11, 0)
+MIN_GOOGLE_GENAI_VERSION = (2, 18, 0)
 STEAM_WORKSHOP_DEMO_WORKSPACE_ID = "7e492e06-823d-4343-998e-f121db6e0ee1"
 
 RELEASE_DEMO_SOURCE_FILES = {
@@ -74,6 +74,19 @@ AGENT_PREVIEW_DEMO_FILES = (
     "descriptor.mod",
     ".metadata/metadata.json",
     "localization/english/remis_agent_preview_l_english.yml",
+)
+
+PYINSTALLER_AI_ARGS = (
+    "--collect-submodules pydantic_ai "
+    "--collect-submodules pydantic_graph "
+    "--collect-submodules pydantic_ai_harness.planning "
+    "--collect-submodules pydantic_ai_harness.subagents "
+    "--collect-submodules pydantic_ai_harness.tool_output_limits "
+    "--collect-submodules pydantic_ai_harness.compaction "
+    "--copy-metadata pydantic-ai-slim "
+    "--copy-metadata pydantic-ai-harness "
+    "--collect-data genai_prices "
+    "--copy-metadata genai_prices"
 )
 
 
@@ -639,8 +652,7 @@ def main(argv=None):
         f'--hidden-import scripts.config.prompts '
         # AI SDKs
         f'--hidden-import google.genai --hidden-import openai '
-        f'--collect-submodules pydantic_ai --collect-submodules pydantic_graph --copy-metadata pydantic-ai-slim '
-        f'--collect-data genai_prices --copy-metadata genai_prices '
+        f'{PYINSTALLER_AI_ARGS} '
         # Phonetics libraries used inside functions (PyInstaller can't detect these statically)
         f'--hidden-import pypinyin --hidden-import pypinyin.seg --hidden-import pypinyin.style '
         f'--hidden-import pykakasi --hidden-import jaconv '

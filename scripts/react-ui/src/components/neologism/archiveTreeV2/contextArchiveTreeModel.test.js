@@ -36,4 +36,24 @@ describe('context archive tree model', () => {
         expect(buckets[0].openByDefault).toBe(true);
         expect(buckets[1].openByDefault).toBe(false);
     });
+
+    it('keeps archive-only narratives visible without treating them as unresolved delivery', () => {
+        const tree = normalizeArchiveTree({
+            project_id: 'archive-only-test',
+            archive_narratives: [{
+                fragment_id: 'archive-lore',
+                label: 'World background',
+                summary: 'Useful project lore, not a concrete event.',
+                unit_ids: ['unit-lore'],
+                route: 'no_context',
+                metadata: { delivery_target: false },
+            }],
+            units: [{ unit_id: 'unit-lore', label: 'Lore', route: 'no_context' }],
+        });
+
+        expect(tree.available).toBe(true);
+        expect(tree.archiveNarrativeIds).toEqual(['archive-lore']);
+        expect(tree.unresolvedFragmentIds).toEqual([]);
+        expect(buildNarrativeUnitPreview(tree, 'unit-lore').hasEventContext).toBe(false);
+    });
 });

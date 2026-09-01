@@ -58,6 +58,7 @@ describe('ContextTreeV2ArchiveSummary', () => {
 
         expect(screen.getByTestId('published-context-map')).toBeInTheDocument();
         expect(screen.getByTestId('published-context-detail-empty')).toBeInTheDocument();
+        expect(screen.getByTestId('published-context-workbench')).toHaveAttribute('data-detail-state', 'empty');
         expect(screen.getByTestId('published-context-project-root')).toHaveTextContent('Toxic God');
         expect(screen.getByTestId('published-context-group-group-1')).toHaveTextContent('First quest');
         expect(screen.getByTestId('published-context-map')).not.toHaveTextContent('Resolution summary.');
@@ -65,6 +66,23 @@ describe('ContextTreeV2ArchiveSummary', () => {
         expect(screen.getByRole('button', { name: /Entities/ })).toHaveAttribute('aria-expanded', 'true');
         expect(screen.getByText(/Other entities/).closest('details')).not.toHaveAttribute('open');
         expect(screen.queryByRole('switch')).not.toBeInTheDocument();
+    });
+
+    it('renders structured project summaries inside an editorial surface', () => {
+        renderSummary({
+            ...tree,
+            project_summary: '事件脉络\n第一件事发生。\n\n档案背景\n这是背景资料。\n\n未决问题\n仍有一项未决。',
+        });
+
+        const summary = screen.getByTestId('published-context-project-summary');
+        const summaryHeading = screen.getByRole('heading', { name: 'Archive overview' });
+        expect(summary).toHaveAttribute('data-remis-surface', 'surface');
+        expect(summary).toHaveAttribute('aria-labelledby', summaryHeading.id);
+        expect(summary).toHaveTextContent('事件脉络');
+        expect(summary).toHaveTextContent('档案背景');
+        expect(summary).toHaveTextContent('未决问题');
+        expect(summary.querySelector('[data-section-count="3"]')).toBeInTheDocument();
+        expect(summary.querySelector('[data-primary="true"]')).toHaveTextContent('第一件事发生。');
     });
 
     it('collapses and restores the entity section without persisting hidden state', () => {
@@ -95,6 +113,7 @@ describe('ContextTreeV2ArchiveSummary', () => {
         fireEvent.click(screen.getByTestId('published-context-fragment-fragment-2'));
         expect(screen.getByTestId('published-context-detail')).toHaveTextContent('Resolves the quest');
         expect(screen.getByTestId('published-context-detail')).toHaveTextContent('events/resolution.yml:4');
+        expect(screen.getByTestId('published-context-workbench')).toHaveAttribute('data-detail-state', 'selected');
         expect(screen.getByTestId('published-context-map')).toHaveAttribute('data-view', 'focused');
 
         const sourceDetails = screen.getByText('events/resolution.yml:4').closest('details');
@@ -179,6 +198,7 @@ describe('ContextTreeV2ArchiveSummary', () => {
         renderSummary();
 
         fireEvent.click(screen.getByTestId('published-context-group-header-group-1'));
+        expect(screen.getByTestId('published-context-workbench')).toHaveAttribute('data-detail-state', 'selected');
         const rail = screen.getByTestId('published-context-mini-rail-group-2');
         expect(rail).toHaveAttribute('data-drop-target', 'group:group-2');
         expect(rail).toHaveTextContent('Second quest');

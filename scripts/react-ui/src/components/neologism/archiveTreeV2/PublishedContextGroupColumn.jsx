@@ -18,6 +18,9 @@ const kickerFor = ({ focused, kind, t }) => {
     if (kind === 'supporting') {
         return text(t, 'mod_archive.tree_v2.supporting_label', 'REFERENCE');
     }
+    if (kind === 'archive') {
+        return text(t, 'mod_archive.tree_v2.archive_only_label', 'ARCHIVE ONLY');
+    }
     return 'CHAIN';
 };
 

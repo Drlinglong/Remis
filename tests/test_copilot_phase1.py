@@ -625,10 +625,30 @@ def test_release_and_debug_builds_bundle_help_skill_resources():
     assert "docs/zh/user-guides" in pipeline
     assert "docs\\zh\\user-guides;docs/zh/user-guides" in debug_build
     assert "--collect-submodules pydantic_ai" in pipeline
+    harness_namespaces = (
+        "planning",
+        "subagents",
+        "tool_output_limits",
+        "compaction",
+    )
+    for namespace in harness_namespaces:
+        flag = f"--collect-submodules pydantic_ai_harness.{namespace}"
+        assert flag in pipeline
+        assert flag in debug_build
+    assert "--collect-submodules pydantic_ai_harness " not in pipeline
+    assert "--collect-submodules pydantic_ai_harness " not in debug_build
     assert "--copy-metadata pydantic-ai-slim" in pipeline
+    assert "--copy-metadata pydantic-ai-harness" in pipeline
     assert "--collect-submodules pydantic_ai" in debug_build
+    assert "--copy-metadata pydantic-ai-slim" in debug_build
+    assert "--collect-data genai_prices" in pipeline
+    assert "--copy-metadata genai_prices" in pipeline
+    assert "--collect-data genai_prices" in debug_build
+    assert "--copy-metadata genai_prices" in debug_build
+    assert "--copy-metadata pydantic-ai-harness" in debug_build
     requirements = (root / "requirements.txt").read_text(encoding="utf-8")
-    assert "pydantic-ai-slim[anthropic,google,openai,openrouter]==2.9.0" in requirements
+    assert "pydantic-ai-slim[anthropic,google,openai,openrouter]==2.33.0" in requirements
+    assert "pydantic-ai-harness==0.27.0" in requirements
 
 
 def test_clamp_confidence_none_and_weak():

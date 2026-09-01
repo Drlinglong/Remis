@@ -4,8 +4,8 @@ PyYAML
 
 # AI API Dependencies
 # Users can choose OpenAI-compatible or Google Gemini APIs.
-openai>=2.45.0
-google-genai>=2.11.0,<3
+openai>=3.0.0,<4
+google-genai>=2.18.0,<3
 
 # Development Dependencies
 # These are used for testing and development
@@ -15,8 +15,9 @@ flake8
 
 # Refactoring Dependencies
 pydantic
-pydantic-ai-slim[anthropic,google,openai,openrouter]==2.9.0
-anthropic>=0.108.0,<1
+pydantic-ai-slim[anthropic,google,openai,openrouter]==2.33.0
+pydantic-ai-harness==0.27.0
+anthropic>=1.0.0,<2
 json-repair
 python-dotenv
 requests

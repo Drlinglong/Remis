@@ -316,6 +316,13 @@ export const normalizeArchiveTree = (payload) => {
     const fragments = {};
     const fragmentSources = asList(firstValue(raw.fragments, raw.local_fragments, raw.localFragments));
     fragmentSources.forEach((fragment, index) => addFragment(fragments, fragment, index));
+    const rawArchiveNarratives = asList(firstValue(
+        raw.archive_narratives,
+        raw.archiveNarratives,
+    ));
+    const archiveNarrativeIds = new Set(rawArchiveNarratives.map((fragment, index) => (
+        addFragment(fragments, fragment, fragmentSources.length + index, TREE_ROUTE.NO_CONTEXT)
+    )));
     rawGroups.forEach((group) => {
         asList(group?.fragments).forEach((fragment, index) => addFragment(fragments, fragment, index));
     });
@@ -379,7 +386,9 @@ export const normalizeArchiveTree = (payload) => {
 
     const unresolvedIds = new Set(asIdList(raw.unresolved_fragment_ids || raw.unresolvedFragmentIds));
     Object.values(fragments).forEach((fragment) => {
-        if (fragment.route === TREE_ROUTE.REFERENCE_ASSET) return;
+        if (fragment.route === TREE_ROUTE.REFERENCE_ASSET
+            || fragment.route === TREE_ROUTE.NO_CONTEXT
+            || archiveNarrativeIds.has(fragment.id)) return;
         if (fragment.route === TREE_ROUTE.UNRESOLVED || !memberIds.has(fragment.id)) unresolvedIds.add(fragment.id);
     });
 
@@ -410,7 +419,8 @@ export const normalizeArchiveTree = (payload) => {
 
     const available = Boolean(
         payload && (rawStories.length || rawGroups.length || fragmentSources.length
-            || rawReferenceAssets.length || raw.unresolved_fragments || raw.unresolved_fragment_ids
+            || rawArchiveNarratives.length || rawReferenceAssets.length
+            || raw.unresolved_fragments || raw.unresolved_fragment_ids
             || raw.schema_version || raw.version),
     );
     return {
@@ -427,6 +437,7 @@ export const normalizeArchiveTree = (payload) => {
         fragments,
         units,
         referenceAssets: sortReferenceAssets(uniqueAssets),
+        archiveNarrativeIds: [...archiveNarrativeIds],
         unresolvedFragmentIds: [...unresolvedIds].filter((id) => Boolean(fragments[id])),
     };
 };

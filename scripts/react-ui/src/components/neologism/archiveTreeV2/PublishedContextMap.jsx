@@ -53,6 +53,9 @@ const PublishedContextMap = ({
         .map((asset) => tree.fragments[asset.fragmentId || asset.id])
         .filter(Boolean)
         .map((fragment) => [fragment.id, fragment])).values()], [tree.fragments, tree.referenceAssets]);
+    const archiveFragments = useMemo(() => (tree.archiveNarrativeIds || [])
+        .map((fragmentId) => tree.fragments[fragmentId])
+        .filter(Boolean), [tree.archiveNarrativeIds, tree.fragments]);
     const eventGroups = stories.flatMap((story) => story.groupIds
         .map((groupId) => tree.groups.find((group) => group.id === groupId))
         .filter(Boolean)
@@ -64,6 +67,16 @@ const PublishedContextMap = ({
         })));
     const overviewItems = [
         ...eventGroups,
+        ...(archiveFragments.length > 0 ? [{
+            group: {
+                id: 'group-archive-only',
+                label: text(t, 'mod_archive.tree_v2.archive_only_text', 'Archive narrative · never delivered'),
+                fragmentIds: archiveFragments.map((fragment) => fragment.id),
+            },
+            fragments: archiveFragments,
+            selectable: false,
+            kind: 'archive',
+        }] : []),
         ...(supportFragments.length > 0 ? [{
             group: { id: 'group-support', label: text(t, 'mod_archive.tree_v2.supporting_text', 'Supporting text'), fragmentIds: supportFragments.map((fragment) => fragment.id) },
             fragments: supportFragments,
@@ -233,7 +246,8 @@ const PublishedContextMap = ({
                     {activeFragment ? <div className={styles.dragOverlay}>{activeFragment.label}</div> : null}
                 </DragOverlay>
             </DndContext>
-            {tree.groups.length === 0 && unassigned.length === 0 && supportFragments.length === 0 && (
+            {tree.groups.length === 0 && archiveFragments.length === 0
+                && unassigned.length === 0 && supportFragments.length === 0 && (
                 <div className={styles.emptyMap}>
                     <Text fw={700}>{text(t, 'mod_archive.tree_v2.empty_map_title', 'No event chains yet')}</Text>
                     <Text size="sm">{text(t, 'mod_archive.tree_v2.empty_map_desc', 'This release does not contain relationship cards to display.')}</Text>

@@ -23,7 +23,7 @@ def test_agent_preview_profile_is_fully_isolated(monkeypatch):
 
     assert preview.copilot_enabled is True
     assert preview.product_name == "Remis Agent Preview"
-    assert preview.version == "3.1.7-agent-preview.1"
+    assert preview.version == "3.1.8-agent-preview.1"
     assert preview.identifier != stable.identifier
     assert preview.app_data_folder != stable.app_data_folder
     assert preview.backend_port != stable.backend_port

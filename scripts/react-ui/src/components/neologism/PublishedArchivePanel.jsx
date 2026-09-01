@@ -102,7 +102,7 @@ const PublishedArchivePanel = ({
             <Container className={`${styles.page} ${styles.publishedContextPage}`} fluid py="xl" data-remis-surface="canvas">
                 {projectToolbar}
                 <div data-testid="published-archive-workbench">
-                    <ContextTreeV2ArchiveSummary tree={publishedArchiveDemoTree} mode="published" />
+                    <ContextTreeV2ArchiveSummary tree={publishedArchiveDemoTree} mode="preview" />
                 </div>
             </Container>
         );

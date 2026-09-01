@@ -1,0 +1,1117 @@
+{
+  "project": {
+    "project_id": "demo-remis-luna-stellaris-v2",
+    "name": "Remis：新秩序黎明（Luna 开发预览 v2）",
+    "game_name": "Stellaris",
+    "research_question": "Separate concrete event chains from archive-only founding lore and static reference assets. Build an evidence-backed register of plot-central named people, organizations, places, polities, technologies, concepts, and items, then link concrete event steps to those entities. Treat repeated dot-number, dot-letter, or other suffix families as structural hints, confirm membership against text, and cite source_item_id evidence for every published item."
+  },
+  "release": {
+    "release_id": "research-preview-openrouter-luna-key-family-r2-2026-09-01",
+    "created_at": "2026-09-01T01:35:26.987735+00:00",
+    "read_only": true,
+    "published": false
+  },
+  "provenance": {
+    "provider": "openrouter",
+    "model": "openai/gpt-5.6-luna",
+    "profile": "full",
+    "description_language": "zh-CN",
+    "compiler": "context-research-compiler-v1",
+    "source": "developer-only context research smoke"
+  },
+  "source": {
+    "root": "J:\\V3_Mod_Localization_Factory-worktrees\\issue-198-archive-hardening-v3.1.8\\assets\\release_demo_content\\demos\\Test_Project_Remis_stellaris\\localisation\\english",
+    "file_count": 3,
+    "item_count": 25,
+    "files": [
+      {
+        "relative_path": "remis_demo_events_l_english.yml",
+        "item_count": 11,
+        "parse_summary": {
+          "raw": 11,
+          "syntax_parsed": 11,
+          "policy_excluded": 0,
+          "eligible": 11,
+          "parse_errors": 0,
+          "source_items": 11
+        }
+      },
+      {
+        "relative_path": "remis_demo_tech_l_english.yml",
+        "item_count": 6,
+        "parse_summary": {
+          "raw": 6,
+          "syntax_parsed": 6,
+          "policy_excluded": 0,
+          "eligible": 6,
+          "parse_errors": 0,
+          "source_items": 6
+        }
+      },
+      {
+        "relative_path": "remis_demo_traditions_l_english.yml",
+        "item_count": 8,
+        "parse_summary": {
+          "raw": 8,
+          "syntax_parsed": 8,
+          "policy_excluded": 0,
+          "eligible": 8,
+          "parse_errors": 0,
+          "source_items": 8
+        }
+      }
+    ]
+  },
+  "source_items": [
+    {
+      "source_item_id": "source-item-94e1792ecb2481fdb2674b577c5576755fc9b2ce20731808fa124d07a682a5e9",
+      "path": "assets/release_demo_content/demos/Test_Project_Remis_stellaris/localisation/english/remis_demo_events_l_english.yml",
+      "key": "remis_crisis.1.t",
+      "text": "Dawn of a New Order"
+    },
+    {
+      "source_item_id": "source-item-8437f6922310c770de77126a235fe313ddbe38806f05e626b3a15c5696056c14",
+      "path": "assets/release_demo_content/demos/Test_Project_Remis_stellaris/localisation/english/remis_demo_events_l_english.yml",
+      "key": "remis_crisis.1.desc",
+      "text": "Amidst thunderous applause, liberty died. Empress Remis declares the reorganization of the Galactic Republic."
+    },
+    {
+      "source_item_id": "source-item-91278a0ed8409e9a01c5394e7cee56eaf562eb3d2ab47ac7e044413ecd816fe8",
+      "path": "assets/release_demo_content/demos/Test_Project_Remis_stellaris/localisation/english/remis_demo_events_l_english.yml",
+      "key": "remis_crisis.1.desc_text",
+      "text": "The skyline of §H [Root.GetCapitalName]§! was obscured by the shadows of a thousand Titan-class warships, blotting out the sun like a swarm of locusts. deep within the heart of §Y The Curia Caelestis§!, Supreme Chancellor Remis rose from her hovering podium.\\n\\nHer voice, amplified by the psychic network, resonated in the minds of every sentient being across the sector:\\n\\n\"Citizens! The chaos of the Republic has festered for too long. We have been bled dry by the greed of megacorporations and the incompetence of a gridlocked senate. But today, the bleeding stops. To ensure the stability and security of our future, I am authorizing the immediate activation of the §R Sublimation Protocol§!.\"\\n\\nShe paused, her golden eyes scanning the terrified delegates, her smile cold and absolute:\\n\\n\"We are not merely building a government; we are forging an eternal sanctuary. This is not just law; this is §L Pax Remisia§!. Under this peace, dissent is obsolete, and silence is the highest virtue.\""
+    },
+    {
+      "source_item_id": "source-item-d3e55974a4aa7a90f75a152417c72a84644ee1355e5e480caf82c7c9fb06f15d",
+      "path": "assets/release_demo_content/demos/Test_Project_Remis_stellaris/localisation/english/remis_demo_events_l_english.yml",
+      "key": "remis_crisis.1.a",
+      "text": "So this is how liberty dies..."
+    },
+    {
+      "source_item_id": "source-item-329b1934d85b62bcc24451903f627cfce195f8773931d47bb6bc3895d3af705c",
+      "path": "assets/release_demo_content/demos/Test_Project_Remis_stellaris/localisation/english/remis_demo_events_l_english.yml",
+      "key": "remis_crisis.1.b",
+      "text": "Hail the Empress! (Join the §Y Vigilantes Aeturni§!)"
+    },
+    {
+      "source_item_id": "source-item-b18dee5e539377ac53c6aca9d600f2d9b2b706b1b6d5558b5b1882d65572cf5e",
+      "path": "assets/release_demo_content/demos/Test_Project_Remis_stellaris/localisation/english/remis_demo_events_l_english.yml",
+      "key": "remis_crisis.1.c",
+      "text": "We will never kneel! (Declare War)"
+    },
+    {
+      "source_item_id": "source-item-90c7156a0a6986e3f354be6b54ca4f8b4b65525339fc0360b23cce5574631384",
+      "path": "assets/release_demo_content/demos/Test_Project_Remis_stellaris/localisation/english/remis_demo_events_l_english.yml",
+      "key": "remis_crisis.2.t",
+      "text": "Silence in the Halls"
+    },
+    {
+      "source_item_id": "source-item-a84eb730a69dbeb75d3938b2cb7e5efc45b7c4a527b76aa4734cc1db6e7f0ab7",
+      "path": "assets/release_demo_content/demos/Test_Project_Remis_stellaris/localisation/english/remis_demo_events_l_english.yml",
+      "key": "remis_crisis.2.desc",
+      "text": "Political opponents are disappearing at an alarming rate."
+    },
+    {
+      "source_item_id": "source-item-231785078cdfd62de3bf273a59b1a58ca608d43df9841e5fd9589bfd5a6acd5b",
+      "path": "assets/release_demo_content/demos/Test_Project_Remis_stellaris/localisation/english/remis_demo_events_l_english.yml",
+      "key": "remis_crisis.2.desc_text",
+      "text": "It started as a rumor. Then, it became a pattern. Senators who voiced opposition to the new regime simply ceased to attend sessions. When asked about their whereabouts, the new head of security merely smiled and adjusted his gloves.\\n\\n\"Senator Valerius? I believe he has... retired to a countryside estate to reflect on the virtues of loyalty,\" said the officer of the §Y Vigilantes Aeturni§!, his hand resting casually on his sidearm. \"It is amazing how clarifying the §L Pax Remisia§! can be for a clouded mind. One moment, you are shouting about 'rights'; the next, you realize that 'duty' is the only word that matters.\"\\n\\nBehind him, the heavy doors of the detention block slammed shut, muffling a sound that was suspiciously like a scream."
+    },
+    {
+      "source_item_id": "source-item-d79a08e9c72865af214edeccf4470a58ca1dcb6562a7e51ff447e4fc99b90593",
+      "path": "assets/release_demo_content/demos/Test_Project_Remis_stellaris/localisation/english/remis_demo_events_l_english.yml",
+      "key": "remis_crisis.2.a",
+      "text": "I see nothing. I hear nothing."
+    },
+    {
+      "source_item_id": "source-item-d1494d182425d881e9242ffd670400f8486be4d94fde34feffc7e926346ca21c",
+      "path": "assets/release_demo_content/demos/Test_Project_Remis_stellaris/localisation/english/remis_demo_events_l_english.yml",
+      "key": "remis_crisis.2.b",
+      "text": "This tyranny cannot stand."
+    },
+    {
+      "source_item_id": "source-item-e142fe0fdf7f3913f089b3eed5cc6369ee7139ecee3b8e1102d1bee5321eb298",
+      "path": "assets/release_demo_content/demos/Test_Project_Remis_stellaris/localisation/english/remis_demo_tech_l_english.yml",
+      "key": "tech_argentum_refinement",
+      "text": "§Y Argentum-9§! Refinement"
+    },
+    {
+      "source_item_id": "source-item-83b0c9bf4d498ec46cfbac97c3c3c4c873cf103fc14b76016ffb04c47285fa47",
+      "path": "assets/release_demo_content/demos/Test_Project_Remis_stellaris/localisation/english/remis_demo_tech_l_english.yml",
+      "key": "tech_argentum_refinement_desc",
+      "text": "By compressing raw void energy within a hyper-dense lattice, we can synthesize a highly unstable isotope: §H Argentum-9§!. This substance is the core power source for the power armor of the §Y Vigilantes Aeturni§!, granting them reaction times that border on precognition. It hums with a sound that some describe as 'the weeping of stars'."
+    },
+    {
+      "source_item_id": "source-item-3c0593731c44ab2202913b094a0c3fabd2093405a24978bfd1bf9c94514cd3ac",
+      "path": "assets/release_demo_content/demos/Test_Project_Remis_stellaris/localisation/english/remis_demo_tech_l_english.yml",
+      "key": "tech_sublimation_implant",
+      "text": "Sublimation Neural Interface"
+    },
+    {
+      "source_item_id": "source-item-0e362be385c5120204e9715127d987268f0431b7e0c89dd0c81cc28cbade1a04",
+      "path": "assets/release_demo_content/demos/Test_Project_Remis_stellaris/localisation/english/remis_demo_tech_l_english.yml",
+      "key": "tech_sublimation_implant_desc",
+      "text": "To realize the grand vision of §L Pax Remisia§!, we must eliminate the friction of individual misunderstanding. By mandating the §R Sublimation Protocol§! chip for all Level-5 citizens, we synchronize their emotional baselines with the Central Palace. Happiness is no longer a pursuit; it is a broadcast."
+    },
+    {
+      "source_item_id": "source-item-001eabdc72d1a074980cd2439cce2d62f915057d0f4e62d6f4cbde472a78f98f",
+      "path": "assets/release_demo_content/demos/Test_Project_Remis_stellaris/localisation/english/remis_demo_tech_l_english.yml",
+      "key": "component_sol_lance",
+      "text": "Sol-Lance"
+    },
+    {
+      "source_item_id": "source-item-e859619dd49f0438ae18dab4b59805c4c5376baa551333f0cfa883f80efd13e8",
+      "path": "assets/release_demo_content/demos/Test_Project_Remis_stellaris/localisation/english/remis_demo_tech_l_english.yml",
+      "key": "component_sol_lance_desc",
+      "text": "A directed-energy weapon that focuses the fury of a captive star. As the Empress once stated: \"The light of the Sol-Lance does not merely burn; it reveals the truth hidden in the dark.\""
+    },
+    {
+      "source_item_id": "source-item-80db6e3cc674a0a07914f617702148cadb1f51487c2257b9effe59bcbba070ae",
+      "path": "assets/release_demo_content/demos/Test_Project_Remis_stellaris/localisation/english/remis_demo_traditions_l_english.yml",
+      "key": "tradition_pax_remisia_name",
+      "text": "§L Pax Remisia§!"
+    },
+    {
+      "source_item_id": "source-item-757266732ba52c3a6fbd0ab7447d2656ec09e36b124fa54f7d4cf67f5bd47cc5",
+      "path": "assets/release_demo_content/demos/Test_Project_Remis_stellaris/localisation/english/remis_demo_traditions_l_english.yml",
+      "key": "tradition_pax_remisia_desc",
+      "text": "True peace is not the absence of war, but the absence of dissent. We hold Order as the highest of all virtues, eclipsing the petty chaotic nature of Freedom."
+    },
+    {
+      "source_item_id": "source-item-c2ee8f6c22d587d2cf0822e18b61ae41149532e313bbc200906f657ec0bd38e5",
+      "path": "assets/release_demo_content/demos/Test_Project_Remis_stellaris/localisation/english/remis_demo_traditions_l_english.yml",
+      "key": "tr_pax_remisia_vigilance_name",
+      "text": "Eternal Vigilance"
+    },
+    {
+      "source_item_id": "source-item-a3fb6acb09d39f9fe261e90deb0333f5bbd009a0f9371ca6e2469a5b7d4e4b82",
+      "path": "assets/release_demo_content/demos/Test_Project_Remis_stellaris/localisation/english/remis_demo_traditions_l_english.yml",
+      "key": "tr_pax_remisia_vigilance_desc",
+      "text": "Our §Y Vigilantes Aeturni§! are everywhere. Every whisper in a dark alley, every skipped beat of a treacherous heart, falls under the gaze of the Empire. Privacy is the shield of the guilty."
+    },
+    {
+      "source_item_id": "source-item-aa544c07f77df45a5e95d38602f7c546c885dbca34757e6e28001d2bc37930db",
+      "path": "assets/release_demo_content/demos/Test_Project_Remis_stellaris/localisation/english/remis_demo_traditions_l_english.yml",
+      "key": "tr_pax_remisia_argentum_economy_name",
+      "text": "Argentum Standard"
+    },
+    {
+      "source_item_id": "source-item-a5b6bd75477a1853f7a526a1318d5d93eed1b29180fe74dfc223d86aca94ce42",
+      "path": "assets/release_demo_content/demos/Test_Project_Remis_stellaris/localisation/english/remis_demo_traditions_l_english.yml",
+      "key": "tr_pax_remisia_argentum_economy_desc",
+      "text": "By monopolizing the extraction of §H Argentum-9§!, we hold the galaxy by its throat. Any system that dares to rebel will find its reactors cold and its cities dark within a standard week."
+    },
+    {
+      "source_item_id": "source-item-8d0899ee70eb6d66f9d3a62a7f133d2d885a80f33898367e4ee0de9b2d76f40f",
+      "path": "assets/release_demo_content/demos/Test_Project_Remis_stellaris/localisation/english/remis_demo_traditions_l_english.yml",
+      "key": "ap_absolute_sublimation_name",
+      "text": "Absolute Sublimation"
+    },
+    {
+      "source_item_id": "source-item-febcf92fcb8874a8e8f7c0d809e9f22cd5e476ba5ac7a144f911dac39a094f16",
+      "path": "assets/release_demo_content/demos/Test_Project_Remis_stellaris/localisation/english/remis_demo_traditions_l_english.yml",
+      "key": "ap_absolute_sublimation_desc",
+      "text": "The individual is fragile; the collective is eternal. We shall complete the §R Sublimation Protocol§!, merging the consciousness of all subjects into a singular, harmonious will. We shall become the State, in body and in soul."
+    }
+  ],
+  "draft": {
+    "source_item_ids": [
+      "source-item-757266732ba52c3a6fbd0ab7447d2656ec09e36b124fa54f7d4cf67f5bd47cc5",
+      "source-item-c2ee8f6c22d587d2cf0822e18b61ae41149532e313bbc200906f657ec0bd38e5",
+      "source-item-a3fb6acb09d39f9fe261e90deb0333f5bbd009a0f9371ca6e2469a5b7d4e4b82",
+      "source-item-aa544c07f77df45a5e95d38602f7c546c885dbca34757e6e28001d2bc37930db",
+      "source-item-a5b6bd75477a1853f7a526a1318d5d93eed1b29180fe74dfc223d86aca94ce42",
+      "source-item-8d0899ee70eb6d66f9d3a62a7f133d2d885a80f33898367e4ee0de9b2d76f40f",
+      "source-item-febcf92fcb8874a8e8f7c0d809e9f22cd5e476ba5ac7a144f911dac39a094f16",
+      "source-item-8437f6922310c770de77126a235fe313ddbe38806f05e626b3a15c5696056c14",
+      "source-item-91278a0ed8409e9a01c5394e7cee56eaf562eb3d2ab47ac7e044413ecd816fe8",
+      "source-item-94e1792ecb2481fdb2674b577c5576755fc9b2ce20731808fa124d07a682a5e9",
+      "source-item-d3e55974a4aa7a90f75a152417c72a84644ee1355e5e480caf82c7c9fb06f15d",
+      "source-item-329b1934d85b62bcc24451903f627cfce195f8773931d47bb6bc3895d3af705c",
+      "source-item-b18dee5e539377ac53c6aca9d600f2d9b2b706b1b6d5558b5b1882d65572cf5e",
+      "source-item-231785078cdfd62de3bf273a59b1a58ca608d43df9841e5fd9589bfd5a6acd5b",
+      "source-item-0e362be385c5120204e9715127d987268f0431b7e0c89dd0c81cc28cbade1a04",
+      "source-item-80db6e3cc674a0a07914f617702148cadb1f51487c2257b9effe59bcbba070ae",
+      "source-item-83b0c9bf4d498ec46cfbac97c3c3c4c873cf103fc14b76016ffb04c47285fa47",
+      "source-item-e142fe0fdf7f3913f089b3eed5cc6369ee7139ecee3b8e1102d1bee5321eb298",
+      "source-item-3c0593731c44ab2202913b094a0c3fabd2093405a24978bfd1bf9c94514cd3ac",
+      "source-item-e859619dd49f0438ae18dab4b59805c4c5376baa551333f0cfa883f80efd13e8",
+      "source-item-001eabdc72d1a074980cd2439cce2d62f915057d0f4e62d6f4cbde472a78f98f",
+      "source-item-90c7156a0a6986e3f354be6b54ca4f8b4b65525339fc0360b23cce5574631384",
+      "source-item-a84eb730a69dbeb75d3938b2cb7e5efc45b7c4a527b76aa4734cc1db6e7f0ab7",
+      "source-item-d79a08e9c72865af214edeccf4470a58ca1dcb6562a7e51ff447e4fc99b90593",
+      "source-item-d1494d182425d881e9242ffd670400f8486be4d94fde34feffc7e926346ca21c"
+    ],
+    "archive_narratives": [
+      {
+        "source_item_ids": [
+          "source-item-757266732ba52c3a6fbd0ab7447d2656ec09e36b124fa54f7d4cf67f5bd47cc5"
+        ],
+        "evidence": [
+          {
+            "source_item_ids": [
+              "source-item-757266732ba52c3a6fbd0ab7447d2656ec09e36b124fa54f7d4cf67f5bd47cc5"
+            ],
+            "snippet": "True peace is not the absence of war, but the absence of dissent. We hold Order as the highest of all virtues, eclipsing the petty chaotic nature of Freedom.",
+            "relative_path": "remis_demo_traditions_l_english.yml",
+            "item_key": "tradition_pax_remisia_desc:0"
+          }
+        ],
+        "narrative_id": "archive_pax_remisia",
+        "summary": "Pax Remisia 将和平定义为消除异议，并将秩序置于自由之上；文本支持其作为新政权的意识形态背景，但未说明创立年代或历史起源。",
+        "delivery_target": false
+      },
+      {
+        "source_item_ids": [
+          "source-item-c2ee8f6c22d587d2cf0822e18b61ae41149532e313bbc200906f657ec0bd38e5",
+          "source-item-a3fb6acb09d39f9fe261e90deb0333f5bbd009a0f9371ca6e2469a5b7d4e4b82"
+        ],
+        "evidence": [
+          {
+            "source_item_ids": [
+              "source-item-c2ee8f6c22d587d2cf0822e18b61ae41149532e313bbc200906f657ec0bd38e5",
+              "source-item-a3fb6acb09d39f9fe261e90deb0333f5bbd009a0f9371ca6e2469a5b7d4e4b82"
+            ],
+            "snippet": "Our §Y Vigilantes Aeturni§! are everywhere. Every whisper in a dark alley, every skipped beat of a treacherous heart, falls under the gaze of the Empire.",
+            "relative_path": null,
+            "item_key": null
+          }
+        ],
+        "narrative_id": "archive_eternal_vigilance",
+        "summary": "Eternal Vigilance 描绘无处不在的监视和帝国对忠诚的制度化要求，属于制度与政治文化背景，而非独立具体事件。",
+        "delivery_target": false
+      },
+      {
+        "source_item_ids": [
+          "source-item-aa544c07f77df45a5e95d38602f7c546c885dbca34757e6e28001d2bc37930db",
+          "source-item-a5b6bd75477a1853f7a526a1318d5d93eed1b29180fe74dfc223d86aca94ce42"
+        ],
+        "evidence": [
+          {
+            "source_item_ids": [
+              "source-item-aa544c07f77df45a5e95d38602f7c546c885dbca34757e6e28001d2bc37930db",
+              "source-item-a5b6bd75477a1853f7a526a1318d5d93eed1b29180fe74dfc223d86aca94ce42"
+            ],
+            "snippet": "By monopolizing the extraction of §H Argentum-9§!, we hold the galaxy by its throat.",
+            "relative_path": null,
+            "item_key": null
+          }
+        ],
+        "narrative_id": "archive_argentum_standard",
+        "summary": "Argentum Standard 设定以垄断 Argentum-9 开采来控制星系能源和政治服从，属于经济制度背景；未证明某个具体星系已实际断电。",
+        "delivery_target": false
+      },
+      {
+        "source_item_ids": [
+          "source-item-8d0899ee70eb6d66f9d3a62a7f133d2d885a80f33898367e4ee0de9b2d76f40f",
+          "source-item-febcf92fcb8874a8e8f7c0d809e9f22cd5e476ba5ac7a144f911dac39a094f16"
+        ],
+        "evidence": [
+          {
+            "source_item_ids": [
+              "source-item-8d0899ee70eb6d66f9d3a62a7f133d2d885a80f33898367e4ee0de9b2d76f40f",
+              "source-item-febcf92fcb8874a8e8f7c0d809e9f22cd5e476ba5ac7a144f911dac39a094f16"
+            ],
+            "snippet": "The individual is fragile; the collective is eternal. We shall complete the §R Sublimation Protocol§!, merging the consciousness of all subjects into a singular, harmonious will.",
+            "relative_path": null,
+            "item_key": null
+          }
+        ],
+        "narrative_id": "archive_absolute_sublimation",
+        "summary": "Absolute Sublimation 主张把所有主体意识合并为单一意志并成为国家，属于政治—形而上学目标；文本未证明该计划已经完成。",
+        "delivery_target": false
+      }
+    ],
+    "entities": [
+      {
+        "source_item_ids": [
+          "source-item-8437f6922310c770de77126a235fe313ddbe38806f05e626b3a15c5696056c14",
+          "source-item-91278a0ed8409e9a01c5394e7cee56eaf562eb3d2ab47ac7e044413ecd816fe8",
+          "source-item-94e1792ecb2481fdb2674b577c5576755fc9b2ce20731808fa124d07a682a5e9",
+          "source-item-d3e55974a4aa7a90f75a152417c72a84644ee1355e5e480caf82c7c9fb06f15d",
+          "source-item-329b1934d85b62bcc24451903f627cfce195f8773931d47bb6bc3895d3af705c",
+          "source-item-b18dee5e539377ac53c6aca9d600f2d9b2b706b1b6d5558b5b1882d65572cf5e"
+        ],
+        "evidence": [
+          {
+            "source_item_ids": [
+              "source-item-8437f6922310c770de77126a235fe313ddbe38806f05e626b3a15c5696056c14",
+              "source-item-91278a0ed8409e9a01c5394e7cee56eaf562eb3d2ab47ac7e044413ecd816fe8"
+            ],
+            "snippet": "Empress Remis declares the reorganization of the Galactic Republic. ... Supreme Chancellor Remis rose from her hovering podium.",
+            "relative_path": null,
+            "item_key": null
+          }
+        ],
+        "entity_id": "entity_remis",
+        "name": "Remis",
+        "entity_type": "person",
+        "summary": "统治者兼最高议长；宣布重组银河共和国、授权升华协议并宣告 Pax Remisia。",
+        "aliases": [
+          "Empress Remis",
+          "Supreme Chancellor Remis"
+        ],
+        "importance": "primary"
+      },
+      {
+        "source_item_ids": [
+          "source-item-8437f6922310c770de77126a235fe313ddbe38806f05e626b3a15c5696056c14",
+          "source-item-94e1792ecb2481fdb2674b577c5576755fc9b2ce20731808fa124d07a682a5e9",
+          "source-item-91278a0ed8409e9a01c5394e7cee56eaf562eb3d2ab47ac7e044413ecd816fe8",
+          "source-item-d3e55974a4aa7a90f75a152417c72a84644ee1355e5e480caf82c7c9fb06f15d",
+          "source-item-329b1934d85b62bcc24451903f627cfce195f8773931d47bb6bc3895d3af705c",
+          "source-item-b18dee5e539377ac53c6aca9d600f2d9b2b706b1b6d5558b5b1882d65572cf5e"
+        ],
+        "evidence": [
+          {
+            "source_item_ids": [
+              "source-item-8437f6922310c770de77126a235fe313ddbe38806f05e626b3a15c5696056c14"
+            ],
+            "snippet": "Empress Remis declares the reorganization of the Galactic Republic.",
+            "relative_path": "remis_demo_events_l_english.yml",
+            "item_key": "remis_crisis.1.desc:0"
+          }
+        ],
+        "entity_id": "entity_galactic_republic",
+        "name": "Galactic Republic",
+        "entity_type": "polity",
+        "summary": "被 Remis 宣布重组的共和国；事件文本还将其描述为受企业贪婪和参议院僵局困扰。",
+        "aliases": [
+          "Republic"
+        ],
+        "importance": "primary"
+      },
+      {
+        "source_item_ids": [
+          "source-item-91278a0ed8409e9a01c5394e7cee56eaf562eb3d2ab47ac7e044413ecd816fe8"
+        ],
+        "evidence": [
+          {
+            "source_item_ids": [
+              "source-item-91278a0ed8409e9a01c5394e7cee56eaf562eb3d2ab47ac7e044413ecd816fe8"
+            ],
+            "snippet": "deep within the heart of §Y The Curia Caelestis§!, Supreme Chancellor Remis rose from her hovering podium.",
+            "relative_path": "remis_demo_events_l_english.yml",
+            "item_key": "remis_crisis.1.desc_text:0"
+          }
+        ],
+        "entity_id": "entity_curia_caelestis",
+        "name": "The Curia Caelestis",
+        "entity_type": "place",
+        "summary": "Remis 宣布新秩序时所在的核心场所。",
+        "aliases": [
+          "Curia Caelestis"
+        ],
+        "importance": "supporting"
+      },
+      {
+        "source_item_ids": [
+          "source-item-329b1934d85b62bcc24451903f627cfce195f8773931d47bb6bc3895d3af705c",
+          "source-item-231785078cdfd62de3bf273a59b1a58ca608d43df9841e5fd9589bfd5a6acd5b",
+          "source-item-a3fb6acb09d39f9fe261e90deb0333f5bbd009a0f9371ca6e2469a5b7d4e4b82"
+        ],
+        "evidence": [
+          {
+            "source_item_ids": [
+              "source-item-329b1934d85b62bcc24451903f627cfce195f8773931d47bb6bc3895d3af705c",
+              "source-item-231785078cdfd62de3bf273a59b1a58ca608d43df9841e5fd9589bfd5a6acd5b",
+              "source-item-a3fb6acb09d39f9fe261e90deb0333f5bbd009a0f9371ca6e2469a5b7d4e4b82"
+            ],
+            "snippet": "Hail the Empress! (Join the §Y Vigilantes Aeturni§!) ... the officer of the §Y Vigilantes Aeturni§! ... Our §Y Vigilantes Aeturni§! are everywhere.",
+            "relative_path": null,
+            "item_key": null
+          }
+        ],
+        "entity_id": "entity_vigilantes_aeturni",
+        "name": "Vigilantes Aeturni",
+        "entity_type": "organization",
+        "summary": "支持 Remis 统治并执行监控与镇压的组织；其动力装甲由 Argentum-9 提供能源。",
+        "aliases": [],
+        "importance": "primary"
+      },
+      {
+        "source_item_ids": [
+          "source-item-231785078cdfd62de3bf273a59b1a58ca608d43df9841e5fd9589bfd5a6acd5b"
+        ],
+        "evidence": [
+          {
+            "source_item_ids": [
+              "source-item-231785078cdfd62de3bf273a59b1a58ca608d43df9841e5fd9589bfd5a6acd5b"
+            ],
+            "snippet": "Senator Valerius? I believe he has... retired to a countryside estate to reflect on the virtues of loyalty.",
+            "relative_path": "remis_demo_events_l_english.yml",
+            "item_key": "remis_crisis.2.desc_text:0"
+          }
+        ],
+        "entity_id": "entity_senator_valerius",
+        "name": "Senator Valerius",
+        "entity_type": "person",
+        "summary": "反对新政权的参议员；安全官称其已“退休”，但同段拘押区和疑似尖叫声使其处境保持暧昧。",
+        "aliases": [
+          "Valerius"
+        ],
+        "importance": "primary"
+      },
+      {
+        "source_item_ids": [
+          "source-item-a3fb6acb09d39f9fe261e90deb0333f5bbd009a0f9371ca6e2469a5b7d4e4b82"
+        ],
+        "evidence": [
+          {
+            "source_item_ids": [
+              "source-item-a3fb6acb09d39f9fe261e90deb0333f5bbd009a0f9371ca6e2469a5b7d4e4b82"
+            ],
+            "snippet": "falls under the gaze of the Empire.",
+            "relative_path": "remis_demo_traditions_l_english.yml",
+            "item_key": "tr_pax_remisia_vigilance_desc:0"
+          }
+        ],
+        "entity_id": "entity_empire",
+        "name": "Empire",
+        "entity_type": "polity",
+        "summary": "被静态传统文本称为实施全面监视的统治实体；来源未给出正式国名。",
+        "aliases": [],
+        "importance": "supporting"
+      },
+      {
+        "source_item_ids": [
+          "source-item-91278a0ed8409e9a01c5394e7cee56eaf562eb3d2ab47ac7e044413ecd816fe8"
+        ],
+        "evidence": [
+          {
+            "source_item_ids": [
+              "source-item-91278a0ed8409e9a01c5394e7cee56eaf562eb3d2ab47ac7e044413ecd816fe8"
+            ],
+            "snippet": "a thousand Titan-class warships, blotting out the sun like a swarm of locusts.",
+            "relative_path": "remis_demo_events_l_english.yml",
+            "item_key": "remis_crisis.1.desc_text:0"
+          }
+        ],
+        "entity_id": "entity_titan_warships",
+        "name": "Titan-class warships",
+        "entity_type": "item",
+        "summary": "遮蔽首都天际线的泰坦级战舰群；来源未提供具体舰名。",
+        "aliases": [
+          "Titan-class"
+        ],
+        "importance": "supporting"
+      },
+      {
+        "source_item_ids": [
+          "source-item-0e362be385c5120204e9715127d987268f0431b7e0c89dd0c81cc28cbade1a04"
+        ],
+        "evidence": [
+          {
+            "source_item_ids": [
+              "source-item-0e362be385c5120204e9715127d987268f0431b7e0c89dd0c81cc28cbade1a04"
+            ],
+            "snippet": "we synchronize their emotional baselines with the Central Palace.",
+            "relative_path": "remis_demo_tech_l_english.yml",
+            "item_key": "tech_sublimation_implant_desc:0"
+          }
+        ],
+        "entity_id": "entity_central_palace",
+        "name": "Central Palace",
+        "entity_type": "place",
+        "summary": "用于同步 Level-5 公民情绪基线的中央统治中枢；具体位置未说明。",
+        "aliases": [],
+        "importance": "supporting"
+      },
+      {
+        "source_item_ids": [
+          "source-item-91278a0ed8409e9a01c5394e7cee56eaf562eb3d2ab47ac7e044413ecd816fe8"
+        ],
+        "evidence": [
+          {
+            "source_item_ids": [
+              "source-item-91278a0ed8409e9a01c5394e7cee56eaf562eb3d2ab47ac7e044413ecd816fe8"
+            ],
+            "snippet": "I am authorizing the immediate activation of the §R Sublimation Protocol§!. ... §L Pax Remisia§!.",
+            "relative_path": "remis_demo_events_l_english.yml",
+            "item_key": "remis_crisis.1.desc_text:0"
+          }
+        ],
+        "entity_id": "entity_sublimation_protocol",
+        "name": "Sublimation Protocol",
+        "entity_type": "technology",
+        "summary": "由 Remis 授权启动、并以芯片形式强制实施的升华协议；与 Absolute Sublimation 的意识合并目标相关。",
+        "aliases": [
+          "Sublimation Protocol chip"
+        ],
+        "importance": "primary"
+      },
+      {
+        "source_item_ids": [
+          "source-item-91278a0ed8409e9a01c5394e7cee56eaf562eb3d2ab47ac7e044413ecd816fe8",
+          "source-item-757266732ba52c3a6fbd0ab7447d2656ec09e36b124fa54f7d4cf67f5bd47cc5",
+          "source-item-80db6e3cc674a0a07914f617702148cadb1f51487c2257b9effe59bcbba070ae"
+        ],
+        "evidence": [
+          {
+            "source_item_ids": [
+              "source-item-91278a0ed8409e9a01c5394e7cee56eaf562eb3d2ab47ac7e044413ecd816fe8",
+              "source-item-757266732ba52c3a6fbd0ab7447d2656ec09e36b124fa54f7d4cf67f5bd47cc5"
+            ],
+            "snippet": "This is not just law; this is §L Pax Remisia§!. ... absence of dissent.",
+            "relative_path": null,
+            "item_key": null
+          }
+        ],
+        "entity_id": "entity_pax_remisia",
+        "name": "Pax Remisia",
+        "entity_type": "concept",
+        "summary": "Remis 宣称的新政治秩序与意识形态，将和平定义为没有异议，并把秩序置于自由之上。",
+        "aliases": [
+          "Remisia peace"
+        ],
+        "importance": "primary"
+      },
+      {
+        "source_item_ids": [
+          "source-item-83b0c9bf4d498ec46cfbac97c3c3c4c873cf103fc14b76016ffb04c47285fa47",
+          "source-item-a5b6bd75477a1853f7a526a1318d5d93eed1b29180fe74dfc223d86aca94ce42",
+          "source-item-aa544c07f77df45a5e95d38602f7c546c885dbca34757e6e28001d2bc37930db",
+          "source-item-e142fe0fdf7f3913f089b3eed5cc6369ee7139ecee3b8e1102d1bee5321eb298"
+        ],
+        "evidence": [
+          {
+            "source_item_ids": [
+              "source-item-83b0c9bf4d498ec46cfbac97c3c3c4c873cf103fc14b76016ffb04c47285fa47",
+              "source-item-a5b6bd75477a1853f7a526a1318d5d93eed1b29180fe74dfc223d86aca94ce42"
+            ],
+            "snippet": "This substance is the core power source for the power armor of the §Y Vigilantes Aeturni§!. ... monopolizing the extraction of §H Argentum-9§!.",
+            "relative_path": null,
+            "item_key": null
+          }
+        ],
+        "entity_id": "entity_argentum_9",
+        "name": "Argentum-9",
+        "entity_type": "item",
+        "summary": "由虚空能量合成的不稳定同位素，为 Vigilantes Aeturni 动力装甲提供核心能源；其开采可被垄断。",
+        "aliases": [
+          "Argentum"
+        ],
+        "importance": "primary"
+      },
+      {
+        "source_item_ids": [
+          "source-item-c2ee8f6c22d587d2cf0822e18b61ae41149532e313bbc200906f657ec0bd38e5",
+          "source-item-a3fb6acb09d39f9fe261e90deb0333f5bbd009a0f9371ca6e2469a5b7d4e4b82"
+        ],
+        "evidence": [
+          {
+            "source_item_ids": [
+              "source-item-c2ee8f6c22d587d2cf0822e18b61ae41149532e313bbc200906f657ec0bd38e5",
+              "source-item-a3fb6acb09d39f9fe261e90deb0333f5bbd009a0f9371ca6e2469a5b7d4e4b82"
+            ],
+            "snippet": "Eternal Vigilance ... Our §Y Vigilantes Aeturni§! are everywhere.",
+            "relative_path": null,
+            "item_key": null
+          }
+        ],
+        "entity_id": "entity_eternal_vigilance",
+        "name": "Eternal Vigilance",
+        "entity_type": "concept",
+        "summary": "以无处不在的监视为核心的统治理念或传统。",
+        "aliases": [
+          "Vigilance"
+        ],
+        "importance": "supporting"
+      },
+      {
+        "source_item_ids": [
+          "source-item-aa544c07f77df45a5e95d38602f7c546c885dbca34757e6e28001d2bc37930db",
+          "source-item-a5b6bd75477a1853f7a526a1318d5d93eed1b29180fe74dfc223d86aca94ce42"
+        ],
+        "evidence": [
+          {
+            "source_item_ids": [
+              "source-item-aa544c07f77df45a5e95d38602f7c546c885dbca34757e6e28001d2bc37930db",
+              "source-item-a5b6bd75477a1853f7a526a1318d5d93eed1b29180fe74dfc223d86aca94ce42"
+            ],
+            "snippet": "Argentum Standard ... Any system that dares to rebel will find its reactors cold.",
+            "relative_path": null,
+            "item_key": null
+          }
+        ],
+        "entity_id": "entity_argentum_standard",
+        "name": "Argentum Standard",
+        "entity_type": "concept",
+        "summary": "以 Argentum-9 开采垄断控制能源供应的经济制度。",
+        "aliases": [
+          "Argentum economic standard"
+        ],
+        "importance": "supporting"
+      },
+      {
+        "source_item_ids": [
+          "source-item-febcf92fcb8874a8e8f7c0d809e9f22cd5e476ba5ac7a144f911dac39a094f16",
+          "source-item-8d0899ee70eb6d66f9d3a62a7f133d2d885a80f33898367e4ee0de9b2d76f40f"
+        ],
+        "evidence": [
+          {
+            "source_item_ids": [
+              "source-item-febcf92fcb8874a8e8f7c0d809e9f22cd5e476ba5ac7a144f911dac39a094f16"
+            ],
+            "snippet": "merging the consciousness of all subjects into a singular, harmonious will. We shall become the State, in body and in soul.",
+            "relative_path": "remis_demo_traditions_l_english.yml",
+            "item_key": "ap_absolute_sublimation_desc:0"
+          }
+        ],
+        "entity_id": "entity_absolute_sublimation",
+        "name": "Absolute Sublimation",
+        "entity_type": "concept",
+        "summary": "把所有主体意识合并为单一意志、使集体成为国家的政治—形而上学方案。",
+        "aliases": [
+          "Complete Sublimation"
+        ],
+        "importance": "primary"
+      },
+      {
+        "source_item_ids": [
+          "source-item-0e362be385c5120204e9715127d987268f0431b7e0c89dd0c81cc28cbade1a04",
+          "source-item-3c0593731c44ab2202913b094a0c3fabd2093405a24978bfd1bf9c94514cd3ac"
+        ],
+        "evidence": [
+          {
+            "source_item_ids": [
+              "source-item-0e362be385c5120204e9715127d987268f0431b7e0c89dd0c81cc28cbade1a04",
+              "source-item-3c0593731c44ab2202913b094a0c3fabd2093405a24978bfd1bf9c94514cd3ac"
+            ],
+            "snippet": "Sublimation Neural Interface ... mandating the §R Sublimation Protocol§! chip for all Level-5 citizens.",
+            "relative_path": null,
+            "item_key": null
+          }
+        ],
+        "entity_id": "entity_sublimation_neural_interface",
+        "name": "Sublimation Neural Interface",
+        "entity_type": "technology",
+        "summary": "面向 Level-5 公民强制使用、将情绪基线与中央宫殿同步的神经接口。",
+        "aliases": [
+          "Sublimation Protocol chip"
+        ],
+        "importance": "primary"
+      },
+      {
+        "source_item_ids": [
+          "source-item-e859619dd49f0438ae18dab4b59805c4c5376baa551333f0cfa883f80efd13e8",
+          "source-item-001eabdc72d1a074980cd2439cce2d62f915057d0f4e62d6f4cbde472a78f98f"
+        ],
+        "evidence": [
+          {
+            "source_item_ids": [
+              "source-item-e859619dd49f0438ae18dab4b59805c4c5376baa551333f0cfa883f80efd13e8"
+            ],
+            "snippet": "The light of the Sol-Lance does not merely burn; it reveals the truth hidden in the dark.",
+            "relative_path": "remis_demo_tech_l_english.yml",
+            "item_key": "component_sol_lance_desc:0"
+          }
+        ],
+        "entity_id": "entity_sol_lance",
+        "name": "Sol-Lance",
+        "entity_type": "item",
+        "summary": "利用被囚禁恒星聚焦能量的定向能武器。",
+        "aliases": [],
+        "importance": "supporting"
+      }
+    ],
+    "event_chains": [
+      {
+        "source_item_ids": [
+          "source-item-94e1792ecb2481fdb2674b577c5576755fc9b2ce20731808fa124d07a682a5e9",
+          "source-item-8437f6922310c770de77126a235fe313ddbe38806f05e626b3a15c5696056c14",
+          "source-item-91278a0ed8409e9a01c5394e7cee56eaf562eb3d2ab47ac7e044413ecd816fe8",
+          "source-item-d3e55974a4aa7a90f75a152417c72a84644ee1355e5e480caf82c7c9fb06f15d",
+          "source-item-329b1934d85b62bcc24451903f627cfce195f8773931d47bb6bc3895d3af705c",
+          "source-item-b18dee5e539377ac53c6aca9d600f2d9b2b706b1b6d5558b5b1882d65572cf5e"
+        ],
+        "evidence": [
+          {
+            "source_item_ids": [
+              "source-item-94e1792ecb2481fdb2674b577c5576755fc9b2ce20731808fa124d07a682a5e9",
+              "source-item-8437f6922310c770de77126a235fe313ddbe38806f05e626b3a15c5696056c14",
+              "source-item-91278a0ed8409e9a01c5394e7cee56eaf562eb3d2ab47ac7e044413ecd816fe8",
+              "source-item-d3e55974a4aa7a90f75a152417c72a84644ee1355e5e480caf82c7c9fb06f15d",
+              "source-item-329b1934d85b62bcc24451903f627cfce195f8773931d47bb6bc3895d3af705c",
+              "source-item-b18dee5e539377ac53c6aca9d600f2d9b2b706b1b6d5558b5b1882d65572cf5e"
+            ],
+            "snippet": "Dawn of a New Order ... Empress Remis declares the reorganization of the Galactic Republic. ... authorizing the immediate activation of the §R Sublimation Protocol§!. ... (Declare War)",
+            "relative_path": null,
+            "item_key": null
+          }
+        ],
+        "chain_id": "remis_crisis_chain",
+        "event": "Remis 在首都和 Curia Caelestis 的军事威势下宣布重组银河共和国，启动 Sublimation Protocol，并以 Pax Remisia 建立新秩序；选项分别表达哀悼、加入 Vigilantes Aeturni 或宣战。",
+        "sequence": 1,
+        "local_unit_ids": [
+          "unit_0"
+        ],
+        "archive_context_ids": [
+          "archive_pax_remisia",
+          "archive_absolute_sublimation"
+        ],
+        "entity_ids": [
+          "entity_remis",
+          "entity_galactic_republic",
+          "entity_curia_caelestis",
+          "entity_titan_warships",
+          "entity_sublimation_protocol",
+          "entity_pax_remisia",
+          "entity_vigilantes_aeturni"
+        ]
+      },
+      {
+        "source_item_ids": [
+          "source-item-90c7156a0a6986e3f354be6b54ca4f8b4b65525339fc0360b23cce5574631384",
+          "source-item-a84eb730a69dbeb75d3938b2cb7e5efc45b7c4a527b76aa4734cc1db6e7f0ab7",
+          "source-item-231785078cdfd62de3bf273a59b1a58ca608d43df9841e5fd9589bfd5a6acd5b",
+          "source-item-d79a08e9c72865af214edeccf4470a58ca1dcb6562a7e51ff447e4fc99b90593",
+          "source-item-d1494d182425d881e9242ffd670400f8486be4d94fde34feffc7e926346ca21c"
+        ],
+        "evidence": [
+          {
+            "source_item_ids": [
+              "source-item-90c7156a0a6986e3f354be6b54ca4f8b4b65525339fc0360b23cce5574631384",
+              "source-item-a84eb730a69dbeb75d3938b2cb7e5efc45b7c4a527b76aa4734cc1db6e7f0ab7",
+              "source-item-231785078cdfd62de3bf273a59b1a58ca608d43df9841e5fd9589bfd5a6acd5b",
+              "source-item-d79a08e9c72865af214edeccf4470a58ca1dcb6562a7e51ff447e4fc99b90593",
+              "source-item-d1494d182425d881e9242ffd670400f8486be4d94fde34feffc7e926346ca21c"
+            ],
+            "snippet": "Political opponents are disappearing at an alarming rate. ... Senator Valerius? ... the heavy doors of the detention block slammed shut, muffling a sound that was suspiciously like a scream.",
+            "relative_path": null,
+            "item_key": null
+          }
+        ],
+        "chain_id": "remis_crisis_chain",
+        "event": "新秩序确立后，反对政权的参议员陆续消失；安全官以忠诚话语为 Vigilantes Aeturni 的镇压辩护，Valerius 的去向暧昧，拘押区传出疑似尖叫。选项分别选择沉默或反抗。",
+        "sequence": 2,
+        "local_unit_ids": [
+          "unit_1"
+        ],
+        "archive_context_ids": [
+          "archive_pax_remisia",
+          "archive_eternal_vigilance"
+        ],
+        "entity_ids": [
+          "entity_remis",
+          "entity_vigilantes_aeturni",
+          "entity_senator_valerius",
+          "entity_pax_remisia",
+          "entity_eternal_vigilance"
+        ]
+      }
+    ],
+    "reference_assets": [
+      {
+        "source_item_ids": [
+          "source-item-e142fe0fdf7f3913f089b3eed5cc6369ee7139ecee3b8e1102d1bee5321eb298",
+          "source-item-83b0c9bf4d498ec46cfbac97c3c3c4c873cf103fc14b76016ffb04c47285fa47"
+        ],
+        "evidence": [
+          {
+            "source_item_ids": [
+              "source-item-e142fe0fdf7f3913f089b3eed5cc6369ee7139ecee3b8e1102d1bee5321eb298",
+              "source-item-83b0c9bf4d498ec46cfbac97c3c3c4c873cf103fc14b76016ffb04c47285fa47"
+            ],
+            "snippet": "By compressing raw void energy within a hyper-dense lattice, we can synthesize a highly unstable isotope: §H Argentum-9§!.",
+            "relative_path": null,
+            "item_key": null
+          }
+        ],
+        "asset_id": "asset_argentum_refinement",
+        "name": "Argentum-9 Refinement",
+        "description": "通过压缩虚空能量合成 Argentum-9 的技术；其描述还将该同位素确定为 Vigilantes Aeturni 动力装甲的核心能源。",
+        "local_unit_id": "unit_2",
+        "receives_event_context": false
+      },
+      {
+        "source_item_ids": [
+          "source-item-3c0593731c44ab2202913b094a0c3fabd2093405a24978bfd1bf9c94514cd3ac",
+          "source-item-0e362be385c5120204e9715127d987268f0431b7e0c89dd0c81cc28cbade1a04"
+        ],
+        "evidence": [
+          {
+            "source_item_ids": [
+              "source-item-3c0593731c44ab2202913b094a0c3fabd2093405a24978bfd1bf9c94514cd3ac",
+              "source-item-0e362be385c5120204e9715127d987268f0431b7e0c89dd0c81cc28cbade1a04"
+            ],
+            "snippet": "By mandating the §R Sublimation Protocol§! chip for all Level-5 citizens, we synchronize their emotional baselines with the Central Palace.",
+            "relative_path": null,
+            "item_key": null
+          }
+        ],
+        "asset_id": "asset_sublimation_neural_interface",
+        "name": "Sublimation Neural Interface",
+        "description": "强制用于 Level-5 公民、将其情绪基线与 Central Palace 同步的神经接口技术。",
+        "local_unit_id": "unit_3",
+        "receives_event_context": false
+      },
+      {
+        "source_item_ids": [
+          "source-item-001eabdc72d1a074980cd2439cce2d62f915057d0f4e62d6f4cbde472a78f98f",
+          "source-item-e859619dd49f0438ae18dab4b59805c4c5376baa551333f0cfa883f80efd13e8"
+        ],
+        "evidence": [
+          {
+            "source_item_ids": [
+              "source-item-001eabdc72d1a074980cd2439cce2d62f915057d0f4e62d6f4cbde472a78f98f",
+              "source-item-e859619dd49f0438ae18dab4b59805c4c5376baa551333f0cfa883f80efd13e8"
+            ],
+            "snippet": "A directed-energy weapon that focuses the fury of a captive star.",
+            "relative_path": null,
+            "item_key": null
+          }
+        ],
+        "asset_id": "asset_sol_lance",
+        "name": "Sol-Lance",
+        "description": "以被囚禁恒星聚焦能量的定向能武器；来源还保留了 Remis 的宣传式引语。",
+        "local_unit_id": "unit_4",
+        "receives_event_context": false
+      }
+    ],
+    "unresolved": [],
+    "diagnostics": {
+      "model": {
+        "model": {
+          "model": {},
+          "compiler": {
+            "schema_version": "context-research-compiler-v1",
+            "rejected_source_item_ids": [
+              {
+                "finding_type": "archive_narrative",
+                "finding_id": "archive_pax_remisia",
+                "evidence_index": 0,
+                "source_item_id": "source-item-80db6c3c674a0a07914f617702148cadb1f51487c2257b9effe59bcbba070ae"
+              }
+            ],
+            "dropped_ungrounded_findings": [],
+            "dropped_duplicate_findings": [],
+            "unknown_archive_context_links": [],
+            "unknown_entity_links": [],
+            "rejected_local_unit_ids": [],
+            "inferred_local_unit_ids": [],
+            "rejected_asset_local_unit_ids": [],
+            "dropped_resolved_unit_routes": [],
+            "uncovered_source_item_ids": [],
+            "published_counts": {
+              "archive_narratives": 4,
+              "entities": 17,
+              "event_chains": 2,
+              "reference_assets": 3,
+              "unresolved": 1,
+              "source_item_ids": 25
+            }
+          }
+        },
+        "compiler": {
+          "schema_version": "context-research-compiler-v1",
+          "rejected_source_item_ids": [],
+          "dropped_ungrounded_findings": [],
+          "dropped_duplicate_findings": [],
+          "unknown_archive_context_links": [],
+          "unknown_entity_links": [],
+          "rejected_entity_evidence_ids": [
+            {
+              "entity_id": "entity_sublimation_protocol",
+              "source_item_id": "source-item-80db6e3cc674a0a07914f617702148cadb1f51487c2257b9effe59bcbba070ae"
+            }
+          ],
+          "rejected_local_unit_ids": [],
+          "inferred_local_unit_ids": [],
+          "rejected_asset_local_unit_ids": [],
+          "dropped_resolved_unit_routes": [],
+          "uncovered_source_item_ids": [],
+          "published_counts": {
+            "archive_narratives": 4,
+            "entities": 17,
+            "event_chains": 2,
+            "reference_assets": 3,
+            "unresolved": 1,
+            "source_item_ids": 25
+          }
+        }
+      },
+      "compiler": {
+        "schema_version": "context-research-compiler-v1",
+        "rejected_source_item_ids": [],
+        "dropped_ungrounded_findings": [],
+        "dropped_duplicate_findings": [],
+        "unknown_archive_context_links": [],
+        "unknown_entity_links": [],
+        "rejected_dynamic_entity_candidates": [
+          {
+            "entity_id": "entity_root_capital",
+            "name": "[Root.GetCapitalName]"
+          }
+        ],
+        "dropped_dynamic_entity_links": [
+          {
+            "chain_id": "remis_crisis_chain",
+            "sequence": 1,
+            "entity_id": "entity_root_capital"
+          }
+        ],
+        "rejected_entity_evidence_ids": [],
+        "rejected_local_unit_ids": [],
+        "inferred_local_unit_ids": [],
+        "rejected_asset_local_unit_ids": [],
+        "dropped_resolved_unit_routes": [],
+        "embedded_event_uncertainties": [
+          {
+            "unresolved_id": "unresolved_root_capital_name",
+            "reference_type": "source_evidence",
+            "source_id": "entity_root_capital",
+            "target_id": "[Root.GetCapitalName]",
+            "reason": "来源只提供首都名称变量，无法安全还原其实际专名。",
+            "source_item_ids": [
+              "source-item-91278a0ed8409e9a01c5394e7cee56eaf562eb3d2ab47ac7e044413ecd816fe8"
+            ],
+            "evidence": [
+              {
+                "source_item_ids": [
+                  "source-item-91278a0ed8409e9a01c5394e7cee56eaf562eb3d2ab47ac7e044413ecd816fe8"
+                ],
+                "snippet": "The skyline of §H [Root.GetCapitalName]§! was obscured by the shadows of a thousand Titan-class warships.",
+                "relative_path": "remis_demo_events_l_english.yml",
+                "item_key": "remis_crisis.1.desc_text:0"
+              }
+            ],
+            "event_chain_id": "remis_crisis_chain",
+            "event_sequence": 1
+          }
+        ],
+        "uncovered_source_item_ids": [],
+        "published_counts": {
+          "archive_narratives": 4,
+          "entities": 16,
+          "event_chains": 2,
+          "reference_assets": 3,
+          "unresolved": 0,
+          "source_item_ids": 25
+        }
+      }
+    }
+  },
+  "events": [
+    {
+      "source_item_ids": [
+        "source-item-94e1792ecb2481fdb2674b577c5576755fc9b2ce20731808fa124d07a682a5e9",
+        "source-item-8437f6922310c770de77126a235fe313ddbe38806f05e626b3a15c5696056c14",
+        "source-item-91278a0ed8409e9a01c5394e7cee56eaf562eb3d2ab47ac7e044413ecd816fe8",
+        "source-item-d3e55974a4aa7a90f75a152417c72a84644ee1355e5e480caf82c7c9fb06f15d",
+        "source-item-329b1934d85b62bcc24451903f627cfce195f8773931d47bb6bc3895d3af705c",
+        "source-item-b18dee5e539377ac53c6aca9d600f2d9b2b706b1b6d5558b5b1882d65572cf5e"
+      ],
+      "evidence": [
+        {
+          "source_item_ids": [
+            "source-item-94e1792ecb2481fdb2674b577c5576755fc9b2ce20731808fa124d07a682a5e9",
+            "source-item-8437f6922310c770de77126a235fe313ddbe38806f05e626b3a15c5696056c14",
+            "source-item-91278a0ed8409e9a01c5394e7cee56eaf562eb3d2ab47ac7e044413ecd816fe8",
+            "source-item-d3e55974a4aa7a90f75a152417c72a84644ee1355e5e480caf82c7c9fb06f15d",
+            "source-item-329b1934d85b62bcc24451903f627cfce195f8773931d47bb6bc3895d3af705c",
+            "source-item-b18dee5e539377ac53c6aca9d600f2d9b2b706b1b6d5558b5b1882d65572cf5e"
+          ],
+          "snippet": "Dawn of a New Order ... Empress Remis declares the reorganization of the Galactic Republic. ... authorizing the immediate activation of the §R Sublimation Protocol§!. ... (Declare War)",
+          "relative_path": null,
+          "item_key": null
+        }
+      ],
+      "chain_id": "remis_crisis_chain",
+      "event": "Remis 在首都和 Curia Caelestis 的军事威势下宣布重组银河共和国，启动 Sublimation Protocol，并以 Pax Remisia 建立新秩序；选项分别表达哀悼、加入 Vigilantes Aeturni 或宣战。",
+      "sequence": 1,
+      "local_unit_ids": [
+        "unit_0"
+      ],
+      "archive_context_ids": [
+        "archive_pax_remisia",
+        "archive_absolute_sublimation"
+      ],
+      "entity_ids": [
+        "entity_remis",
+        "entity_galactic_republic",
+        "entity_curia_caelestis",
+        "entity_titan_warships",
+        "entity_sublimation_protocol",
+        "entity_pax_remisia",
+        "entity_vigilantes_aeturni"
+      ]
+    },
+    {
+      "source_item_ids": [
+        "source-item-90c7156a0a6986e3f354be6b54ca4f8b4b65525339fc0360b23cce5574631384",
+        "source-item-a84eb730a69dbeb75d3938b2cb7e5efc45b7c4a527b76aa4734cc1db6e7f0ab7",
+        "source-item-231785078cdfd62de3bf273a59b1a58ca608d43df9841e5fd9589bfd5a6acd5b",
+        "source-item-d79a08e9c72865af214edeccf4470a58ca1dcb6562a7e51ff447e4fc99b90593",
+        "source-item-d1494d182425d881e9242ffd670400f8486be4d94fde34feffc7e926346ca21c"
+      ],
+      "evidence": [
+        {
+          "source_item_ids": [
+            "source-item-90c7156a0a6986e3f354be6b54ca4f8b4b65525339fc0360b23cce5574631384",
+            "source-item-a84eb730a69dbeb75d3938b2cb7e5efc45b7c4a527b76aa4734cc1db6e7f0ab7",
+            "source-item-231785078cdfd62de3bf273a59b1a58ca608d43df9841e5fd9589bfd5a6acd5b",
+            "source-item-d79a08e9c72865af214edeccf4470a58ca1dcb6562a7e51ff447e4fc99b90593",
+            "source-item-d1494d182425d881e9242ffd670400f8486be4d94fde34feffc7e926346ca21c"
+          ],
+          "snippet": "Political opponents are disappearing at an alarming rate. ... Senator Valerius? ... the heavy doors of the detention block slammed shut, muffling a sound that was suspiciously like a scream.",
+          "relative_path": null,
+          "item_key": null
+        }
+      ],
+      "chain_id": "remis_crisis_chain",
+      "event": "新秩序确立后，反对政权的参议员陆续消失；安全官以忠诚话语为 Vigilantes Aeturni 的镇压辩护，Valerius 的去向暧昧，拘押区传出疑似尖叫。选项分别选择沉默或反抗。",
+      "sequence": 2,
+      "local_unit_ids": [
+        "unit_1"
+      ],
+      "archive_context_ids": [
+        "archive_pax_remisia",
+        "archive_eternal_vigilance"
+      ],
+      "entity_ids": [
+        "entity_remis",
+        "entity_vigilantes_aeturni",
+        "entity_senator_valerius",
+        "entity_pax_remisia",
+        "entity_eternal_vigilance"
+      ]
+    }
+  ],
+  "usage": [
+    {
+      "event": "context_research",
+      "scope": "harness_run_observed",
+      "usage": {
+        "input_tokens": 97482,
+        "cache_write_tokens": 71648,
+        "cache_read_tokens": 24736,
+        "output_tokens": 9678,
+        "input_audio_tokens": 0,
+        "cache_audio_read_tokens": 0,
+        "output_audio_tokens": 0,
+        "details": {
+          "is_byok": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 549,
+          "image_tokens": 0
+        },
+        "cost": "0.03023992",
+        "requests": 9,
+        "tool_calls": 14
+      }
+    }
+  ],
+  "metadata": {
+    "provider": "openrouter",
+    "model": "openai/gpt-5.6-luna",
+    "request_id": "context-research-luna-key-family-r2-20260901",
+    "project_id": "demo-remis-luna-stellaris-v2",
+    "game_name": "Stellaris",
+    "description_language": "zh-CN",
+    "reasoning_language": "Simplified Chinese",
+    "source_root": "J:\\V3_Mod_Localization_Factory-worktrees\\issue-198-archive-hardening-v3.1.8\\assets\\release_demo_content\\demos\\Test_Project_Remis_stellaris\\localisation\\english",
+    "dry_run": false
+  },
+  "schema_version": "context-research-preview-v1"
+}

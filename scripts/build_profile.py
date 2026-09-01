@@ -37,7 +37,7 @@ PROFILES = {
     AGENT_PREVIEW_CHANNEL: BuildProfile(
         channel=AGENT_PREVIEW_CHANNEL,
         product_name="Remis Agent Preview",
-        version="3.1.7-agent-preview.1",
+        version="3.1.8-agent-preview.1",
         identifier="com.remis.modfactory.agent-preview",
         app_data_folder="RemisAgentPreview",
         backend_port=1454,

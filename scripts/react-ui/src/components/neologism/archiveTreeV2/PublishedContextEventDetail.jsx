@@ -98,6 +98,9 @@ const PublishedContextEventDetail = ({
                                 <option value={TREE_ROUTE.REFERENCE_ASSET}>
                                     {text(t, 'mod_archive.tree_v2.route_reference', 'Reference asset only — exclude from event chains')}
                                 </option>
+                                <option value={TREE_ROUTE.NO_CONTEXT}>
+                                    {text(t, 'mod_archive.tree_v2.route_archive_only', 'Archive narrative only — never deliver')}
+                                </option>
                                 <option value={TREE_ROUTE.UNRESOLVED}>
                                     {text(t, 'mod_archive.tree_v2.route_unresolved', 'Do not deliver yet — mark unresolved')}
                                 </option>
