@@ -56,47 +56,47 @@ DEMOS = {
         fixture_path="projects/stellaris/horizonsignal_demo/horizonsignal_l_english.yml",
         fixture_sha256="aa3333a36f36492c8c4bdd62d9cde604babda9316f618dbfceace9a8abd896f1",
         gold_path=(
-            "corpus/stellaris/context-archive-gold/horizon-signal/2026-08-04/"
+            "corpus/stellaris/context-archive-gold/horizon-signal/2026-09-01/"
             "horizon_signal_event_chain_gold.md"
         ),
-        gold_sha256="43da9fee5345c2974ce7531af9bf6c35d8d09f160409acf0170f10b0495f6c4f",
+        gold_sha256="a882ae4148d32c657637bbc9abdbae0e23ba508cd22306d74dc55532a31a9e16",
         source_snapshot_hash="ad78458b26a12f71d46c2994d7ba96a2e16bcbcf93607a7492a252dba5a9e558",
         expected_source_items=347,
         expected_local_units=95,
-        baseline_target="release:8a3c3a80-f939-459d-a617-5b82f123c5c2",
+        baseline_target="analysis_run:c9f8d71c-7b3f-47ce-b8f4-6e99467fce59",
         baseline={
-            "delivery_precision": 0.9767441860465116,
-            "delivery_recall": 0.9032258064516129,
-            "delivery_f1": 0.9385474860335196,
-            "relaxed_chain_accuracy": 0.7849462365591398,
-            "strict_clustering_pairwise_f1": 0.6552,
-            "exact_relation_accuracy": 0.8842105263157894,
+            "delivery_precision": 0.6744186046511628,
+            "delivery_recall": 1.0,
+            "delivery_f1": 0.8055555555555556,
+            "relaxed_chain_accuracy": 0.9310344827586207,
+            "strict_clustering_pairwise_f1": 0.8287292817679559,
+            "exact_relation_accuracy": 0.6105263157894737,
         },
     ),
     "toxic-god": DemoDefinition(
         name="Quest for the Toxic God",
         name_zh="毒圣骑士",
         fixture_path=(
-            "corpus/stellaris/context-archive-gold/toxic-god/2026-08-04/"
+            "corpus/stellaris/context-archive-gold/toxic-god/2026-09-01/"
             "toxic_god_context_benchmark_l_english.yml"
         ),
         fixture_sha256="1bce35fe8d34b995b473e5a3e59c71aec41bde8076ab8d3e90a16926ff54dad1",
         gold_path=(
-            "corpus/stellaris/context-archive-gold/toxic-god/2026-08-04/"
+            "corpus/stellaris/context-archive-gold/toxic-god/2026-09-01/"
             "toxic_god_context_archive_gold.md"
         ),
-        gold_sha256="0fd12bb6e0c0359fbf84a991690994b50055ba4b594468c8a0c9226b78f0a66b",
+        gold_sha256="6b0cf44174b650c5d3e73801d451add191ea6477efcf2dbdb1ec51cc9ea7aaad",
         source_snapshot_hash="49790155728d9d88481d9255b125f23978342ee325515555e68fb4ce9e4eaa0c",
         expected_source_items=421,
         expected_local_units=201,
-        baseline_target="analysis_run:b26e6ddb-07d5-4f7e-9182-e15752ed3810",
+        baseline_target="release:50a148c1-f355-4157-b3f0-8714017bb53a",
         baseline={
-            "delivery_precision": 0.8235294117647058,
-            "delivery_recall": 0.7777777777777778,
-            "delivery_f1": 0.8,
-            "relaxed_chain_accuracy": 0.6984126984126984,
-            "strict_clustering_pairwise_f1": 0.432510885341074,
-            "exact_relation_accuracy": 0.4577114427860697,
+            "delivery_precision": 0.7571428571428571,
+            "delivery_recall": 0.7681159420289855,
+            "delivery_f1": 0.762589928057554,
+            "relaxed_chain_accuracy": 0.7681159420289855,
+            "strict_clustering_pairwise_f1": 0.6778711484593837,
+            "exact_relation_accuracy": 0.25870646766169153,
         },
     ),
 }
@@ -134,6 +134,23 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _run_has_final_assignments(
+    connection: sqlite3.Connection, run_id: str,
+) -> bool:
+    rows = connection.execute(
+        """
+        SELECT payload_json
+        FROM context_analysis_batches
+        WHERE run_id = ? AND phase = 'aggregation' AND status = 'succeeded'
+        """,
+        (run_id,),
+    ).fetchall()
+    return any(
+        json.loads(row[0] or "{}").get("assignment_batch", {}).get("assignments")
+        for row in rows
+    )
+
+
 def _validate_artifact(path: Path, expected_sha256: str, label: str) -> None:
     if not path.is_file():
         raise ValueError(f"Missing {label}: {path}")
@@ -148,6 +165,12 @@ def _validate_artifact(path: Path, expected_sha256: str, label: str) -> None:
 def _select_latest_target(database: Path, source_snapshot_hash: str) -> tuple[str, str]:
     connection = sqlite3.connect(database.resolve().as_uri() + "?mode=ro", uri=True)
     try:
+        table_names = {
+            str(row[0])
+            for row in connection.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table'"
+            )
+        }
         release_columns = {
             str(row[1]) for row in connection.execute("PRAGMA table_info(context_releases)")
         }
@@ -168,15 +191,20 @@ def _select_latest_target(database: Path, source_snapshot_hash: str) -> tuple[st
                 (source_snapshot_hash,),
             )
         ]
-        candidates.extend(
-            ("analysis_run", str(row[0]), str(row[1]))
-            for row in connection.execute(
+        run_rows = connection.execute(
                 """
                 SELECT run_id, created_at
                 FROM context_analysis_runs
                 WHERE source_snapshot_hash = ?
                 """,
                 (source_snapshot_hash,),
+            ).fetchall()
+        candidates.extend(
+            ("analysis_run", str(row[0]), str(row[1]))
+            for row in run_rows
+            if (
+                "context_analysis_batches" not in table_names
+                or _run_has_final_assignments(connection, str(row[0]))
             )
         )
     finally:
