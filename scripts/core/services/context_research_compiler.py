@@ -26,6 +26,8 @@ from scripts.core.services.context_research_contract import (
     Unresolved,
     UnresolvedKind,
 )
+from scripts.core.services.context_research_ids import ShortIdRegistry
+from scripts.core.services.context_research_entity_grading import calculate_entity_frequency
 
 
 class FindingEvidence(BaseModel):
@@ -56,7 +58,10 @@ class ResearchEntityFinding(_Finding):
     entity_type: EntityKind
     summary: str = Field(min_length=1, max_length=1_000)
     aliases: tuple[str, ...] = Field(default=(), max_length=20)
-    importance: EntityImportance = "supporting"
+    importance: EntityImportance = Field(
+        default="supporting",
+        description="Plot importance only; Remis calculates the A/B/C frequency grade.",
+    )
 
 
 class EventChainFinding(_Finding):
@@ -109,22 +114,34 @@ class ContextResearchFindings(BaseModel):
 class ContextResearchDraftCompiler:
     """Deterministically narrow Agent findings into a request-grounded draft."""
 
-    schema_version = "context-research-compiler-v1"
+    schema_version = "context-research-compiler-v2"
 
     def compile(
         self,
         findings: ContextResearchFindings | Mapping[str, Any],
         request: ContextAnalysisRequest,
+        *,
+        id_registry: ShortIdRegistry | None = None,
     ) -> ContextResearchDraft:
         candidate = (
             findings
             if isinstance(findings, ContextResearchFindings)
             else ContextResearchFindings.model_validate(findings)
         )
+        id_rejections = ()
+        if id_registry is not None:
+            payload, id_rejections = id_registry.normalize_findings_payload(
+                candidate.model_dump(mode="python"),
+            )
+            candidate = ContextResearchFindings.model_validate(payload)
         known = request.known_source_item_ids
         source_metadata = {item.source_item_id: item for item in request.source_items}
         local_units = {unit.unit_id: unit for unit in request.local_units}
         diagnostics = self._new_diagnostics(candidate.diagnostics)
+        if id_rejections:
+            diagnostics["compiler"]["id_rejections"] = [
+                item.as_dict() for item in id_rejections
+            ]
 
         narratives = self._compile_narratives(
             candidate.archive_narratives, known, source_metadata, diagnostics,
@@ -142,6 +159,7 @@ class ContextResearchDraftCompiler:
             candidate.event_chains, narrative_ids, entity_ids, known, source_metadata,
             local_units, rejected_dynamic_entity_ids, diagnostics,
         )
+        entities = self._attach_event_participation(entities, events)
         assets = self._compile_assets(
             candidate.reference_assets, known, source_metadata, local_units, diagnostics,
         )
@@ -210,7 +228,7 @@ class ContextResearchDraftCompiler:
         }
         allowed_importance = {"primary", "supporting", "background"}
         for item in findings:
-            if _is_dynamic_entity_name(item.name):
+            if any(_is_dynamic_entity_name(value) for value in (item.name, *item.aliases)):
                 diagnostics["compiler"]["rejected_dynamic_entity_candidates"].append({
                     "entity_id": item.entity_id,
                     "name": item.name,
@@ -224,6 +242,7 @@ class ContextResearchDraftCompiler:
             if not source_ids:
                 self._drop_ungrounded("entity", item.entity_id, diagnostics)
                 continue
+            frequency = calculate_entity_frequency(item.name, item.aliases, local_units)
             output.append(ResearchEntity(
                 entity_id=item.entity_id,
                 name=item.name,
@@ -233,10 +252,34 @@ class ContextResearchDraftCompiler:
                 importance=(
                     item.importance if item.importance in allowed_importance else "supporting"
                 ),
+                mention_count=frequency.mention_count,
+                local_unit_ids=frequency.local_unit_ids,
+                local_unit_coverage=frequency.local_unit_coverage,
+                source_files=frequency.source_files,
+                file_spread=frequency.file_spread,
+                frequency_grade=frequency.frequency_grade,
                 source_item_ids=source_ids,
                 evidence=evidence,
             ))
         return tuple(output)
+
+    @staticmethod
+    def _attach_event_participation(entities, events):
+        chains_by_entity: dict[str, list[str]] = {}
+        for event in events:
+            for entity_id in event.entity_ids:
+                values = chains_by_entity.setdefault(entity_id, [])
+                if event.chain_id not in values:
+                    values.append(event.chain_id)
+        return tuple(
+            entity.model_copy(update={
+                "event_chain_ids": tuple(chains_by_entity.get(entity.entity_id, ())),
+                "event_participation_count": len(
+                    chains_by_entity.get(entity.entity_id, ())
+                ),
+            })
+            for entity in entities
+        )
 
     def _compile_entity_evidence(self, item, known, metadata, local_units, diagnostics):
         surfaces = tuple(
@@ -329,10 +372,9 @@ class ContextResearchDraftCompiler:
                     "local_unit_id": unit_id,
                 })
             evidence_source_ids = set(source_ids)
-            inferred_unit_ids = tuple(
+            inferred_unit_ids = () if explicit_unit_ids else tuple(
                 unit_id for unit_id, unit in local_units.items()
-                if unit_id not in explicit_unit_ids
-                and unit.items
+                if unit.items
                 and {source.source_item_id for source in unit.items} <= evidence_source_ids
             )
             for unit_id in inferred_unit_ids:
@@ -359,6 +401,7 @@ class ContextResearchDraftCompiler:
                     continue
                 diagnostics["compiler"]["unknown_archive_context_links"].append({
                     "chain_id": item.chain_id,
+                    "sequence": item.sequence,
                     "archive_context_id": archive_id,
                 })
                 generated_unresolved.append(Unresolved(
@@ -385,6 +428,7 @@ class ContextResearchDraftCompiler:
                     continue
                 diagnostics["compiler"]["unknown_entity_links"].append({
                     "chain_id": item.chain_id,
+                    "sequence": item.sequence,
                     "entity_id": entity_id,
                 })
                 generated_unresolved.append(Unresolved(
@@ -600,6 +644,11 @@ def _is_dynamic_entity_name(value: str) -> bool:
     return bool(
         re.fullmatch(r"\[[a-z_]\w*\.[a-z_]\w*\]", normalized)
         or re.fullmatch(r"\$[a-z_]\w*\$", normalized)
+        or any(marker in normalized for marker in (
+            "动态姓名", "动态插值", "dynamic name", "dynamic interpolation",
+            "runtime placeholder",
+        ))
+        or normalized in {"root polity", "root empire", "root country"}
     )
 
 

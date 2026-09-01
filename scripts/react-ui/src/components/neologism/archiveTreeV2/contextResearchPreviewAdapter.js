@@ -119,12 +119,22 @@ export const contextResearchPreviewToArchiveTree = (fixture = {}) => {
         candidate_id: item.entity_id,
         candidate_kind: 'entity',
         canonical_display_name: item.name,
-        tier: item.importance === 'primary' ? 'A' : item.importance === 'background' ? 'C' : 'B',
-        mention_count: unique(item.source_item_ids || []).length,
-        local_unit_coverage: unique(item.source_item_ids || []).length,
+        tier: item.frequency_grade
+            || (item.importance === 'primary' ? 'A' : item.importance === 'background' ? 'C' : 'B'),
+        mention_count: Number.isFinite(Number(item.mention_count))
+            ? Number(item.mention_count)
+            : unique(item.source_item_ids || []).length,
+        local_unit_coverage: Number.isFinite(Number(item.local_unit_coverage))
+            ? Number(item.local_unit_coverage)
+            : unique(item.local_unit_ids || []).length || unique(item.source_item_ids || []).length,
         summary: item.summary,
         entity_type: item.entity_type,
         aliases: item.aliases || [],
+        semantic_importance: item.importance,
+        source_files: item.source_files || [],
+        file_spread: Number(item.file_spread) || 0,
+        event_chain_ids: item.event_chain_ids || [],
+        event_participation_count: Number(item.event_participation_count) || 0,
     }));
     const entityEvidence = (draft.entities || []).flatMap((entity) => (
         (entity.evidence || []).flatMap((reference, evidenceIndex) => (

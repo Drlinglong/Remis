@@ -161,6 +161,7 @@ EntityKind = Literal[
     "person", "place", "organization", "polity", "technology", "concept", "item", "other",
 ]
 EntityImportance = Literal["primary", "supporting", "background"]
+EntityFrequencyGrade = Literal["A", "B", "C"]
 
 
 class ResearchEntity(_EvidenceItem):
@@ -171,7 +172,39 @@ class ResearchEntity(_EvidenceItem):
     entity_type: EntityKind
     summary: str = Field(min_length=1, max_length=1_000)
     aliases: tuple[str, ...] = Field(default=(), max_length=20)
-    importance: EntityImportance = "supporting"
+    importance: EntityImportance = Field(
+        default="supporting",
+        description="Model-authored plot importance; independent of frequency_grade.",
+    )
+    mention_count: int = Field(default=0, ge=0)
+    local_unit_ids: tuple[str, ...] = Field(default=(), max_length=500)
+    local_unit_coverage: int = Field(default=0, ge=0)
+    source_files: tuple[str, ...] = Field(default=(), max_length=500)
+    file_spread: int = Field(default=0, ge=0)
+    event_chain_ids: tuple[str, ...] = Field(default=(), max_length=500)
+    event_participation_count: int = Field(default=0, ge=0)
+    frequency_grade: EntityFrequencyGrade = "C"
+
+    @model_validator(mode="after")
+    def _validate_frequency_grade(self) -> "ResearchEntity":
+        if len(self.local_unit_ids) != len(set(self.local_unit_ids)):
+            raise ValueError("entity local_unit_ids must be unique")
+        if self.local_unit_coverage != len(self.local_unit_ids):
+            raise ValueError("entity local_unit_coverage must match local_unit_ids")
+        if len(self.source_files) != len(set(self.source_files)):
+            raise ValueError("entity source_files must be unique")
+        if self.file_spread != len(self.source_files):
+            raise ValueError("entity file_spread must match source_files")
+        if len(self.event_chain_ids) != len(set(self.event_chain_ids)):
+            raise ValueError("entity event_chain_ids must be unique")
+        if self.event_participation_count != len(self.event_chain_ids):
+            raise ValueError("entity event_participation_count must match event_chain_ids")
+        expected = "A" if self.local_unit_coverage >= 3 else (
+            "B" if self.local_unit_coverage == 2 else "C"
+        )
+        if self.frequency_grade != expected:
+            raise ValueError("entity frequency_grade must match local-unit coverage")
+        return self
 
 
 class EventChain(_EvidenceItem):
@@ -402,7 +435,8 @@ __all__ = [
     "AgentExecutionContext", "ArchiveNarrative", "ArchiveNarrativeDTO", "CancellationSignal",
     "ContextAnalysisRequest", "ContextResearchBackend", "ContextResearchCancelled",
     "ContextResearchContractError",
-    "ContextResearchDraft", "EvidenceReference", "EntityImportance", "EntityKind", "EventChain",
+    "ContextResearchDraft", "EvidenceReference", "EntityFrequencyGrade", "EntityImportance",
+    "EntityKind", "EventChain",
     "EventChainDTO", "EventSink", "ResearchEntity", "ResearchEntityDTO",
     "ReferenceAsset", "ReferenceAssetDTO", "UnknownSourceItemReference", "Unresolved", "UnresolvedDTO",
     "UnresolvedReferenceDTO", "UsageSink",

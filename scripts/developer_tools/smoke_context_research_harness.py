@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 import sys
+import time
 from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -33,6 +34,7 @@ from scripts.core.services.context_research_contract import (
     ContextAnalysisRequest,
 )
 from scripts.core.services.context_research_corpus_tools import (
+    CorpusToolLimits,
     CorpusSourceItem,
     InMemoryCorpus,
     ReadOnlyRemisCorpusTools,
@@ -114,12 +116,13 @@ def _source_files(source_root: Path) -> tuple[Path, ...]:
 def _load_source_root(source_root: str) -> tuple[tuple[SourceItem, ...], tuple[CorpusSourceItem, ...], dict[str, Any]]:
     """Parse a UTF-8 localization tree into request and read-only corpus items."""
 
-    root = Path(source_root).resolve(strict=True)
-    if not root.is_dir():
-        raise ValueError(f"--source-root must be a directory: {root}")
-    paths = _source_files(root)
+    target = Path(source_root).resolve(strict=True)
+    root = target.parent if target.is_file() else target
+    if not target.is_file() and not target.is_dir():
+        raise ValueError(f"--source-root must be a file or directory: {target}")
+    paths = (target,) if target.is_file() else _source_files(target)
     if not paths:
-        raise ValueError(f"--source-root contains no .yml/.yaml/.json/.csv files: {root}")
+        raise ValueError(f"--source-root contains no .yml/.yaml/.json/.csv files: {target}")
     parsed_files = ContextSourceParser().parse_files((str(path) for path in paths), str(root))
     source_items = tuple(item for parsed in parsed_files for item in parsed.items)
     corpus_items = tuple(
@@ -137,7 +140,7 @@ def _load_source_root(source_root: str) -> tuple[tuple[SourceItem, ...], tuple[C
         for item in source_items
     )
     manifest = {
-        "root": str(root),
+        "root": str(target),
         "file_count": len(parsed_files),
         "item_count": len(source_items),
         "files": [
@@ -152,25 +155,50 @@ def _load_source_root(source_root: str) -> tuple[tuple[SourceItem, ...], tuple[C
     return source_items, corpus_items, manifest
 
 
-def _build_model(arguments: argparse.Namespace) -> tuple[Any, Any | None, str]:
-    """Build the selected model while keeping provider secrets in memory only."""
+def _build_models(
+    arguments: argparse.Namespace,
+) -> tuple[Any, Any, Any | None, str, str]:
+    """Build role models while keeping provider secrets in memory only."""
+
+    lead_model_id = arguments.lead_model or arguments.model
+    subagent_model_id = arguments.subagent_model or arguments.model
 
     if arguments.provider == "openrouter":
-        runtime = resolve_provider_runtime_snapshot("openrouter", arguments.model)
-        model, _, selected_model = build_help_model(
+        runtime = resolve_provider_runtime_snapshot("openrouter", lead_model_id)
+        lead_model, _, selected_lead = build_help_model(
             "openrouter",
-            arguments.model,
+            lead_model_id,
             {},
             provider_runtime=runtime,
         )
-        return model, runtime, selected_model
+        subagent_runtime = resolve_provider_runtime_snapshot(
+            "openrouter", subagent_model_id,
+        )
+        subagent_model, _, selected_subagent = build_help_model(
+            "openrouter",
+            subagent_model_id,
+            {},
+            provider_runtime=subagent_runtime,
+        )
+        return lead_model, subagent_model, runtime, selected_lead, selected_subagent
 
     provider = OpenAIProvider(
         base_url=arguments.base_url.rstrip("/") + "/",
         api_key="local-no-key-required",
     )
-    model = OpenAIChatModel(arguments.model, provider=provider)
-    return model, None, arguments.model
+    lead_model = OpenAIChatModel(lead_model_id, provider=provider)
+    subagent_model = OpenAIChatModel(subagent_model_id, provider=provider)
+    return lead_model, subagent_model, None, lead_model_id, subagent_model_id
+
+
+def _reasoning_settings(effort: str | None) -> dict[str, Any] | None:
+    if effort is None:
+        return None
+    return {
+        "extra_body": {
+            "reasoning": {"effort": effort, "exclude": True},
+        },
+    }
 
 
 def _request_and_corpus(arguments: argparse.Namespace) -> tuple[
@@ -204,10 +232,12 @@ def _request_and_corpus(arguments: argparse.Namespace) -> tuple[
         request_id=arguments.request_id,
         project_id=project_id,
         research_question=(
-            "Separate concrete event chains from archive-only founding lore and static "
-            "reference assets. Build an evidence-backed register of plot-central named "
-            "people, organizations, places, polities, technologies, concepts, and items, "
-            "then link concrete event steps to those entities. Treat repeated dot-number, "
+            "Classify every local unit by content_role (event_narrative, "
+            "background_narrative, static_reference, or utility_or_noise) and independently "
+            "by delivery_route (event, reference, or none). Build entity_mentions from every "
+            "content role for plot-central or materially recurring people, organizations, "
+            "places, polities, technologies, concepts, and items, then link concrete event "
+            "steps to the aggregated entities. Treat repeated dot-number, "
             "dot-letter, or other suffix "
             "families as structural hints, confirm membership against text, and cite "
             "source_item_id evidence for every published item."
@@ -218,15 +248,33 @@ def _request_and_corpus(arguments: argparse.Namespace) -> tuple[
         reasoning_language=arguments.reasoning_language,
         description_language=arguments.description_language,
     )
-    return request, ReadOnlyRemisCorpusTools(InMemoryCorpus(corpus_items)), manifest
+    large_corpus = len(source_items) > 64
+    tool_limits = CorpusToolLimits(
+        max_items=12,
+        max_item_chars=4000 if large_corpus else 1200,
+        max_total_chars=24000 if large_corpus else 8000,
+    )
+    manifest["tool_profile"] = "large" if large_corpus else "standard"
+    manifest["local_unit_count"] = len(request.local_units)
+    return (
+        request,
+        ReadOnlyRemisCorpusTools(InMemoryCorpus(corpus_items), tool_limits),
+        manifest,
+    )
 
 
 async def _run(arguments: argparse.Namespace) -> dict[str, Any]:
     request, tools, source_manifest = _request_and_corpus(arguments)
-    model, runtime, selected_model = _build_model(arguments)
+    lead_model, subagent_model, runtime, selected_lead, selected_subagent = (
+        _build_models(arguments)
+    )
     metadata: dict[str, Any] = {
         "provider": arguments.provider,
-        "model": selected_model,
+        "model": selected_lead,
+        "lead_model": selected_lead,
+        "subagent_model": selected_subagent,
+        "lead_reasoning_effort": arguments.lead_reasoning_effort,
+        "subagent_reasoning_effort": arguments.subagent_reasoning_effort,
         "request_id": request.request_id,
         "project_id": request.project_id,
         "game_name": request.game_name,
@@ -240,22 +288,57 @@ async def _run(arguments: argparse.Namespace) -> dict[str, Any]:
         metadata["provider_runtime"] = runtime.safe_metadata()
     events, usage = _Events(), _Usage()
     draft = None
+    trace_output = arguments.trace_output
+    if not trace_output and arguments.output:
+        output_path = Path(arguments.output)
+        trace_output = str(output_path.with_name(f"{output_path.stem}.trace.json"))
+    trace_summary = None
+    elapsed_seconds = 0.0
     if not arguments.dry_run:
-        backend = PydanticAIContextResearchBackend(corpus_tools=tools, model=model)
-        draft = await asyncio.wait_for(
-            backend.analyze(
-                request,
-                AgentExecutionContext(
-                    provider_selection_id=arguments.provider,
-                    model_id=selected_model,
-                    provider_runtime=runtime,
-                    cancellation=_NeverCancelled(),
-                    events=events,
-                    usage=usage,
-                ),
+        backend = PydanticAIContextResearchBackend(
+            corpus_tools=tools,
+            lead_model=lead_model,
+            subagent_model=subagent_model,
+            lead_model_settings=_reasoning_settings(arguments.lead_reasoning_effort),
+            subagent_model_settings=_reasoning_settings(
+                arguments.subagent_reasoning_effort,
             ),
-            timeout=arguments.timeout_seconds,
+            trace_output_path=trace_output,
         )
+        started_at = time.perf_counter()
+        try:
+            draft = await asyncio.wait_for(
+                backend.analyze(
+                    request,
+                    AgentExecutionContext(
+                        provider_selection_id=arguments.provider,
+                    model_id=selected_lead,
+                        provider_runtime=runtime,
+                        cancellation=_NeverCancelled(),
+                        events=events,
+                        usage=usage,
+                    ),
+                ),
+                timeout=arguments.timeout_seconds,
+            )
+        finally:
+            elapsed_seconds = time.perf_counter() - started_at
+        trace = backend.last_trace_snapshot or {}
+        corpus_read = dict(trace.get("corpus_read") or {})
+        corpus_read.pop("observations", None)
+        trace_summary = {
+            "trace_output": trace_output,
+            "delegations": [
+                {
+                    key: item.get(key)
+                    for key in ("delegation_id", "role", "shard", "status", "model")
+                }
+                for item in trace.get("delegations", ())
+            ],
+            "usage": trace.get("usage", {}).get("summary", {}),
+            "corpus_read_amplification": corpus_read,
+            "repair_attempt_count": len(trace.get("repair", {}).get("attempts", ())),
+        }
     draft_json = draft.model_dump(mode="json") if draft is not None else None
     event_json = [event.model_dump(mode="json") for event in draft.event_chains] if draft else []
     return {
@@ -273,10 +356,14 @@ async def _run(arguments: argparse.Namespace) -> dict[str, Any]:
         },
         "provenance": {
             "provider": arguments.provider,
-            "model": selected_model,
+            "model": selected_lead,
+            "lead_model": selected_lead,
+            "subagent_model": selected_subagent,
+            "lead_reasoning_effort": arguments.lead_reasoning_effort,
+            "subagent_reasoning_effort": arguments.subagent_reasoning_effort,
             "profile": "full",
             "description_language": request.description_language,
-            "compiler": "context-research-compiler-v1",
+            "compiler": "context-research-compiler-v2",
             "source": "developer-only context research smoke",
         },
         "source": source_manifest,
@@ -292,7 +379,15 @@ async def _run(arguments: argparse.Namespace) -> dict[str, Any]:
         "draft": draft_json,
         "events": event_json,
         "usage": usage.values,
+        "trace": trace_summary,
+        "corpus_read_amplification": (
+            (trace_summary or {}).get("corpus_read_amplification")
+            if trace_summary is not None else None
+        ),
         "metadata": metadata,
+        "execution": {
+            "elapsed_seconds": elapsed_seconds,
+        },
     }
 
 
@@ -301,7 +396,14 @@ def main() -> None:
     parser.add_argument("--provider", choices=("lm_studio", "openrouter"), default="lm_studio")
     parser.add_argument("--base-url", default="http://127.0.0.1:1234/v1")
     parser.add_argument("--model", required=True)
-    parser.add_argument("--source-root", help="Read-only localization directory to parse as UTF-8")
+    parser.add_argument("--lead-model")
+    parser.add_argument("--subagent-model")
+    reasoning_choices = ("none", "low", "medium", "high", "xhigh", "max")
+    parser.add_argument("--lead-reasoning-effort", choices=reasoning_choices)
+    parser.add_argument("--subagent-reasoning-effort", choices=reasoning_choices)
+    parser.add_argument(
+        "--source-root", help="Read-only localization file or directory to parse as UTF-8",
+    )
     parser.add_argument("--project-id", default=None)
     parser.add_argument("--project-name", default=None)
     parser.add_argument("--release-id", default=None)
@@ -313,6 +415,7 @@ def main() -> None:
     parser.add_argument("--timeout-seconds", type=float, default=600.0)
     parser.add_argument("--dry-run", action="store_true", help="Parse/build only; do not call the model")
     parser.add_argument("--output")
+    parser.add_argument("--trace-output", help="UTF-8 debug trace ledger output path")
     arguments = parser.parse_args()
     result = asyncio.run(_run(arguments))
     rendered = json.dumps(result, ensure_ascii=False, indent=2)

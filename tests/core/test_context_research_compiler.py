@@ -129,6 +129,7 @@ def test_unknown_archive_link_becomes_grounded_unresolved_record():
     assert draft.unresolved[0].source_item_ids == ("source-1",)
     assert draft.diagnostics["compiler"]["unknown_archive_context_links"] == [{
         "chain_id": "event-1",
+        "sequence": 0,
         "archive_context_id": "missing-archive",
     }]
 
@@ -237,6 +238,35 @@ def test_compiler_infers_a_complete_local_unit_from_evidence_members():
         "sequence": 0,
         "local_unit_id": "unit_0",
     }]
+
+
+def test_explicit_event_membership_prevents_evidence_from_readding_another_unit():
+    request = ContextAnalysisRequest(
+        project_id="project-1",
+        source_items=(
+            _source("first-title", "demo.1.t"),
+            _source("first-desc", "demo.1.desc"),
+            _source("second-title", "demo.2.t"),
+            _source("second-desc", "demo.2.desc"),
+        ),
+    )
+    findings = ContextResearchFindings.model_validate({
+        "event_chains": [{
+            "chain_id": "demo-chain",
+            "event": "Only the first unit is routed to this event.",
+            "local_unit_ids": ["unit_0"],
+            "evidence": [{
+                "source_item_ids": [
+                    "first-title", "first-desc", "second-title", "second-desc",
+                ],
+            }],
+        }],
+    })
+
+    draft = ContextResearchDraftCompiler().compile(findings, request)
+
+    assert draft.event_chains[0].local_unit_ids == ("unit_0",)
+    assert draft.diagnostics["compiler"]["inferred_local_unit_ids"] == []
 
 
 def test_compiler_does_not_infer_an_incomplete_local_unit():
@@ -455,6 +485,26 @@ def test_dynamic_placeholder_inside_normal_entity_name_is_not_rejected():
     assert draft.diagnostics["compiler"]["rejected_dynamic_entity_candidates"] == []
 
 
+def test_descriptive_dynamic_name_candidate_is_rejected():
+    request = _request()
+    findings = ContextResearchFindings.model_validate({
+        "entities": [{
+            "entity_id": "dynamic-scientist",
+            "name": "研究科学家（动态姓名）",
+            "entity_type": "person",
+            "summary": "运行时才会确定具体姓名。",
+            "evidence": [{"source_item_ids": ["source-1"]}],
+        }],
+    })
+
+    draft = ContextResearchDraftCompiler().compile(findings, request)
+
+    assert draft.entities == ()
+    assert draft.diagnostics["compiler"]["rejected_dynamic_entity_candidates"] == [{
+        "entity_id": "dynamic-scientist", "name": "研究科学家（动态姓名）",
+    }]
+
+
 def test_unknown_non_dynamic_entity_link_still_becomes_unresolved():
     findings = ContextResearchFindings.model_validate({
         "event_chains": [{
@@ -547,6 +597,15 @@ def test_first_class_entity_is_publishable_and_event_can_link_to_it():
     draft = ContextResearchDraftCompiler().compile(findings, request)
 
     assert [(entity.entity_id, entity.name) for entity in draft.entities] == [("remis", "Remis")]
+    assert draft.entities[0].importance == "primary"
+    assert draft.entities[0].mention_count == 2
+    assert draft.entities[0].local_unit_ids == ("unit_0", "unit_1")
+    assert draft.entities[0].local_unit_coverage == 2
+    assert draft.entities[0].source_files == ("events/demo.yml",)
+    assert draft.entities[0].file_spread == 1
+    assert draft.entities[0].frequency_grade == "B"
+    assert draft.entities[0].event_chain_ids == ("remis-crisis",)
+    assert draft.entities[0].event_participation_count == 1
     assert draft.event_chains[0].entity_ids == ("remis",)
     assert draft.diagnostics["compiler"]["unknown_entity_links"] == []
 

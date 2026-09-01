@@ -111,6 +111,10 @@ describe('context research preview adapter', () => {
                 entities: [{
                     entity_id: 'remis', name: 'Remis', entity_type: 'person',
                     importance: 'primary', summary: '银河共和国最高执政者。',
+                    frequency_grade: 'B', mention_count: 7,
+                    local_unit_ids: ['unit_0', 'unit_1'], local_unit_coverage: 2,
+                    source_files: ['events/demo.yml'], file_spread: 1,
+                    event_chain_ids: ['chain-remis'], event_participation_count: 1,
                     source_item_ids: ['source-remis'],
                     evidence: [{ source_item_ids: ['source-remis'], snippet: 'Empress Remis' }],
                 }],
@@ -124,7 +128,9 @@ describe('context research preview adapter', () => {
         const rawTree = contextResearchPreviewToArchiveTree(fixture);
 
         expect(rawTree.candidates).toEqual([expect.objectContaining({
-            candidate_id: 'remis', canonical_display_name: 'Remis', tier: 'A',
+            candidate_id: 'remis', canonical_display_name: 'Remis', tier: 'B',
+            mention_count: 7, local_unit_coverage: 2, semantic_importance: 'primary',
+            file_spread: 1, event_participation_count: 1,
         })]);
         expect(rawTree.candidates).not.toEqual(expect.arrayContaining([
             expect.objectContaining({ candidate_id: 'button-label' }),
