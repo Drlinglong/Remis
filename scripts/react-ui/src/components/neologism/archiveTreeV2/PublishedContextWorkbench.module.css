@@ -211,7 +211,7 @@
 }
 
 .mapPanel {
-    overflow: visible;
+    overflow: hidden;
     background: var(--surface-bg) !important;
 }
 
@@ -431,23 +431,27 @@
 }
 
 .focusedColumn {
-    flex: 1 1 36rem;
+    width: 100%;
     min-width: 0;
 }
 
 .focusedGroupStage {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
     align-items: flex-start;
-    justify-content: center;
-    gap: 0.75rem;
+    gap: 1rem;
     min-width: 0;
 }
 
 .focusedMiniRails {
     display: flex;
-    flex: 0 0 auto;
     gap: 0.5rem;
+    width: 100%;
+    max-width: 100%;
     min-width: 0;
+    overflow-x: auto;
+    padding: 0.125rem 0 0.5rem;
+    scrollbar-gutter: stable;
 }
 
 .miniRail {
@@ -455,9 +459,9 @@
     grid-template-rows: minmax(0, 1fr) auto;
     justify-items: center;
     gap: 0.5rem;
-    flex: 0 0 72px;
-    width: 72px;
-    min-height: 9rem;
+    flex: 0 0 11rem;
+    width: 11rem;
+    min-height: 5rem;
     padding: 0.75rem 0.5rem;
     border: 1px solid color-mix(in srgb, var(--surface-text-main) 24%, transparent);
     border-radius: 0.5rem;
@@ -490,6 +494,7 @@
     font-weight: 750;
     line-height: 1.35;
     overflow-wrap: anywhere;
+    text-align: left;
 }
 
 .miniRailCount {
@@ -654,6 +659,7 @@
     color: var(--paper-text-muted) !important;
     font-size: 0.78rem;
     line-height: 1.4;
+    white-space: pre-line;
 }
 
 .fragmentList {
@@ -915,6 +921,7 @@
     border-radius: 0.5rem;
     background: color-mix(in srgb, var(--interactive-accent) 7%, var(--paper-bg));
     line-height: 1.55;
+    white-space: pre-line;
 }
 
 .dispositionControl {
