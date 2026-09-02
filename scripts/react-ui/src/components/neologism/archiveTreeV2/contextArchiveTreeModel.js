@@ -110,6 +110,25 @@ const getSummary = (raw, fallback = '') => String(firstValue(
     fallback,
 ) || '');
 
+const summaryTitle = (summary, maxLength = 30) => {
+    const firstLine = String(summary || '')
+        .split(/\r?\n/)
+        .map((line) => line.replace(/^\s*[-*•]+\s*/, '').trim())
+        .find(Boolean) || '';
+    const firstClause = firstLine.split(/[，,。；;！？!?]/, 1)[0].trim();
+    const title = firstClause.length >= 6 ? firstClause : firstLine;
+    if (title.length <= maxLength) return title;
+    return `${title.slice(0, maxLength - 1).trim()}…`;
+};
+
+const getDisplayLabel = (raw, fallback, summary = '', derivedFallback = '') => {
+    const label = getLabel(raw, fallback);
+    if (label.localeCompare(String(fallback), undefined, { sensitivity: 'base' }) !== 0) {
+        return label;
+    }
+    return summaryTitle(summary) || derivedFallback || label;
+};
+
 const normalizeUniversalContext = (raw) => {
     const value = typeof raw === 'string' ? { text: raw } : asObject(raw);
     const text = String(firstValue(value.text, value.summary) || '').trim();
@@ -186,10 +205,11 @@ const normalizeFragment = (raw, index, forcedRoute = null) => {
     const id = asId(value) || `fragment-${index + 1}`;
     const route = forcedRoute || normalizeRawRoute(value);
     const coverage = asObject(firstValue(value.coverage, metadata.coverage));
+    const summary = getSummary(value);
     return {
         id,
-        label: getLabel(value, id),
-        summary: getSummary(value, id),
+        label: getDisplayLabel(value, id, summary),
+        summary,
         unitIds: asIdList(firstValue(
             value.unit_ids,
             value.unitIds,
@@ -242,14 +262,15 @@ const normalizeReferenceAsset = (raw, index) => {
     };
 };
 
-const normalizeStory = (raw, index) => {
+const normalizeStory = (raw, index, projectTitle = '') => {
     const value = asObject(raw);
     const id = firstValue(value.story_id, value.storyId, asId(value))
         || `story-${slugify(getLabel(value, index + 1))}`;
+    const summary = getSummary(value);
     return {
         id: String(id),
-        label: getLabel(value, String(id)),
-        summary: getSummary(value),
+        label: getDisplayLabel(value, String(id), summary, projectTitle),
+        summary,
         groupIds: asIdList(firstValue(value.group_ids, value.groupIds, value.groups)),
     };
 };
@@ -258,11 +279,12 @@ const normalizeGroup = (raw, index) => {
     const value = asObject(raw);
     const id = firstValue(value.group_id, value.groupId, asId(value))
         || `group-${slugify(getLabel(value, index + 1))}`;
+    const summary = getSummary(value);
     return {
         id: String(id),
         storyId: firstValue(value.story_id, value.storyId, value.parent_story_id, value.parentStoryId) || null,
-        label: getLabel(value, String(id)),
-        summary: getSummary(value),
+        label: getDisplayLabel(value, String(id), summary),
+        summary,
         fragmentIds: asIdList(firstValue(
             value.fragment_ids,
             value.fragmentIds,
@@ -350,6 +372,7 @@ export const getFirstNarrativeUnitId = (tree) => getTreeUnitOptions(tree)[0]?.id
 
 export const normalizeArchiveTree = (payload) => {
     const raw = unwrapTreePayload(payload);
+    const projectTitle = getLabel(raw, firstValue(raw.project_title, raw.project_name, 'Context archive tree'));
     const universalContext = normalizeUniversalContext(firstValue(
         raw.universal_translation_context,
         raw.universalTranslationContext,
@@ -399,7 +422,7 @@ export const normalizeArchiveTree = (payload) => {
 
     const storiesById = new Map();
     rawStories.forEach((story, index) => {
-        const normalized = normalizeStory(story, index);
+        const normalized = normalizeStory(story, index, projectTitle);
         if (!storiesById.has(normalized.id)) storiesById.set(normalized.id, normalized);
     });
     groupsById.forEach((group) => {
@@ -483,7 +506,7 @@ export const normalizeArchiveTree = (payload) => {
         treeId: firstValue(raw.tree_id, raw.treeId, null),
         releaseId: firstValue(raw.release_id, raw.releaseId, null),
         draftId: firstValue(raw.draft_id, raw.draftId, null),
-        title: getLabel(raw, firstValue(raw.project_title, raw.project_name, 'Context archive tree')),
+        title: projectTitle,
         projectSummary: String(firstValue(raw.project_summary, raw.summary, '') || ''),
         universalTranslationContext: universalContext,
         stories: [...storiesById.values()],
