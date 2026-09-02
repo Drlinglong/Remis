@@ -18,6 +18,9 @@ from scripts.core.services.translation_context_gate import (
 from scripts.core.services.translation_context_service import (
     build_translation_source_snapshot,
 )
+from scripts.core.services.translation_source_snapshot_builder import (
+    build_legacy_trimmed_source_snapshot,
+)
 from scripts.core.services.translation_context_stale_policy import (
     STALE_DISABLE_ARCHIVE,
     stale_decision,
@@ -262,7 +265,7 @@ class TranslationContextReadinessService:
             return {}
         effective = self.context_service.effective_context(release.release_id)
         config = release.metadata.analysis_config
-        current_snapshot_hash, current_file_count = self._current_snapshot(project)
+        current_snapshot_hash, current_file_count, compatible_hashes = self._current_snapshot(project)
         release_hash = release.metadata.source_snapshot_hash
         return {
             "release_id": release.release_id,
@@ -271,7 +274,7 @@ class TranslationContextReadinessService:
             "source_snapshot_match": (
                 None
                 if current_snapshot_hash is None
-                else current_snapshot_hash == release_hash
+                else release_hash in compatible_hashes
             ),
             "source_inventory_file_count": current_file_count,
             "effective_context_items": (
@@ -299,7 +302,7 @@ class TranslationContextReadinessService:
             return None
         if projection is None:
             return None
-        current_snapshot_hash, current_file_count = self._current_snapshot(project)
+        current_snapshot_hash, current_file_count, compatible_hashes = self._current_snapshot(project)
         return {
             "release_id": projection.release_id,
             "source_snapshot_hash": projection.source_snapshot_hash,
@@ -307,7 +310,7 @@ class TranslationContextReadinessService:
             "source_snapshot_match": (
                 None
                 if current_snapshot_hash is None
-                else current_snapshot_hash == projection.source_snapshot_hash
+                else projection.source_snapshot_hash in compatible_hashes
             ),
             "source_inventory_file_count": current_file_count,
             "effective_context_items": (
@@ -318,20 +321,27 @@ class TranslationContextReadinessService:
             "release_source": "context_tree_v2",
         }
 
-    def _current_snapshot(self, project: dict[str, Any]) -> tuple[str | None, int]:
+    def _current_snapshot(
+        self, project: dict[str, Any],
+    ) -> tuple[str | None, int, frozenset[str]]:
         source_root = project.get("source_path")
         if not source_root:
-            return None, 0
+            return None, 0, frozenset()
         try:
             files = self.source_inventory_service.build_snapshot(
                 str(source_root), self._source_language_info(project),
             )
             if not files:
-                return None, 0
+                return None, 0, frozenset()
             snapshot = build_translation_source_snapshot(files, self.snapshot_service)
+            legacy = build_legacy_trimmed_source_snapshot(files, self.snapshot_service)
         except (OSError, UnicodeError, ValueError, TypeError):
-            return None, 0
-        return snapshot.source_snapshot_hash, len(files)
+            return None, 0, frozenset()
+        compatible_hashes = frozenset({
+            snapshot.source_snapshot_hash,
+            legacy.source_snapshot_hash,
+        })
+        return snapshot.source_snapshot_hash, len(files), compatible_hashes
 
     @staticmethod
     def _source_language_info(project: dict[str, Any]) -> dict[str, str]:

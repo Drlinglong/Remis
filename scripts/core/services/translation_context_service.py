@@ -13,7 +13,6 @@ import json
 import logging
 import math
 from dataclasses import dataclass
-from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Iterable, Mapping, Optional
 
@@ -25,12 +24,14 @@ from scripts.core.services.context_tree_v2_translation_adapter import (
     ContextTreeV2TranslationAdapter,
 )
 from scripts.core.services.source_snapshot_service import (
-    SourceFileInput,
-    SourceItemInput,
     SourceSnapshot,
     SourceSnapshotService,
     normalize_relative_path,
     normalize_source_key,
+)
+from scripts.core.services.translation_source_snapshot_builder import (
+    build_legacy_trimmed_source_snapshot,
+    build_translation_source_snapshot,
 )
 from scripts.core.services.translation_context_gate import (
     TranslationContextGate,
@@ -192,65 +193,6 @@ def _source_identity(source_item: Mapping[str, Any]) -> tuple[str, str] | None:
     return (normalized_path, normalized_key) if normalized_key else None
 
 
-def _source_items(file_data: Mapping[str, Any]) -> list[SourceItemInput]:
-    entries = file_data.get("source_entries") or []
-    if not entries and file_data.get("parsed_entries"):
-        entries = [
-            {"key": item[0], "source": item[1]}
-            for item in file_data["parsed_entries"]
-        ]
-    if not entries:
-        key_map = file_data.get("key_map") or {}
-        entries = []
-        for index, source in enumerate(file_data.get("texts_to_translate") or []):
-            key_info = key_map[index] if isinstance(key_map, list) and index < len(key_map) else {}
-            if isinstance(key_map, dict):
-                key_info = key_map.get(index, {})
-            entries.append({
-                "key": key_info.get("key", key_info.get("key_part")),
-                "source": source,
-            })
-    return [
-        SourceItemInput(
-            key=entry.get("key"),
-            source_order=index,
-            source_text=entry.get("source", ""),
-        )
-        for index, entry in enumerate(entries)
-        if entry.get("key") is not None
-    ]
-
-
-def build_translation_source_snapshot(
-    files_data: Iterable[Mapping[str, Any]],
-    snapshot_service: SourceSnapshotService | None = None,
-) -> SourceSnapshot:
-    """Build the shared snapshot from the same parsed file material used by translation."""
-
-    inputs = []
-    for file_data in files_data:
-        relative_path = file_data.get("file_path") or file_data.get("filename")
-        if not relative_path:
-            continue
-        disk_path = file_data.get("path") or file_data.get("full_path")
-        if disk_path and Path(disk_path).is_file():
-            content = Path(disk_path).read_bytes()
-        else:
-            original_lines = file_data.get("original_lines")
-            if original_lines is not None:
-                content = "".join(original_lines)
-            else:
-                content = ""
-        inputs.append(
-            SourceFileInput(
-                relative_path=relative_path,
-                content=content,
-                items=tuple(_source_items(file_data)),
-            )
-        )
-    return (snapshot_service or SourceSnapshotService()).build_snapshot(inputs)
-
-
 @dataclass(frozen=True)
 class ContextSelection:
     """A frozen release view safe to share with batch construction."""
@@ -400,8 +342,10 @@ class TranslationContextService:
 
         snapshot = self._build_snapshot(materialized_files)
         current_hash = snapshot.source_snapshot_hash
+        compatible_hashes = self._compatible_hashes(materialized_files, current_hash)
         tree_selection = self._tree_v2_selection(
             project_id, requested_release_id, current_hash,
+            compatible_hashes=compatible_hashes,
             stale_choice=stale_choice,
             stale_acknowledgement=acknowledgement,
             workflow_kind=workflow,
@@ -412,9 +356,7 @@ class TranslationContextService:
         release_id, effective, release_is_project, release_hash, effective_is_project = (
             self._release_metadata(service, project_id, requested_release_id)
         )
-        source_match = (
-            None if release_hash is None else release_hash == current_hash
-        )
+        source_match = None if release_hash is None else release_hash in compatible_hashes
         effective_items = (
             len((effective.effective_context or {}))
             if effective_is_project
@@ -452,7 +394,7 @@ class TranslationContextService:
                 workflow_kind=workflow,
             )
 
-        if release_hash != current_hash:
+        if release_hash not in compatible_hashes:
             return self._stale_selection(
                 current_hash, release_id, release_hash, effective,
                 stale_choice=stale_choice,
@@ -500,6 +442,7 @@ class TranslationContextService:
         requested_release_id: str | None,
         current_hash: str,
         *,
+        compatible_hashes: frozenset[str],
         stale_choice: str | Mapping[str, Any] | None,
         stale_acknowledgement: Mapping[str, Any] | None,
         workflow_kind: str,
@@ -513,7 +456,7 @@ class TranslationContextService:
         ).resolve(project_id, requested_release_id)
         if projected is None:
             return None
-        if projected.source_snapshot_hash != current_hash:
+        if projected.source_snapshot_hash not in compatible_hashes:
             return self._stale_projection_selection(
                 projected,
                 current_hash,
@@ -633,6 +576,16 @@ class TranslationContextService:
         if hasattr(self.snapshot_service, "build_snapshot") and not isinstance(self.snapshot_service, SourceSnapshotService):
             return self.snapshot_service.build_snapshot(files_data)
         return build_translation_source_snapshot(files_data, self.snapshot_service)
+
+    def _compatible_hashes(
+        self, files_data: list[Mapping[str, Any]], current_hash: str,
+    ) -> frozenset[str]:
+        if not isinstance(self.snapshot_service, SourceSnapshotService):
+            return frozenset({current_hash})
+        legacy_hash = build_legacy_trimmed_source_snapshot(
+            files_data, self.snapshot_service,
+        ).source_snapshot_hash
+        return frozenset({current_hash, legacy_hash})
 
     @staticmethod
     def _release_metadata(service: Any, project_id: str, requested_release_id: str | None):
