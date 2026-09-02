@@ -1278,7 +1278,7 @@
       "map_title": "Cadeias de eventos",
       "map_desc": "Cadeias de eventos irmãs permanecem independentes; a ordem importa dentro de cada cadeia.",
       "overview_title": "Visão geral da estrutura",
-      "overview_desc": "A estrutura do projeto em um relance. Os cartões exibem apenas títulos; escolha uma cadeia ou cartão para ver detalhes.",
+      "overview_desc": "As cadeias de eventos são exibidas em blocos. Cadeias de uma parte mostram o resumo diretamente; as de várias partes mantêm os cartões aninhados.",
       "focused_map_desc": "Inspecione esta cadeia de eventos em ordem. As descrições aparecem aqui para conferência antes de salvar.",
       "back_to_overview": "Voltar à visão geral",
       "story_label": "História",

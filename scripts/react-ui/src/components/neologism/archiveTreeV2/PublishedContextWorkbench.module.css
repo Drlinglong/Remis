@@ -353,27 +353,19 @@
 .overviewRailViewport {
     max-width: 100%;
     min-width: 0;
-    overflow-x: auto;
-    padding-bottom: 0.25rem;
+    overflow: visible;
 }
 
 .groupGrid {
-    --chain-card-min: 13rem;
-    position: relative;
     display: grid;
-    grid-template-columns: repeat(var(--chain-count), minmax(var(--chain-card-min), 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
     gap: 0.75rem;
     align-items: start;
-    min-width: max(100%, calc(var(--chain-count) * var(--chain-card-min) + (var(--chain-count) - 1) * 0.75rem));
+    min-width: 0;
 }
 
 .groupGrid::before {
-    position: absolute;
-    top: 0;
-    right: calc(100% / (var(--chain-count) * 2));
-    left: calc(100% / (var(--chain-count) * 2));
-    border-top: 1px solid var(--surface-border);
-    content: '';
+    display: none;
 }
 
 .groupColumn {
@@ -383,7 +375,7 @@
     gap: 0.75rem;
     align-self: start;
     min-width: 0;
-    margin-top: 1.5rem;
+    margin-top: 0;
     border-color: color-mix(in srgb, var(--paper-text-main) 18%, transparent) !important;
     background: var(--paper-bg) !important;
     color: var(--paper-text-main);
@@ -392,13 +384,7 @@
 }
 
 .groupColumn::before {
-    position: absolute;
-    top: -1.5rem;
-    left: 50%;
-    width: 1px;
-    height: 1.5rem;
-    background: var(--surface-border);
-    content: '';
+    display: none;
 }
 
 .groupColumn[data-drag-over='true'] {
@@ -662,11 +648,23 @@
     white-space: pre-line;
 }
 
+.groupColumn:not(.focusedGroupColumn) .groupSummary {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+}
+
 .fragmentList {
     display: grid;
     gap: 0.5rem;
     min-width: 0;
     min-height: 2.8rem;
+}
+
+.overviewSingleFragmentList {
+    display: none;
 }
 
 .expandedFragmentList,
@@ -1214,20 +1212,7 @@ details[open] > .detailsContent {
     }
 
     .groupGrid {
-        --chain-card-min: 11.5rem;
-    }
-
-    .groupGrid::before {
-        right: calc(100% / (var(--chain-count) * 2));
-        left: calc(100% / (var(--chain-count) * 2));
-    }
-
-    .groupColumn::before {
-        display: none;
-    }
-
-    .groupColumn {
-        margin-top: 0;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
     }
 }
 

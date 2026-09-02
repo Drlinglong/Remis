@@ -1340,7 +1340,7 @@
       "map_title": "事件链",
       "map_desc": "同级事件链保持独立，链内顺序代表叙事顺序。",
       "overview_title": "结构总览",
-      "overview_desc": "项目结构一览。概览只显示卡片标题，选择事件链或卡片查看详情。",
+      "overview_desc": "事件链以卡片平铺。单段链直接显示摘要；多段链保留内部卡片。",
       "focused_map_desc": "按顺序检查这条事件链。这里显示描述文字，确认关系后再保存。",
       "back_to_overview": "返回结构总览",
       "story_label": "故事线",

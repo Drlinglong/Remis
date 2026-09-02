@@ -1282,7 +1282,7 @@
       "map_title": "Ereignisketten",
       "map_desc": "Benachbarte Ereignisketten bleiben unabhängig; innerhalb einer Kette zählt die Reihenfolge.",
       "overview_title": "Strukturübersicht",
-      "overview_desc": "Projektstruktur auf einen Blick. Übersichtskarten zeigen nur Titel; wählen Sie eine Kette oder Karte für Details.",
+      "overview_desc": "Ereignisketten werden als Raster angezeigt. Einteilige Ketten zeigen ihre Zusammenfassung direkt; mehrteilige behalten ihre verschachtelten Karten.",
       "focused_map_desc": "Prüfen Sie diese Ereigniskette der Reihe nach. Beschreibungen werden hier vor dem Speichern angezeigt.",
       "back_to_overview": "Zur Übersicht",
       "story_label": "Handlung",

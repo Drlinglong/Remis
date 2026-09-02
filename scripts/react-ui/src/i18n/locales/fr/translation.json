@@ -1282,7 +1282,7 @@
       "map_title": "Chaînes d’événements",
       "map_desc": "Les chaînes d’événements sœurs restent indépendantes ; l’ordre compte au sein d’une chaîne.",
       "overview_title": "Vue d’ensemble de la structure",
-      "overview_desc": "La structure du projet en un coup d’œil. Les cartes n’affichent que les titres ; choisissez une chaîne ou une carte pour les détails.",
+      "overview_desc": "Les chaînes d’événements sont disposées en grille. Une chaîne à un seul segment affiche directement son résumé ; les chaînes à plusieurs segments conservent leurs cartes imbriquées.",
       "focused_map_desc": "Examinez cette chaîne d’événements dans l’ordre. Les descriptions sont affichées ici avant l’enregistrement.",
       "back_to_overview": "Retour à la vue d’ensemble",
       "story_label": "Histoire",

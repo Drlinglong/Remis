@@ -1278,7 +1278,7 @@
       "map_title": "Łańcuchy zdarzeń",
       "map_desc": "Sąsiednie łańcuchy zdarzeń pozostają niezależne; kolejność ma znaczenie wewnątrz łańcucha.",
       "overview_title": "Przegląd struktury",
-      "overview_desc": "Struktura projektu w skrócie. Karty przeglądu pokazują tylko tytuły; wybierz łańcuch lub kartę, aby zobaczyć szczegóły.",
+      "overview_desc": "Łańcuchy zdarzeń są ułożone w kafelki. Łańcuchy jednoczęściowe pokazują podsumowanie bezpośrednio, a wieloczęściowe zachowują zagnieżdżone karty.",
       "focused_map_desc": "Sprawdź ten łańcuch zdarzeń po kolei. Opisy są widoczne tutaj przed zapisaniem.",
       "back_to_overview": "Wróć do przeglądu",
       "story_label": "Historia",

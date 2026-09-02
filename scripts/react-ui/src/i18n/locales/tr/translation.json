@@ -1278,7 +1278,7 @@
       "map_title": "Olay zincirleri",
       "map_desc": "Kardeş olay zincirleri bağımsız kalır; bir zincirin içindeki sıra önemlidir.",
       "overview_title": "Yapı özeti",
-      "overview_desc": "Proje yapısını bir bakışta görün. Özet kartları yalnızca başlıkları gösterir; ayrıntılar için zincir veya kart seçin.",
+      "overview_desc": "Olay zincirleri döşeme halinde gösterilir. Tek parçalı zincirler özeti doğrudan gösterir; çok parçalı zincirler iç içe kartlarını korur.",
       "focused_map_desc": "Bu olay zincirini sırayla inceleyin. Kaydetmeden önce ilişkiyi kontrol edebilmeniz için açıklamalar burada gösterilir.",
       "back_to_overview": "Özete dön",
       "story_label": "Hikâye",

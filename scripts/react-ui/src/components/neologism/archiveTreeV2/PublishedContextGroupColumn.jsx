@@ -88,6 +88,7 @@ const PublishedContextGroupColumn = ({
     onDeleteGroup,
     kind = 'event',
     totalFragmentCount = fragments.length,
+    totalUnitCount = null,
     onViewAll,
     isOverview = false,
     t,
@@ -128,8 +129,11 @@ const PublishedContextGroupColumn = ({
         >
             <PublishedContextGroupHeading
                 group={group}
-                fragmentCount={totalFragmentCount}
+                fragmentCount={isOverview && fragments.length === 1 && totalUnitCount !== null
+                    ? totalUnitCount
+                    : totalFragmentCount}
                 focused={focused}
+                showSummary={focused || (isOverview && fragments.length === 1)}
                 kicker={kickerFor({ focused, kind, t })}
                 onSelectGroup={onSelectGroup}
                 onRenameGroup={onRenameGroup}
@@ -139,7 +143,7 @@ const PublishedContextGroupColumn = ({
             <div
                 id={fragmentsId}
                 data-testid={fragmentsId}
-                className={`${styles.fragmentList} ${focused ? styles.focusedFragmentList : ''} ${expanded ? styles.expandedFragmentList : ''}`}
+                className={`${styles.fragmentList} ${isOverview && fragments.length === 1 ? styles.overviewSingleFragmentList : ''} ${focused ? styles.focusedFragmentList : ''} ${expanded ? styles.expandedFragmentList : ''}`}
                 data-preview-expanded={expanded ? 'true' : 'false'}
             >
                 {visibleFragments.map((fragment, index) => (

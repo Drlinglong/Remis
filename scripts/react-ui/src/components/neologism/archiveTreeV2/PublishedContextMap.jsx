@@ -114,6 +114,8 @@ const PublishedContextMap = ({
             onRenameGroup={selectable ? onRenameGroup : null}
             onDeleteGroup={selectable ? onDeleteGroup : null}
             totalFragmentCount={totalFragmentCount}
+            totalUnitCount={new Set(fragments.flatMap((fragment) => fragment.unitIds || [])).size
+                || fragments.length}
             onViewAll={selectable ? onViewAllGroup : null}
             isOverview={!focused}
             kind={kind}
@@ -150,7 +152,7 @@ const PublishedContextMap = ({
                     <Text className={styles.panelDescription} size="sm">
                         {focused
                             ? text(t, 'mod_archive.tree_v2.focused_map_desc', 'Inspect this event chain in order. Descriptions are shown here so the relationship can be checked before saving.')
-                            : text(t, 'mod_archive.tree_v2.overview_desc', 'Project structure at a glance. Cards show titles only; choose an event chain or card to inspect its details.')}
+                            : text(t, 'mod_archive.tree_v2.overview_desc', 'Event chains are tiled. Single-part chains show their summary directly; multi-part chains keep their nested cards.')}
                     </Text>
                 </div>
                 <div className={styles.panelHeaderActions}>
@@ -251,10 +253,7 @@ const PublishedContextMap = ({
                         <div className={styles.rootConnector} aria-hidden="true" />
                         <StoryRail story={stories[0]} t={t} />
                         <div className={styles.overviewRailViewport} data-testid="published-context-overview-rail">
-                            <div
-                                className={styles.groupGrid}
-                                style={{ '--chain-count': Math.max(1, overviewItems.length) }}
-                            >
+                            <div className={styles.groupGrid}>
                                 {overviewItems.map(({ group, fragments, selectable, kind }) => renderGroup(
                                     group,
                                     fragments,

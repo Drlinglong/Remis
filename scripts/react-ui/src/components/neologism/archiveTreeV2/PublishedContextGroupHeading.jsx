@@ -10,6 +10,7 @@ const PublishedContextGroupHeading = ({
     group,
     fragmentCount,
     focused,
+    showSummary = focused,
     kicker,
     onSelectGroup,
     onRenameGroup,
@@ -107,7 +108,7 @@ const PublishedContextGroupHeading = ({
                     <span className={styles.groupHeadingCopy}>
                         <span className={styles.groupKicker}>{kicker}</span>
                         <span className={styles.groupTitle}>{group.label}</span>
-                        {focused && group.summary && <span className={styles.groupSummary}>{group.summary}</span>}
+                        {showSummary && group.summary && <span className={styles.groupSummary}>{group.summary}</span>}
                     </span>
                     <Badge className={styles.groupCount} size="sm" variant={focused ? 'light' : 'outline'}>{fragmentCount}</Badge>
                 </button>

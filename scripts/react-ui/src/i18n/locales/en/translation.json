@@ -1286,7 +1286,7 @@
       "map_title": "Event chains",
       "map_desc": "Sibling event chains stay independent; order matters within a chain.",
       "overview_title": "Structure overview",
-      "overview_desc": "Project structure at a glance. Overview cards show titles only; choose a chain or card to inspect details.",
+      "overview_desc": "Event chains are tiled. Single-part chains show their summary directly; multi-part chains keep their nested cards.",
       "focused_map_desc": "Inspect this event chain in order. Descriptions are shown here so the relationship can be checked before saving.",
       "back_to_overview": "Back to overview",
       "story_label": "Story",
