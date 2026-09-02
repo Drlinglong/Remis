@@ -19,6 +19,7 @@
 - [术语表开发契约](developer/glossary-contract.md) - 装载优先级、数据写入与当前差距
 - [Model Arena 产品意图](product-intent-model-arena.md) - 小样比较、人工决定与禁止副作用
 - [Model Arena 开发契约](developer/model-arena-contract.md) - 抽样、匿名投票、历史与导出边界
+- [Issue #198 档案上下文 A/B 评测](developer/remis-archive-ab-benchmark.md) - 整链/完整 reference 批次、盲评、成本和 developer-only 抽检
 - [Task Center 产品意图](product-intent-task-center.md) - 任务收件箱、结果找回与主页边界
 - [Task Center 开发契约](developer/task-center-contract.md) - 状态、持久化、已处理语义与 Agent 读取边界
 - [官方参考语料库产品意图](product-intent-reference-library.md) - 官方译文复用、维护交互与禁止副作用

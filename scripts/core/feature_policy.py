@@ -1,5 +1,7 @@
 """Feature policy for governed production workflows."""
 
+import os
+
 from scripts.app_settings import BUILD_PROFILE
 from scripts.build_profile import AGENT_PREVIEW_CHANNEL, STABLE_CHANNEL
 from scripts.core.services.translation_resource_policy import (
@@ -18,6 +20,12 @@ def mod_archive_enabled() -> bool:
 def checkpoint_resume_enabled() -> bool:
     """Expose checkpoint recovery only in explicitly supported build channels."""
     return BUILD_PROFILE.channel in RELEASED_WORKFLOW_CHANNELS
+
+
+def archive_ab_review_enabled() -> bool:
+    """Require both the isolated preview build and an explicit local flag."""
+    flag = os.getenv("REMIS_ENABLE_ARCHIVE_AB_REVIEW", "").strip().lower()
+    return BUILD_PROFILE.channel == "agent-preview" and flag in {"1", "true", "yes", "on"}
 
 
 def enforce_checkpoint_resume_policy(requested: bool) -> bool:
@@ -48,6 +56,11 @@ def apply_translation_request_policy(request) -> dict | None:
 def apply_agent_capability_policy(actions: dict) -> dict:
     """Project build-channel policy into the public Agent capability contract."""
     result = {name: dict(capability) for name, capability in actions.items()}
+    result.setdefault("archive_ab_review", {
+        "supported": False,
+        "requires_approval": False,
+        "endpoint": "/api/archive-ab-review/cases",
+    })
     result["resume_from_checkpoint"]["supported"] = checkpoint_resume_enabled()
     if not checkpoint_resume_enabled():
         result["resume_from_checkpoint"]["reason"] = (
@@ -59,6 +72,11 @@ def apply_agent_capability_policy(actions: dict) -> dict:
         "endpoint": "/api/tasks/{task_id}/cancel",
         "task_kinds": ["initial_translation", "translation", "incremental_translation"],
     }
+    result["archive_ab_review"]["supported"] = archive_ab_review_enabled()
+    if not archive_ab_review_enabled():
+        result["archive_ab_review"]["reason"] = (
+            "Archive A/B human review requires the Agent Preview build and an explicit developer flag."
+        )
     if not mod_archive_enabled():
         for name in (
             "read_context_release",

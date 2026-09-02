@@ -6,6 +6,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { FEATURES } from '../../config/features';
 import { AppSider } from './AppSider';
 
+const archiveStatusMock = vi.fn();
+
+vi.mock('../../services/archiveABReviewService', () => ({
+  default: { getStatus: (...args) => archiveStatusMock(...args) },
+}));
+
 const navigateMock = vi.fn();
 const startTourMock = vi.fn();
 
@@ -121,6 +127,17 @@ describe('AppSider', () => {
     fireEvent.click(screen.getByText('page_title_copilot'));
 
     expect(navigateMock).toHaveBeenCalledWith('/copilot');
+  });
+
+  it('shows archive A/B review only when the preview capability reports enabled', async () => {
+    archiveStatusMock.mockResolvedValue({ enabled: true });
+    renderWithProvider(<AppSider features={{ ENABLE_ARCHIVE_AB_REVIEW: true }} />);
+
+    const sidebar = document.getElementById('sidebar-nav');
+    fireEvent.mouseEnter(sidebar);
+    expect(await screen.findByText('archive_ab_review.nav_label')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('archive_ab_review.nav_label'));
+    expect(navigateMock).toHaveBeenCalledWith('/developer/archive-ab-review');
   });
 
   it('localizes the sidebar pin toggle tooltip', () => {

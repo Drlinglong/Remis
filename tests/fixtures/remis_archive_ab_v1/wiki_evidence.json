@@ -1,0 +1,128 @@
+{
+  "schema_version": "remis-archive-ab-wiki-evidence-v2",
+  "package_version": "2026-09-02-browser-verified-v1",
+  "accessed_on": "2026-09-02",
+  "policy": {
+    "use": "Structured Wiki facts and short excerpts are evaluator context; local source and gold remain the factual localization boundary.",
+    "no_full_page_copy": true,
+    "inference_rule": "Facts, user assertions, and evaluator interpretation are separate fields.",
+    "version_rule": "Record the page's own version notice. Do not infer a revision date from an accessible page."
+  },
+  "sources": [
+    {
+      "evidence_id": "paradox-horizon-signal",
+      "url": "https://stellaris.paradoxwikis.com/Horizon_Signal",
+      "page_title": "Horizon Signal",
+      "accessed_on": "2026-09-02",
+      "retrieval": {"method": "browser_dom_text", "http_fetch_status": "401", "browser_page_status": "readable"},
+      "version_or_revision": "The page states that it is verified for the current PC version 4.4; no revision ID/date was exposed in the retrieved view.",
+      "status": "verified_in_browser",
+      "user_accuracy_assertion": "玲珑 states that the chain has not materially changed in the recent versions and that the Wiki information is accurate.",
+      "local_gold_binding": {"dataset_id": "stellaris:horizon-signal", "chain_id": "horizon_signal", "gold_path": "corpus/stellaris/context-archive-gold/horizon-signal/2026-09-01-three-axis-v3/horizon_signal_event_chain_gold_manifest.json"},
+      "overall_mod_summary": "Horizon Signal is a rare, long cosmic-horror science-fiction event chain about an artificial black-hole signal, the Worm-in-Waiting, temporal recursion, and consequences that can alter an empire's founder species.",
+      "event_chain_summary": "A scientist investigates a signal from a black hole. The signal presents GRAVITY IS DESIRE and TIME IS SIGHT, leads to the Exit Point, and repeatedly draws scientists into a causal loop. The chain branches between sending people, destroying the ship, or ending contact; later research leads to Entropic Recursion, the Loop Temple, Doctrine: Strange Loop, Omega Theory, and the Omega Alignment.",
+      "trigger_contract": [
+        "At new game start, the page states a 20% chance for activation in a random uncontrolled black-hole system.",
+        "The Infinity Machine and Dimensional Horror systems cannot trigger the event.",
+        "The initial event requires a manned science ship with a scientist entering the correct black-hole system; Gestalt Consciousness and Nomadic empires are excluded.",
+        "The event cannot happen to AI empires.",
+        "Founder-species trait changes remove incompatible traits, including traits that may otherwise be superior."
+      ],
+      "structure": {
+        "main_chain": [
+          {"order": 1, "title": "The Horizon Signal", "trigger": "Entering the correct black-hole system", "next": "Analyze the Horizon Signal special project"},
+          {"order": 2, "title": "The Horizon Signal: GRAVITY IS DESIRE", "trigger": "Finishing Analyze the Horizon Signal", "branches": ["Send a vessel to the coordinates, leading to THE WORM.", "Log the signal and move on, leading to - MESSAGE ENDS -."], "motifs": ["GRAVITY IS DESIRE", "TIME IS SIGHT", "Exit Point"]},
+          {"order": 3, "title": "The Horizon Signal: THE WORM", "trigger": "Choosing to send a vessel", "outcomes": ["The ship and scientist are lost.", "Physics research is gained in the range shown by the page: 600-3000."]},
+          {"order": 4, "title": "The Horizon Signal: - MESSAGE ENDS -", "trigger": "Choosing to log the signal", "outcomes": ["The signal stops.", "The scientist survives but receives research and leader consequences shown on the page."]},
+          {"order": 5, "title": "The Horizon Signal: REPRISE", "trigger": "After THE WORM; mean time to happen shown as 320 days", "branches": ["Permit a volunteer, leading to I'M THROUGH.", "Permit the trip but rig the drive, leading to AN INTERVENTION.", "Ignore the signal, leading to - MESSAGE ENDS -."], "motifs": ["What was shall be, what shall be was", "Exit Point"]},
+          {"order": 6, "title": "The Horizon Signal: I'M THROUGH", "trigger": "After REPRISE volunteer branch", "outcomes": ["The scientist predicts telemetry, says they are through, and the ship disappears with the scientist."]},
+          {"order": 7, "title": "The Horizon Signal: AN INTERVENTION", "trigger": "After REPRISE rigged-drive branch", "outcomes": ["The drive detonates at the Exit Point.", "The signal does not return.", "A special project investigates fragments at the origin."]},
+          {"order": 8, "title": "The Horizon Signal: THE TRINE THE QUINE THE TRINE", "trigger": "After I'M THROUGH; mean time to happen shown as 320 days", "branches": ["Send the scientist, leading to WHERE THE END COMES FROM.", "Rig the drive, leading to AN INTERVENTION.", "Let the signal go, leading to - MESSAGE ENDS -."], "motifs": ["Love poems generated by a program", "The lost scientists' private comm keys"]},
+          {"order": 9, "title": "The Horizon Signal: A LESSON IN THE ASHES", "trigger": "Finishing Investigate fragments at Horizon Signal origin", "outcomes": ["The fragments cycle between states.", "Entropic Recursion research is gained."]},
+          {"order": 10, "title": "The Horizon Signal: WHERE THE END COMES FROM", "trigger": "After THE TRINE THE QUINE THE TRINE send branch", "outcomes": ["The scientist and ship are lost.", "The old ship returns as the empty Foundling.", "Entropic Recursion is gained."]},
+          {"order": 11, "title": "The Loop Temple: SIGNS IN THE STONE", "trigger": "After Entropic Recursion is unlocked; mean time to happen shown as 320 days", "outcomes": ["A buried volcanic-rock temple with a Möbius-looped serpent is found.", "Investigate the Loop Temple special project is issued."]},
+          {"order": 12, "title": "The Loop Temple: TIME AND STONE", "trigger": "Finishing Investigate the Loop Temple", "branches": ["Pilgrimage: Loop Temple Pilgrims' Way and +10% happiness, plus Doctrine: Strange Loop.", "Open to the public: Loop Temple Visitor Center and +5% happiness, plus Doctrine: Strange Loop.", "Academic study: 300-2000 Society research and Doctrine: Strange Loop.", "Seal the temple: 100-600 Influence."], "motifs": ["The Waiting Worm", "Operations of the universe"]}
+        ],
+        "optional_chains": [
+          {"title": "The Messenger", "availability": "After the initial chain and before Omega Alignment is constructed; requires Doctrine: Strange Loop.", "events": ["WHAT WAS, WILL BE", "Possibilities", "Unleashed", "Leashed", "A New Light", "Night Falls"], "summary": "A looping escape pod contains a Messenger whose remains resemble the founder species. Research can lead to a reconstructed Messenger and retroviral changes to founder pops, with ethics, traits, and purge or control branches."},
+          {"title": "A Rendezvous", "availability": "After Doctrine: Strange Loop and before Omega Alignment; requires an existing commander.", "events": ["A Rendezvous", "How it Ends", "The Captain That Will Be", "Interference", "The Day and the Hour"], "summary": "The impossible Syzygy appears with a commander who is alive elsewhere. Destroying it can leave the commander foredoomed to a rendezvous, or produce an interference/debris outcome if the commander dies."},
+          {"title": "The Coils of God", "availability": "After Doctrine: Strange Loop and before Omega Alignment; requires an observation post over a post-Renaissance civilization.", "events": ["The Coils of God", "A Subtle Persecution", "Deep Roots", "The Labyrinth Ceremonies", "Ceremony's End", "The Blood of Priests", "Navigating the Labyrinth"], "summary": "A pre-FTL religious-artistic movement treats clocks, serpents, and looping time as sacred. Observation, suppression, intervention, or participation can produce research, progress, persecution, or the disappearance of the planet's population and the science team."},
+          {"title": "The Waiting World", "availability": "After Doctrine: Strange Loop and before Omega Alignment; begins when a new planet is colonized with the related features.", "events": ["The Waiting World", "Demolition", "Shadows in the Walls", "Too Many", "And They Still Come", "Everyone Is", "Exit", "Everything and Nothing", "The Purge", "The Quality of Light"], "summary": "A colony discovers abandoned facilities and then impossible population records. Keeping or demolishing the buildings branches into extra pops, disappearance, investigation, quarantine, purge, and physics/Entropic Recursion research."}
+        ],
+        "omega_alignment": {"prerequisites": ["Entropic Recursion", "Doctrine: Strange Loop", "Omega Theory"], "building": "Omega Alignment on the empire capital", "events": ["THE END IN THE BEGINNING", "THE HEART OF THE SUN", "THE FUTURE", "THE SHATTERED LOOP"], "branches": ["Generate an Entry Point and consent to the Worm: the capital system is transformed and the achievement may be granted.", "Generate an Entry Point but refuse: the Worm appears as a Dimensional Horror; defeating it leads to THE SHATTERED LOOP and its rewards."], "theme": "The chain resolves the time-loop motif by making the Worm's beginning and end part of the same causal structure."}
+      },
+      "entities_and_terms": [
+        {"canonical": "Horizon Signal", "role": "The artificial signal and the name of the event chain", "local_gloss": "视界信号"},
+        {"canonical": "Worm-in-Waiting / Waiting Worm", "role": "Recurring cosmic entity and causal referent", "local_gloss": "守候之螶"},
+        {"canonical": "Exit Point", "role": "Coordinates where ships and scientists disappear", "local_gloss": "出口点"},
+        {"canonical": "Foundling", "role": "The returned empty ship connected to the lost scientist", "local_gloss": "弃儿号"},
+        {"canonical": "Loop Temple", "role": "Archaeological and later cultural manifestation of the loop motif"},
+        {"canonical": "Entropic Recursion / Doctrine: Strange Loop / Omega Theory", "role": "Research progression from the chain to Omega Alignment"}
+      ],
+      "translation_contract": [
+        "Keep named entities and research terms consistent across the whole chain.",
+        "Preserve causal direction: a choice or completed special project determines the next event; do not collapse THE WORM, - MESSAGE ENDS -, I'M THROUGH, and AN INTERVENTION.",
+        "Keep the distinction between main-chain events, optional events, and Omega Alignment events.",
+        "Do not turn narrative possibility or atmosphere into unsupported mechanical certainty."
+      ],
+      "short_excerpts": ["GRAVITY IS DESIRE", "TIME IS SIGHT", "What was shall be, what shall be was"],
+      "conflicts": []
+    },
+    {
+      "evidence_id": "paradox-toxic-god-events",
+      "url": "https://stellaris.paradoxwikis.com/Quest_for_the_Toxic_God_events",
+      "page_title": "Quest for the Toxic God events",
+      "accessed_on": "2026-09-02",
+      "retrieval": {"method": "browser_dom_text", "http_fetch_status": "401", "browser_page_status": "readable"},
+      "version_or_revision": "The page is for the PC version and states that at least some older sections were last verified for version 3.13; no revision ID/date was exposed in the retrieved view.",
+      "status": "verified_in_browser_with_user_accuracy_confirmation",
+      "user_accuracy_assertion": "玲珑 states that the chain has not materially changed in the recent versions and that the Wiki information is accurate; this is recorded separately from page metadata.",
+      "local_gold_binding": {"dataset_id": "stellaris:toxic-god", "chain_id": "first_quest_sinople", "gold_path": "corpus/stellaris/context-archive-gold/toxic-god/2026-09-01-three-axis-v3/toxic_god_context_archive_gold_manifest.json"},
+      "dlc_scope": "The page states that the content is available only with the Toxoids DLC enabled.",
+      "overall_mod_summary": "The Quest for the Toxic God is a multi-stage knightly search story in which the Order pursues a deity through lost knights, Sinople's encrypted records, Shroud bargains, trials, the Trickster, and a final encounter with a toxic spacefaring entity.",
+      "event_chain_summary": "The situation advances through eight numbered quests. The first follows a banished knight who finds the sentient ship AI Sinople and returns with a clue. Later quests follow multiple knights and supernatural or technological tests, culminating in a returned legendary knight, a confrontation with the Trickster, the opening of a blocked route, and the discovery of a Toxic Entity. The final events branch between defeating or losing the entity, then resolve the Order's purpose and the unanswered distinction between the entity and the true Toxic God.",
+      "structure": {
+        "quest_progression": [
+          {"quest": 1, "trigger": "Quest for the Toxic God: Stage 2", "theme": "Banishment, survival, and the first tangible clue", "events": ["The Tale of Knight [Knight 1]: Banishment", "The Tale of Knight [Knight 1]: The Nebula", "The Tale of Knight [Knight 1]: Statues", "The Tale of Knight [Knight 1]: The Sage", "The Tale of Knight [Knight 1]: The Fey", "Sinople", "Sinople (final)", "The Tale of Knight [Knight 1]: Homecoming"], "causal_summary": "Knight 1 is banished, follows coordinates, survives an abandoned station and a hostile encounter, meets the sentient AI Sinople, and returns. Sinople's records point toward entities resembling the Toxic God; the Order restores Knight 1's status and keeps the clue.", "branching_notes": "Sinople contains refusal/acceptance and lethal-response choices; preserve whether the AI is treated as a sentient ally or an enemy."},
+          {"quest": 2, "trigger": "Quest for the Toxic God: Stage 3", "theme": "Two knights search for a missing partner", "events": ["The Tale of Knights [A] and [B]: Departure", "The Tale of Knights [A] and [B]: The Search", "The Tale of Knights [A] and [B]: Milvaunis", "The Tale of Knights [A] and [B]: The Finding"], "causal_summary": "Knights A and B follow a long-delayed clue and investigate Milvaunis in search of the missing knight and a route toward the deity.", "branching_notes": "Keep Knight A, Knight B, and any found or missing knight as distinct roles; do not normalize them to generic Knight 1."},
+          {"quest": 3, "trigger": "Quest for the Toxic God: Stage 4", "theme": "A Shroud bargain and the cost of recovered memory", "events": ["The Visitor", "The Susurrus of Secrets", "The Price of a Memory", "A Susurrus Scorned"], "causal_summary": "The Visitor Hod offers access to the Shroud. The Susurrus demands sensory and emotional prices, and the resulting memory of the Toxic God's ancient visit brings a species-wide sense of loss and apathy.", "branching_notes": "Hod, the Visitor, and the Susurrus are separate entities; preserve the bargain's price and the negative consequence of the memory."},
+          {"quest": 4, "trigger": "Quest for the Toxic God: Stage 5", "theme": "A challenger tests the Order's honor and equipment", "events": ["The Tale of Knight [Knight 4]: The Challenger", "The Tale of Knight [Knight 4]: Passage of Arms", "The Tale of Knight [4]: Duty Before Honor", "The Tale of Knight [Knight 4]: Honor is All"], "causal_summary": "A stranger defeats several knights and drives a sequence of decisions about challenge, duty, honor, and the Order's prototype neutronium armor.", "branching_notes": "Preserve the distinction between Knight 4 and the other numbered knights, and retain conditional equipment/reward outcomes."},
+          {"quest": 5, "trigger": "Quest for the Toxic God: Stage 6", "theme": "Sinople's encrypted clue and the gatekeeper", "events": ["The Tale of Knight [Knight 10]: A Destination", "The Tale of Knight [Knight 10]: The Gatekeeper", "The Tale of Knight [Knight 10]: The Gatekeeper (2)", "The Tale of Knight [Knight 10]: The Gatekeeper (3)", "The Tale of Knight [10]: The Robot's Disciple"], "causal_summary": "Sinople yields coordinates to an unexplored system, where Knight 10 encounters the Gatekeeper and a robot-linked sequence that continues the Order's pursuit.", "branching_notes": "The numbered Gatekeeper variants and Robot's Disciple are separate event steps; preserve event order and conditional availability."},
+          {"quest": 6, "trigger": "Quest for the Toxic God: Stage 7", "theme": "Armor, missing knights, and the Trickster's identity", "events": ["The Tale of Knight [6]: Guidance of the Fey", "The Tale of Knight [Knight 6]: Plea for Help", "The Tale of Knight [Knight 6]: Plea for Help (Q)", "The Tale of Knight [Knight 6]: Plea for Help (R)", "The Tale of Knight [Knight 6]: The Trickster", "The Tale of Knight [Knight 6]: The True Visage"], "causal_summary": "Knight 6 receives a three-part mission involving Sinople's trajectory model, prototype armor, and a disappearance. The trail leads to the Trickster and a revelation of the Trickster's true visage.", "branching_notes": "The Q/R plea variants encode different conditional paths; do not merge them into one text block."},
+          {"quest": 7, "trigger": "Quest for the Toxic God: Stage 8", "theme": "The station, the Witch, and a dangerous seduction", "events": ["The Tale of Knight [15]: The Witch of the Woods", "The Tale of Knight [15]: Entering the Station", "The Tale of Knight [Knight 15]: Seduction", "The Tale of Knight [Knight 15]: Lover's Pox", "The Tale of Knight [Knight 15]: The Choice", "The Tale of Knight [15]: Caught in the Act", "The Tale of Knight [15]: Syamelle's Blessing"], "causal_summary": "Knight 15 follows a signal to a station and becomes entangled in a supernatural encounter involving seduction, the Lover's Pox, a choice, and Syamelle's blessing.", "branching_notes": "Keep Witch, station, Syamelle, and the Lover's Pox as separate referents; the event chain's tone is deliberately fairy-tale and dangerous."},
+          {"quest": "final", "trigger": "Quest for the Toxic God: Completion", "theme": "The legendary return and opening the route to the entity", "events": ["A Legend Has Returned", "Visiting a Legend", "Visiting a Legend (Questions)", "Visiting a Legend (End)", "The Quest for the Toxic God: The Seal", "The Quest for the Toxic God: The Last Trick", "The Quest for the Toxic God: Opening the Door"], "causal_summary": "Knight 8 returns from interdimensional travel. The Order recovers the route to the Toxic God, confronts the Trickster, defeats or outlasts the final obstruction, and restores a blocked hyperlane or access route.", "branching_notes": "The returned Knight 8 is a historical founder and witness, not a newly introduced generic knight; The Seal, Last Trick, and Opening the Door are sequential finale steps."}
+        ],
+        "toxic_entity_events": [
+          {"title": "The Quest for the Toxic God: Witnessing Divinity", "trigger": "First entry into a system containing the Toxic Entity while the empire has Knights of the Toxic God", "fact": "The knights find a corrosive, metallic, chitinous, tentacled spacefaring entity glowing sick green; the event frames it as the object of the search but does not establish it as the true sentient Toxic God."},
+          {"title": "Toxic Entity", "trigger": "First entry into the same kind of system without Knights of the Toxic God", "fact": "The generic encounter identifies a dangerous Toxic Entity without the Order-specific witnessing text."},
+          {"title": "The Quest for the Toxic God: Failure", "trigger": "First entry when the Toxic Entity is absent or already killed", "fact": "The trail ends in a system where the entity is gone or was destroyed by another civilization; the Order enters despair and the search for the true God remains unresolved."},
+          {"title": "The Quest for the Toxic God: Trial Overcome", "trigger": "Defeating the Toxic Entity in battle", "fact": "The defeated entity can be nursed back to health or used as a weapon; the page lists gaining the Toxic God colossus."},
+          {"title": "The Fate of the Order", "trigger": "The Quest for the Toxic God: Trial Overcome", "fact": "Finding the entity removes the Order's purpose, prompting knights to stay or leave and framing the end as an age transition."},
+          {"title": "The Fate of the Toxic God", "trigger": "The Quest for the Toxic God: Failure or The Quest for the Toxic God: Trial Overcome", "fact": "The page distinguishes the encountered entity from the original, more formidable and sentient Toxic God, whose trace is associated with the galaxy's central supermassive black hole."},
+          {"title": "Toxic Entity Slain", "trigger": "Defeating the Toxic Entity", "fact": "The entity's venom sack ruptures, its body decomposes, and the Order keeps its maw as a trophy; this confirms the slain creature is not automatically identical to the true Toxic God."},
+          {"title": "Toxic Entity Slain", "trigger": "A second page-listed variant with a distinct conditional outcome", "fact": "The duplicate heading is retained because the Wiki exposes two event entries; consumers must not deduplicate solely by display title."}
+        ]
+      },
+      "entities_and_terms": [
+        {"canonical": "Toxic God", "role": "The ultimate deity sought by the Order; the true God remains distinct from the encountered entity", "local_gloss": "剧毒之神"},
+        {"canonical": "Toxic Entity", "role": "The dangerous spacefaring creature encountered in the finale; not proven to be the true God"},
+        {"canonical": "Knightly Order", "role": "The institution whose purpose, honor, and future are at stake", "local_gloss": "骑士团"},
+        {"canonical": "Sinople", "role": "Sentient ship AI and source of encrypted records", "local_gloss": "辛诺普"},
+        {"canonical": "The Trickster", "role": "Recurring adversarial or supernatural figure across the later quests"},
+        {"canonical": "Hod / Holy Visitor", "role": "Shroud intermediary who offers the memory bargain"},
+        {"canonical": "The Susurrus", "role": "Shroud entity that demands a price for knowledge"},
+        {"canonical": "Syamelle", "role": "Figure connected to the seventh quest's blessing"},
+        {"canonical": "Lover's Pox", "role": "Named condition/event in the seventh quest"}
+      ],
+      "translation_contract": [
+        "Preserve the numbered knight identities and the Knight A/Knight B roles.",
+        "Keep the causal difference between a quest stage trigger, an event choice, a special project completion, and a battle outcome.",
+        "Do not translate Toxic Entity as automatically equivalent to Toxic God; this distinction is an explicit endgame fact.",
+        "Preserve the order of the eight quests, the final quest, and the separate Toxic Entity events.",
+        "Keep conditional branches and duplicate Wiki display headings where they represent distinct event entries."
+      ],
+      "short_excerpts": ["The end of an age.", "What was, will be; what will be, was"],
+      "conflicts": []
+    }
+  ]
+}

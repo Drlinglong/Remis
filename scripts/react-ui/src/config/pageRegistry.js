@@ -80,6 +80,14 @@ export const PAGE_REGISTRY = Object.freeze([
     copilot: { pageName: '模型竞技场 / Model Arena', helpSkillId: 'model_arena' },
   },
   {
+    id: 'archive-ab-review',
+    routePaths: ['/developer/archive-ab-review'],
+    match: /^\/developer\/archive-ab-review$/,
+    domain: PAGE_DOMAINS.INTERNAL,
+    enabledBy: 'ENABLE_ARCHIVE_AB_REVIEW',
+    navigation: { entryMode: ENTRY_MODES.HIDDEN },
+  },
+  {
     id: 'proofreading',
     routePaths: ['/proofreading'],
     match: /^\/proofreading$/,

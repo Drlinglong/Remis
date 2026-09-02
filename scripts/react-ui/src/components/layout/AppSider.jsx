@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ActionIcon, Badge, Box, Group, Menu, Stack, Text, UnstyledButton, rem } from '@mantine/core';
 import {
     IconHome,
@@ -36,6 +36,7 @@ import {
 } from '../../config/pageRegistry';
 import { useTutorial } from '../../context/TutorialContextCore';
 import { useTaskCenter } from '../../context/TaskCenterContextCore';
+import archiveABReviewService from '../../services/archiveABReviewService';
 
 const NAV_ICONS = {
     home: IconHome,
@@ -61,9 +62,10 @@ const developmentItems = [
     { icon: IconBulb, label: 'page_title_in_conception', path: '/in-conception' },
 ];
 
-function NavbarLink({ icon, label, active, onClick, expanded, id, className, badge, nested = false }) {
+function NavbarLink({ icon, label, labelFallback, active, onClick, expanded, id, className, badge, nested = false }) {
     const { t } = useTranslation();
     const LinkIcon = icon;
+    const translatedLabel = t(label, labelFallback ? { defaultValue: labelFallback } : undefined);
 
     return (
         <UnstyledButton
@@ -71,7 +73,7 @@ function NavbarLink({ icon, label, active, onClick, expanded, id, className, bad
             onClick={onClick}
             data-active={active || undefined}
             className={`${styles.navLink} ${className || ''}`}
-            title={expanded ? undefined : t(label)}
+            title={expanded ? undefined : translatedLabel}
             style={{
                 width: '100%',
                 padding: nested ? '7px 8px 7px 24px' : '10px',
@@ -87,7 +89,7 @@ function NavbarLink({ icon, label, active, onClick, expanded, id, className, bad
             />
             {expanded && (
                 <Text size="sm" ml={nested ? 'sm' : 'md'} style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: 'var(--font-body)' }}>
-                    {t(label)}
+                    {translatedLabel}
                 </Text>
             )}
             {expanded && badge > 0 && <Badge size="xs" ml="auto" variant="filled">{badge}</Badge>}
@@ -177,12 +179,28 @@ export function AppSider({ features = FEATURES } = {}) {
     const { openTaskCenter, opened: taskCenterOpened, tasks = [] } = useTaskCenter();
     const [isPinned, setIsPinned] = useState(() => localStorage.getItem('sidebar_pinned') === 'true');
     const [hovered, setHovered] = useState(false);
+    const [archiveABReviewAvailable, setArchiveABReviewAvailable] = useState(false);
     const expanded = isPinned || hovered;
     const { t } = useTranslation();
     const taskQueueCount = tasks.filter((task) => (
         ['queued', 'running', 'awaiting_approval', 'failed', 'interrupted'].includes(task.status)
     )).length;
     const navigationSections = getNavigationSections(features);
+    useEffect(() => {
+        if (!features.ENABLE_ARCHIVE_AB_REVIEW) {
+            setArchiveABReviewAvailable(false);
+            return undefined;
+        }
+        let cancelled = false;
+        archiveABReviewService.getStatus()
+            .then((status) => {
+                if (!cancelled) setArchiveABReviewAvailable(Boolean(status?.enabled));
+            })
+            .catch(() => {
+                if (!cancelled) setArchiveABReviewAvailable(false);
+            });
+        return () => { cancelled = true; };
+    }, [features.ENABLE_ARCHIVE_AB_REVIEW]);
     const settingsItem = toNavigationItem(getPageById('settings'));
     const documentationPage = getPageById('documentation');
     const documentationItem = isPageEnabled(documentationPage, features)
@@ -310,6 +328,16 @@ export function AppSider({ features = FEATURES } = {}) {
 
             <Stack gap="xs" mt="md" pt="md" style={{ borderTop: '1px solid var(--glass-border)' }}>
                 {features.ENABLE_EXPERIMENTAL_FEATURES && devLinks}
+                {archiveABReviewAvailable && (
+                    <NavbarLink
+                        icon={IconTrophy}
+                        label="archive_ab_review.nav_label"
+                        labelFallback="档案 A/B 抽检"
+                        active={location.pathname === '/developer/archive-ab-review'}
+                        onClick={() => navigate('/developer/archive-ab-review')}
+                        expanded={expanded}
+                    />
+                )}
                 {documentationItem && (
                     <NavbarLink
                         {...documentationItem}
