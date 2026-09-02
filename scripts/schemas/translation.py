@@ -90,6 +90,8 @@ class InitialTranslationRequest(BaseModel):
     use_project_context: bool = True
     context_release_id: Optional[str] = None
     context_character_budget: int = Field(default=4000, ge=0, le=20000)
+    stale_choice: Optional[str] = None
+    stale_acknowledgement: Optional[Dict[str, Any]] = None
     concurrency_limit: Optional[int] = None
     rpm_limit: Optional[int] = 40
     mod_context: Optional[str] = ""
@@ -165,6 +167,8 @@ class IncrementalUpdateConfig(BaseModel):
     translation_context_mode: Optional[Literal["none", "glossaries", "archive"]] = None
     context_release_id: Optional[str] = None
     context_character_budget: int = Field(default=4000, ge=0, le=20000)
+    stale_choice: Optional[str] = None
+    stale_acknowledgement: Optional[Dict[str, Any]] = None
     dry_run: bool = False
     custom_source_path: Optional[str] = None
     use_resume: bool = True

@@ -11,7 +11,7 @@ export function useIncrementalPreScan(options) {
     loading, executing, notificationStyle, preScanInFlightRef, referenceReuseBypassed,
     selectedLangs, selectedProject, setActive, setConflictingTaskId, setCurrentTaskId,
     setCurrentTaskMode, setLoading, setLogs, setProgress, setProgressInfo, setScanResults,
-    t,
+    staleContextSubmit, t,
   } = options;
 
   return useCallback(async (actionOptions = {}) => {
@@ -46,31 +46,41 @@ export function useIncrementalPreScan(options) {
           && !skipReferenceReuse,
         targetLangCodes,
       });
-      const response = await translationService.startIncrementalUpdate(
-        selectedProject.project_id,
+      const handleSuccess = async (response) => {
+        const taskId = response.data.task_id;
+        if (taskId) {
+          setConflictingTaskId(null);
+          setCurrentTaskId(taskId);
+          setCurrentTaskMode('pre_scan');
+          connectWebSocket(taskId, true);
+          return;
+        }
+        if (response.data.status === 'warning') {
+          notificationService.info(
+            response.data.message || t('incremental_translation.no_files_warning'),
+            notificationStyle,
+          );
+        }
+        setScanResults({
+          ...(response.data.summary || {}),
+          file_summaries: response.data.file_summaries || [],
+          telemetry: response.data.telemetry || null,
+        });
+        setActive(2);
+        setLoading(false);
+      };
+      const response = await staleContextSubmit({
         payload,
-      );
-      const taskId = response.data.task_id;
-      if (taskId) {
-        setConflictingTaskId(null);
-        setCurrentTaskId(taskId);
-        setCurrentTaskMode('pre_scan');
-        connectWebSocket(taskId, true);
-        return;
-      }
-      if (response.data.status === 'warning') {
-        notificationService.info(
-          response.data.message || t('incremental_translation.no_files_warning'),
-          notificationStyle,
-        );
-      }
-      setScanResults({
-        ...(response.data.summary || {}),
-        file_summaries: response.data.file_summaries || [],
-        telemetry: response.data.telemetry || null,
+        request: (nextPayload) => translationService.startIncrementalUpdate(
+          selectedProject.project_id, nextPayload,
+        ),
+        onSuccess: handleSuccess,
+        onCancel: () => {
+          setLoading(false);
+          preScanInFlightRef.current = false;
+        },
       });
-      setActive(2);
-      setLoading(false);
+      if (!response) return;
     } catch (error) {
       console.error('Pre-scan error:', error);
       const detail = error?.response?.data?.detail;
@@ -90,5 +100,6 @@ export function useIncrementalPreScan(options) {
     loading, notificationStyle, options, preScanInFlightRef, referenceReuseBypassed,
     selectedLangs, selectedProject, setActive, setConflictingTaskId, setCurrentTaskId,
     setCurrentTaskMode, setLoading, setLogs, setProgress, setProgressInfo, setScanResults, t,
+    staleContextSubmit,
   ]);
 }

@@ -637,6 +637,16 @@
   "initial_translation_start_failed": "Failed to start translation. Check the configuration and try again.",
   "initial_translation_duplicate_task": "This project already has a translation task in progress.",
   "initial_translation_context_degraded": "The project archive is unavailable or stale; this run will continue with glossaries only.",
+  "translation_context_stale": {
+    "title": "The project archive is stale",
+    "description": "The source changed since this archive was published. Choose how to continue.",
+    "question": "Use the old archive's Mod summary only, or continue with glossaries only?",
+    "release": "Archive release: {{release}}",
+    "hash": "Current source snapshot: {{hash}}",
+    "use_old_archive": "Acknowledge and use old archive summary only",
+    "disable_archive": "Do not use archive (glossaries only)",
+    "cancel": "Cancel / update archive first"
+  },
   "initial_translation_continue": "Continue previous translation",
   "button_abort_translation": "Abort Translation",
   "button_download_mod": "Download Translated Mod",

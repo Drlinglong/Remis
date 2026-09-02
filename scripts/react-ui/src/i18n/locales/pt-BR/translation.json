@@ -500,6 +500,16 @@
   "initial_translation_start_failed": "Não foi possível iniciar a tradução. Verifique a configuração e tente novamente.",
   "initial_translation_duplicate_task": "Este projeto já possui uma tarefa de tradução em andamento.",
   "initial_translation_context_degraded": "O arquivo do projeto está desatualizado ou indisponível. A tradução continuará usando apenas glossários.",
+  "translation_context_stale": {
+    "title": "O arquivo do projeto está desatualizado",
+    "description": "A fonte mudou desde a publicação deste arquivo. Escolha como continuar.",
+    "question": "Usar apenas o resumo do Mod do arquivo antigo ou continuar apenas com glossários?",
+    "release": "Versão do arquivo: {{release}}",
+    "hash": "Snapshot atual da fonte: {{hash}}",
+    "use_old_archive": "Confirmar e usar apenas o resumo do arquivo antigo",
+    "disable_archive": "Não usar o arquivo (apenas glossários)",
+    "cancel": "Cancelar / atualizar o arquivo primeiro"
+  },
   "initial_translation_continue": "Continuar a tradução anterior",
   "button_abort_translation": "Abortar Tradução",
   "button_download_mod": "Baixar Mod Traduzido",

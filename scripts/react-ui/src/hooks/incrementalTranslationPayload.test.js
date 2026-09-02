@@ -59,6 +59,7 @@ describe('incrementalTranslationPayload', () => {
       rpm_limit: 40,
       custom_source_path: 'J:/mod',
       use_resume: false,
+      translation_context_mode: 'archive',
       reference_reuse: {
         enabled: true,
         localization_path: 'J:/vanilla/localization',

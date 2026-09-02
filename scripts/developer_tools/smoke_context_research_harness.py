@@ -26,6 +26,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
+from scripts.core.api_handler import get_handler
 from scripts.core.copilot.help_agent_models import build_help_model
 from scripts.core.copilot.runtime import resolve_provider_runtime_snapshot
 from scripts.core.neologism_extraction import SourceItem
@@ -41,6 +42,9 @@ from scripts.core.services.context_research_corpus_tools import (
 )
 from scripts.core.services.context_research_harness_backend import (
     PydanticAIContextResearchBackend,
+)
+from scripts.core.services.context_research_workflow_v3 import (
+    ContextResearchWorkflowV3,
 )
 from scripts.core.services.context_research_external_context import load_external_context
 from scripts.core.services.context_source_parser import ContextSourceParser
@@ -273,12 +277,26 @@ def _request_and_corpus(arguments: argparse.Namespace) -> tuple[
     )
 
 
+def _persist_workflow_v3_snapshot(backend: Any, trace_output: str | None) -> None:
+    """Persist paid-stage results before or after deterministic assembly."""
+
+    if not trace_output or backend.last_debug_snapshot is None:
+        return
+    debug_path = Path(trace_output)
+    debug_path.parent.mkdir(parents=True, exist_ok=True)
+    debug_path.write_text(
+        json.dumps(backend.last_debug_snapshot, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+
 async def _run(arguments: argparse.Namespace) -> dict[str, Any]:
     request, tools, source_manifest = _request_and_corpus(arguments)
     lead_model, subagent_model, runtime, selected_lead, selected_subagent = (
         _build_models(arguments)
     )
     metadata: dict[str, Any] = {
+        "backend": arguments.backend,
         "provider": arguments.provider,
         "model": selected_lead,
         "lead_model": selected_lead,
@@ -292,6 +310,7 @@ async def _run(arguments: argparse.Namespace) -> dict[str, Any]:
         "reasoning_language": request.reasoning_language,
         "source_root": source_manifest["root"],
         "dry_run": bool(arguments.dry_run),
+        "replay_trace": arguments.replay_trace,
         "external_context": (
             request.external_context.model_dump(mode="json")
             if request.external_context else None
@@ -309,74 +328,111 @@ async def _run(arguments: argparse.Namespace) -> dict[str, Any]:
     trace_summary = None
     elapsed_seconds = 0.0
     if not arguments.dry_run:
-        backend = PydanticAIContextResearchBackend(
-            corpus_tools=tools,
-            lead_model=lead_model,
-            subagent_model=subagent_model,
-            lead_model_settings=_reasoning_settings(arguments.lead_reasoning_effort),
-            subagent_model_settings=_reasoning_settings(
-                arguments.subagent_reasoning_effort,
-            ),
-            trace_output_path=trace_output,
-        )
+        if arguments.replay_trace and arguments.backend != "workflow-v3":
+            raise ValueError("--replay-trace is only valid with --backend workflow-v3")
+        if arguments.backend == "workflow-v3":
+            backend = ContextResearchWorkflowV3(handler_factory=get_handler)
+        else:
+            backend = PydanticAIContextResearchBackend(
+                corpus_tools=tools,
+                lead_model=lead_model,
+                subagent_model=subagent_model,
+                lead_model_settings=_reasoning_settings(arguments.lead_reasoning_effort),
+                subagent_model_settings=_reasoning_settings(
+                    arguments.subagent_reasoning_effort,
+                ),
+                trace_output_path=trace_output,
+            )
         started_at = time.perf_counter()
         try:
-            draft = await asyncio.wait_for(
-                backend.analyze(
-                    request,
-                    AgentExecutionContext(
-                        provider_selection_id=arguments.provider,
-                    model_id=selected_lead,
-                        provider_runtime=runtime,
-                        cancellation=_NeverCancelled(),
-                        events=events,
-                        usage=usage,
+            if arguments.replay_trace:
+                snapshot = json.loads(
+                    Path(arguments.replay_trace).read_text(encoding="utf-8")
+                )
+                draft = backend.replay(request, snapshot)
+            else:
+                draft = await asyncio.wait_for(
+                    backend.analyze(
+                        request,
+                        AgentExecutionContext(
+                            provider_selection_id=arguments.provider,
+                            model_id=selected_lead,
+                            provider_runtime=runtime,
+                            cancellation=_NeverCancelled(),
+                            events=events,
+                            usage=usage,
+                        ),
                     ),
-                ),
-                timeout=arguments.timeout_seconds,
-            )
+                    timeout=arguments.timeout_seconds,
+                )
+            if arguments.backend == "workflow-v3":
+                _persist_workflow_v3_snapshot(backend, trace_output)
+        except Exception:
+            if (
+                arguments.backend == "workflow-v3"
+            ):
+                _persist_workflow_v3_snapshot(backend, trace_output)
+            raise
         finally:
             elapsed_seconds = time.perf_counter() - started_at
-        trace = backend.last_trace_snapshot or {}
-        corpus_read = dict(trace.get("corpus_read") or {})
-        corpus_read.pop("observations", None)
-        trace_summary = {
-            "trace_output": trace_output,
-            "delegations": [
-                {
-                    key: item.get(key)
-                    for key in ("delegation_id", "role", "shard", "status", "model")
-                }
-                for item in trace.get("delegations", ())
-            ],
-            "usage": trace.get("usage", {}).get("summary", {}),
-            "corpus_read_amplification": corpus_read,
-            "repair_attempt_count": len(trace.get("repair", {}).get("attempts", ())),
-            "adjudication": {
-                "status": trace.get("adjudication", {}).get("status"),
-                "candidate_count": trace.get("adjudication", {})
-                .get("packet", {}).get("candidate_count", 0),
-                "eligible_candidate_count": trace.get("adjudication", {})
-                .get("packet", {}).get("eligible_candidate_count", 0),
-                "accepted_edge_count": trace.get("adjudication", {})
-                .get("output", {}).get("diagnostics", {}).get("accepted_edge_count", 0),
-                "rejected_edge_count": trace.get("adjudication", {})
-                .get("output", {}).get("diagnostics", {}).get("rejected_edge_count", 0),
-                "usage": next(
-                    (
-                        {
-                            "model": item.get("model"),
-                            "requests": item.get("requests", 0),
-                            "output_tokens": item.get("output_tokens", 0),
-                            "cost": item.get("cost"),
-                        }
-                        for item in trace.get("usage", {}).get("records", ())
-                        if item.get("scope") == "adjudication"
-                    ),
-                    None,
+        if arguments.backend == "workflow-v3":
+            diagnostics = dict(draft.diagnostics)
+            trace_summary = {
+                "trace_output": arguments.replay_trace or trace_output,
+                "backend": "context-workflow-v3",
+                "delegations": [],
+                "usage": diagnostics.get("model_execution", {}),
+                "corpus_read_amplification": diagnostics.get(
+                    "corpus_read_amplification", {}
                 ),
-            },
-        }
+                "repair_attempt_count": sum(
+                    int(value)
+                    for key, value in (diagnostics.get("model_calls", {}) or {}).items()
+                    if "repair" in key
+                ),
+                "adjudication": None,
+            }
+        else:
+            trace = backend.last_trace_snapshot or {}
+            corpus_read = dict(trace.get("corpus_read") or {})
+            corpus_read.pop("observations", None)
+            trace_summary = {
+                "trace_output": trace_output,
+                "delegations": [
+                    {
+                        key: item.get(key)
+                        for key in ("delegation_id", "role", "shard", "status", "model")
+                    }
+                    for item in trace.get("delegations", ())
+                ],
+                "usage": trace.get("usage", {}).get("summary", {}),
+                "corpus_read_amplification": corpus_read,
+                "repair_attempt_count": len(trace.get("repair", {}).get("attempts", ())),
+                "adjudication": {
+                    "status": trace.get("adjudication", {}).get("status"),
+                    "candidate_count": trace.get("adjudication", {})
+                    .get("packet", {}).get("candidate_count", 0),
+                    "eligible_candidate_count": trace.get("adjudication", {})
+                    .get("packet", {}).get("eligible_candidate_count", 0),
+                    "accepted_edge_count": trace.get("adjudication", {})
+                    .get("output", {}).get("diagnostics", {}).get("accepted_edge_count", 0),
+                    "rejected_edge_count": trace.get("adjudication", {})
+                    .get("output", {}).get("diagnostics", {}).get("rejected_edge_count", 0),
+                    "usage": next(
+                        (
+                            {
+                                "model": item.get("model"),
+                                "requests": item.get("requests", 0),
+                                "output_tokens": item.get("output_tokens", 0),
+                                "cost": item.get("cost"),
+                            }
+                            for item in trace.get("usage", {}).get("records", ())
+                            if item.get("scope") == "adjudication"
+                        ),
+                        None,
+                    ),
+                },
+            }
     draft_json = draft.model_dump(mode="json") if draft is not None else None
     event_json = [event.model_dump(mode="json") for event in draft.event_chains] if draft else []
     return {
@@ -399,10 +455,20 @@ async def _run(arguments: argparse.Namespace) -> dict[str, Any]:
             "subagent_model": selected_subagent,
             "lead_reasoning_effort": arguments.lead_reasoning_effort,
             "subagent_reasoning_effort": arguments.subagent_reasoning_effort,
-            "profile": "full",
+            "profile": (
+                "workflow-v3" if arguments.backend == "workflow-v3" else "full"
+            ),
+            "backend": arguments.backend,
             "description_language": request.description_language,
-            "compiler": "context-research-compiler-v2",
-            "event_adjudication": "context-research-event-adjudication-v1",
+            "compiler": (
+                "workflow-v3-deterministic-assembler"
+                if arguments.backend == "workflow-v3"
+                else "context-research-compiler-v2"
+            ),
+            "event_adjudication": (
+                None if arguments.backend == "workflow-v3"
+                else "context-research-event-adjudication-v1"
+            ),
             "source": "developer-only context research smoke",
         },
         "source": source_manifest,
@@ -436,6 +502,9 @@ async def _run(arguments: argparse.Namespace) -> dict[str, Any]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--backend", choices=("harness", "workflow-v3"), default="harness",
+    )
     parser.add_argument("--provider", choices=("lm_studio", "openrouter"), default="lm_studio")
     parser.add_argument("--base-url", default="http://127.0.0.1:1234/v1")
     parser.add_argument("--model", required=True)
@@ -464,12 +533,20 @@ def main() -> None:
     parser.add_argument("--dry-run", action="store_true", help="Parse/build only; do not call the model")
     parser.add_argument("--output")
     parser.add_argument("--trace-output", help="UTF-8 debug trace ledger output path")
+    parser.add_argument(
+        "--replay-trace",
+        help="Recompile a Workflow v3 debug snapshot without calling a model",
+    )
+    parser.add_argument("--quiet", action="store_true", help="Do not echo the artifact JSON")
     arguments = parser.parse_args()
     result = asyncio.run(_run(arguments))
     rendered = json.dumps(result, ensure_ascii=False, indent=2)
     if arguments.output:
-        Path(arguments.output).write_text(rendered, encoding="utf-8")
-    print(rendered.encode("unicode_escape").decode("ascii"))
+        output_path = Path(arguments.output)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(rendered, encoding="utf-8")
+    if not arguments.quiet:
+        print(rendered.encode("unicode_escape").decode("ascii"))
 
 
 if __name__ == "__main__":

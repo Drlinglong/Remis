@@ -13,6 +13,7 @@ import {
   buildTranslationDetails,
   buildTranslationPayload,
 } from '../utils/initialTranslation';
+import { useStaleTranslationContextRetry } from './useStaleTranslationContextRetry';
 
 export function useInitialTranslationFlow({
   config,
@@ -47,6 +48,7 @@ export function useInitialTranslationFlow({
     setIsProcessing(true);
     setActive(2);
   };
+  const staleContext = useStaleTranslationContextRetry();
 
   const startTranslation = async (values, { skipReferenceCheck = false } = {}) => {
     const effectiveValues = resumeEnabled ? values : { ...values, use_resume: false };
@@ -85,8 +87,7 @@ export function useInitialTranslationFlow({
     setActive(2);
     setIsProcessing(true);
 
-    try {
-      const response = await api.post('/api/translate/start', payload);
+    const onSuccess = async (response) => {
       applyRecoveryTask(response.data);
       if (response.data.warning?.code === 'project_context_degraded') {
         notificationService.info(
@@ -99,7 +100,8 @@ export function useInitialTranslationFlow({
       setStatus('processing');
       setIsProcessing(true);
       setActive(2);
-    } catch (error) {
+    };
+    const onError = (error) => {
       const detail = error?.response?.data?.detail;
       const errorCode = typeof detail === 'object' ? detail?.code : null;
       const message = errorCode === 'duplicate_task'
@@ -111,7 +113,19 @@ export function useInitialTranslationFlow({
       setIsProcessing(false);
       setStatus('failed');
       setActive(1);
-    }
+    };
+    await staleContext.submit({
+      payload,
+      request: (nextPayload) => api.post('/api/translate/start', nextPayload),
+      onSuccess,
+      onError,
+      onCancel: () => {
+        setTaskId(null);
+        setIsProcessing(false);
+        setStatus(null);
+        setActive(1);
+      },
+    });
   };
 
   const continueWithoutReference = async () => {
@@ -192,5 +206,6 @@ export function useInitialTranslationFlow({
     continueWithoutReference,
     setReferencePromptOpen,
     setResumeModalOpen,
+    staleContext,
   };
 }

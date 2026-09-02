@@ -138,6 +138,9 @@ class RemisMcpTools:
         use_resume: bool = True,
         use_main_glossary: bool = True,
         translation_context_mode: Literal["none", "glossaries", "archive"] = "archive",
+        context_release_id: str | None = None,
+        stale_choice: str | None = None,
+        stale_acknowledgement: dict[str, Any] | None = None,
         embedded_workshop_enabled: bool = True,
         dry_run: bool = False,
     ) -> AdapterResult[TranslationPlanData]:
@@ -158,6 +161,9 @@ class RemisMcpTools:
                 use_resume=use_resume,
                 use_main_glossary=use_main_glossary,
                 translation_context_mode=translation_context_mode,
+                context_release_id=context_release_id,
+                stale_choice=stale_choice,
+                stale_acknowledgement=stale_acknowledgement,
                 embedded_workshop_enabled=embedded_workshop_enabled,
                 dry_run=dry_run,
             )

@@ -108,8 +108,8 @@ class ContextTreeV2Writer(TreeV2StorageSupport):
             fragment_ids = list(value.get("fragment_ids") or [])
             if route not in {"narrative", "reference_asset", "no_context"}:
                 raise ValueError(f"Unsupported unit route: {route}")
-            if route != "narrative" and fragment_ids:
-                raise ValueError("Non-narrative routes cannot carry fragment IDs")
+            if route != "narrative" and fragment_ids and value.get("content_role") != "event_narrative":
+                raise ValueError("Only event_narrative units can carry fragment IDs")
             if unit_id in route_map:
                 raise ValueError(f"Duplicate unit route: {unit_id}")
             route_map[unit_id] = value
@@ -119,6 +119,9 @@ class ContextTreeV2Writer(TreeV2StorageSupport):
                 "entity_digests": value.get("entity_digests", []),
                 "batch_sources": value.get("batch_sources", []),
                 "metadata": value.get("metadata", {}),
+                "content_role": value.get("content_role"),
+                "delivery_route": value.get("delivery_route"),
+                "summary": value.get("summary"),
             }
             connection.execute(
                 """

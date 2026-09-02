@@ -505,6 +505,16 @@
   "initial_translation_start_failed": "翻訳を開始できませんでした。設定を確認して、もう一度お試しください。",
   "initial_translation_duplicate_task": "このプロジェクトでは翻訳タスクがすでに実行中です。",
   "initial_translation_context_degraded": "プロジェクトアーカイブが古いか利用できません。用語集のみを使用して翻訳を続行します。",
+  "translation_context_stale": {
+    "title": "プロジェクトアーカイブが古くなっています",
+    "description": "このアーカイブの公開後にソースが変更されました。続行方法を選択してください。",
+    "question": "古いアーカイブのMod概要のみを使うか、用語集のみで続行しますか？",
+    "release": "アーカイブリリース：{{release}}",
+    "hash": "現在のソーススナップショット：{{hash}}",
+    "use_old_archive": "確認して古いアーカイブの概要のみを使う",
+    "disable_archive": "アーカイブを使わない（用語集のみ）",
+    "cancel": "キャンセル / 先にアーカイブを更新"
+  },
   "initial_translation_continue": "前回の翻訳を続ける",
   "button_abort_translation": "翻訳中止",
   "button_download_mod": "翻訳済みModをダウンロード",

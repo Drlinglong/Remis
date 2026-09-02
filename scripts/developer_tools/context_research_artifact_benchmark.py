@@ -239,6 +239,11 @@ def _usage_cost(payload: Any) -> float | None:
     """Extract a reported total, preserving a real zero as valid evidence."""
 
     if isinstance(payload, Mapping):
+        model_execution = payload.get("model_execution")
+        if isinstance(model_execution, Mapping):
+            cost = _usage_cost(model_execution)
+            if cost is not None:
+                return cost
         usage = payload.get("usage")
         if isinstance(usage, Mapping):
             summary = usage.get("summary")
@@ -294,7 +299,18 @@ def _first_cost(values: Any) -> float | None:
         return None
     for key in ("cost", "actual_cost"):
         if key in values and values[key] is not None:
-            return float(values[key])
+            value = values[key]
+            if isinstance(value, Mapping):
+                for amount_key in ("amount", "value"):
+                    amount = value.get(amount_key)
+                    if amount is not None:
+                        return float(amount)
+                continue
+            return float(value)
+    if values.get("amount") is not None and (
+        "currency" in values or "complete" in values
+    ):
+        return float(values["amount"])
     return None
 
 

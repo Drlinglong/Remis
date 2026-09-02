@@ -34,6 +34,11 @@ const buildOptions = () => ({
   setProgress: vi.fn(),
   setProgressInfo: vi.fn(),
   setScanResults: vi.fn(),
+  staleContextSubmit: async ({ payload, request, onSuccess }) => {
+    const response = await request(payload);
+    await onSuccess(response);
+    return response;
+  },
   t: (key) => key,
 });
 

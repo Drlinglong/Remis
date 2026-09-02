@@ -28,6 +28,7 @@ import { useReferenceReuseSettings } from './useReferenceReuseSettings';
 import { useReferenceLibraryGate } from './useReferenceLibraryGate';
 import { useIncrementalPreScan } from './useIncrementalPreScan';
 import { useIncrementalExecution } from './useIncrementalExecution';
+import { useStaleTranslationContextRetry } from './useStaleTranslationContextRetry';
 export const useIncrementalTranslation = (notificationStyle) => {
     const { t, i18n } = useTranslation();
     const location = useLocation();
@@ -98,6 +99,7 @@ export const useIncrementalTranslation = (notificationStyle) => {
         setUseResume,
         showResumeDetails,
     } = useIncrementalCheckpointRecovery(selectedProject?.project_id);
+    const staleContext = useStaleTranslationContextRetry();
 
     const addLog = useCallback((msg) => {
         setLogs(prev => [...prev, `[${formatLocalizedDateTime(Date.now(), getResolvedInterfaceLocale(i18n), { timeStyle: 'medium' })}] ${msg}`]);
@@ -286,7 +288,9 @@ export const useIncrementalTranslation = (notificationStyle) => {
         notificationStyle, preScanInFlightRef, referenceLocalizationPath, referenceReuseBypassed,
         referenceReuseEnabled, referenceReuseExcludedEntries, rpmLimit, selectedLangs, selectedModel,
         selectedProject, selectedProvider, setActive, setConflictingTaskId, setCurrentTaskId,
-        setCurrentTaskMode, setLoading, setLogs, setProgress, setProgressInfo, setScanResults, t, useResume: effectiveUseResume,
+        setCurrentTaskMode, setLoading, setLogs, setProgress, setProgressInfo, setScanResults, t,
+        useResume: effectiveUseResume,
+        staleContextSubmit: staleContext.submit,
     });
     const startTranslation = useIncrementalExecution({
         addLog, archiveInfo, batchSizeLimit, completionSourceRef, concurrencyLimit,
@@ -296,7 +300,9 @@ export const useIncrementalTranslation = (notificationStyle) => {
         notificationStyle, preScanInFlightRef, referenceLocalizationPath, referenceReuseBypassed,
         referenceReuseEnabled, referenceReuseExcludedEntries, rpmLimit, selectedLangs, selectedModel,
         selectedProject, selectedProvider, setActive, setConflictingTaskId, setCurrentTaskId,
-        setCurrentTaskMode, setExecuting, setFinalSummary, setLogs, setProgress, setProgressInfo, t, useResume: effectiveUseResume,
+        setCurrentTaskMode, setExecuting, setFinalSummary, setLogs, setProgress, setProgressInfo, t,
+        useResume: effectiveUseResume,
+        staleContextSubmit: staleContext.submit,
     });
     const openOutputFolder = useCallback(async () => {
         const folderPath = finalSummary?.output_dir;
@@ -531,6 +537,7 @@ export const useIncrementalTranslation = (notificationStyle) => {
         ),
         showWorkshopSettings, setShowWorkshopSettings,
         runPreScan, startTranslation, openOutputFolder,
+        staleContext,
         handleSelectFolder,
         completionSource: completionSourceRef.current,
         resetPersistedState, addLog, getArchivedTargetLanguages

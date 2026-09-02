@@ -112,6 +112,24 @@ def test_archive_mode_cannot_be_disabled_without_a_blocking_decision():
     assert exc_info.value.reason_code == "context_release_stale"
 
 
+def test_acknowledged_stale_summary_only_selection_is_allowed_to_translate():
+    current_hash = build_translation_source_snapshot(SOURCE_FILES).source_snapshot_hash
+    selection = TranslationContextService(
+        context_service=FakeContextService(),
+    ).prepare(
+        project_id="project-1",
+        files_data=SOURCE_FILES,
+        mode="archive",
+        stale_acknowledgement={
+            "choice": "use_old_archive",
+            "context_release_id": "release-1",
+            "source_snapshot_hash": current_hash,
+        },
+    )
+    assert selection.status == "stale_summary_only"
+    assert TranslationContextGate.require_ready("archive", selection) is selection
+
+
 @pytest.mark.asyncio
 async def test_agent_and_ui_share_archive_blocking_semantics():
     decision = TranslationContextGate.decide(

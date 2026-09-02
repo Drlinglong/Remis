@@ -500,6 +500,16 @@
   "initial_translation_start_failed": "Çeviri başlatılamadı. Yapılandırmayı kontrol edip tekrar deneyin.",
   "initial_translation_duplicate_task": "Bu proje için zaten çalışan bir çeviri görevi var.",
   "initial_translation_context_degraded": "Proje arşivi eski veya kullanılamıyor. Çeviri yalnızca sözlüklerle devam edecek.",
+  "translation_context_stale": {
+    "title": "Proje arşivi güncel değil",
+    "description": "Bu arşiv yayımlandıktan sonra kaynak değişti. Nasıl devam edileceğini seçin.",
+    "question": "Eski arşivin yalnızca Mod özetini kullanılsın mı, yoksa yalnızca sözlüklerle devam mı edilsin?",
+    "release": "Arşiv sürümü: {{release}}",
+    "hash": "Güncel kaynak anlık görüntüsü: {{hash}}",
+    "use_old_archive": "Onayla ve yalnızca eski arşiv özetini kullan",
+    "disable_archive": "Arşivi kullanma (yalnızca sözlükler)",
+    "cancel": "İptal / önce arşivi güncelle"
+  },
   "initial_translation_continue": "Önceki çeviriye devam et",
   "button_abort_translation": "Çeviriyi İptal Et",
   "button_download_mod": "Çevrilmiş Modu İndir",

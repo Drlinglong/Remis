@@ -52,13 +52,19 @@ class ContextTreeV2CandidateGovernanceService:
         *,
         event_group_ids_by_unit: Mapping[str, Sequence[str] | str] | None = None,
         manual_grade_overrides: Mapping[str, TreeCandidateGrade | str] | None = None,
+        terms_only: bool = False,
     ) -> TreeCandidateGovernanceResult:
         """Build aliases and assign A/B/C from distinct local-unit coverage."""
 
         items = self._coerce_source_items(source_items)
         units = tuple(local_units) if local_units is not None else ContextLocalUnitBuilder.build(items)
         source_lookup = {item.source_item_id: item for item in items}
-        aggregates, dropped = collect_aggregates(extractions, source_lookup, self.source_language)
+        aggregates, dropped = collect_aggregates(
+            extractions,
+            source_lookup,
+            self.source_language,
+            terms_only=terms_only,
+        )
         overrides, invalid_overrides = normalize_overrides(manual_grade_overrides or {})
         candidates = tuple(
             self._build_candidate(
@@ -74,7 +80,28 @@ class ContextTreeV2CandidateGovernanceService:
         return TreeCandidateGovernanceResult(
             candidates=candidates,
             source_language=self.source_language,
-            report=self._report(candidates, dropped, invalid_overrides),
+            report=self._report(
+                candidates, dropped, invalid_overrides,
+                scope="terms_only" if terms_only else "entities_and_terms",
+            ),
+        )
+
+    def govern_terms(
+        self,
+        extractions: Sequence[StructuredNeologismExtraction | Mapping[str, Any]],
+        source_items: Sequence[SourceItem | Mapping[str, Any]],
+        local_units: Sequence[LocalTextUnit] | None = None,
+        *,
+        manual_grade_overrides: Mapping[str, TreeCandidateGrade | str] | None = None,
+    ) -> TreeCandidateGovernanceResult:
+        """Govern explicit terms without importing entity cards as glossary rows."""
+
+        return self.govern(
+            extractions,
+            source_items,
+            local_units,
+            manual_grade_overrides=manual_grade_overrides,
+            terms_only=True,
         )
 
     def apply_semantic_merges(
@@ -177,8 +204,11 @@ class ContextTreeV2CandidateGovernanceService:
         candidates: Sequence[TreeCandidate],
         dropped: Sequence[Mapping[str, Any]],
         invalid_overrides: Sequence[Mapping[str, str]],
+        *,
+        scope: str = "entities_and_terms",
     ) -> dict[str, Any]:
         return {
+            "candidate_scope": scope,
             "coverage_authority": "program_distinct_local_units",
             "grade_rule": {"A": ">=3 local units", "B": "2 local units", "C": "1 local unit"},
             "mention_count_role": "display_only",

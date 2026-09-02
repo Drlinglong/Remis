@@ -9,6 +9,21 @@ from typing import Any, Callable
 TRANSLATION_CONTEXT_MODES = frozenset({"none", "glossaries", "archive"})
 
 
+def normalize_translation_context_mode(
+    mode: str | None,
+    *,
+    legacy_use_main_glossary: bool,
+    legacy_use_project_context: bool,
+) -> str:
+    """Turn legacy boolean flags into the explicit context mode contract."""
+
+    if mode is not None:
+        return mode
+    if legacy_use_project_context:
+        return "archive"
+    return "glossaries" if legacy_use_main_glossary else "none"
+
+
 @dataclass(frozen=True)
 class TranslationResourcePolicy:
     mode: str | None

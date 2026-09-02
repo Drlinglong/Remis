@@ -57,6 +57,7 @@ class ContextTreeV2WorkflowService:
         self.extractor_factory = extractor_factory
         self.catalog_factory = catalog_factory
         self.usage_ledger = usage_ledger
+        self.last_partial_snapshot: dict[str, Any] | None = None
 
     def run(
         self,
@@ -82,6 +83,7 @@ class ContextTreeV2WorkflowService:
                 game_name=game_name,
                 target_language=target_language,
                 reasoning_language=reasoning_language,
+                description_language=description_language,
                 runtime=runtime,
             )
             for chunk in chunks
@@ -90,6 +92,7 @@ class ContextTreeV2WorkflowService:
             int(result.diagnostics.get("repair_count", 0))
             for result in extraction_results
         )
+        self._set_extraction_partial_snapshot(extraction_results, extraction_calls)
         if scope is AnalysisScope.TERMS_ONLY:
             return ContextTreeV2WorkflowResult(
                 extractions=extraction_results,
@@ -128,13 +131,9 @@ class ContextTreeV2WorkflowService:
             for chunk in chunks
             for unit in chunk.core_units
         ]
-        catalog = self._catalog(
-            fragments,
-            chunks,
-            api_provider=api_provider,
-            model_name=model_name,
-            runtime=runtime,
-            description_language=description_language,
+        catalog = self._catalog_with_partial_snapshot(
+            fragments, chunks, api_provider=api_provider, model_name=model_name,
+            runtime=runtime, description_language=description_language,
         )
         projection = ContextTreeV2ProjectionService.project(
             routes,
@@ -177,6 +176,37 @@ class ContextTreeV2WorkflowService:
             },
         )
 
+    def _set_extraction_partial_snapshot(
+        self,
+        extractions: Sequence[ContextTreeV2Extraction],
+        extraction_calls: int,
+    ) -> None:
+        self.last_partial_snapshot = {
+            "schema_version": "context-workflow-v3-debug-v1",
+            "stage": "extraction_complete",
+            "extractions": [item.model_dump(mode="json") for item in extractions],
+            "catalog": None,
+            "projection": None,
+            "translation_contexts": [],
+            "model_calls": {"extraction": extraction_calls},
+            "workflow_diagnostics": {"stage": "extraction_complete"},
+        }
+
+    def _catalog_with_partial_snapshot(self, fragments, chunks, **kwargs):
+        try:
+            return self._catalog(fragments, chunks, **kwargs)
+        except Exception as error:
+            self.last_partial_snapshot = {
+                **(self.last_partial_snapshot or {}),
+                "stage": "catalog_failed",
+                "workflow_diagnostics": {
+                    "stage": "catalog_failed",
+                    "error_type": type(error).__name__,
+                    "error": str(error)[:500],
+                },
+            }
+            raise
+
     def _extract_chunk(
         self,
         chunk: ContextUnitChunk,
@@ -187,19 +217,25 @@ class ContextTreeV2WorkflowService:
         game_name: str,
         target_language: str,
         reasoning_language: str,
+        description_language: str,
         runtime: ProviderRuntimeSnapshot | None,
     ) -> ContextTreeV2Extraction:
         handler = self._handler(api_provider, model_name, runtime)
         try:
-            return self.extractor_factory(handler).extract_structured(
-                list(chunk.source_items),
-                scope=scope,
-                game_name=game_name,
-                target_language=target_language,
-                reasoning_language=reasoning_language,
-                core_units=chunk.core_units,
-                edge_units=chunk.edge_units,
-                chunk_edge_metadata=chunk.edge_metadata,
+            extract_kwargs = {
+                "scope": scope,
+                "game_name": game_name,
+                "target_language": target_language,
+                "reasoning_language": reasoning_language,
+                "core_units": chunk.core_units,
+                "edge_units": chunk.edge_units,
+                "chunk_edge_metadata": chunk.edge_metadata,
+            }
+            factory = self.extractor_factory
+            if "context_workflow_v3" in getattr(factory, "__module__", ""):
+                extract_kwargs["description_language"] = description_language
+            return factory(handler).extract_structured(
+                list(chunk.source_items), **extract_kwargs,
             )
         finally:
             if self.usage_ledger is not None:

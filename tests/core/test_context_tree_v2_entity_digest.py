@@ -9,6 +9,7 @@ from scripts.core.services.context_tree_v2_entity_digest import (
     DigestCandidate,
     DigestLocalUnit,
 )
+from scripts.core.services.context_research_read_metrics import CorpusReadMeter
 from scripts.core.services.context_tree_v2_candidate_governance import (
     ContextTreeV2CandidateGovernanceService,
 )
@@ -114,6 +115,44 @@ def test_ab_candidates_call_independently_and_c_only_stays_compact():
     assert "aliases" not in gamma_payload
     assert "local_unit_ids" not in gamma_payload
     assert any(item.code == "c_candidate_digest_skipped" for item in result.diagnostics)
+
+
+def test_entity_digest_raw_local_unit_payloads_are_included_in_cra():
+    source_items = [
+        SourceItem(
+            source_item_id=f"source-{index}",
+            relative_path="events.yml",
+            source_order=index,
+            source_text=f"Raw source {index}.",
+        )
+        for index in range(2)
+    ]
+    units = [_unit(f"unit-{index}", index, "group-a", item.source_text)
+             for index, item in enumerate(source_items)]
+    candidate = _candidate(
+        "entity:raw", "Raw", CandidateGrade.A,
+        tuple(unit.unit_id for unit in units), ("group-a",),
+    )
+    meter = CorpusReadMeter(source_items)
+    result = ContextTreeV2EntityDigestService(
+        _FakeHandler(), corpus_read_meter=meter,
+    ).run(
+        [candidate], units,
+        source_items_by_unit={
+            unit.unit_id: ({
+                "source_item_id": source_item.source_item_id,
+                "text": source_item.source_text,
+                "ownership": "owned",
+            },)
+            for unit, source_item in zip(units, source_items, strict=True)
+        },
+    )
+
+    snapshot = meter.snapshot()
+    assert snapshot["call_count"] == 1
+    assert snapshot["by_actor"]["production_entity_digest"] > 0
+    assert snapshot["numerator_tokens"] > 0
+    assert result.digests[0].digest_status == "complete"
 
 
 def test_governed_candidate_contract_flows_into_entity_digest():

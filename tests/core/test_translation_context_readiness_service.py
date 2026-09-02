@@ -97,6 +97,54 @@ async def test_archive_mode_reports_exact_glossary_counts_and_blocks_without_rel
 
 
 @pytest.mark.asyncio
+async def test_v3_release_is_read_from_tree_repository_for_readiness(tmp_path):
+    root = tmp_path / "example-mod"
+    localization = root / "localisation" / "english"
+    localization.mkdir(parents=True)
+    (localization / "01_first_l_english.yml").write_text(
+        'l_english:\n first_key:0 "The first entry"\n', encoding="utf-8",
+    )
+    inventory = IncrementalSnapshotService().build_snapshot(
+        str(root), {"name_en": "English", "code": "en"},
+    )
+    source_hash = build_translation_source_snapshot(inventory).source_snapshot_hash
+
+    class TreeRepository:
+        def get_latest_release_tree(self, project_id):
+            assert project_id == "project-1"
+            return SimpleNamespace(model_dump=lambda mode="json": {
+                "project_id": "project-1",
+                "release_id": "v3-release-1",
+                "source_snapshot_hash": source_hash,
+                "universal_translation_context": "A compact project summary.",
+                "local_fragments": [], "groups": [], "unit_routes": [],
+                "entity_evidence": [], "entity_digests": [],
+            })
+
+    glossary_manager = SimpleNamespace(
+        get_available_glossaries=AsyncMock(return_value=[{"glossary_id": 10, "is_main": True}]),
+        get_project_glossary=AsyncMock(return_value={"glossary_id": 20}),
+        get_entries_for_glossary_ids=AsyncMock(return_value=[{"key": "term"}]),
+    )
+    service = TranslationContextReadinessService(
+        glossary_manager,
+        FakeCandidateStore(),
+        tree_v2_repository=TreeRepository(),
+    )
+
+    readiness = await service.inspect("project-1", "archive", {
+        "game_id": "stellaris",
+        "project_name": "Example",
+        "source_path": str(root),
+        "source_language": "en",
+    })
+
+    assert readiness["can_start"] is True
+    assert readiness["archive"]["release_id"] == "v3-release-1"
+    assert readiness["archive"]["source_snapshot_match"] is True
+
+
+@pytest.mark.asyncio
 async def test_new_localization_file_marks_archive_stale(tmp_path):
     root = tmp_path / "example-mod"
     localization = root / "localisation" / "english"
@@ -163,15 +211,30 @@ async def test_new_localization_file_marks_archive_stale(tmp_path):
     resolution = await service.resolve_mode("project-1", "archive", project)
 
     assert resolution.requested_mode == "archive"
-    assert resolution.effective_mode == "glossaries"
-    assert resolution.degraded is True
+    assert resolution.effective_mode == "archive"
+    assert resolution.degraded is False
+    assert resolution.requires_user_choice is True
     assert resolution.warning == {
-        "code": "project_context_degraded",
+        "code": "context_release_stale_choice_required",
         "reason_code": "context_release_stale",
         "requested_mode": "archive",
-        "effective_mode": "glossaries",
+        "effective_mode": "archive",
         "warnings": ["context_release_stale"],
+        "required_choices": ["use_old_archive", "disable_archive"],
     }
+    acknowledged = await service.resolve_mode(
+        "project-1",
+        "archive",
+        project,
+        stale_choice="disable_archive",
+        stale_acknowledgement={
+            "choice": "disable_archive",
+            "context_release_id": "release-1",
+            "source_snapshot_hash": stale["archive"]["current_source_snapshot_hash"],
+        },
+    )
+    assert acknowledged.effective_mode == "glossaries"
+    assert acknowledged.requires_user_choice is False
 
 
 @pytest.mark.asyncio

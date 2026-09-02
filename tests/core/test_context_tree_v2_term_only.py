@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+from scripts.core.neologism_manager import Candidate
 from scripts.core.neologism_extraction import (
     AnalysisScope,
     SourceEvidence,
@@ -15,6 +16,13 @@ from scripts.core.services.context_tree_v2_term_only import (
     ContextTreeV2TermOnlyService,
     TermOnlyContractError,
 )
+from scripts.core.services.context_tree_v2_term_candidate_service import (
+    ContextTreeV2TermCandidateService,
+)
+from scripts.core.services.context_tree_v2_candidate_governance import (
+    ContextTreeV2CandidateGovernanceService,
+)
+from scripts.core.context_local_units import ContextLocalUnitBuilder
 
 
 def _evidence(source_id: str) -> SourceEvidence:
@@ -320,3 +328,120 @@ def test_execute_accepts_fake_v2_extraction_service_without_real_model_invocatio
     assert handler.calls[0]["scope"] is AnalysisScope.TERMS_ONLY
     assert handler.calls[0]["prompt_version"] == "context-archive-tree-v2"
     assert result.term_for("Aether Engine").first_variant.translation == "handler-fake"
+
+
+class _CandidateStore:
+    def __init__(self, candidates=()):
+        self.candidates = list(candidates)
+
+    def load_candidates(self, project_id):
+        return [item for item in self.candidates if item.project_id == project_id]
+
+    def save_candidates(self, project_id, candidates):
+        self.candidates = [item for item in candidates if item.project_id == project_id]
+
+
+def _stored_candidate(status: str, suggestion: str, evidence: str) -> Candidate:
+    return Candidate(
+        id="candidate-1",
+        project_id="project-1",
+        original="Aether Engine",
+        context_snippets=[evidence],
+        suggestion=suggestion,
+        reasoning="old reasoning",
+        status=status,
+    )
+
+
+@pytest.mark.parametrize("status, should_refresh", [("pending", True), ("approved", False)])
+def test_v3_term_persistence_refreshes_only_pending_candidates(status, should_refresh):
+    existing = _stored_candidate(status, "旧译名", "old source")
+    store = _CandidateStore([existing])
+    result = ContextTreeV2TermOnlyService().build([{
+        "terms": [{
+            "original": "Aether Engine",
+            "suggestion": "新译名",
+            "reasoning": "new evidence",
+            "evidence": ["source-0"],
+        }],
+    }])
+    source = _source_item()
+    ContextTreeV2TermCandidateService(store).persist(
+        "project-1", result, None, [source],
+        local_units=ContextLocalUnitBuilder.build([source]),
+        target_language="zh-CN", review_language="zh-CN",
+    )
+
+    saved = store.candidates[0]
+    if should_refresh:
+        assert saved.suggestion == "新译名"
+        assert saved.reasoning == "new evidence"
+        assert saved.context_snippets == [source.source_text]
+    else:
+        assert saved.suggestion == "旧译名"
+        assert saved.reasoning == "old reasoning"
+        assert saved.context_snippets == ["old source"]
+
+
+def test_term_persistence_keeps_duplicate_candidates_separate_from_archive_state():
+    store = _CandidateStore()
+    result = ContextTreeV2TermOnlyService().build([{
+        "terms": [{
+            "original": "Aether Engine",
+            "suggestion": "以太引擎",
+            "reasoning": "explicit term evidence",
+            "evidence": ["source-0"],
+        }],
+    }])
+    counts = ContextTreeV2TermCandidateService(store).persist(
+        "project-1", result, None, [_source_item()],
+        duplicate_index={"aether engine": [{"entry_id": "glossary-1"}]},
+        target_language="zh-CN", review_language="zh-CN",
+    )
+
+    assert counts == {"new_terms": 1, "duplicate_terms": 0}
+    assert store.candidates[0].duplicate_matches == [{"entry_id": "glossary-1"}]
+
+
+def test_v3_term_output_flows_through_shared_aggregation_governance_and_persistence():
+    source = _source_item()
+    extraction = StructuredNeologismExtraction(terms=[
+        _structured_term("Aether Engine", "以太引擎", "one pass", "source-0"),
+    ])
+    term_result = ContextTreeV2TermOnlyService().build([extraction])
+    governance = ContextTreeV2CandidateGovernanceService().govern_terms(
+        [extraction], [source], ContextLocalUnitBuilder.build([source]),
+    )
+    store = _CandidateStore()
+    counts = ContextTreeV2TermCandidateService(store).persist(
+        "project-1", term_result, governance, [source],
+        local_units=ContextLocalUnitBuilder.build([source]),
+        target_language="zh-CN", review_language="zh-CN",
+    )
+
+    assert counts["new_terms"] == 1
+    assert governance.candidates[0].kind.value == "term"
+    assert store.candidates[0].original == "Aether Engine"
+
+
+def test_entity_only_extraction_cannot_create_a_term_candidate():
+    source = _source_item()
+    extraction = StructuredNeologismExtraction(entities=[{
+        "name": "Aether Engine",
+        "entity_type": "technology/concept",
+        "evidence": [{"source_item_id": "source-0"}],
+    }])
+    term_result = ContextTreeV2TermOnlyService().build([{"terms": []}])
+    governance = ContextTreeV2CandidateGovernanceService().govern(
+        [extraction], [source], ContextLocalUnitBuilder.build([source]),
+    )
+    store = _CandidateStore()
+
+    counts = ContextTreeV2TermCandidateService(store).persist(
+        "project-1", term_result, governance, [source],
+        local_units=ContextLocalUnitBuilder.build([source]),
+        target_language="zh-CN", review_language="zh-CN",
+    )
+
+    assert counts == {"new_terms": 0, "duplicate_terms": 0}
+    assert store.candidates == []

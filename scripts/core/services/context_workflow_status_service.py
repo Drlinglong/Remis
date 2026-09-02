@@ -104,6 +104,7 @@ class ContextWorkflowStatusService:
             "description": None,
             "source_snapshot_hash": None,
             "context_release_id": None,
+            "workflow_telemetry": None,
             "affected_source_item_count": 0,
             "checkpoint": None,
         }
@@ -278,6 +279,14 @@ class ContextWorkflowStatusService:
     ) -> None:
         checkpoint = self._checkpoint(project_id)
         successful, failed = self._terminal_batch_counts(checkpoint)
+        telemetry = checkpoint.setdefault("metadata", {}).get("workflow_telemetry")
+        if isinstance(telemetry, dict):
+            telemetry = _copy(telemetry)
+            telemetry["publication_status"] = (
+                "published" if result.get("context_release_id")
+                else str(result.get("publication_status") or "not_published")
+            )
+            checkpoint["metadata"]["workflow_telemetry"] = telemetry
         checkpoint.update({"available": False, "stage": "completed", "cursor": None})
         completed_progress = self._progress(
             checkpoint, current=100, total=100, percent=100, stage="Completed",
@@ -299,6 +308,7 @@ class ContextWorkflowStatusService:
             error=None,
             checkpoint=checkpoint,
             progress=completed_progress,
+            **({"workflow_telemetry": telemetry} if telemetry else {}),
             **result,
         )
         self._save_checkpoint(task_id, checkpoint)
@@ -379,6 +389,34 @@ class ContextWorkflowStatusService:
                 "attention_reason": message,
                 "attention_reason_code": "context_analysis_failed",
             },
+        )
+
+    def record_telemetry(
+        self,
+        project_id: str,
+        task_id: str | None,
+        telemetry: Mapping[str, Any],
+    ) -> None:
+        """Persist audit telemetry before a later release gate can fail.
+
+        Model usage and corpus-read metrics are part of the paid-stage
+        evidence.  Keep them in the task-owned checkpoint as soon as a stage
+        has produced them so a publication error cannot erase that evidence.
+        """
+        audit = _copy(dict(telemetry))
+        checkpoint = self._checkpoint(project_id)
+        checkpoint.setdefault("metadata", {})["workflow_telemetry"] = audit
+        checkpoint["updated_at"] = _now()
+        self._set_status(
+            project_id,
+            workflow_telemetry=audit,
+            checkpoint=checkpoint,
+        )
+        self._save_checkpoint(task_id, checkpoint)
+        self.update_task(
+            task_id,
+            fields={"workflow_telemetry": audit},
+            push=False,
         )
 
     def update_task(self, task_id: str | None, **updates: Any) -> None:

@@ -38,6 +38,7 @@ from scripts.core.translation_cancellation import (
     ProcessingCancelledError,
     cancellable_translation_workflow,
 )
+from scripts.core.feature_policy import apply_translation_request_policy
 from scripts.routers.provider_runtime import provider_task_fields, resolve_runtime_or_400
 from scripts.core.neologism_manager import neologism_manager
 from scripts.utils.system_utils import sanitize_for_json
@@ -49,6 +50,7 @@ translation_context_readiness = TranslationContextReadinessService(
     glossary_manager,
     neologism_manager,
 )
+
 
 
 def _write_incremental_logs(output_dirs: list[str], log_lines: list[str], telemetry: Optional[Dict[str, Any]] = None):
@@ -647,6 +649,7 @@ async def run_incremental_update(project_id: str, request: IncrementalUpdateRequ
     project = await project_manager.get_project(project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+    apply_translation_request_policy(request)
     context_resolution = await translation_context_readiness.resolve_mode(
         project_id,
         request.translation_context_mode,
@@ -658,7 +661,10 @@ async def run_incremental_update(project_id: str, request: IncrementalUpdateRequ
             "source_language": (project or {}).get("source_language"),
         } if project else None,
         requested_release_id=request.context_release_id,
+        stale_choice=request.stale_choice,
+        stale_acknowledgement=request.stale_acknowledgement,
     )
+    if context_resolution.requires_user_choice: raise HTTPException(status_code=409, detail={"code": "context_release_stale_choice_required", "message": context_resolution.user_message, "warning": context_resolution.warning, "context_readiness": context_resolution.readiness})
     request.translation_context_mode = context_resolution.effective_mode
 
     task_id = str(uuid.uuid4())

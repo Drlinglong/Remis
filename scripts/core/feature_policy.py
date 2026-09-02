@@ -2,6 +2,9 @@
 
 from scripts.app_settings import BUILD_PROFILE
 from scripts.build_profile import AGENT_PREVIEW_CHANNEL, STABLE_CHANNEL
+from scripts.core.services.translation_resource_policy import (
+    normalize_translation_context_mode,
+)
 
 
 RELEASED_WORKFLOW_CHANNELS = frozenset({STABLE_CHANNEL, AGENT_PREVIEW_CHANNEL})
@@ -23,6 +26,11 @@ def enforce_checkpoint_resume_policy(requested: bool) -> bool:
 
 def apply_translation_request_policy(request) -> dict | None:
     """Mutate a translation request to the safe policy for its build channel."""
+    request.translation_context_mode = normalize_translation_context_mode(
+        request.translation_context_mode,
+        legacy_use_main_glossary=getattr(request, "use_main_glossary", True),
+        legacy_use_project_context=request.use_project_context,
+    )
     warning = None
     if request.translation_context_mode == "archive" and not mod_archive_enabled():
         request.translation_context_mode = "glossaries"

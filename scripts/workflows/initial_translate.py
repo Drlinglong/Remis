@@ -97,7 +97,7 @@ def _prepare_source_files(
 def _prepare_context_selection(
     project_id, files, use_project_context, context_release_id,
     context_character_budget, context_service, snapshot_service,
-    translation_context_mode,
+    translation_context_mode, stale_choice=None, stale_acknowledgement=None,
 ):
     return prepare_and_require_workflow_context(
         prepare_workflow_context,
@@ -107,6 +107,7 @@ def _prepare_context_selection(
             context_service, snapshot_service,
         ),
         translation_context_mode,
+        {"stale_choice": stale_choice, "stale_acknowledgement": stale_acknowledgement},
     )
 
 
@@ -184,6 +185,7 @@ def _prepare_translation_run(
     use_glossary, clean_source, override_path, progress_callback, project_id,
     use_project_context, translation_context_mode, context_release_id,
     context_character_budget, context_service, snapshot_service, batch_size_limit,
+    stale_choice=None, stale_acknowledgement=None,
 ) -> PreparedTranslationRun:
     load_glossaries_for_run(game_profile.get("id", ""), use_glossary, selected_glossary_ids)
     output_dir_path = prepare_output_workspace(mod_name, output_folder_name, game_profile)
@@ -197,7 +199,7 @@ def _prepare_translation_run(
         project_id, all_files_content,
         use_project_context or translation_context_mode == "archive",
         context_release_id, context_character_budget, context_service, snapshot_service,
-        translation_context_mode,
+        translation_context_mode, stale_choice, stale_acknowledgement,
     )
     source_root = override_path or os.path.join(SOURCE_DIR, mod_name)
     source_snapshot_hash = (
@@ -243,6 +245,9 @@ def run(
     translation_context_mode: Optional[str] = None, provider_runtime: Any = None,
     task_id: Optional[str] = None, run_id: Optional[str] = None,
     should_cancel: Optional[Any] = None, recovery_identity: Optional[dict] = None,
+    stale_choice: Optional[str] = None,
+    stale_acknowledgement: Optional[dict] = None,
+    should_cancel: Optional[Any] = None,
 ):
     """【最终版】初次翻译工作流（多语言 & 多游戏兼容）- 流式处理 & 断点续传版"""
     logging.info(f"--- Starting 'Initial Translation' workflow for: {mod_name} ---")
@@ -279,6 +284,8 @@ def run(
         context_service=context_service,
         snapshot_service=snapshot_service,
         batch_size_limit=batch_size_limit,
+        stale_choice=stale_choice,
+        stale_acknowledgement=stale_acknowledgement,
     )
     output_dir_path, source_result = prepared.output_dir_path, prepared.source_result
     all_files_content, context_selection = prepared.all_files_content, prepared.context_selection

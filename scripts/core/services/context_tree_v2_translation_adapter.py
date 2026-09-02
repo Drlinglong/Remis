@@ -41,11 +41,19 @@ class ContextTreeV2TranslationAdapter:
     @classmethod
     def _project(cls, tree: Mapping[str, Any]) -> TreeV2ContextProjection:
         project_summary = ()
-        if tree.get("project_summary"):
+        # Workflow v3 stores the bounded Mod-level summary in the same
+        # immutable tree shape.  Keep the fallback name for older tree-v2
+        # releases so the adapter remains release-format compatible.
+        project_text = (
+            tree.get("universal_translation_context")
+            or tree.get("project_summary")
+            or ""
+        )
+        if project_text:
             project_summary = ({
                 "context_key": f"project:{tree['project_id']}",
                 "aggregate_type": "project",
-                "summary": {"text": tree["project_summary"]},
+                "summary": {"text": str(project_text)},
             },)
         fragments = {
             item["fragment_id"]: item for item in tree.get("local_fragments", [])
@@ -57,7 +65,7 @@ class ContextTreeV2TranslationAdapter:
         }
         direct: dict[tuple[str, str], list[dict[str, Any]]] = {}
         for route in tree.get("unit_routes", []):
-            if route.get("route") != "narrative":
+            if not cls._is_event_route(route):
                 continue
             cls._add_route_context(route, fragments, group_by_fragment, direct)
         cls._add_entity_context(tree, direct)
@@ -107,10 +115,30 @@ class ContextTreeV2TranslationAdapter:
             "summary": {"summary_bullets": bullets},
         }
 
+    @staticmethod
+    def _is_event_route(route: Mapping[str, Any]) -> bool:
+        """Accept v3's orthogonal route and the legacy tree-v2 route."""
+
+        delivery_route = route.get("delivery_route")
+        if delivery_route is not None:
+            return delivery_route == "event"
+        return route.get("route") == "narrative"
+
     @classmethod
     def _add_entity_context(
         cls, tree: Mapping[str, Any], direct: dict[tuple[str, str], list[dict[str, Any]]],
     ) -> None:
+        route_by_unit = {
+            str(route.get("local_unit_id") or route.get("unit_id")): (
+                route.get("delivery_route")
+                or {
+                    "narrative": "event",
+                    "reference_asset": "reference",
+                    "no_context": "none",
+                }.get(route.get("route"))
+            )
+            for route in tree.get("unit_routes", [])
+        }
         digests = {
             item["entity_id"]: item for item in tree.get("entity_digests", [])
             if item.get("final_digest") and item.get("level") in {"A", "B"}
@@ -119,6 +147,22 @@ class ContextTreeV2TranslationAdapter:
             digest = digests.get(evidence.get("entity_id"))
             identity = cls._identity(evidence)
             if not digest or not identity:
+                continue
+            # Entity/reference context must not leak into event-narrative
+            # batches.  Older persisted trees did not carry a unit binding;
+            # preserve their behaviour when no binding is available.
+            bound_route = evidence.get("delivery_route") or route_by_unit.get(
+                str(evidence.get("local_unit_id") or "")
+            )
+            if bound_route is None and evidence.get("route") in {
+                "narrative", "reference_asset", "no_context",
+            }:
+                bound_route = {
+                    "narrative": "event",
+                    "reference_asset": "reference",
+                    "no_context": "none",
+                }[evidence["route"]]
+            if bound_route in {"event", "none"}:
                 continue
             direct.setdefault(identity, []).append({
                 "context_key": str(digest["entity_id"]),

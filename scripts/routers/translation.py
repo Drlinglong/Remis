@@ -66,6 +66,7 @@ translation_context_readiness = TranslationContextReadinessService(
     neologism_manager,
 )
 
+
 def _run_async(coro):
     """Run async project services from the synchronous background workflow thread."""
     return asyncio.run(coro)
@@ -195,7 +196,6 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
         )
         status, message, issue_count = _workflow_outcome_values(outcome)
         finalize_task(task_id, status, message, "Completed", issue_count)
-
         if project_id:
             try:
                 _run_async(project_manager.log_history_event(
@@ -259,6 +259,8 @@ def run_translation_workflow_v2(
     context_character_budget: int = 4000,
     translation_context_mode: Optional[str] = None,
     recovery_identity: Optional[dict] = None,
+    stale_choice: Optional[str] = None,
+    stale_acknowledgement: Optional[dict] = None,
     provider_runtime=None,
 ):
     i18n.load_language('en_US')
@@ -299,7 +301,6 @@ def run_translation_workflow_v2(
             logging.error(f"Validation Failed: GameProfile={game_profile}, SourceLang={source_lang}, TargetLangs={target_languages}")
             raise ValueError("Failed to resolve game profile, source language, or target languages.")
         _reject_source_language_targets(source_lang_code, target_languages)
-
         resources = resolve_translation_run_resources(
             game_id=game_profile["id"],
             project_id=project_id,
@@ -322,7 +323,6 @@ def run_translation_workflow_v2(
                 resources.project_glossary_id,
                 project_id,
             )
-
         logging.info("Calling initial_translate.run...")
         outcome = initial_translate.run(
             mod_name=mod_name, game_profile=game_profile, source_lang=source_lang,
@@ -343,6 +343,7 @@ def run_translation_workflow_v2(
                 "use_project_context": resource_policy.include_project_context,
                 "context_release_id": context_release_id,
                 "context_character_budget": context_character_budget,
+                "stale_choice": stale_choice, "stale_acknowledgement": stale_acknowledgement,
             }, translation_context_mode=translation_context_mode),
         )
         _record_context_metadata(task_id, outcome)
@@ -457,8 +458,9 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
             "source_path": project.get("source_path"),
             "source_language": request.source_lang_code,
         },
-        requested_release_id=request.context_release_id,
+        requested_release_id=request.context_release_id, stale_choice=request.stale_choice, stale_acknowledgement=request.stale_acknowledgement,
     )
+    if context_resolution.requires_user_choice: raise HTTPException(status_code=409, detail={"code": "context_release_stale_choice_required", "message": context_resolution.user_message, "warning": context_resolution.warning, "context_readiness": context_resolution.readiness})
     request.translation_context_mode = context_resolution.effective_mode
     task_id = str(uuid.uuid4())
     mod_name = os.path.basename(os.path.normpath(source_path))

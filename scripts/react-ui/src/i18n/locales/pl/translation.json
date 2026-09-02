@@ -500,6 +500,16 @@
   "initial_translation_start_failed": "Nie udało się uruchomić tłumaczenia. Sprawdź konfigurację i spróbuj ponownie.",
   "initial_translation_duplicate_task": "Dla tego projektu trwa już zadanie tłumaczenia.",
   "initial_translation_context_degraded": "Archiwum projektu jest nieaktualne lub niedostępne. Tłumaczenie będzie kontynuowane tylko ze słownikami.",
+  "translation_context_stale": {
+    "title": "Archiwum projektu jest nieaktualne",
+    "description": "Źródło zmieniło się od czasu publikacji tego archiwum. Wybierz sposób kontynuowania.",
+    "question": "Użyć tylko podsumowania Moda ze starego archiwum czy kontynuować tylko ze słownikami?",
+    "release": "Wersja archiwum: {{release}}",
+    "hash": "Bieżący zrzut źródła: {{hash}}",
+    "use_old_archive": "Potwierdź i użyj tylko podsumowania starego archiwum",
+    "disable_archive": "Nie używaj archiwum (tylko słowniki)",
+    "cancel": "Anuluj / najpierw zaktualizuj archiwum"
+  },
   "initial_translation_continue": "Kontynuuj poprzednie tłumaczenie",
   "button_abort_translation": "Przerwij tłumaczenie",
   "button_download_mod": "Pobierz przetłumaczony mod",

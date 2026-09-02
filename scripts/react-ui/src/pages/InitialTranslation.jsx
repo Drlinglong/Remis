@@ -27,6 +27,7 @@ import controlsStyles from '../components/initialTranslation/InitialTranslationC
 import ConfigStep from '../components/initialTranslation/ConfigStep';
 import ProjectSelectionStep from '../components/initialTranslation/ProjectSelectionStep';
 import ResumeCheckpointModal from '../components/initialTranslation/ResumeCheckpointModal';
+import TranslationContextStaleModal from '../components/TranslationContextStaleModal';
 import TaskRunner from '../components/TaskRunner';
 import { useInitialTranslationFlow } from '../hooks/useInitialTranslationFlow';
 import { useInitialTranslationPageData } from '../hooks/useInitialTranslationPageData';
@@ -338,6 +339,7 @@ const InitialTranslation = () => {
     resumeModalOpen,
     setReferencePromptOpen,
     setResumeModalOpen,
+    staleContext,
   } = useInitialTranslationFlow({
     config,
     notificationStyle,
@@ -484,6 +486,15 @@ const InitialTranslation = () => {
           t={t}
         />
       )}
+
+      <TranslationContextStaleModal
+        detail={staleContext.detail}
+        opened={staleContext.opened}
+        onCancel={staleContext.cancel}
+        onDisableArchive={() => staleContext.choose('disable_archive')}
+        onUseOldArchive={() => staleContext.choose('use_old_archive')}
+        t={t}
+      />
 
       <Modal
         opened={referencePromptOpen}

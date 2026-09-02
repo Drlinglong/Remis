@@ -239,6 +239,41 @@ def test_catalog_is_id_only_and_keeps_group_order_semantics_separate():
     }
 
 
+def test_projection_preserves_event_fragments_while_delivery_controls_injection():
+    routes = [
+        UnitRoute(
+            local_unit_id="unit-none",
+            route="no_context",
+            content_role="event_narrative",
+            delivery_route="none",
+            fragment_ids=["fragment-none"],
+            summary="Archive-only narrative.",
+        ),
+        UnitRoute(
+            local_unit_id="unit-reference",
+            route="reference_asset",
+            content_role="event_narrative",
+            delivery_route="reference",
+            fragment_ids=["fragment-reference"],
+            summary="Reference-delivered narrative.",
+        ),
+    ]
+    projection = ContextTreeV2ProjectionService.project(
+        routes,
+        ContextTreeCatalog(groups=[
+            TreeGroup(group_id="group-none", fragment_ids=["fragment-none"]),
+            TreeGroup(group_id="group-reference", fragment_ids=["fragment-reference"]),
+        ]),
+    )
+
+    assert projection.unit_routes[0].fragment_ids == ["fragment-none"]
+    assert projection.unit_routes[0].content_role == "event_narrative"
+    assert projection.unit_routes[0].receives_event_context is False
+    assert projection.unit_routes[1].fragment_ids == ["fragment-reference"]
+    assert projection.unit_routes[1].delivery_route == "reference"
+    assert projection.unit_routes[1].receives_event_context is False
+
+
 def test_program_projection_and_context_assembly_do_not_synthesize_or_order_siblings():
     fragments = [
         LocalFragment(fragment_id="fragment_a", summary="A", unit_ids=["unit_0"]),

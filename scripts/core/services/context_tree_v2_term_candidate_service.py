@@ -34,6 +34,7 @@ class ContextTreeV2TermCandidateService:
         governed = {
             key: item
             for item in getattr(governance, "candidates", ())
+            if self._candidate_kind(item) == "term"
             for key in self._candidate_keys(item)
         }
         incoming = [
@@ -80,6 +81,21 @@ class ContextTreeV2TermCandidateService:
             normalized_match_key(value, self.source_language)
             for value in values if str(value).strip()
         ))
+
+    @staticmethod
+    def _candidate_kind(candidate: Any) -> str:
+        kind = getattr(candidate, "kind", None)
+        if kind is not None:
+            return str(getattr(kind, "value", kind)).casefold()
+        legacy_kind = getattr(candidate, "candidate_kind", None)
+        if legacy_kind is not None:
+            value = str(getattr(legacy_kind, "value", legacy_kind)).casefold()
+            return (
+                "term"
+                if value in {"glossary_term", "named_phrase", "term"}
+                else "entity"
+            )
+        return "term"
 
     @staticmethod
     def _source_to_units(local_units: Sequence[Any]) -> dict[str, tuple[str, ...]]:

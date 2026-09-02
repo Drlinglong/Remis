@@ -723,6 +723,16 @@
   "initial_translation_start_failed": "无法启动翻译，请检查配置后重试。",
   "initial_translation_duplicate_task": "这个项目已有翻译任务正在运行。",
   "initial_translation_context_degraded": "项目档案不可用或已过期；本次翻译将仅使用词典继续。",
+  "translation_context_stale": {
+    "title": "项目档案已过期",
+    "description": "源文件在该档案发布后发生了变化，请选择如何继续。",
+    "question": "仅使用旧档案的 Mod 摘要，还是仅使用词典继续？",
+    "release": "档案版本：{{release}}",
+    "hash": "当前源快照：{{hash}}",
+    "use_old_archive": "知道了，继续使用旧档案（仅 Mod 级摘要）",
+    "disable_archive": "不使用档案（仅词典）",
+    "cancel": "取消 / 先更新档案"
+  },
   "initial_translation_continue": "继续上次翻译",
   "button_abort_translation": "中断翻译",
   "button_download_mod": "下载翻译后的Mod",

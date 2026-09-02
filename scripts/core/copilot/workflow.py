@@ -311,6 +311,9 @@ async def create_translation_plan(
     use_resume: bool = True,
     use_main_glossary: bool = True,
     translation_context_mode: str | None = None,
+    context_release_id: str | None = None,
+    stale_choice: str | None = None,
+    stale_acknowledgement: dict[str, Any] | None = None,
     embedded_workshop_enabled: bool = True,
 ) -> dict[str, Any]:
     project = await project_manager.get_project(project_id)
@@ -352,6 +355,9 @@ async def create_translation_plan(
         "mod_context": "",
         "selected_glossary_ids": [],
         "translation_context_mode": effective_context_mode,
+        "context_release_id": context_release_id,
+        "stale_choice": stale_choice,
+        "stale_acknowledgement": stale_acknowledgement,
         "use_main_glossary": effective_context_mode != "none",
         "use_project_context": effective_context_mode == "archive",
         "clean_source": False,

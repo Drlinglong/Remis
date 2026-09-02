@@ -11,8 +11,13 @@ from scripts.core.neologism_extraction import (
     SourceItem,
     StructuredNeologismExtraction,
 )
+from scripts.core.prompts.context_workflow_v3_prompt import (
+    WORKFLOW_V3_PROMPT_VERSION,
+    WORKFLOW_V3_VERSION,
+)
 from scripts.core.services.context_chunking_policy import ContextUnitChunk
 from scripts.core.services.context_model_usage import ContextModelUsageLedger
+from scripts.core.services.context_research_read_metrics import CorpusReadMeter
 from scripts.core.services.context_tree_v2_analysis_assembler import (
     ContextTreeV2AnalysisAssembler,
 )
@@ -46,6 +51,12 @@ from scripts.core.services.context_tree_v2_term_only import (
 from scripts.core.services.context_tree_v2_workflow_service import (
     ContextTreeV2WorkflowResult,
 )
+from scripts.core.services.context_workflow_v3_catalog import (
+    ContextWorkflowV3CatalogService,
+)
+from scripts.core.services.context_workflow_v3_extraction import (
+    ContextWorkflowV3ExtractionService,
+)
 from scripts.core.services.provider_runtime import (
     ProviderRuntimeSnapshot,
     handler_from_runtime,
@@ -64,12 +75,33 @@ class ContextTreeV2ProductionWorkflowService:
         candidate_store: Any,
         status_service: Any,
         checkpoint_repository: Any | None = None,
+        workflow_profile: str = "tree_v2",
     ) -> None:
+        if workflow_profile not in {"tree_v2", "workflow_v3"}:
+            raise ValueError("workflow_profile must be tree_v2 or workflow_v3")
         self.handler_factory = handler_factory
         self.tree_repository = tree_repository
         self.candidate_store = candidate_store
         self.status_service = status_service
         self.checkpoints = ContextTreeV2CheckpointService(checkpoint_repository)
+        self.workflow_profile = workflow_profile
+        self.last_debug_snapshot: dict[str, Any] | None = None
+
+    @property
+    def workflow_label(self) -> str:
+        return (
+            WORKFLOW_V3_VERSION
+            if self.workflow_profile == "workflow_v3"
+            else "context-tree-v2"
+        )
+
+    @property
+    def prompt_version(self) -> str:
+        return (
+            WORKFLOW_V3_PROMPT_VERSION
+            if self.workflow_profile == "workflow_v3"
+            else "context-archive-tree-v2"
+        )
 
     def run(
         self,
@@ -95,11 +127,23 @@ class ContextTreeV2ProductionWorkflowService:
         runtime: ProviderRuntimeSnapshot | None = None,
     ) -> dict[str, Any]:
         scope = AnalysisScope(scope)
+        corpus_read_meter = CorpusReadMeter(source_items)
+        extractor_factory = (
+            ContextWorkflowV3ExtractionService
+            if scope is AnalysisScope.NARRATIVE_CONTEXT
+            and self.workflow_profile == "workflow_v3"
+            else None
+        )
+        extraction_kwargs = {}
+        if extractor_factory is not None:
+            extraction_kwargs["extractor_factory"] = extractor_factory
         extractions = ContextTreeV2ExtractionExecutionService(
             handler_factory=self.handler_factory,
             checkpoints=self.checkpoints,
             status_service=self.status_service,
             usage_ledger=usage_ledger,
+            corpus_read_meter=corpus_read_meter,
+            **extraction_kwargs,
         ).execute(
             chunks,
             scope=scope,
@@ -108,12 +152,19 @@ class ContextTreeV2ProductionWorkflowService:
             task_id=task_id,
             target_language=target_language,
             reasoning_language=description_language,
+            description_language=description_language,
             analysis_run=analysis_run,
             api_provider=api_provider,
             model_name=model_name,
             runtime=runtime,
             concurrency=concurrency,
         )
+        self.last_debug_snapshot = {
+            "schema_version": "context-tree-v2-production-debug-v1",
+            "workflow_version": self.workflow_label,
+            "extractions": [item.model_dump(mode="json") for item in extractions],
+            "corpus_read_amplification": corpus_read_meter.snapshot(),
+        }
         term_result = self._term_result(extractions, source_language)
         if scope is AnalysisScope.TERMS_ONLY:
             governance = ContextTreeV2CandidateGovernanceService(
@@ -125,6 +176,7 @@ class ContextTreeV2ProductionWorkflowService:
                 project_id, task_id, term_result, source_items, local_units,
                 source_language, target_language, description_language,
                 duplicate_index, usage_ledger, governance,
+                corpus_read_meter,
             )
         return self._finish_archive(
             project_id=project_id,
@@ -145,6 +197,7 @@ class ContextTreeV2ProductionWorkflowService:
             duplicate_index=duplicate_index,
             analysis_run=analysis_run,
             usage_ledger=usage_ledger,
+            corpus_read_meter=corpus_read_meter,
         )
 
     @staticmethod
@@ -177,6 +230,7 @@ class ContextTreeV2ProductionWorkflowService:
         duplicate_index: dict[str, list[dict[str, Any]]],
         ledger: ContextModelUsageLedger,
         governance: Any,
+        corpus_read_meter: CorpusReadMeter | None = None,
     ) -> dict[str, Any]:
         self.status_service.begin_stage(project_id, task_id, "reviewing", 1)
         counts = ContextTreeV2TermCandidateService(
@@ -196,7 +250,7 @@ class ContextTreeV2ProductionWorkflowService:
         return {
             **counts,
             "analysis_scope": AnalysisScope.TERMS_ONLY.value,
-            "workflow_version": "context-tree-v2",
+            "workflow_version": self.workflow_label,
             "candidate_governance": {
                 "coverage_authority": "program_distinct_local_units",
                 "grade_rule": {"A": ">=3", "B": "2", "C": "1"},
@@ -206,6 +260,7 @@ class ContextTreeV2ProductionWorkflowService:
                 "term_count": len(term_result.terms),
                 "model_execution": ledger.summary(),
                 "skipped_stages": dict(term_result.skipped_stages),
+                "corpus_read_amplification": corpus_read_meter.snapshot() if corpus_read_meter else None,
             },
         }
 
@@ -232,12 +287,19 @@ class ContextTreeV2ProductionWorkflowService:
             chunks=values["chunks"], extractions=values["extractions"],
             workflow_result=workflow, governance=governance,
             entity_digest_result=digest_result, term_result=values["term_result"],
+            prompt_version=self.prompt_version,
+            project_summary=str(
+                workflow.catalog.diagnostics.get(
+                    "universal_translation_context", "",
+                )
+            ) or None,
         )
         return self._persist_archive(
             assembled, workflow, governance, digest_result, **values,
         )
 
     def _catalog_and_project(self, **values: Any) -> ContextTreeV2WorkflowResult:
+        corpus_read_meter = values.get("corpus_read_meter")
         fragments = [
             fragment for extraction in values["extractions"]
             for fragment in extraction.local_fragments
@@ -255,7 +317,12 @@ class ContextTreeV2ProductionWorkflowService:
                 values["api_provider"], values["model_name"], values.get("runtime")
             )
             try:
-                catalog = ContextTreeV2CatalogService(handler).build_catalog(
+                catalog_factory = (
+                    ContextWorkflowV3CatalogService
+                    if self.workflow_profile == "workflow_v3"
+                    else ContextTreeV2CatalogService
+                )
+                catalog = catalog_factory(handler).build_catalog(
                     fragments,
                     chunk_edge_metadata=[chunk.edge_metadata for chunk in values["chunks"]],
                     description_language=values["description_language"],
@@ -263,14 +330,35 @@ class ContextTreeV2ProductionWorkflowService:
                 self.checkpoints.save_catalog(
                     values["analysis_run"], source_ids, catalog,
                 )
+            except Exception:
+                self.checkpoints.save_partial_artifact(
+                    values["analysis_run"],
+                    source_ids,
+                    {
+                        "stage": "catalog",
+                        "workflow_version": self.workflow_label,
+                        "extractions": [
+                            item.model_dump(mode="json")
+                            for item in values["extractions"]
+                        ],
+                        "corpus_read_amplification": (
+                            corpus_read_meter.snapshot() if corpus_read_meter else None
+                        ),
+                    },
+                )
+                raise
             finally:
                 values["usage_ledger"].capture(handler, "tree_v2_catalog")
         projection = ContextTreeV2ProjectionService.project(
             routes, catalog,
             expected_unit_ids=[unit.unit_id for unit in values["local_units"]],
         )
+        project_summary = str(
+            catalog.diagnostics.get("universal_translation_context") or ""
+        )
         contexts = ContextTreeV2ContextService.project_all_translation_contexts(
-            projection, catalog.catalog, fragments, project_summary="",
+            projection, catalog.catalog, fragments,
+            project_summary=project_summary,
         )
         self.status_service.record_batch(
             values["project_id"], values["task_id"], "aggregating",
@@ -292,7 +380,9 @@ class ContextTreeV2ProductionWorkflowService:
             },
             diagnostics={
                 "schema_version": "context-tree-v2",
-                "prompt_version": "context-archive-tree-v2",
+                "prompt_version": self.prompt_version,
+                "workflow_version": self.workflow_label,
+                "universal_translation_context": project_summary,
                 "assignment_model_calls": 0,
                 "aggregate_synthesis_model_calls": 0,
             },
@@ -316,9 +406,21 @@ class ContextTreeV2ProductionWorkflowService:
                 values["api_provider"], values["model_name"], values.get("runtime")
             )
             try:
-                result = ContextTreeV2EntityDigestService(handler).run(
+                result = ContextTreeV2EntityDigestService(
+                    handler,
+                    corpus_read_meter=values.get("corpus_read_meter"),
+                ).run(
                     governance.candidates, digest_units,
-                    project_title=values["project_title"], event_group_summaries=groups,
+                    project_title=values["project_title"],
+                    human_project_summary=str(
+                        workflow.catalog.diagnostics.get(
+                            "universal_translation_context", "",
+                        )
+                    ) or None,
+                    event_group_summaries=groups,
+                    source_items_by_unit=self._digest_source_items_by_unit(
+                        values["local_units"], values["chunks"],
+                    ),
                 )
                 eligible_ids = {
                     item.candidate_id for item in governance.candidates
@@ -341,6 +443,22 @@ class ContextTreeV2ProductionWorkflowService:
         )
         self.status_service.complete_stage(values["project_id"], values["task_id"], "synthesizing")
         return result
+
+    @staticmethod
+    def _digest_source_items_by_unit(
+        local_units: Sequence[Any], chunks: Sequence[Any],
+    ) -> dict[str, tuple[dict[str, Any], ...]]:
+        core_ids = {
+            unit.unit_id for chunk in chunks for unit in chunk.core_units
+        }
+        return {
+            unit.unit_id: tuple({
+                "source_item_id": item.source_item_id,
+                "text": item.source_text,
+                "ownership": "owned" if unit.unit_id in core_ids else "context_only",
+            } for item in unit.items)
+            for unit in local_units
+        }
 
     @staticmethod
     def _digest_units(local_units: Sequence[Any], chunks: Sequence[Any], extractions: Sequence[Any], projection: Any) -> tuple[DigestLocalUnit, ...]:
@@ -374,6 +492,7 @@ class ContextTreeV2ProductionWorkflowService:
         self, tree: Any, workflow: Any, governance: Any, digests: Any,
         **values: Any,
     ) -> dict[str, Any]:
+        corpus_read_meter = values.get("corpus_read_meter")
         project_id, task_id = values["project_id"], values["task_id"]
         self.status_service.begin_stage(project_id, task_id, "publishing", 1)
         stored = self.tree_repository.save_tree(tree)
@@ -412,14 +531,15 @@ class ContextTreeV2ProductionWorkflowService:
         return {
             **counts,
             "analysis_scope": AnalysisScope.NARRATIVE_CONTEXT.value,
-            "workflow_version": "context-tree-v2",
+            "workflow_version": self.workflow_label,
             "tree_id": stored.tree_id,
             "draft_id": draft.draft_id,
             "context_release_id": release_id,
             "publication_status": "published" if release_id else "review_required",
             "candidate_governance": governance.report,
             "analysis_report": {
-                "workflow_version": "context-tree-v2",
+                "workflow_version": self.workflow_label,
+                "prompt_version": self.prompt_version,
                 "model_calls": {
                     **workflow.model_calls,
                     "entity_digest": len([
@@ -436,6 +556,9 @@ class ContextTreeV2ProductionWorkflowService:
                 "unresolved_reference_count": len(stored.unresolved_references),
                 "validation": validation.model_dump(mode="json"),
                 "model_execution": values["usage_ledger"].summary(),
+                "corpus_read_amplification": (
+                    corpus_read_meter.snapshot() if corpus_read_meter else None
+                ),
             },
         }
 

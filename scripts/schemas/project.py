@@ -1,4 +1,4 @@
-from typing import Optional, List, Literal
+from typing import Any, Dict, Optional, List, Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from scripts.schemas.common import LanguageCode
 from scripts.schemas.reference import ReferenceReuseConfig
@@ -162,6 +162,8 @@ class IncrementalUpdateRequest(BaseModel):
     translation_context_mode: Optional[Literal["none", "glossaries", "archive"]] = None
     context_release_id: Optional[str] = None
     context_character_budget: int = Field(default=4000, ge=0, le=20000)
+    stale_choice: Optional[str] = None
+    stale_acknowledgement: Optional[Dict[str, Any]] = None
     concurrency_limit: Optional[int] = None
     rpm_limit: Optional[int] = None
     mod_context: Optional[str] = ""

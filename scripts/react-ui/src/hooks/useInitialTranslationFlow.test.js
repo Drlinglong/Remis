@@ -97,13 +97,96 @@ describe('useInitialTranslationFlow reference gate', () => {
     expect(setTaskId).toHaveBeenLastCalledWith(null);
   });
 
-  it('uses the backend recovery task action instead of legacy checkpoint endpoints', async () => {
-    api.get.mockResolvedValue({ data: {
-      task_id: 'task-interrupted',
-      checkpoint: { available: true, resumable: true },
-      allowed_actions: ['resume_task', 'start_over_task'],
-    } });
-    api.post.mockResolvedValueOnce({ data: { task_id: 'task-resumed', status: 'queued' } });
+  it('asks how to handle a stale archive and retries initial translation with the old archive', async () => {
+    api.post.mockRejectedValueOnce({
+      response: {
+        status: 409,
+        data: {
+          detail: {
+            code: 'context_release_stale_choice_required',
+            context_readiness: {
+              archive: {
+                release_id: 'release-1',
+                current_source_snapshot_hash: 'hash-1',
+              },
+            },
+          },
+        },
+      },
+    }).mockResolvedValueOnce({ data: { task_id: 'task-initial' } });
+    const { result } = renderHook(() => useInitialTranslationFlow({
+      config: { languages: [] },
+      notificationStyle: {},
+      selectedProject: { game_id: 'victoria3', label: 'Demo', source_language: 'en' },
+      selectedProjectId: 'demo',
+      setActive: vi.fn(),
+      setIsProcessing: vi.fn(),
+      setStatus: vi.fn(),
+      setTaskId: vi.fn(),
+      setTranslationDetails: vi.fn(),
+      t: (key) => key,
+    }));
+
+    await act(async () => result.current.handleStartClick({
+      ...values,
+      reference_reuse_enabled: false,
+    }));
+    expect(result.current.staleContext.opened).toBe(true);
+
+    await act(async () => result.current.staleContext.choose('use_old_archive'));
+
+    expect(api.post).toHaveBeenLastCalledWith('/api/translate/start', expect.objectContaining({
+      stale_choice: 'use_old_archive',
+      stale_acknowledgement: {
+        choice: 'use_old_archive',
+        context_release_id: 'release-1',
+        source_snapshot_hash: 'hash-1',
+      },
+    }));
+  });
+
+  it('cancels the stale archive prompt and returns initial translation to configuration', async () => {
+    api.post.mockRejectedValueOnce({
+      response: {
+        status: 409,
+        data: {
+          detail: {
+            code: 'context_release_stale_choice_required',
+            context_readiness: {
+              archive: {
+                release_id: 'release-1',
+                current_source_snapshot_hash: 'hash-1',
+              },
+            },
+          },
+        },
+      },
+    });
+    const setActive = vi.fn();
+    const setIsProcessing = vi.fn();
+    const { result } = renderHook(() => useInitialTranslationFlow({
+      config: { languages: [] },
+      notificationStyle: {},
+      selectedProject: { game_id: 'victoria3', label: 'Demo', source_language: 'en' },
+      selectedProjectId: 'demo',
+      setActive,
+      setIsProcessing,
+      setStatus: vi.fn(),
+      setTaskId: vi.fn(),
+      setTranslationDetails: vi.fn(),
+      t: (key) => key,
+    }));
+
+    await act(async () => result.current.handleStartClick({
+      ...values,
+      reference_reuse_enabled: false,
+    }));
+    await act(async () => result.current.staleContext.cancel());
+
+    expect(api.post).toHaveBeenCalledOnce();
+    expect(setActive).toHaveBeenLastCalledWith(1);
+    expect(setIsProcessing).toHaveBeenLastCalledWith(false);
+  });
     const { result } = renderHook(() => useInitialTranslationFlow({
       config: { languages: [] },
       notificationStyle: {},

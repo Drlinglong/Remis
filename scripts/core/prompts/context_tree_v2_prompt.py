@@ -46,6 +46,11 @@ assignment table, event catalog, aggregate summary, or synthesis.
 
 # Unit routes
 - Return exactly one `unit_routes` entry for each core unit.
+- `content_role` records whether the unit is event_narrative,
+  background_narrative, static_reference, or utility_or_noise.
+- `delivery_route` records event, reference, or none independently. The legacy
+  route mirrors it as narrative, reference_asset, or no_context.
+- `summary` is a concise description of the unit in the reasoning language.
 - `narrative` means the unit receives event-group context and must reference
   its local fragment IDs.
 - `reference_asset` means the unit is a person, place, organization, weapon,
@@ -78,6 +83,9 @@ Return only JSON with this shape and no markdown:
   "unit_routes": [{
     "local_unit_id": "unit_0",
     "route": "narrative",
+    "content_role": "event_narrative",
+    "delivery_route": "event",
+    "summary": "A concrete event step.",
     "fragment_ids": ["fragment_c0_1"]
   }],
   "entities": [],

@@ -94,7 +94,10 @@ class ContextTreeV2Reader(TreeV2StorageSupport):
             fragment["fragment_id"]
             for fragment in fragments
             if unit_id in cls._decode(fragment["unit_ids_json"], [])
-            and row["route"] == "narrative"
+            and (
+                row["route"] == "narrative"
+                or metadata.get("content_role") == "event_narrative"
+            )
         ]
         return {
             "unit_id": unit_id,
@@ -104,6 +107,9 @@ class ContextTreeV2Reader(TreeV2StorageSupport):
             "entity_evidence": metadata.get("entity_evidence", []),
             "entity_digests": metadata.get("entity_digests", []),
             "batch_sources": metadata.get("batch_sources", []),
+            "content_role": metadata.get("content_role"),
+            "delivery_route": metadata.get("delivery_route"),
+            "summary": metadata.get("summary"),
         }
 
     @classmethod
@@ -301,6 +307,9 @@ class ContextTreeV2Reader(TreeV2StorageSupport):
             "entity_summary": item.get("entity_summary", {}),
             "entity_evidence": item.get("entity_evidence", []),
             "entity_digests": item.get("entity_digests", []),
+            "content_role": item.get("content_role"),
+            "delivery_route": item.get("delivery_route"),
+            "summary": item.get("summary"),
         }
 
     @staticmethod

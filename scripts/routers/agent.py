@@ -97,14 +97,12 @@ def _persist_agent_task_snapshot(job_id: str, snapshot: Dict[str, Any]) -> None:
         },
     )
 
-
 def _persist_terminal_agent_task_snapshot(
     job_id: str,
     snapshot: Dict[str, Any],
 ) -> None:
     if snapshot.get("status") in TERMINAL_TASK_STATUSES:
         _persist_agent_task_snapshot(job_id, snapshot)
-
 
 task_state.register_task_update_listener(_persist_terminal_agent_task_snapshot)
 
@@ -759,6 +757,8 @@ async def retry_agent_job(job_id: str):
             use_resume=True,
             use_main_glossary=args.get("use_main_glossary", True),
             translation_context_mode=args.get("translation_context_mode"),
+            context_release_id=args.get("context_release_id"), stale_choice=args.get("stale_choice"),
+            stale_acknowledgement=args.get("stale_acknowledgement"),
             embedded_workshop_enabled=(
                 args.get("embedded_workshop", {}).get("enabled", True)
             ),

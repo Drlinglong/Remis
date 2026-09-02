@@ -67,6 +67,7 @@ class ContextTreeV2ExtractionService:
         game_name: str = "Paradox Game",
         target_language: str = "the configured target language",
         reasoning_language: str = "the configured review language",
+        description_language: str | None = None,
         core_units: Sequence[LocalTextUnit] | None = None,
         edge_units: Sequence[LocalTextUnit] = (),
         chunk_edge_metadata: ChunkEdgeMetadata | None = None,
@@ -79,6 +80,7 @@ class ContextTreeV2ExtractionService:
             game_name=game_name,
             target_language=target_language,
             reasoning_language=reasoning_language,
+            description_language=description_language,
             core_units=core_units,
             edge_units=edge_units,
             chunk_edge_metadata=chunk_edge_metadata,
@@ -92,6 +94,7 @@ class ContextTreeV2ExtractionService:
         game_name: str = "Paradox Game",
         target_language: str = "the configured target language",
         reasoning_language: str = "the configured review language",
+        description_language: str | None = None,
         core_units: Sequence[LocalTextUnit] | None = None,
         edge_units: Sequence[LocalTextUnit] = (),
         chunk_edge_metadata: ChunkEdgeMetadata | None = None,
@@ -115,6 +118,7 @@ class ContextTreeV2ExtractionService:
             game_name=game_name,
             target_language=target_language,
             reasoning_language=reasoning_language,
+            description_language=description_language,
             source_aliases=source_aliases,
         )
         response = self._generate(
@@ -323,6 +327,7 @@ class ContextTreeV2ExtractionService:
         target_language: str,
         reasoning_language: str,
         source_aliases: Dict[str, str],
+        description_language: str | None = None,
     ) -> list[dict[str, str]]:
         del scope  # The backend mode is intentionally absent from the model payload.
         payload = {

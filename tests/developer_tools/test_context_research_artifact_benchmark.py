@@ -169,6 +169,25 @@ def test_cost_fallback_preserves_zero_and_sums_smoke_usage_records(tmp_path: Pat
     assert result["elapsed_seconds"] == 3.5
 
 
+def test_cost_accepts_provider_envelope_from_workflow_trace(tmp_path: Path) -> None:
+    artifact = tmp_path / "artifact.json"
+    trace = tmp_path / "trace.json"
+    gold = tmp_path / "gold.md"
+    _gold(gold)
+    artifact.write_text(json.dumps({
+        "draft": {"diagnostics": {"run": {"status": "complete", "publishable": True}}},
+    }), encoding="utf-8")
+    trace.write_text(json.dumps({
+        "model_execution": {
+            "cost": {"amount": 0.04450405, "currency": "USD", "complete": True},
+        },
+    }), encoding="utf-8")
+
+    result = score_artifact(artifact, gold, trace_path=trace)
+
+    assert result["cost_usd"] == 0.04450405
+
+
 def test_scores_corpus_read_amplification_and_legacy_denominator_only(tmp_path: Path) -> None:
     artifact = tmp_path / "artifact.json"
     gold = tmp_path / "gold.md"

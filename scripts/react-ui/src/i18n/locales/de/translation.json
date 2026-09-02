@@ -502,6 +502,16 @@
   "initial_translation_start_failed": "Die Übersetzung konnte nicht gestartet werden. Prüfen Sie die Konfiguration und versuchen Sie es erneut.",
   "initial_translation_duplicate_task": "Für dieses Projekt läuft bereits eine Übersetzungsaufgabe.",
   "initial_translation_context_degraded": "Das Projektarchiv ist veraltet oder nicht verfügbar. Die Übersetzung wird nur mit Glossaren fortgesetzt.",
+  "translation_context_stale": {
+    "title": "Das Projektarchiv ist veraltet",
+    "description": "Die Quelle wurde seit der Veröffentlichung dieses Archivs geändert. Wählen Sie, wie Sie fortfahren möchten.",
+    "question": "Nur die Mod-Zusammenfassung des alten Archivs verwenden oder nur mit Glossaren fortfahren?",
+    "release": "Archivversion: {{release}}",
+    "hash": "Aktueller Quell-Snapshot: {{hash}}",
+    "use_old_archive": "Bestätigen und nur die alte Archivzusammenfassung verwenden",
+    "disable_archive": "Archiv nicht verwenden (nur Glossare)",
+    "cancel": "Abbrechen / Archiv zuerst aktualisieren"
+  },
   "initial_translation_continue": "Vorherige Übersetzung fortsetzen",
   "button_abort_translation": "Übersetzung abbrechen",
   "button_download_mod": "Übersetzte Mod herunterladen",
