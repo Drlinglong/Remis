@@ -165,7 +165,7 @@ describe('ContextTreeV2ArchiveSummary', () => {
         expect(needsPlacement.parentElement.lastElementChild).toBe(needsPlacement);
     });
 
-    it('keeps all top-level chains on one dynamic relationship rail', () => {
+    it('keeps all top-level chains in one responsive wrapping grid', () => {
         const groupIds = ['group-1', 'group-2', 'group-3', 'group-4', 'group-5', 'group-6'];
         const manyChains = {
             ...tree,
@@ -182,10 +182,11 @@ describe('ContextTreeV2ArchiveSummary', () => {
 
         renderSummary(manyChains);
 
-        const map = screen.getByTestId('published-context-map');
-        const grid = map.querySelector('[style*="--chain-count"]');
-        expect(grid).toHaveStyle('--chain-count: 6');
-        expect(screen.getByTestId('published-context-group-group-6')).toBeInTheDocument();
+        const first = screen.getByTestId('published-context-group-group-1');
+        const last = screen.getByTestId('published-context-group-group-6');
+        expect(last).toBeInTheDocument();
+        expect(first.parentElement).toBe(last.parentElement);
+        expect(first.parentElement).not.toHaveAttribute('style');
     });
 
     it('creates a named event chain from the overview entry point', () => {
