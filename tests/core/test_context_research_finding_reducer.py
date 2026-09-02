@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+from scripts.core.context_local_units import LocalTextUnit
+from scripts.core.neologism_extraction import SourceItem
 from scripts.core.services.context_research_compiler import ContextResearchFindings
 from scripts.core.services.context_research_finding_reducer import reduce_findings
 from scripts.core.services.context_research_lead_decisions import (
     EntityMergeDecision,
     EventMemberDecision,
+    EventMergeEvidence,
     FindingDiscardDecision,
     FindingPatchDecision,
     LeadResearchDecisions,
@@ -167,3 +170,81 @@ def test_event_decision_schema_distinguishes_new_chain_from_existing_members():
     assert "New canonical output chain ID" in schema["chain_id"]["description"]
     assert "Never put the new chain_id" in schema["finding_ids"]["description"]
     assert "Prefer these" in schema["local_unit_ids"]["description"]
+
+
+def test_event_merge_requires_and_records_verified_positive_evidence():
+    findings = ContextResearchFindings.model_validate({
+        "event_chains": [
+            _event("chain-a", 0, "unit_0", "source-0", ("entity-remis",)),
+            _event("chain-b", 1, "unit_1", "source-1", ("entity-remis",)),
+        ],
+    })
+    units = (
+        LocalTextUnit(
+            unit_id="unit_0", unit_key="events/demo.yml::crisis.1",
+            items=(SourceItem(
+                source_item_id="source-0", relative_path="events/demo.yml",
+                item_key="crisis.1.desc", source_order=0, source_text="Remis starts."),),
+        ),
+        LocalTextUnit(
+            unit_id="unit_1", unit_key="events/demo.yml::crisis.2",
+            items=(SourceItem(
+                source_item_id="source-1", relative_path="events/demo.yml",
+                item_key="crisis.2.desc", source_order=1, source_text="Remis continues."),),
+        ),
+    )
+    lead = LeadResearchDecisions(event_members=(EventMemberDecision(
+        chain_id="crisis-chain", sequence=0,
+        finding_ids=("chain-a:0", "chain-b:1"),
+        positive_evidence=(
+            EventMergeEvidence(
+                signal="shared_entities", entity_ids=("entity-remis",),
+            ),
+            EventMergeEvidence(
+                signal="adjacent_local_units", local_unit_ids=("unit_0", "unit_1"),
+            ),
+        ),
+    ),))
+
+    reduced = reduce_findings(findings, lead, local_units=units)
+
+    assert [(item.chain_id, item.sequence) for item in reduced.event_chains] == [
+        ("crisis-chain", 0),
+    ]
+    reducer = reduced.diagnostics["reducer"]
+    assert len(reducer["merge_evidence_acceptances"]) == 1
+    assert reducer["merge_evidence_rejections"] == []
+
+
+def test_event_merge_without_lead_evidence_is_rejected_when_compiler_can_verify():
+    findings = ContextResearchFindings.model_validate({
+        "event_chains": [
+            _event("chain-a", 0, "unit_0", "source-0", ("entity-remis",)),
+            _event("chain-b", 1, "unit_1", "source-1", ("entity-remis",)),
+        ],
+    })
+    units = (
+        LocalTextUnit(
+            unit_id="unit_0", unit_key="events/demo.yml::crisis.1",
+            items=(SourceItem(
+                source_item_id="source-0", relative_path="events/demo.yml",
+                item_key="crisis.1.desc", source_order=0, source_text="Remis starts."),),
+        ),
+        LocalTextUnit(
+            unit_id="unit_1", unit_key="events/demo.yml::crisis.2",
+            items=(SourceItem(
+                source_item_id="source-1", relative_path="events/demo.yml",
+                item_key="crisis.2.desc", source_order=1, source_text="Remis continues."),),
+        ),
+    )
+    lead = LeadResearchDecisions(event_members=(EventMemberDecision(
+        chain_id="crisis-chain", sequence=0,
+        finding_ids=("chain-a:0", "chain-b:1"),
+    ),))
+
+    reduced = reduce_findings(findings, lead, local_units=units)
+
+    assert len(reduced.event_chains) == 2
+    assert reduced.diagnostics["reducer"]["merge_evidence_rejections"][0]["reason"] == (
+        "lead_merge_evidence_missing"
+    )

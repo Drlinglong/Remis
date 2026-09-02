@@ -84,6 +84,17 @@ class RepairTarget(BaseModel):
         return self
 
 
+class RepairBatch(BaseModel):
+    """A deterministic, same-shape group of repair targets."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    batch_id: str = Field(min_length=1, max_length=100)
+    finding_type: FindingType
+    allowed_fields: tuple[str, ...] = Field(default=(), max_length=20)
+    target_keys: tuple[str, ...] = Field(min_length=1, max_length=10)
+
+
 class RepairPacket(BaseModel):
     """A provider-agnostic, at-most-two-attempt repair instruction."""
 
@@ -94,6 +105,9 @@ class RepairPacket(BaseModel):
     max_attempts: int = MAX_REPAIR_ATTEMPTS
     remaining_attempts: int = Field(ge=0, le=MAX_REPAIR_ATTEMPTS)
     targets: tuple[RepairTarget, ...] = Field(default=(), max_length=500)
+    repair_batches: tuple[RepairBatch, ...] = Field(default=(), max_length=500)
+    batch_count: int = Field(default=0, ge=0, le=500)
+    batch_sizes: tuple[int, ...] = Field(default=(), max_length=500)
     valid_source_allow_list: tuple[str, ...] = Field(default=(), max_length=500)
     related_local_unit_ids: tuple[str, ...] = Field(default=(), max_length=500)
     coverage: CoverageAssessment = Field(default_factory=CoverageAssessment)
@@ -122,10 +136,15 @@ class RepairPacket(BaseModel):
         )
         if self.model_call_allowed != expected_allowed:
             raise ValueError("model_call_allowed must be derived from repairable targets and budget")
+        expected_sizes = tuple(len(batch.target_keys) for batch in self.repair_batches)
+        if self.batch_count != len(self.repair_batches) or self.batch_sizes != expected_sizes:
+            raise ValueError("repair batch audit fields are inconsistent")
+        if any(size > 10 or size < 1 for size in self.batch_sizes):
+            raise ValueError("repair batch sizes must be between one and ten")
         return self
 
 
 __all__ = [
     "CoverageAssessment", "CoverageDisposition", "CoverageKind", "FailureClass",
-    "FindingType", "MAX_REPAIR_ATTEMPTS", "RepairPacket", "RepairTarget",
+    "FindingType", "MAX_REPAIR_ATTEMPTS", "RepairBatch", "RepairPacket", "RepairTarget",
 ]

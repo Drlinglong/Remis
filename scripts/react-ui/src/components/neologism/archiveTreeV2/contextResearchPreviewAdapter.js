@@ -35,6 +35,32 @@ const compileExtractivePreviewSummary = (draft = {}) => {
     ].filter(Boolean).join('\n\n');
 };
 
+const universalContext = (fixture = {}, draft = {}) => {
+    const raw = draft.universal_translation_context ?? fixture.universal_translation_context;
+    if (typeof raw === 'string') return { text: raw, sourceItemIds: [], externalSourceKinds: [] };
+    if (raw && typeof raw === 'object' && String(raw.text || '').trim()) return {
+        text: String(raw.text).trim(),
+        sourceItemIds: unique(raw.source_item_ids || raw.sourceItemIds),
+        externalSourceKinds: unique(raw.external_source_kinds || raw.externalSourceKinds),
+        generation: raw.generation || 'unknown',
+    };
+    const metadata = fixture.external_context?.metadata || {};
+    const title = metadata.name || fixture.project?.name || fixture.project?.game_name || 'Paradox 模组';
+    const entities = unique((draft.entities || []).slice(0, 2).map((item) => item.name));
+    const events = (draft.event_chains || []).slice(0, 2).map((item) => String(item.event || '').trim()).filter(Boolean);
+    const hints = [...entities, ...events].join('；') || '专名、事件因果和玩家可见语气';
+    const fallbackText = `${title}的翻译语境围绕${hints}展开；保持专名、事件先后、因果关系与玩家可见语气一致。`;
+    return {
+        text: fallbackText.length > 240 ? `${fallbackText.slice(0, 239)}…` : fallbackText,
+        sourceItemIds: unique((draft.event_chains || []).flatMap((item) => item.source_item_ids || [])).slice(0, 20),
+        externalSourceKinds: unique([
+            fixture.external_context?.metadata_source?.status === 'loaded' ? 'mod_metadata' : null,
+            fixture.external_context?.workshop_source?.status === 'loaded' ? 'steam_workshop' : null,
+        ]),
+        generation: 'preview_extract_fallback',
+    };
+};
+
 const routeBySourceId = (draft = {}) => {
     const routes = new Map();
     const apply = (items, route) => items.forEach((item) => {
@@ -53,6 +79,7 @@ export const contextResearchPreviewToArchiveTree = (fixture = {}) => {
     const draft = fixture.draft || {};
     const project = fixture.project || {};
     const release = fixture.release || {};
+    const universal = universalContext(fixture, draft);
     const routes = routeBySourceId(draft);
     const sourceItems = fixture.source_items || [];
     const sourceById = new Map(sourceItems.map((item) => [item.source_item_id, item]));
@@ -169,9 +196,13 @@ export const contextResearchPreviewToArchiveTree = (fixture = {}) => {
         release_id: release.release_id,
         project_id: project.project_id,
         project_title: project.name,
-        project_summary: compileExtractivePreviewSummary(draft),
+        project_summary: universal
+            ? `Universal translation context\n${universal.text}`
+            : compileExtractivePreviewSummary(draft),
+        universal_translation_context: universal,
         preview_metadata: {
             ...(fixture.provenance || {}),
+            external_context: fixture.external_context || fixture.metadata?.external_context || null,
             read_only: true,
             published: false,
         },

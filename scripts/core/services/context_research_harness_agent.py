@@ -67,6 +67,9 @@ LEAD_REQUEST_LIMIT = 20
 LEAD_TOOL_CALL_LIMIT = 48
 LEAD_MAX_OUTPUT_TOKENS = 16000
 LEAD_OUTPUT_TOKEN_LIMIT = 32000
+ADJUDICATION_REQUEST_LIMIT = 1
+ADJUDICATION_OUTPUT_TOKEN_LIMIT = 10000
+ADJUDICATION_MAX_OUTPUT_TOKENS = 8000
 
 
 def merge_model_settings(
@@ -361,6 +364,45 @@ async def run_lead(
     return await agent.run(prompt, **kwargs)
 
 
+def build_adjudication_agent(
+    *, model: Any, model_settings: Mapping[str, Any] | None = None,
+) -> Any:
+    """Construct a tool-free, single-request event-edge adjudicator."""
+
+    from pydantic_ai import Agent
+    from scripts.core.services.context_research_lead_decisions import (
+        EventChainAdjudicationResult,
+    )
+
+    return Agent(
+        model,
+        name="archive_event_adjudicator",
+        output_type=EventChainAdjudicationResult,
+        retries=0,
+        instructions=(
+            "You are a low-cost deterministic evidence adjudicator. Return only the typed "
+            "batch result requested by the user. You have no tools and must not delegate. "
+            "Do not return prose outside the result object. The result has exactly one "
+            "decisions array; each entry has candidate_id, decision, "
+            "evidence_source_item_ids, positive_signals, and optional reason."
+        ),
+        model_settings=merge_model_settings(
+            ADJUDICATION_MAX_OUTPUT_TOKENS, model_settings,
+        ),
+    )
+
+
+async def run_adjudication(agent: Any, prompt: str) -> Any:
+    """Run exactly one bounded adjudication request without corpus tools."""
+
+    return await agent.run(
+        prompt,
+        usage_limits=usage_limits(
+            ADJUDICATION_REQUEST_LIMIT, 0, ADJUDICATION_OUTPUT_TOKEN_LIMIT,
+        ),
+    )
+
+
 async def await_with_cancellation(task: asyncio.Task[Any], context: Any) -> Any:
     """Race a model task with the owner cancellation signal."""
 
@@ -384,6 +426,9 @@ async def await_with_cancellation(task: asyncio.Task[Any], context: Any) -> Any:
 __all__ = [
     "HARNESS_AVAILABLE",
     "HARNESS_COMPATIBILITY_NOTE",
+    "ADJUDICATION_MAX_OUTPUT_TOKENS",
+    "ADJUDICATION_OUTPUT_TOKEN_LIMIT",
+    "ADJUDICATION_REQUEST_LIMIT",
     "LEAD_REQUEST_LIMIT",
     "LEAD_TOOL_CALL_LIMIT",
     "LEAD_MAX_OUTPUT_TOKENS",
@@ -396,9 +441,11 @@ __all__ = [
     "SUBAGENT_TOOL_CALL_LIMIT",
     "await_with_cancellation",
     "build_lead_agent",
+    "build_adjudication_agent",
     "capabilities",
     "merge_model_settings",
     "register_corpus_tools",
     "run_lead",
+    "run_adjudication",
     "usage_limits",
 ]

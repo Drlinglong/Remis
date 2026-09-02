@@ -80,6 +80,7 @@ class ContextResearchTraceCollector:
             "compiler_diagnostics": None,
             "errors": [],
             "repair": {"packet": None, "output": None, "attempts": []},
+            "adjudication": {"packet": None, "output": None, "status": "not_run"},
             "final_draft": None,
             "usage": {"records": [], "summary": {"groups": [], "totals": {}}},
         }
@@ -218,6 +219,9 @@ class ContextResearchTraceCollector:
         packet: Any = _MISSING,
         output: Any = _MISSING,
         attempt: int | None = None,
+        batch_id: str | None = None,
+        batch_index: int | None = None,
+        batch_count: int | None = None,
     ) -> None:
         if packet is not _MISSING:
             self._state["repair"]["packet"] = _safe(packet)
@@ -226,18 +230,42 @@ class ContextResearchTraceCollector:
         if attempt is not None:
             existing = next((
                 item for item in self._state["repair"]["attempts"]
-                if item["attempt"] == attempt
+                if item["attempt"] == attempt and item.get("batch_id") == batch_id
             ), None)
             if existing is None:
                 existing = {
-                    "attempt": attempt, "recorded_at": _now(),
+                    "attempt": attempt, "batch_id": batch_id,
+                    "batch_index": batch_index, "batch_count": batch_count,
+                    "recorded_at": _now(),
                     "packet": None, "output": None,
                 }
                 self._state["repair"]["attempts"].append(existing)
+            else:
+                if batch_index is not None:
+                    existing["batch_index"] = batch_index
+                if batch_count is not None:
+                    existing["batch_count"] = batch_count
             if packet is not _MISSING:
                 existing["packet"] = _safe(packet)
             if output is not _MISSING:
                 existing["output"] = _safe(output)
+        self._touch()
+
+    def record_adjudication(
+        self,
+        *,
+        packet: Any = _MISSING,
+        output: Any = _MISSING,
+        status: str | None = None,
+    ) -> None:
+        """Record the one-batch event-edge adjudication separately from repair."""
+
+        if packet is not _MISSING:
+            self._state["adjudication"]["packet"] = _safe(packet)
+        if output is not _MISSING:
+            self._state["adjudication"]["output"] = _safe(output)
+        if status is not None:
+            self._state["adjudication"]["status"] = str(status)
         self._touch()
 
     def record_final_draft(self, draft: Any) -> None:

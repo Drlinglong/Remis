@@ -10,6 +10,7 @@ contract.
 
 from __future__ import annotations
 
+import ast
 from collections import OrderedDict
 from typing import Any, Mapping, Sequence
 
@@ -23,6 +24,7 @@ from scripts.core.services.context_research_repair_models import (
     FailureClass,
     FindingType,
     MAX_REPAIR_ATTEMPTS,
+    RepairBatch,
     RepairPacket,
     RepairTarget,
 )
@@ -63,6 +65,8 @@ _SYSTEMIC_CODES = frozenset({
 _NON_FAILURE_CODES = frozenset({
     "schema_version", "published_counts", "uncovered_source_item_ids",
     "coverage_dispositions", "coverage", "model", "inferred_local_unit_ids",
+    "chain_consolidation", "entity_normalization",
+    "universal_translation_context",
 })
 
 _FINDING_SPECS = (
@@ -439,9 +443,13 @@ def _packet(attempt: int, targets: Sequence[RepairTarget], coverage: CoverageAss
     valid_source_allow_list = _unique_strings(
         source_id for item in targets for source_id in item.source_allow_list
     )
+    batches = _plan_repair_batches(targets)
     return RepairPacket(
         attempt=attempt, remaining_attempts=max(0, MAX_REPAIR_ATTEMPTS - attempt),
         targets=tuple(targets),
+        repair_batches=batches,
+        batch_count=len(batches),
+        batch_sizes=tuple(len(batch.target_keys) for batch in batches),
         valid_source_allow_list=valid_source_allow_list,
         related_local_unit_ids=_unique_strings(
             unit_id for item in targets for unit_id in item.related_local_unit_ids
@@ -455,6 +463,41 @@ def _packet(attempt: int, targets: Sequence[RepairTarget], coverage: CoverageAss
         and not systemic and attempt < MAX_REPAIR_ATTEMPTS,
         systemic_corruption=systemic,
     )
+
+
+def _plan_repair_batches(targets: Sequence[RepairTarget]) -> tuple[RepairBatch, ...]:
+    """Group only existing repairable targets into stable, same-shape batches."""
+    grouped: dict[tuple[str, tuple[str, ...]], list[RepairTarget]] = {}
+    for target in targets:
+        if target.classification != "repairable":
+            continue
+        key = (target.finding_type, tuple(target.allowed_fields))
+        grouped.setdefault(key, []).append(target)
+
+    batches: list[RepairBatch] = []
+    batch_number = 0
+    for group_key in sorted(grouped, key=lambda item: (item[0], item[1])):
+        finding_type, allowed_fields = group_key
+        members = sorted(grouped[group_key], key=_repair_target_sort_key)
+        for offset in range(0, len(members), 8):
+            chunk = members[offset:offset + 8]
+            batch_number += 1
+            batches.append(RepairBatch(
+                batch_id=f"repair-batch-{batch_number:03d}",
+                finding_type=finding_type,
+                allowed_fields=allowed_fields,
+                target_keys=tuple(_repair_target_key(item) for item in chunk),
+            ))
+    return tuple(batches)
+
+
+def _repair_target_sort_key(target: RepairTarget) -> tuple[str, int, str]:
+    return target.finding_id.casefold(), target.sequence if target.sequence is not None else -1, ",".join(target.failure_codes)
+
+
+def _repair_target_key(target: RepairTarget) -> str:
+    suffix = f":{target.sequence}" if target.sequence is not None else ""
+    return f"{target.finding_type}:{target.finding_id}{suffix}"
 
 
 def _systemic_packet(attempt: int, key_shards: Sequence[str], code: str) -> RepairPacket:
@@ -471,5 +514,5 @@ def _first_value(*values: Any) -> str | None:
 
 __all__ = [
     "CoverageAssessment", "CoverageDisposition", "CoverageKind", "FailureClass",
-    "RepairPacket", "RepairTarget", "build_repair_packet",
+    "RepairBatch", "RepairPacket", "RepairTarget", "build_repair_packet",
 ]

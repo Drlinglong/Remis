@@ -162,6 +162,33 @@ def test_repair_budget_is_at_most_two_attempts():
         build_repair_packet(diagnostics, _findings(), request=_request(), attempt=3)
 
 
+def test_repairable_targets_are_planned_in_stable_eight_target_batches():
+    findings = ContextResearchFindings.model_validate({
+        "event_chains": [{
+            "chain_id": "crisis", "sequence": sequence,
+            "event": f"危机步骤 {sequence}",
+            "local_unit_ids": [f"unit_{sequence}"],
+            "source_item_ids": ["source-1"],
+            "evidence": [{"source_item_ids": ["source-1"]}],
+        } for sequence in range(13)],
+    })
+    packet = build_repair_packet(
+        {"unknown_entity_links": [
+            {"chain_id": "crisis", "sequence": sequence, "entity_id": "missing"}
+            for sequence in range(13)
+        ]},
+        findings,
+        request=_request(),
+    )
+
+    assert packet.batch_count == 2
+    assert packet.batch_sizes == (8, 5)
+    assert [len(batch.target_keys) for batch in packet.repair_batches] == [8, 5]
+    assert packet.repair_batches[0].target_keys[0] == "event_chain:crisis:0"
+    assert packet.repair_batches[1].target_keys[-1] == "event_chain:crisis:12"
+    assert all(target.finding_id == "crisis" for target in packet.targets)
+
+
 def test_coverage_gate_only_blocks_key_uninspected_shards():
     packet = build_repair_packet(
         {"coverage_dispositions": [

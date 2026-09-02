@@ -31,7 +31,8 @@ describe('context research preview adapter', () => {
         ))).toBe(false);
         expect(rawTree.unresolved_fragments).toHaveLength(0);
         expect(tree.projectSummary).toMatch(/Remis .*重组银河共和国/);
-        expect(tree.projectSummary).toContain('事件脉络\n');
+        expect(tree.projectSummary).toContain('Universal translation context\n');
+        expect(tree.projectSummary).not.toContain('事件脉络\n');
         expect(tree.projectSummary).toContain('Pax Remisia');
         expect(tree.projectSummary).not.toContain('未决问题');
         expect(tree.projectSummary).not.toContain('保持未决');

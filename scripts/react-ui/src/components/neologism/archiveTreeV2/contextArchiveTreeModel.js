@@ -110,6 +110,18 @@ const getSummary = (raw, fallback = '') => String(firstValue(
     fallback,
 ) || '');
 
+const normalizeUniversalContext = (raw) => {
+    const value = typeof raw === 'string' ? { text: raw } : asObject(raw);
+    const text = String(firstValue(value.text, value.summary) || '').trim();
+    if (!text) return null;
+    return {
+        text,
+        sourceItemIds: asIdList(firstValue(value.source_item_ids, value.sourceItemIds)),
+        externalSourceKinds: asIdList(firstValue(value.external_source_kinds, value.externalSourceKinds)),
+        generation: String(firstValue(value.generation, 'unknown')),
+    };
+};
+
 const unwrapTreePayload = (payload) => {
     const value = asObject(payload);
     return asObject(firstValue(
@@ -301,6 +313,10 @@ export const getFirstNarrativeUnitId = (tree) => getTreeUnitOptions(tree)[0]?.id
 
 export const normalizeArchiveTree = (payload) => {
     const raw = unwrapTreePayload(payload);
+    const universalContext = normalizeUniversalContext(firstValue(
+        raw.universal_translation_context,
+        raw.universalTranslationContext,
+    ));
     const rawStories = asList(firstValue(raw.stories, raw.story_catalog, raw.parent_stories));
     const nestedGroups = [];
     rawStories.forEach((story) => {
@@ -432,6 +448,7 @@ export const normalizeArchiveTree = (payload) => {
         draftId: firstValue(raw.draft_id, raw.draftId, null),
         title: getLabel(raw, firstValue(raw.project_title, raw.project_name, 'Context archive tree')),
         projectSummary: String(firstValue(raw.project_summary, raw.summary, '') || ''),
+        universalTranslationContext: universalContext,
         stories: [...storiesById.values()],
         groups: [...groupsById.values()],
         fragments,

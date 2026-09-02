@@ -16,6 +16,13 @@ from pydantic import AliasChoices, BaseModel, ConfigDict, Field, model_validator
 from scripts.core.context_local_units import ContextLocalUnitBuilder, LocalTextUnit
 from scripts.core.neologism_extraction import AnalysisScope, SourceItem
 from scripts.core.services.context_chunking_policy import ContextUnitChunk
+from scripts.core.services.context_research_external_context import (
+    ContextResearchExternalContext,
+    normalize_workshop_item_id,
+)
+from scripts.core.services.context_research_universal_context import (
+    UniversalTranslationContext,
+)
 from scripts.core.services.provider_runtime import ProviderRuntimeSnapshot
 
 
@@ -263,6 +270,7 @@ class ContextAnalysisRequest(BaseModel):
 
     request_id: str = Field(default="context-research", min_length=1, max_length=200)
     project_id: str = Field(min_length=1, max_length=200)
+    game_id: str = Field(default="", max_length=80)
     research_question: str = Field(
         default="Which source-grounded archive context is relevant to translation?",
         min_length=1,
@@ -276,6 +284,9 @@ class ContextAnalysisRequest(BaseModel):
     reasoning_language: str = Field(default="the configured review language", min_length=1, max_length=100)
     description_language: str = Field(default="en", min_length=1, max_length=40)
     project_summary: str = Field(default="", max_length=4_000)
+    source_root: str | None = Field(default=None, max_length=2_000)
+    workshop_item_id: str | None = Field(default=None, max_length=20)
+    external_context: ContextResearchExternalContext | None = None
     chunks: tuple[ContextUnitChunk, ...] | None = None
 
     @model_validator(mode="after")
@@ -286,6 +297,8 @@ class ContextAnalysisRequest(BaseModel):
         declared = self.source_item_ids or item_ids
         if len(declared) != len(set(declared)):
             raise ValueError("source_item_ids must be unique")
+        if self.workshop_item_id and normalize_workshop_item_id(self.workshop_item_id) is None:
+            raise ValueError("workshop_item_id must be a numeric Steam published-file ID")
         if item_ids and tuple(declared) != item_ids:
             raise ValueError("source_item_ids must match source_items in source order")
         if not declared:
@@ -327,6 +340,9 @@ class ContextResearchDraft(BaseModel):
     event_chains: tuple[EventChain, ...] = Field(default=(), max_length=500)
     reference_assets: tuple[ReferenceAsset, ...] = Field(default=(), max_length=500)
     unresolved: tuple[Unresolved, ...] = Field(default=(), max_length=500)
+    universal_translation_context: UniversalTranslationContext = Field(
+        default_factory=UniversalTranslationContext,
+    )
     diagnostics: Mapping[str, Any] = Field(default_factory=dict)
 
     @model_validator(mode="after")
@@ -338,6 +354,10 @@ class ContextResearchDraft(BaseModel):
                 for item in self._items()
                 for source_id in item.source_item_ids
             ))
+            inferred = tuple(dict.fromkeys((
+                *inferred,
+                *self.universal_translation_context.source_item_ids,
+            )))
             object.__setattr__(self, "source_item_ids", inferred)
         known = set(self.source_item_ids)
         actual = {
@@ -345,6 +365,7 @@ class ContextResearchDraft(BaseModel):
             for item in self._items()
             for source_id in item.source_item_ids
         }
+        actual.update(self.universal_translation_context.source_item_ids)
         unknown = sorted(actual - known)
         if unknown:
             raise UnknownSourceItemReference(
@@ -377,6 +398,11 @@ class ContextResearchDraft(BaseModel):
         """Validate the draft against the immutable source snapshot."""
 
         expected = set(request.known_source_item_ids)
+        unknown_context = set(self.universal_translation_context.source_item_ids) - expected
+        if unknown_context:
+            raise UnknownSourceItemReference(
+                f"universal context references unknown source items: {sorted(unknown_context)}"
+            )
         if not set(self.source_item_ids) <= expected:
             unknown = sorted(set(self.source_item_ids) - expected)
             raise UnknownSourceItemReference(
@@ -440,4 +466,5 @@ __all__ = [
     "EventChainDTO", "EventSink", "ResearchEntity", "ResearchEntityDTO",
     "ReferenceAsset", "ReferenceAssetDTO", "UnknownSourceItemReference", "Unresolved", "UnresolvedDTO",
     "UnresolvedReferenceDTO", "UsageSink",
+    "ContextResearchExternalContext", "UniversalTranslationContext",
 ]

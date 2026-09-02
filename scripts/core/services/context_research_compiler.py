@@ -27,7 +27,16 @@ from scripts.core.services.context_research_contract import (
     UnresolvedKind,
 )
 from scripts.core.services.context_research_ids import ShortIdRegistry
+from scripts.core.services.context_research_chain_consolidation import (
+    consolidate_event_steps,
+)
 from scripts.core.services.context_research_entity_grading import calculate_entity_frequency
+from scripts.core.services.context_research_entity_normalization import (
+    normalize_compiled_entities,
+)
+from scripts.core.services.context_research_universal_context import (
+    build_universal_translation_context,
+)
 
 
 class FindingEvidence(BaseModel):
@@ -108,6 +117,7 @@ class ContextResearchFindings(BaseModel):
     event_chains: tuple[EventChainFinding, ...] = Field(default=(), max_length=500)
     reference_assets: tuple[ReferenceAssetFinding, ...] = Field(default=(), max_length=500)
     unresolved: tuple[UnresolvedFinding, ...] = Field(default=(), max_length=500)
+    universal_translation_context: str = Field(default="", max_length=600)
     diagnostics: Mapping[str, Any] = Field(default_factory=dict)
 
 
@@ -138,6 +148,14 @@ class ContextResearchDraftCompiler:
         source_metadata = {item.source_item_id: item for item in request.source_items}
         local_units = {unit.unit_id: unit for unit in request.local_units}
         diagnostics = self._new_diagnostics(candidate.diagnostics)
+        reducer_diagnostics = candidate.diagnostics.get("reducer", {})
+        if isinstance(reducer_diagnostics, Mapping):
+            diagnostics["compiler"]["merge_evidence_rejections"] = list(
+                reducer_diagnostics.get("merge_evidence_rejections", []) or []
+            )
+            diagnostics["compiler"]["merge_evidence_acceptances"] = list(
+                reducer_diagnostics.get("merge_evidence_acceptances", []) or []
+            )
         if id_rejections:
             diagnostics["compiler"]["id_rejections"] = [
                 item.as_dict() for item in id_rejections
@@ -159,6 +177,12 @@ class ContextResearchDraftCompiler:
             candidate.event_chains, narrative_ids, entity_ids, known, source_metadata,
             local_units, rejected_dynamic_entity_ids, diagnostics,
         )
+        events, chain_diagnostics = consolidate_event_steps(events, local_units)
+        entities, events, entity_diagnostics = normalize_compiled_entities(
+            entities, events, local_units,
+        )
+        diagnostics["compiler"]["chain_consolidation"] = chain_diagnostics
+        diagnostics["compiler"]["entity_normalization"] = entity_diagnostics
         entities = self._attach_event_participation(entities, events)
         assets = self._compile_assets(
             candidate.reference_assets, known, source_metadata, local_units, diagnostics,
@@ -169,9 +193,32 @@ class ContextResearchDraftCompiler:
         unresolved = self._deduplicate_unresolved(
             (*unresolved, *generated_unresolved), diagnostics,
         )
+        universal_context = build_universal_translation_context(
+            request,
+            events,
+            narratives,
+            entities,
+            proposed_text=candidate.universal_translation_context,
+        )
+        diagnostics["compiler"]["universal_translation_context"] = {
+            "generation": universal_context.generation,
+            "source_item_ids": list(universal_context.source_item_ids),
+            "external_source_kinds": list(universal_context.external_source_kinds),
+            "character_count": len(universal_context.text),
+        }
         items = (*narratives, *entities, *events, *assets, *unresolved)
         source_item_ids = _ordered_unique(
-            source_id for item in items for source_id in item.source_item_ids
+            (
+                source_id
+                for item in items
+                for source_id in item.source_item_ids
+            )
+        )
+        source_item_ids = _ordered_unique(
+            (
+                *source_item_ids,
+                *universal_context.source_item_ids,
+            )
         )
         request_source_ids = request.source_item_ids or tuple(
             item.source_item_id for item in request.source_items
@@ -194,6 +241,7 @@ class ContextResearchDraftCompiler:
             event_chains=events,
             reference_assets=assets,
             unresolved=unresolved,
+            universal_translation_context=universal_context,
             diagnostics=diagnostics,
         )
         return draft.validate_against(request)
@@ -624,7 +672,12 @@ class ContextResearchDraftCompiler:
                 "rejected_asset_local_unit_ids": [],
                 "dropped_resolved_unit_routes": [],
                 "embedded_event_uncertainties": [],
+                "merge_evidence_rejections": [],
+                "merge_evidence_acceptances": [],
                 "uncovered_source_item_ids": [],
+                "chain_consolidation": {},
+                "entity_normalization": {},
+                "adjudication": dict(model_diagnostics.get("event_adjudication", {}) or {}),
             },
         }
 

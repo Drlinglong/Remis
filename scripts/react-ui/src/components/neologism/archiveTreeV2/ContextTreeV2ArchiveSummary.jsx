@@ -27,6 +27,9 @@ export const ContextTreeV2ArchiveSummary = ({ tree, mode = 'published' }) => {
         mode,
     });
     const normalizedTree = archiveState.tree || normalizeArchiveTree(tree);
+    const summary = normalizedTree.universalTranslationContext?.text
+        ? `Universal translation context\n${normalizedTree.universalTranslationContext.text}`
+        : normalizedTree.projectSummary;
     const selection = useContextWorkbenchSelection({
         groups: normalizedTree.groups,
         fragments: normalizedTree.fragments,
@@ -45,7 +48,7 @@ export const ContextTreeV2ArchiveSummary = ({ tree, mode = 'published' }) => {
                 <div className={styles.titleBlock}>
                     <Text className={styles.eyebrow}>{text(t, 'mod_archive.tree_v2.eyebrow', 'CONTEXT ARCHIVE')}</Text>
                     <Title order={1} className={styles.title}>{normalizedTree.title}</Title>
-                    <PublishedContextProjectSummary summary={normalizedTree.projectSummary} t={t} />
+                    <PublishedContextProjectSummary summary={summary} t={t} />
                 </div>
                 <Group className={styles.pageActions} gap="xs" wrap="wrap">
                     <Badge variant={mode === 'published' ? 'light' : 'outline'}>

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from scripts.core.services.context_research_external_context import prompt_context_payload
 from scripts.core.services.context_research_ids import ShortIdRegistry
 
 
@@ -130,11 +131,28 @@ def lead_instructions() -> str:
         "sparse: use event_members for cross-shard event regrouping/order, entity_merges for "
         "duplicate identities, discards only for a specifically invalid finding, and patches "
         "only for a specifically named field. Omit a decision to preserve the child finding "
-        "unchanged. Keep repair_findings empty during the initial pass."
+        "unchanged. For event_members, deterministic split boundaries are the default: key "
+        "family, file boundary, and connected components are structural evidence, not permission "
+        "to merge. A proposed merge must be supported by at least two of these three positive "
+        "signals: shared entity, narrative continuity in the event text, and adjacent local "
+        "units. Crossing a file boundary requires all three and must survive compiler evidence "
+        "validation. The higher loss of splitting only ranks already evidenced related chains; "
+        "it never authorizes a macro-background event to absorb a concrete chain. Keep "
+        "repair_findings empty during the initial pass."
     )
 
 
 def initial_prompt(request: Any) -> str:
+    external_payload = prompt_context_payload(getattr(request, "external_context", None))
+    external_clause = ""
+    if external_payload:
+        external_clause = (
+            " Supporting context from the configured mod metadata and, when supplied, the public "
+            "Steam Workshop description is included below. Use it to disambiguate the mod identity, "
+            "tags, and player-facing terminology; it is supporting evidence, not proof of event "
+            "membership. Preserve its provenance and never invent missing fields. "
+            f"External context: {json.dumps(external_payload, ensure_ascii=False, separators=(',', ':'))}."
+        )
     return (
         f"Project: {request.project_id}; game: {request.game_name}; "
         f"target language: {request.target_language}; review language: "
@@ -147,6 +165,7 @@ def initial_prompt(request: Any) -> str:
         "an open-ended whole-corpus task. Revisit a role only for a smaller corrective shard after "
         "a genuine gap; do not retry the same oversized task. After all delegations, return "
         "only sparse cross-shard decisions. Do not summarize or reproduce every child finding."
+        + external_clause
     )
 
 

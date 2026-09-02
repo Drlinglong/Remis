@@ -41,6 +41,10 @@ def test_scores_routes_cost_and_clustering(tmp_path: Path) -> None:
     assert result["metrics"]["primary"]["f1"] == 1.0
     assert result["metrics"]["reference"]["f1"] == 1.0
     assert result["metrics"]["strict_clustering_pairwise"]["f1"] == 1.0
+    assert result["metrics"]["strict_clustering_bcubed"]["f1"] == 1.0
+    assert result["metrics"]["chain_attribution"]["by_predicted_chain"][0][
+        "false_positive_pair_count"
+    ] == 0
     assert result["metrics"]["relaxed_chain_accuracy"] == 1.0
     assert result["cost_usd"] == 0.125
     assert result["elapsed_seconds"] == 12.5

@@ -14,6 +14,11 @@ import { IconArchive, IconInfoCircle, IconRefresh } from '@tabler/icons-react';
 import AnalysisPreviewPanel from './AnalysisPreviewPanel';
 import ContextTreeV2ArchiveSummary from './archiveTreeV2/ContextTreeV2ArchiveSummary';
 import PublishedArchiveToolbar from './PublishedArchiveToolbar';
+import ResearchArtifactPreviewPanel from './ResearchArtifactPreviewPanel';
+import {
+    RESEARCH_PREVIEW_PROJECT,
+    RESEARCH_PREVIEW_PROJECT_ID,
+} from './researchArtifactPreviewConfig';
 import {
     PUBLISHED_ARCHIVE_DEMO_PROJECT_ID,
     publishedArchiveDemoProject,
@@ -31,7 +36,9 @@ const PublishedArchivePanel = ({
 }) => {
     const { t } = useTranslation();
     const isDemoProject = selectedProject === PUBLISHED_ARCHIVE_DEMO_PROJECT_ID;
-    const archiveProjectId = isDemoProject ? null : selectedProject;
+    const researchPreviewEnabled = import.meta.env.VITE_CONTEXT_RESEARCH_PREVIEW_ENABLED === '1';
+    const isResearchPreviewProject = researchPreviewEnabled && selectedProject === RESEARCH_PREVIEW_PROJECT_ID;
+    const archiveProjectId = isDemoProject || isResearchPreviewProject ? null : selectedProject;
     const [selectedReleaseId, setSelectedReleaseId] = useState(null);
     const [releaseVersions, setReleaseVersions] = useState([]);
     const releaseState = useModArchiveRelease(archiveProjectId, isDemoProject ? null : selectedReleaseId);
@@ -60,14 +67,18 @@ const PublishedArchivePanel = ({
         selectedProject,
         onSelectedProjectChange,
         targetLanguage,
-        skipGlossary: isDemoProject,
+        skipGlossary: isDemoProject || isResearchPreviewProject,
     });
     const toolbarProjects = useMemo(() => {
-        if (projectContext.projects.some((project) => project.project_id === PUBLISHED_ARCHIVE_DEMO_PROJECT_ID)) {
-            return projectContext.projects;
+        const projects = [...projectContext.projects];
+        if (!projects.some((project) => project.project_id === PUBLISHED_ARCHIVE_DEMO_PROJECT_ID)) {
+            projects.push(publishedArchiveDemoProject);
         }
-        return [...projectContext.projects, publishedArchiveDemoProject];
-    }, [projectContext.projects]);
+        if (researchPreviewEnabled && !projects.some((project) => project.project_id === RESEARCH_PREVIEW_PROJECT_ID)) {
+            projects.push(RESEARCH_PREVIEW_PROJECT);
+        }
+        return projects;
+    }, [projectContext.projects, researchPreviewEnabled]);
     const projectToolbar = (
         <PublishedArchiveToolbar
             projects={toolbarProjects}
@@ -105,6 +116,12 @@ const PublishedArchivePanel = ({
                     <ContextTreeV2ArchiveSummary tree={publishedArchiveDemoTree} mode="preview" />
                 </div>
             </Container>
+        );
+    }
+
+    if (isResearchPreviewProject) {
+        return (
+            <ResearchArtifactPreviewPanel projectToolbar={projectToolbar} />
         );
     }
 

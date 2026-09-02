@@ -13,7 +13,11 @@ from scripts.core.services.context_research_harness_run import (
     DelegationTracker,
     apply_targeted_repairs,
 )
-from scripts.core.services.context_research_lead_decisions import LeadResearchResult
+from scripts.core.services.context_research_ids import ShortIdRegistry
+from scripts.core.services.context_research_lead_decisions import (
+    LeadRepairFinding,
+    LeadResearchResult,
+)
 from scripts.core.services.context_research_shard_memo import ShardMemoCollector
 from scripts.core.services.context_research_repair_policy import build_repair_packet
 from scripts.core.services.context_research_repair_models import RepairPacket, RepairTarget
@@ -109,6 +113,140 @@ def test_repair_target_remaining_after_attempt_still_blocks_publication():
 
     assert result.diagnostics["run"]["status"] == "incomplete"
     assert result.diagnostics["run"]["publishable"] is False
+
+
+@pytest.mark.asyncio
+async def test_finalize_replays_grounded_repair_without_rewriting_valid_findings():
+    class Events:
+        def emit(self, event, payload):
+            del event, payload
+
+    class Usage:
+        def record(self, event, **metadata):
+            del event, metadata
+
+    class Agent:
+        model = SimpleNamespace(model_name="repair-model")
+
+    class InitialResult:
+        output = _findings()
+
+        def usage(self):
+            return {"requests": 1}
+
+        def new_messages(self):
+            return []
+
+    calls = []
+
+    async def run_lead(agent, prompt, bound_tools, *, message_history=None):
+        del agent, bound_tools, message_history
+        calls.append(prompt)
+        return SimpleNamespace(
+            output=LeadResearchResult(repair_findings=(LeadRepairFinding(
+                finding_kind="event_chains",
+                finding_id="demo-chain",
+                fields={"entity_ids": ["remis"]},
+            ),)),
+            usage=lambda: {"requests": 1},
+            new_messages=lambda: [],
+        )
+
+    execution_context = SimpleNamespace(events=Events(), usage=Usage())
+    draft = await ContextResearchRunCoordinator(
+        ContextResearchDraftCompiler(), max_repair_attempts=2,
+    ).finalize(
+        initial_result=InitialResult(),
+        agent=Agent(),
+        bound_tools=SimpleNamespace(id_registry=None),
+        tracker=DelegationTracker(Events()),
+        request=_request(),
+        execution_context=execution_context,
+        run_lead=run_lead,
+    )
+
+    assert len(calls) == 1
+    assert "Targeted compiler repair pass" in calls[0]
+    assert draft.event_chains[0].entity_ids == ("remis",)
+    assert [entity.entity_id for entity in draft.entities] == ["remis"]
+    assert draft.diagnostics["run"] == {
+        "status": "complete",
+        "publishable": True,
+        "repair_attempts": 1,
+        "repair_remaining": False,
+        "nonblocking_repair_target_count": 0,
+        "memo_collection_complete": True,
+        "coverage": {
+            "dispositions": [],
+            "blocking_uninspected_shards": [],
+            "blocks_key_shard_gate": False,
+        },
+    }
+
+
+@pytest.mark.asyncio
+async def test_finalize_sends_repair_targets_in_stable_batches():
+    class Events:
+        def emit(self, event, payload):
+            del event, payload
+
+    class Usage:
+        def record(self, event, **metadata):
+            del event, metadata
+
+    class Agent:
+        model = SimpleNamespace(model_name="repair-model")
+
+    source = _request().source_items[0]
+    initial_findings = ContextResearchFindings.model_validate({
+        "event_chains": [{
+            "chain_id": f"demo-chain-{index}",
+            "sequence": 0,
+            "event": f"事件 {index}",
+            "entity_ids": ["ghost"],
+            "evidence": [{"source_item_ids": [source.source_item_id]}],
+        } for index in range(9)],
+    })
+
+    class InitialResult:
+        output = initial_findings
+
+        def usage(self):
+            return {"requests": 1}
+
+        def new_messages(self):
+            return []
+
+    calls = []
+
+    async def run_lead(agent, prompt, bound_tools, *, message_history=None):
+        del agent, bound_tools, message_history
+        calls.append(prompt)
+        return SimpleNamespace(
+            output=LeadResearchResult(),
+            usage=lambda: {"requests": 1},
+            new_messages=lambda: [],
+        )
+
+    execution_context = SimpleNamespace(events=Events(), usage=Usage())
+    bound_tools = SimpleNamespace(
+        id_registry=None,
+        local_units=_request().local_units,
+    )
+    await ContextResearchRunCoordinator(
+        ContextResearchDraftCompiler(), max_repair_attempts=1,
+    ).finalize(
+        initial_result=InitialResult(),
+        agent=Agent(),
+        bound_tools=bound_tools,
+        tracker=DelegationTracker(Events()),
+        request=_request(),
+        execution_context=execution_context,
+        run_lead=run_lead,
+    )
+
+    assert len(calls) == 2
+    assert [prompt.count('"finding_type":"event_chain"') for prompt in calls] == [8, 1]
 
 
 @pytest.mark.asyncio
@@ -243,6 +381,105 @@ async def test_accepted_typed_child_returns_compact_receipt_but_retains_full_mem
     assert collected is not None
     assert collected.findings.archive_narratives[0].summary == "SOURCE TEXT MUST NOT REACH LEAD"
     assert trace.snapshot()["delegations"][0]["child_memo"]["units"]
+
+
+@pytest.mark.asyncio
+async def test_tracked_child_retries_rejected_memo_once_with_contract_feedback():
+    class Events:
+        def __init__(self):
+            self.values = []
+
+        def emit(self, event, payload):
+            self.values.append((event, payload))
+
+    class Lease:
+        core_local_unit_ids = ("unit-a",)
+        overlap_local_unit_ids = ()
+
+    registry = ShortIdRegistry.from_snapshot(("source-a",), ("unit-a",))
+
+    class Deps:
+        _bound = SimpleNamespace(id_registry=registry)
+
+        @staticmethod
+        def validate_delegation_task(task):
+            assert "investigation-001" in task
+            return ("investigation-001",)
+
+        @staticmethod
+        def shard_lease(shard_ids):
+            assert shard_ids == ("investigation-001",)
+            return Lease()
+
+        @staticmethod
+        def owned_shard_view(shard_ids):
+            assert shard_ids == ("investigation-001",)
+            return object()
+
+    valid_memo = {
+        "role": "cartographer",
+        "shard_ids": ["investigation-001"],
+        "core_local_unit_ids": ["U001"],
+        "overlap_local_unit_ids": [],
+        "units": [{
+            "local_unit_id": "U001",
+            "ownership": "core",
+            "disposition": "intentionally_unmodeled",
+            "findings": {},
+        }],
+    }
+
+    class Child:
+        model = SimpleNamespace(model_name="child-model")
+
+        def __init__(self):
+            self.calls = []
+
+        async def run(self, task, **kwargs):
+            self.calls.append(task)
+            del kwargs
+            output = (
+                {
+                    **valid_memo,
+                    "core_local_unit_ids": ["U999"],
+                    "units": [{
+                        **valid_memo["units"][0], "local_unit_id": "U999",
+                    }],
+                }
+                if len(self.calls) == 1 else valid_memo
+            )
+            return SimpleNamespace(
+                output=output,
+                usage=lambda: {"requests": 1},
+                new_messages=lambda: [],
+            )
+
+    events = Events()
+    trace = ContextResearchTraceCollector("memo-retry")
+    tracker = DelegationTracker(
+        events,
+        trace,
+        memo_collector=ShardMemoCollector(({
+            "shard_id": "investigation-001", "core_local_unit_ids": ["unit-a"],
+        },), id_registry=registry),
+        id_registry=registry,
+    )
+    child = Child()
+
+    result = await tracker.wrap(child, "cartographer").run(
+        "inspect investigation-001", deps=Deps(),
+    )
+
+    assert len(child.calls) == 2
+    assert "[MEMO CONTRACT RETRY]" in child.calls[1]
+    assert result.output["collection_accepted"] is True
+    assert tracker.memo_retries["cartographer"] == 1
+    assert any(
+        event == "research_role_retry_scheduled"
+        and payload["reason"] == "invalid_memo_ids"
+        for event, payload in events.values
+    )
+    assert trace.snapshot()["tool_activity"][0]["tool"] == "memo_contract_retry"
 
 
 def test_compact_receipt_exposes_sparse_event_and_entity_decision_index():

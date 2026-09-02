@@ -85,6 +85,23 @@ describe('ContextTreeV2ArchiveSummary', () => {
         expect(summary.querySelector('[data-primary="true"]')).toHaveTextContent('第一件事发生。');
     });
 
+    it('shows universal translation context instead of the long event timeline when supplied', () => {
+        renderSummary({
+            ...tree,
+            project_summary: '事件脉络\n第一件事发生。\n\n档案背景\n大量不适合直接投喂的细节。',
+            universal_translation_context: {
+                text: '围绕骑士接受任务并完成决议；保持专名、因果和玩家语气一致。',
+                source_item_ids: ['unit-1', 'unit-2'],
+                external_source_kinds: ['mod_metadata'],
+            },
+        });
+
+        const summary = screen.getByTestId('published-context-project-summary');
+        expect(summary).toHaveTextContent('Universal translation context');
+        expect(summary).toHaveTextContent('围绕骑士接受任务并完成决议');
+        expect(summary).not.toHaveTextContent('大量不适合直接投喂的细节');
+    });
+
     it('collapses and restores the entity section without persisting hidden state', () => {
         const { unmount } = renderSummary();
         const toggle = screen.getByRole('button', { name: /Entities/ });

@@ -42,6 +42,7 @@ from scripts.core.services.context_research_corpus_tools import (
 from scripts.core.services.context_research_harness_backend import (
     PydanticAIContextResearchBackend,
 )
+from scripts.core.services.context_research_external_context import load_external_context
 from scripts.core.services.context_source_parser import ContextSourceParser
 
 
@@ -228,9 +229,15 @@ def _request_and_corpus(arguments: argparse.Namespace) -> tuple[
             "item_count": len(source_items),
             "synthetic": True,
         }
+    external_context = load_external_context(
+        arguments.source_root,
+        arguments.game_id,
+        arguments.workshop_item_id,
+    ) if arguments.source_root or arguments.workshop_item_id else None
     request = ContextAnalysisRequest(
         request_id=arguments.request_id,
         project_id=project_id,
+        game_id=arguments.game_id,
         research_question=(
             "Classify every local unit by content_role (event_narrative, "
             "background_narrative, static_reference, or utility_or_noise) and independently "
@@ -247,6 +254,9 @@ def _request_and_corpus(arguments: argparse.Namespace) -> tuple[
         target_language=arguments.target_language,
         reasoning_language=arguments.reasoning_language,
         description_language=arguments.description_language,
+        source_root=arguments.source_root,
+        workshop_item_id=arguments.workshop_item_id,
+        external_context=external_context,
     )
     large_corpus = len(source_items) > 64
     tool_limits = CorpusToolLimits(
@@ -282,6 +292,10 @@ async def _run(arguments: argparse.Namespace) -> dict[str, Any]:
         "reasoning_language": request.reasoning_language,
         "source_root": source_manifest["root"],
         "dry_run": bool(arguments.dry_run),
+        "external_context": (
+            request.external_context.model_dump(mode="json")
+            if request.external_context else None
+        ),
     }
     if runtime is not None:
         # safe_metadata deliberately omits api_key; do not serialize runtime itself.
@@ -338,6 +352,30 @@ async def _run(arguments: argparse.Namespace) -> dict[str, Any]:
             "usage": trace.get("usage", {}).get("summary", {}),
             "corpus_read_amplification": corpus_read,
             "repair_attempt_count": len(trace.get("repair", {}).get("attempts", ())),
+            "adjudication": {
+                "status": trace.get("adjudication", {}).get("status"),
+                "candidate_count": trace.get("adjudication", {})
+                .get("packet", {}).get("candidate_count", 0),
+                "eligible_candidate_count": trace.get("adjudication", {})
+                .get("packet", {}).get("eligible_candidate_count", 0),
+                "accepted_edge_count": trace.get("adjudication", {})
+                .get("output", {}).get("diagnostics", {}).get("accepted_edge_count", 0),
+                "rejected_edge_count": trace.get("adjudication", {})
+                .get("output", {}).get("diagnostics", {}).get("rejected_edge_count", 0),
+                "usage": next(
+                    (
+                        {
+                            "model": item.get("model"),
+                            "requests": item.get("requests", 0),
+                            "output_tokens": item.get("output_tokens", 0),
+                            "cost": item.get("cost"),
+                        }
+                        for item in trace.get("usage", {}).get("records", ())
+                        if item.get("scope") == "adjudication"
+                    ),
+                    None,
+                ),
+            },
         }
     draft_json = draft.model_dump(mode="json") if draft is not None else None
     event_json = [event.model_dump(mode="json") for event in draft.event_chains] if draft else []
@@ -364,6 +402,7 @@ async def _run(arguments: argparse.Namespace) -> dict[str, Any]:
             "profile": "full",
             "description_language": request.description_language,
             "compiler": "context-research-compiler-v2",
+            "event_adjudication": "context-research-event-adjudication-v1",
             "source": "developer-only context research smoke",
         },
         "source": source_manifest,
@@ -378,6 +417,10 @@ async def _run(arguments: argparse.Namespace) -> dict[str, Any]:
         ],
         "draft": draft_json,
         "events": event_json,
+        "external_context": (
+            request.external_context.model_dump(mode="json")
+            if request.external_context else None
+        ),
         "usage": usage.values,
         "trace": trace_summary,
         "corpus_read_amplification": (
@@ -408,9 +451,14 @@ def main() -> None:
     parser.add_argument("--project-name", default=None)
     parser.add_argument("--release-id", default=None)
     parser.add_argument("--game-name", default=None)
+    parser.add_argument("--game-id", default="", help="Game profile ID used to locate metadata")
     parser.add_argument("--target-language", default="Chinese")
     parser.add_argument("--reasoning-language", default="Chinese")
     parser.add_argument("--description-language", default="zh-CN")
+    parser.add_argument(
+        "--workshop-item-id", default=None,
+        help="Optional numeric Steam Workshop published-file ID",
+    )
     parser.add_argument("--request-id", default="context-research-smoke")
     parser.add_argument("--timeout-seconds", type=float, default=600.0)
     parser.add_argument("--dry-run", action="store_true", help="Parse/build only; do not call the model")

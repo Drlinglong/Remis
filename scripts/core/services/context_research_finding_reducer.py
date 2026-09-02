@@ -52,13 +52,17 @@ class ContextResearchFindingReducer:
         self,
         collected: ShardMemoCollection | ContextResearchFindings,
         lead: LeadResearchResult | LeadResearchDecisions | Mapping[str, Any] | None = None,
+        *,
+        local_units: Mapping[str, Any] | Sequence[Any] | None = None,
     ) -> ContextResearchFindings:
-        return reduce_findings(collected, lead)
+        return reduce_findings(collected, lead, local_units=local_units)
 
 
 def reduce_findings(
     collected: ShardMemoCollection | ContextResearchFindings,
     lead: LeadResearchResult | LeadResearchDecisions | Mapping[str, Any] | None = None,
+    *,
+    local_units: Mapping[str, Any] | Sequence[Any] | None = None,
 ) -> ContextResearchFindings:
     """Apply explicit Lead decisions while retaining all unmentioned findings.
 
@@ -72,7 +76,9 @@ def reduce_findings(
     findings = source if isinstance(source, ContextResearchFindings) else ContextResearchFindings.model_validate(source)
     decisions, diagnostics = _coerce_decisions(lead)
     values = {kind: list(getattr(findings, kind)) for kind in _KINDS}
-    event_stats = _apply_event_members(values, decisions.event_members, diagnostics)
+    event_stats = _apply_event_members(
+        values, decisions.event_members, diagnostics, local_units=local_units,
+    )
     entity_stats = _apply_entity_merges(values, decisions.entity_merges, diagnostics)
     discard_stats = _apply_discards(values, decisions.discards, diagnostics)
     patch_stats = _apply_patches(values, decisions.patches, diagnostics)
@@ -116,7 +122,13 @@ def _coerce_decisions(value: Any) -> tuple[LeadResearchDecisions, dict[str, Any]
     return parsed.decisions, diagnostics
 
 
-def _apply_event_members(values, decisions: Sequence[EventMemberDecision], diagnostics) -> int:
+def _apply_event_members(
+    values,
+    decisions: Sequence[EventMemberDecision],
+    diagnostics,
+    *,
+    local_units: Mapping[str, Any] | Sequence[Any] | None = None,
+) -> int:
     applied = 0
     events = values["event_chains"]
     for decision in decisions:
@@ -124,6 +136,49 @@ def _apply_event_members(values, decisions: Sequence[EventMemberDecision], diagn
         diagnostics["unknown_identities"].extend(unknown)
         if not selected:
             continue
+        if local_units is not None:
+            from scripts.core.services.context_research_chain_consolidation import (
+                validate_event_merge_evidence,
+            )
+
+            evidence = validate_event_merge_evidence(selected, local_units)
+            if not evidence["allowed"]:
+                diagnostics.setdefault("merge_evidence_rejections", []).append({
+                    "chain_id": decision.chain_id,
+                    "sequence": decision.sequence,
+                    "member_event_refs": [
+                        f"{item.chain_id}:{item.sequence}" for item in selected
+                    ],
+                    "reason": evidence["reason"],
+                    "edges": evidence["edges"],
+                    "rejected_pairs": evidence.get("rejected_pairs", []),
+                })
+                continue
+            lead_evidence_error = _validate_lead_merge_evidence(
+                decision, selected, evidence,
+            )
+            if lead_evidence_error is not None:
+                diagnostics.setdefault("merge_evidence_rejections", []).append({
+                    "chain_id": decision.chain_id,
+                    "sequence": decision.sequence,
+                    "member_event_refs": [
+                        f"{item.chain_id}:{item.sequence}" for item in selected
+                    ],
+                    "reason": lead_evidence_error,
+                    "edges": evidence["edges"],
+                })
+                continue
+            diagnostics.setdefault("merge_evidence_acceptances", []).append({
+                "chain_id": decision.chain_id,
+                "sequence": decision.sequence,
+                "member_event_refs": [
+                    f"{item.chain_id}:{item.sequence}" for item in selected
+                ],
+                "edges": evidence["edges"],
+                "lead_positive_evidence": [
+                    item.model_dump(mode="json") for item in decision.positive_evidence
+                ],
+            })
         target = (decision.chain_id, decision.sequence)
         if any((item.chain_id, item.sequence) == target for item in events if item not in selected):
             diagnostics["conflicts"].append(f"event_chains:{decision.chain_id}:{decision.sequence}")
@@ -134,6 +189,50 @@ def _apply_event_members(values, decisions: Sequence[EventMemberDecision], diagn
         events.insert(first_index, merged)
         applied += 1
     return applied
+
+
+def _validate_lead_merge_evidence(
+    decision: EventMemberDecision,
+    selected: Sequence[Any],
+    verified: Mapping[str, Any],
+) -> str | None:
+    """Ensure the Lead supplied every deterministic signal it claimed to use."""
+
+    supplied = decision.positive_evidence
+    if not supplied:
+        return "lead_merge_evidence_missing"
+    verified_signals = {
+        signal
+        for edge in verified.get("edges", ())
+        for signal in edge.get("positive_signals", ())
+    }
+    supplied_signals = {item.signal for item in supplied}
+    if supplied_signals != verified_signals or len(supplied_signals) < 2:
+        return "lead_merge_evidence_mismatch"
+    selected_entities = set().union(*(set(item.entity_ids) for item in selected))
+    selected_units = set().union(*(set(item.local_unit_ids) for item in selected))
+    selected_sources = set().union(*(
+        {
+            source_id
+            for evidence in item.evidence
+            for source_id in evidence.source_item_ids
+        }
+        for item in selected
+    ))
+    for item in supplied:
+        if not set(item.entity_ids) <= selected_entities:
+            return "lead_merge_evidence_unknown_entity"
+        if not set(item.local_unit_ids) <= selected_units:
+            return "lead_merge_evidence_unknown_local_unit"
+        if not set(item.source_item_ids) <= selected_sources:
+            return "lead_merge_evidence_unknown_source"
+        if item.signal == "shared_entities" and not item.entity_ids:
+            return "lead_merge_evidence_missing_entity_detail"
+        if item.signal == "adjacent_local_units" and not item.local_unit_ids:
+            return "lead_merge_evidence_missing_adjacency_detail"
+        if item.signal == "narrative_continuity" and not item.detail:
+            return "lead_merge_evidence_missing_narrative_detail"
+    return None
 
 
 def _select_events(events, decision: EventMemberDecision):
@@ -338,6 +437,19 @@ def _stable_diagnostics(diagnostics: dict[str, Any]) -> dict[str, Any]:
         ),
         "conflicts": sorted(set(diagnostics["conflicts"])),
         "invalid_decisions": list(dict.fromkeys(diagnostics["invalid_decisions"])),
+        "merge_evidence_rejections": sorted(
+            diagnostics.get("merge_evidence_rejections", []),
+            key=lambda item: (
+                str(item.get("chain_id")), int(item.get("sequence", 0)),
+                str(item.get("reason")),
+            ),
+        ),
+        "merge_evidence_acceptances": sorted(
+            diagnostics.get("merge_evidence_acceptances", []),
+            key=lambda item: (
+                str(item.get("chain_id")), int(item.get("sequence", 0)),
+            ),
+        ),
     }
 
 

@@ -66,6 +66,12 @@ class BoundCorpusTools:
         return self._source_items
 
     @property
+    def local_units(self) -> tuple[LocalTextUnit, ...]:
+        """Deterministic unit graph used to validate cross-shard merge evidence."""
+
+        return self._local_units
+
+    @property
     def id_registry(self) -> ShortIdRegistry:
         """Request-local aliases; canonical IDs never leave host persistence."""
 

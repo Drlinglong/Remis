@@ -80,7 +80,7 @@ def _draft_routes(draft: dict[str, Any]) -> tuple[dict[str, str], set[str]]:
 
 def _chain_metrics(
     predicted: dict[str, str], expected: dict[str, str],
-) -> tuple[float, BinaryScore]:
+) -> tuple[float, BinaryScore, dict[str, Any], dict[str, Any]]:
     overlaps: dict[str, dict[str, int]] = {}
     for unit_id, predicted_chain in predicted.items():
         expected_chain = expected.get(unit_id)
@@ -111,7 +111,116 @@ def _chain_metrics(
         if pair[0] in expected and pair[1] in expected
         and expected[pair[0]] == expected[pair[1]]
     }
-    return relaxed_accuracy, _binary_score(predicted_pairs, expected_pairs)
+    return (
+        relaxed_accuracy,
+        _binary_score(predicted_pairs, expected_pairs),
+        _bcubed_metrics(predicted, expected),
+        _chain_attribution(predicted, expected),
+    )
+
+
+def _cluster_label(value: str | None, unit_id: str) -> str:
+    return value or f"missing:{unit_id}"
+
+
+def _bcubed_metrics(
+    predicted: Mapping[str, str], expected: Mapping[str, str],
+) -> dict[str, Any]:
+    """Compute BCubed over gold event units without pairwise explosion."""
+
+    units = sorted(expected)
+    if not units:
+        return {"unit_count": 0, "precision": 0.0, "recall": 0.0, "f1": 0.0}
+    gold_clusters: dict[str, set[str]] = {}
+    predicted_clusters: dict[str, set[str]] = {}
+    labels = {
+        unit_id: _cluster_label(predicted.get(unit_id), unit_id) for unit_id in units
+    }
+    for unit_id in units:
+        gold_clusters.setdefault(expected[unit_id], set()).add(unit_id)
+        predicted_clusters.setdefault(labels[unit_id], set()).add(unit_id)
+    precisions = []
+    recalls = []
+    for unit_id in units:
+        overlap = len(
+            gold_clusters[expected[unit_id]] & predicted_clusters[labels[unit_id]]
+        )
+        precisions.append(
+            overlap / len(predicted_clusters[labels[unit_id]])
+        )
+        recalls.append(overlap / len(gold_clusters[expected[unit_id]]))
+    precision = sum(precisions) / len(precisions)
+    recall = sum(recalls) / len(recalls)
+    return {
+        "unit_count": len(units),
+        "precision": precision,
+        "recall": recall,
+        "f1": _f1(precision, recall),
+    }
+
+
+def _chain_attribution(
+    predicted: Mapping[str, str], expected: Mapping[str, str], worst_limit: int = 10,
+) -> dict[str, Any]:
+    """Attribute false-positive pairs and BCubed error to predicted chains."""
+
+    units = sorted(expected)
+    chain_members: dict[str, set[str]] = {}
+    for unit_id in units:
+        for chain_id in _split_chain_label(predicted.get(unit_id)):
+            chain_members.setdefault(chain_id, set()).add(unit_id)
+    rows = []
+    for chain_id, members in sorted(chain_members.items()):
+        pairs = list(combinations(sorted(members), 2))
+        true_positive = sum(expected[left] == expected[right] for left, right in pairs)
+        false_positive = len(pairs) - true_positive
+        precision_errors = []
+        recall_errors = []
+        for unit_id in sorted(members):
+            predicted_members = {
+                other for other in units
+                if chain_id in _split_chain_label(predicted.get(other))
+            }
+            overlap = len(
+                predicted_members
+                & {other for other in units if expected[other] == expected[unit_id]}
+            )
+            precision_errors.append(1.0 - overlap / len(predicted_members))
+            recall_errors.append(
+                1.0 - overlap / len({
+                    other for other in units if expected[other] == expected[unit_id]
+                })
+            )
+        row = {
+            "predicted_chain_id": chain_id,
+            "unit_count": len(members),
+            "gold_chain_ids": sorted({expected[unit_id] for unit_id in members}),
+            "true_positive_pair_count": true_positive,
+            "false_positive_pair_count": false_positive,
+            "bcubed_precision_error": sum(precision_errors) / len(precision_errors),
+            "bcubed_recall_error": sum(recall_errors) / len(recall_errors),
+        }
+        row["bcubed_item_error"] = (
+            row["bcubed_precision_error"] + row["bcubed_recall_error"]
+        ) / 2.0
+        rows.append(row)
+    worst = sorted(
+        rows,
+        key=lambda row: (
+            -row["bcubed_item_error"],
+            -row["false_positive_pair_count"],
+            row["predicted_chain_id"],
+        ),
+    )[:worst_limit]
+    return {"by_predicted_chain": rows, "worst_bcubed_chains": worst}
+
+
+def _split_chain_label(value: str | None) -> tuple[str, ...]:
+    return tuple(sorted({part for part in str(value or "").split(";") if part}))
+
+
+def _f1(precision: float, recall: float) -> float:
+    return 2 * precision * recall / (precision + recall) if precision + recall else 0.0
 
 
 def _read_trace_cost(artifact: dict[str, Any], trace_path: Path | None) -> float | None:
@@ -295,7 +404,7 @@ def score_artifact(
     predicted_primary, predicted_reference = _draft_routes(draft)
     primary = _binary_score(set(predicted_primary), set(expected_primary))
     reference = _binary_score(predicted_reference, expected_reference)
-    relaxed_chain_accuracy, pairwise = _chain_metrics(
+    relaxed_chain_accuracy, pairwise, bcubed, attribution = _chain_metrics(
         predicted_primary, expected_primary,
     )
     predicted_routes = set(predicted_primary) | predicted_reference
@@ -359,6 +468,8 @@ def score_artifact(
             "entity_unit_mentions": entity_mentions,
             "relaxed_chain_accuracy": relaxed_chain_accuracy,
             "strict_clustering_pairwise": asdict(pairwise),
+            "strict_clustering_bcubed": bcubed,
+            "chain_attribution": attribution,
             "corpus_read_amplification": corpus_read,
         },
         "corpus_read_amplification": corpus_read,

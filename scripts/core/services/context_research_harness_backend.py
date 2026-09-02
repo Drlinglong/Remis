@@ -35,6 +35,9 @@ from scripts.core.services.context_research_harness_agent import (
     LEAD_OUTPUT_TOKEN_LIMIT,
     LEAD_REQUEST_LIMIT,
     LEAD_TOOL_CALL_LIMIT,
+    ADJUDICATION_MAX_OUTPUT_TOKENS,
+    ADJUDICATION_OUTPUT_TOKEN_LIMIT,
+    ADJUDICATION_REQUEST_LIMIT,
     ROLE_DESCRIPTIONS,
     SUBAGENT_MAX_OUTPUT_TOKENS,
     SUBAGENT_OUTPUT_TOKEN_LIMIT,
@@ -43,8 +46,10 @@ from scripts.core.services.context_research_harness_agent import (
     SUBAGENT_TOOL_CALL_LIMIT,
     await_with_cancellation,
     build_lead_agent,
+    build_adjudication_agent,
     merge_model_settings,
     run_lead,
+    run_adjudication,
 )
 from scripts.core.services.context_research_trace_ledger import ContextResearchTraceCollector
 from scripts.core.services.context_research_read_metrics import CorpusReadMeter
@@ -132,6 +137,10 @@ class PydanticAIContextResearchBackend(_ContractBackend):
             SUBAGENT_MAX_OUTPUT_TOKENS,
             subagent_model_settings,
         )
+        self.adjudication_model_settings = merge_model_settings(
+            ADJUDICATION_MAX_OUTPUT_TOKENS,
+            lead_model_settings,
+        )
         self.tool_limits = tool_limits or getattr(corpus_tools, "limits", CorpusToolLimits())
         self.compiler = compiler or ContextResearchDraftCompiler()
         self.trace_output_path = Path(trace_output_path) if trace_output_path else None
@@ -188,6 +197,32 @@ class PydanticAIContextResearchBackend(_ContractBackend):
             bound_tools,
             message_history=message_history,
         )
+
+    def build_adjudication_agent(self) -> Any:
+        """Build the no-tools one-request edge adjudicator."""
+
+        return build_adjudication_agent(
+            model=self.lead_model,
+            model_settings=self.adjudication_model_settings,
+        )
+
+    async def _run_adjudication(self, agent: Any, prompt: str) -> Any:
+        """Run only the bounded adjudication request."""
+
+        return await run_adjudication(agent, prompt)
+
+    def _build_adjudication_runner(self, execution_context: Any) -> Any:
+        agent = None
+
+        async def runner(prompt: str) -> Any:
+            nonlocal agent
+            if agent is None:
+                agent = self.build_adjudication_agent()
+            task = asyncio.create_task(self._run_adjudication(agent, prompt))
+            return await await_with_cancellation(task, execution_context)
+
+        runner.model_label = _model_label(getattr(self.lead_model, "model", self.lead_model))
+        return runner
 
     async def _recover_partial_lead(
         self,
@@ -333,7 +368,7 @@ class PydanticAIContextResearchBackend(_ContractBackend):
             delegation_tracker=tracker,
             role_max_calls=role_max_calls,
         )
-        prompt = initial_prompt(request)
+        run_adjudication = self._build_adjudication_runner(execution_context)
         async def run_lead(
             selected_agent: Any,
             selected_prompt: str,
@@ -350,7 +385,7 @@ class PydanticAIContextResearchBackend(_ContractBackend):
             return await await_with_cancellation(task, execution_context)
 
         try:
-            result = await run_lead(agent, prompt, bound_tools)
+            result = await run_lead(agent, initial_prompt(request), bound_tools)
         except asyncio.CancelledError:
             execution_context.events.emit("research_cancelled", {"read_only": True})
             raise
@@ -364,9 +399,7 @@ class PydanticAIContextResearchBackend(_ContractBackend):
             return draft
         if execution_context.cancellation.is_cancelled():
             raise asyncio.CancelledError("archive research cancelled")
-        findings = result.output
-        if not isinstance(findings, ContextResearchFindings):
-            findings = ContextResearchFindings()
+        findings = result.output if isinstance(result.output, ContextResearchFindings) else ContextResearchFindings()
         try:
             draft = await self.run_coordinator.finalize(
                 initial_result=result,
@@ -377,6 +410,7 @@ class PydanticAIContextResearchBackend(_ContractBackend):
                 execution_context=execution_context,
                 run_lead=run_lead,
                 trace=trace,
+                run_adjudication=run_adjudication,
             )
         except Exception as error:
             execution_context.events.emit(

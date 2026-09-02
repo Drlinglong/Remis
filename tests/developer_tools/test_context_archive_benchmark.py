@@ -78,6 +78,33 @@ def test_metrics_separate_delivery_recall_from_strict_clustering():
     assert strict["false_positive_pairs"] == 2
     assert strict["false_negative_pairs"] == 0
     assert strict["precision"] == pytest.approx(1 / 3)
+    bcubed = metrics["strict_clustering_bcubed"]
+    assert bcubed["precision"] == pytest.approx(5 / 9)
+    assert bcubed["recall"] == pytest.approx(1.0)
+    assert bcubed["f1"] == pytest.approx(5 / 7)
+    attribution = metrics["chain_attribution"]
+    merged = attribution["by_predicted_chain"][0]
+    assert merged["predicted_chain_id"] == "predicted_merged"
+    assert merged["false_positive_pair_count"] == 2
+    assert attribution["worst_bcubed_chains"][0]["predicted_chain_id"] == (
+        "predicted_merged"
+    )
+
+
+def test_bcubed_does_not_square_mega_chain_error_and_is_per_item():
+    results = [
+        _result(f"unit_{index}", f"arc_{index // 2}", "mega")
+        for index in range(6)
+    ]
+
+    metrics = _metrics(results)
+
+    assert metrics["strict_clustering_pairwise"]["false_positive_pairs"] == 12
+    assert metrics["strict_clustering_bcubed"]["precision"] == pytest.approx(1 / 3)
+    assert metrics["strict_clustering_bcubed"]["recall"] == 1.0
+    assert metrics["chain_attribution"]["by_predicted_chain"][0][
+        "unit_count"
+    ] == 6
 
 
 def test_render_markdown_keeps_gold_prediction_and_editable_review_fields():

@@ -16,6 +16,49 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 FindingKind = Literal[
     "archive_narratives", "entities", "event_chains", "reference_assets", "unresolved",
 ]
+MergeEvidenceSignal = Literal[
+    "shared_entities", "narrative_continuity", "adjacent_local_units",
+]
+AdjudicationDecision = Literal["merge", "no_merge"]
+
+
+class EventMergeEvidence(BaseModel):
+    """One positive signal attached to a Lead event merge proposal."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
+
+    signal: MergeEvidenceSignal
+    entity_ids: tuple[str, ...] = Field(default=(), max_length=50)
+    local_unit_ids: tuple[str, ...] = Field(default=(), max_length=100)
+    source_item_ids: tuple[str, ...] = Field(default=(), max_length=100)
+    detail: str | None = Field(default=None, max_length=500)
+
+
+class EventChainAdjudicationDecision(BaseModel):
+    """One compiler-addressable decision for a deterministic candidate edge."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
+
+    candidate_id: str = Field(min_length=1, max_length=120)
+    decision: AdjudicationDecision
+    evidence_source_item_ids: tuple[str, ...] = Field(default=(), max_length=100)
+    positive_signals: tuple[MergeEvidenceSignal, ...] = Field(default=(), max_length=3)
+    reason: str | None = Field(default=None, max_length=500)
+
+
+class EventChainAdjudicationResult(BaseModel):
+    """Batch output for the low-cost event-chain adjudication pass."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    decisions: tuple[EventChainAdjudicationDecision, ...] = Field(default=(), max_length=200)
+
+    @model_validator(mode="after")
+    def _unique_candidate_ids(self) -> "EventChainAdjudicationResult":
+        ids = [item.candidate_id for item in self.decisions]
+        if len(ids) != len(set(ids)):
+            raise ValueError("adjudication candidate IDs must be unique")
+        return self
 
 
 class EventMemberDecision(BaseModel):
@@ -46,6 +89,14 @@ class EventMemberDecision(BaseModel):
         description=(
             "Exact existing local unit IDs from child decision_index entries. Prefer these for "
             "cross-shard regrouping when finding identities differ."
+        ),
+    )
+    positive_evidence: tuple[EventMergeEvidence, ...] = Field(
+        default=(),
+        max_length=20,
+        description=(
+            "Per-signal positive evidence for this merge. The compiler recomputes and validates "
+            "these claims; this field never authorizes a merge by itself."
         ),
     )
 
@@ -154,7 +205,8 @@ class LeadResearchResult(BaseModel):
 
 
 __all__ = [
-    "EntityMergeDecision", "EventMemberDecision", "FindingDiscardDecision",
-    "FindingKind", "FindingPatchDecision", "LeadRepairFinding", "LeadResearchDecisions",
-    "LeadResearchResult",
+    "AdjudicationDecision", "EntityMergeDecision", "EventChainAdjudicationDecision",
+    "EventChainAdjudicationResult", "EventMemberDecision", "EventMergeEvidence",
+    "FindingDiscardDecision", "FindingKind", "FindingPatchDecision", "LeadRepairFinding",
+    "LeadResearchDecisions", "LeadResearchResult", "MergeEvidenceSignal",
 ]
