@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 
 import JudgmentCaseWorkspace from './JudgmentCaseWorkspace';
 import JudgmentCourtBatchModals from './JudgmentCourtBatchModals';
+import JudgmentCourtCardView from './JudgmentCourtCardView';
+import JudgmentCourtViewToolbar from './JudgmentCourtViewToolbar';
 import JudgmentDocket from './JudgmentDocket';
 import ProjectGlossaryToolbar from './ProjectGlossaryToolbar';
 import { useJudgmentCourtController } from './useJudgmentCourtController';
@@ -37,6 +39,13 @@ const JudgmentCourt = ({
         reject: controller.handleBatchReject,
         restore: controller.handleBatchRestore,
     };
+    const duplicateIds = controller.candidates
+        .filter((candidate) => (candidate.duplicate_matches || []).length > 0)
+        .map((candidate) => candidate.id);
+    const openBatchConfirmation = (mode, candidateIds) => {
+        controller.updateBatchSelectedIds(candidateIds);
+        controller.setBatchConfirmOpen(mode);
+    };
 
     return (
         <Box
@@ -69,54 +78,83 @@ const JudgmentCourt = ({
                 />
             </div>
 
-            <div
-                className={styles.courtWorkspace}
-                data-remis-surface="surface"
-                data-testid="neologism-court-workspace-grid"
-            >
-                <JudgmentDocket
-                    batchProcessing={controller.batchProcessing}
-                    batchSelectedIds={controller.batchSelectedIds}
-                    candidates={controller.candidates}
-                    docketView={controller.docketView}
-                    focusRequest={controller.docketFocusRequest}
-                    loading={controller.loading}
-                    onBatchConfirm={controller.setBatchConfirmOpen}
-                    onDocketViewChange={controller.setDocketView}
-                    onSelectCandidate={controller.setSelectedId}
-                    onToggleAll={controller.toggleAllCandidates}
-                    onToggleCandidate={controller.toggleBatchCandidate}
-                    processing={controller.processing}
-                    selectedId={controller.selectedId}
+            <JudgmentCourtViewToolbar
+                candidateCount={controller.candidates.length}
+                disabled={controller.processing || controller.batchProcessing}
+                docketView={controller.docketView}
+                duplicateCount={duplicateIds.length}
+                onApproveAll={() => openBatchConfirmation(
+                    'approve',
+                    controller.candidates.map((candidate) => candidate.id),
+                )}
+                onDocketViewChange={controller.setDocketView}
+                onRejectDuplicates={() => openBatchConfirmation('reject', duplicateIds)}
+                onSearchQueryChange={controller.setSearchQuery}
+                onTierFilterChange={controller.setTierFilter}
+                onViewModeChange={controller.setViewMode}
+                searchQuery={controller.searchQuery}
+                t={t}
+                tierFilter={controller.tierFilter}
+                viewMode={controller.viewMode}
+            />
+
+            {controller.viewMode === 'cards' ? (
+                <JudgmentCourtCardView
+                    collapsedTiers={controller.collapsedTiers}
+                    groupedCandidates={controller.groupedCandidates}
+                    onOpenCandidate={controller.openCandidateInDetail}
+                    onToggleTier={controller.toggleTier}
                     t={t}
                 />
-                <main
-                    id="neologism-review-panel"
-                    className={styles.reviewPanel}
+            ) : (
+                <div
+                    className={styles.courtWorkspace}
                     data-remis-surface="surface"
+                    data-testid="neologism-court-workspace-grid"
                 >
-                    <JudgmentCaseWorkspace
+                    <JudgmentDocket
                         batchProcessing={controller.batchProcessing}
-                        candidate={controller.selectedCandidate}
+                        batchSelectedIds={controller.batchSelectedIds}
+                        candidates={controller.visibleCandidates}
                         docketView={controller.docketView}
-                        editSuggestion={controller.editSuggestion}
-                        evidenceItems={controller.selectedEvidence}
-                        hasCandidates={controller.candidates.length > 0}
+                        focusRequest={controller.docketFocusRequest + controller.detailFocusRequest}
                         loading={controller.loading}
-                        onApprove={controller.handleApprove}
-                        onOpenMining={onOpenMining}
-                        onReject={controller.handleReject}
-                        onRestore={controller.handleRestore}
-                        onSelectVariant={controller.handleSelectVariant}
-                        onSuggestionChange={controller.updateEditSuggestion}
+                        onBatchConfirm={controller.setBatchConfirmOpen}
+                        onSelectCandidate={controller.setSelectedId}
+                        onToggleAll={controller.toggleAllVisibleCandidates}
+                        onToggleCandidate={controller.toggleBatchCandidate}
                         processing={controller.processing}
-                        projectSelected={Boolean(selectedProject)}
-                        resolution={controller.resolution}
-                        setResolution={controller.setResolution}
+                        selectedId={controller.selectedId}
                         t={t}
                     />
-                </main>
-            </div>
+                    <main
+                        id="neologism-review-panel"
+                        className={styles.reviewPanel}
+                        data-remis-surface="surface"
+                    >
+                        <JudgmentCaseWorkspace
+                            batchProcessing={controller.batchProcessing}
+                            candidate={controller.selectedCandidate}
+                            docketView={controller.docketView}
+                            editSuggestion={controller.editSuggestion}
+                            evidenceItems={controller.selectedEvidence}
+                            hasCandidates={controller.visibleCandidates.length > 0}
+                            loading={controller.loading}
+                            onApprove={controller.handleApprove}
+                            onOpenMining={onOpenMining}
+                            onReject={controller.handleReject}
+                            onRestore={controller.handleRestore}
+                            onSelectVariant={controller.handleSelectVariant}
+                            onSuggestionChange={controller.updateEditSuggestion}
+                            processing={controller.processing}
+                            projectSelected={Boolean(selectedProject)}
+                            resolution={controller.resolution}
+                            setResolution={controller.setResolution}
+                            t={t}
+                        />
+                    </main>
+                </div>
+            )}
         </Box>
     );
 };

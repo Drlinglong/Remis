@@ -19,6 +19,7 @@ for (const themeId of themes) {
 
       const fixture = page.getByTestId('judgment-court-visual-fixture');
       await expect(fixture).toHaveAttribute('data-visual-ready', 'true');
+      await expect(page.getByTestId('judgment-court-view-toolbar')).toBeVisible();
       await expect(page.getByTestId('neologism-docket-panel')).toBeVisible();
       await expect(page.getByTestId('neologism-candidate-anchor')).toBeVisible();
       await expect(page.getByTestId('neologism-decision-panel')).toBeVisible();
@@ -43,6 +44,28 @@ for (const themeId of themes) {
       );
     });
   }
+}
+
+for (const themeId of themes) {
+  test(`${themeId} judgment court card view groups importance tiers`, async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 1100 });
+    await page.goto(`/visual-fixtures.html?theme=${themeId}&contract=judgment-court`);
+    await expect(page.getByTestId('judgment-court-visual-fixture')).toHaveAttribute('data-visual-ready', 'true');
+
+    await page.getByText('卡片视图', { exact: true }).click();
+    const cardView = page.getByTestId('judgment-court-card-view');
+    await expect(cardView).toBeVisible();
+    await expect(cardView.getByRole('button', { name: /A ·/ })).toHaveAttribute('aria-expanded', 'true');
+    await expect(cardView.getByRole('button', { name: /B ·/ })).toHaveAttribute('aria-expanded', 'true');
+    await expect(cardView.getByRole('button', { name: /C ·/ })).toHaveAttribute('aria-expanded', 'false');
+    await expect(cardView.locator('#judgment-tier-C')).toBeHidden();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBeTruthy();
+
+    await expect(page).toHaveScreenshot(
+      `judgment-court-cards-${themeId}-desktop.png`,
+      { fullPage: true },
+    );
+  });
 }
 
 for (const themeId of themes) {

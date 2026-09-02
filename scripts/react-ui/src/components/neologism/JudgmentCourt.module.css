@@ -12,6 +12,21 @@
   margin: 0 var(--space-4) var(--space-2);
 }
 
+.viewToolbarSlot {
+  flex: 0 0 auto;
+  margin: 0 var(--space-4) var(--space-2);
+  padding: var(--space-2);
+  background: var(--surface-bg);
+  border: 1px solid var(--surface-border-quiet);
+  border-radius: var(--radius-panel);
+}
+
+.viewSearch {
+  flex: 1 1 16rem;
+  min-width: min(100%, 14rem);
+  max-width: 28rem;
+}
+
 .courtWorkspace {
   display: grid;
   grid-template-columns: clamp(18rem, 20vw, 24rem) minmax(0, 1fr);
@@ -22,6 +37,53 @@
   background: var(--surface-bg-solid);
   border: 1px solid var(--surface-border-quiet);
   border-radius: var(--radius-panel);
+}
+
+.cardViewScroll {
+  flex: 1 1 0;
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  scrollbar-gutter: stable;
+  background: var(--surface-bg-solid);
+  border: 1px solid var(--surface-border-quiet);
+  border-radius: var(--radius-panel);
+}
+
+.candidateCardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+  gap: var(--space-3);
+}
+
+.candidateCardGrid[hidden] {
+  display: none;
+}
+
+.candidateCard {
+  width: 100%;
+  min-width: 0;
+  min-height: 8rem;
+  color: var(--paper-text-main);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  background: var(--paper-bg);
+  border: 1px solid var(--paper-border-quiet);
+  border-radius: var(--radius-paper);
+  box-shadow: none;
+  transition: border-color var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+.candidateCard:hover {
+  border-color: var(--surface-border-anchor);
+}
+
+.candidateCard:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 
 .docketPanel,
@@ -378,6 +440,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .candidateButton,
+  .candidateCard,
   .caseWorkspaceMotion,
   .batchActions {
     animation: none;
