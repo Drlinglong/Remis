@@ -290,6 +290,15 @@ def _persist_workflow_v3_snapshot(backend: Any, trace_output: str | None) -> Non
     )
 
 
+def _workflow_v3_trace_reference(
+    replay_trace: str | None,
+    trace_output: str | None,
+) -> str | None:
+    """Point replay artifacts at their source trace and live artifacts at their output."""
+
+    return replay_trace or trace_output
+
+
 async def _run(arguments: argparse.Namespace) -> dict[str, Any]:
     request, tools, source_manifest = _request_and_corpus(arguments)
     lead_model, subagent_model, runtime, selected_lead, selected_subagent = (
@@ -378,7 +387,9 @@ async def _run(arguments: argparse.Namespace) -> dict[str, Any]:
         if arguments.backend == "workflow-v3":
             diagnostics = dict(draft.diagnostics)
             trace_summary = {
-                "trace_output": arguments.replay_trace or trace_output,
+                "trace_output": _workflow_v3_trace_reference(
+                    arguments.replay_trace, trace_output,
+                ),
                 "backend": "context-workflow-v3",
                 "delegations": [],
                 "usage": diagnostics.get("model_execution", {}),

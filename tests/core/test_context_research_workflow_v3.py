@@ -36,6 +36,7 @@ from scripts.core.services.context_tree_v2_contract import (
 )
 from scripts.developer_tools.smoke_context_research_harness import (
     _persist_workflow_v3_snapshot,
+    _workflow_v3_trace_reference,
 )
 
 
@@ -282,6 +283,14 @@ def test_runner_persists_workflow_v3_snapshot_on_success(tmp_path):
     _persist_workflow_v3_snapshot(backend, str(target))
 
     assert json.loads(target.read_text(encoding="utf-8"))["summary"] == "中文中间结果"
+
+
+def test_workflow_v3_trace_reference_uses_live_output_and_preserves_replay_source():
+    assert _workflow_v3_trace_reference(None, "live.trace.json") == "live.trace.json"
+    assert (
+        _workflow_v3_trace_reference("source.trace.json", "replayed.trace.json")
+        == "source.trace.json"
+    )
 
 
 class _V3ExtractionHandler:
