@@ -345,11 +345,12 @@ class TranslationContextReadinessService:
 
     @staticmethod
     def _source_language_info(project: dict[str, Any]) -> dict[str, str]:
-        language = str(
+        raw_language = (
             project.get("source_language")
             or project.get("source_lang")
             or "english"
-        ).strip()
+        )
+        language = str(getattr(raw_language, "value", raw_language)).strip()
         normalized = language.casefold()
         names = {
             "en": "English",

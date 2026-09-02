@@ -13,6 +13,7 @@ from scripts.core.services.translation_source_snapshot_builder import (
     build_legacy_trimmed_source_snapshot,
     build_translation_source_snapshot,
 )
+from scripts.schemas.common import LanguageCode
 
 
 def _write_whitespace_fixture(root: Path, value: str = " A spaced value ") -> Path:
@@ -83,7 +84,7 @@ async def test_v3_readiness_accepts_exact_legacy_whitespace_snapshot(tmp_path):
         "game_id": "stellaris",
         "project_name": "Example",
         "source_path": str(root),
-        "source_language": "en",
+        "source_language": LanguageCode.EN,
     }
 
     readiness = await service.inspect("project-1", "archive", project)
