@@ -95,6 +95,39 @@ describe('Published context archive layout', () => {
         expect(screen.getByTestId('published-context-detail')).toHaveTextContent('events/step-2.yml:1');
     });
 
+    it('renders release evidence when published fragments only expose local unit ids', () => {
+        const tree = buildTree(1);
+        delete tree.units;
+        tree.fragments[0].source_evidence_refs = [{
+            source_item_id: 'source-item-title',
+            source_ref: 'localisation/english/events.yml',
+            local_unit_id: 'unit-1',
+            item_key: 'event.1.name:0',
+            source_order: 10,
+            full_source_text: 'The Hundred Years Quest',
+        }, {
+            source_item_id: 'source-item-desc',
+            source_ref: 'localisation/english/events.yml',
+            local_unit_id: 'unit-1',
+            item_key: 'event.1.desc:0',
+            source_order: 11,
+            full_source_text: 'One hundred years ago, we took to the stars.',
+        }];
+        render(
+            <MantineProvider>
+                <ContextTreeV2ArchiveSummary tree={tree} mode="published" />
+            </MantineProvider>,
+        );
+
+        fireEvent.click(screen.getByTestId('published-context-fragment-fragment-1'));
+
+        const detail = screen.getByTestId('published-context-detail');
+        expect(detail).toHaveTextContent('localisation/english/events.yml::event.1.name:0');
+        expect(detail).toHaveTextContent('The Hundred Years Quest');
+        expect(detail).toHaveTextContent('One hundred years ago, we took to the stars.');
+        expect(detail).not.toHaveTextContent('Source text is unavailable for this unit.');
+    });
+
     it('expands and collapses long non-event collections', () => {
         const tree = buildTree(2);
         tree.fragments = [

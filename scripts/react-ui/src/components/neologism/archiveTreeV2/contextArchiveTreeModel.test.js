@@ -56,4 +56,44 @@ describe('context archive tree model', () => {
         expect(tree.unresolvedFragmentIds).toEqual([]);
         expect(buildNarrativeUnitPreview(tree, 'unit-lore').hasEventContext).toBe(false);
     });
+
+    it('keeps published fragment source evidence when the release omits expanded units', () => {
+        const tree = normalizeArchiveTree({
+            project_id: 'published-evidence-test',
+            stories: [{ story_id: 'story-1', group_ids: ['group-1'] }],
+            groups: [{ group_id: 'group-1', fragment_ids: ['fragment-1'] }],
+            local_fragments: [{
+                fragment_id: 'fragment-1',
+                unit_ids: ['unit_171'],
+                source_evidence_refs: [{
+                    source_item_id: 'source-item-title',
+                    source_ref: 'localisation/english/events.yml',
+                    local_unit_id: 'unit_171',
+                    item_key: 'event.1.name:0',
+                    source_order: 10,
+                    full_source_text: 'The Hundred Years Quest',
+                }, {
+                    source_item_id: 'source-item-desc',
+                    source_ref: 'localisation/english/events.yml',
+                    local_unit_id: 'unit_171',
+                    item_key: 'event.1.desc:0',
+                    source_order: 11,
+                    full_source_text: 'One hundred years ago, we took to the stars.',
+                }],
+            }],
+        });
+
+        expect(tree.fragments['fragment-1'].sourceEvidence).toEqual([
+            expect.objectContaining({
+                localUnitId: 'unit_171',
+                label: 'localisation/english/events.yml::event.1.name:0',
+                text: 'The Hundred Years Quest',
+            }),
+            expect.objectContaining({
+                localUnitId: 'unit_171',
+                label: 'localisation/english/events.yml::event.1.desc:0',
+                text: 'One hundred years ago, we took to the stars.',
+            }),
+        ]);
+    });
 });

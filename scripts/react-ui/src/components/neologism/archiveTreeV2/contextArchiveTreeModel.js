@@ -150,6 +150,36 @@ const normalizeUnit = (raw, index) => {
     };
 };
 
+const normalizeSourceEvidence = (raw, index) => {
+    const value = asObject(raw);
+    const sourceRef = String(firstValue(
+        value.source_ref,
+        value.sourceRef,
+        value.relative_path,
+        value.path,
+        value.batch_source,
+    ) || '');
+    const itemKey = String(firstValue(value.item_key, value.itemKey, value.key) || '');
+    const localUnitId = String(firstValue(value.local_unit_id, value.localUnitId) || '');
+    const sourceItemId = String(firstValue(value.source_item_id, value.sourceItemId) || '');
+    return {
+        id: sourceItemId || `${localUnitId || 'source'}-${index + 1}`,
+        localUnitId,
+        label: [sourceRef, itemKey].filter(Boolean).join('::') || sourceItemId || localUnitId,
+        text: String(firstValue(
+            value.full_source_text,
+            value.fullSourceText,
+            value.source_text,
+            value.sourceText,
+            value.excerpt,
+            value.text,
+        ) || ''),
+        sourceOrder: Number.isFinite(Number(value.source_order))
+            ? Number(value.source_order)
+            : index,
+    };
+};
+
 const normalizeFragment = (raw, index, forcedRoute = null) => {
     const value = asObject(raw);
     const metadata = asObject(value.metadata);
@@ -181,6 +211,13 @@ const normalizeFragment = (raw, index, forcedRoute = null) => {
         sourceRefs: asList(firstValue(value.source_refs, value.sourceRefs, metadata.source_refs))
             .map((item) => String(asId(item) || item || '').trim())
             .filter(Boolean),
+        sourceEvidence: asList(firstValue(
+            value.source_evidence_refs,
+            value.sourceEvidenceRefs,
+            metadata.source_evidence_refs,
+        ))
+            .map(normalizeSourceEvidence)
+            .sort((left, right) => left.sourceOrder - right.sourceOrder || left.id.localeCompare(right.id)),
         metadata,
     };
 };

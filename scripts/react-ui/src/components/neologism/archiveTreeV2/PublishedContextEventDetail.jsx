@@ -13,9 +13,22 @@ const text = (t, key, fallback, options = {}) => {
 
 const sourceForUnit = (unit, index) => ({
     id: `${unit.id}-${index}`,
+    localUnitId: unit.id,
     label: unit.sourceRef || unit.label || unit.id,
     text: unit.sourceText || unit.summary || '',
 });
+
+const sourcesForFragment = (fragment, units) => {
+    const evidence = fragment?.sourceEvidence || [];
+    const coveredUnitIds = new Set(evidence.map((item) => item.localUnitId).filter(Boolean));
+    const fallbacks = (fragment?.unitIds || [])
+        .filter((unitId) => !coveredUnitIds.has(unitId))
+        .map((unitId, index) => sourceForUnit(
+            units[unitId] || { id: unitId, label: unitId },
+            evidence.length + index,
+        ));
+    return [...evidence, ...fallbacks];
+};
 
 const PublishedContextEventDetail = ({
     focusTargetRef,
@@ -33,9 +46,7 @@ const PublishedContextEventDetail = ({
     const groupFragments = group
         ? group.fragmentIds.map((fragmentId) => tree.fragments[fragmentId]).filter(Boolean)
         : [];
-    const sources = fragment
-        ? fragment.unitIds.map((unitId, index) => sourceForUnit(tree.units[unitId] || { id: unitId, label: unitId }, index))
-        : [];
+    const sources = fragment ? sourcesForFragment(fragment, tree.units) : [];
     return (
         <Paper
             ref={focusTargetRef}
