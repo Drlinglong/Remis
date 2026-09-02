@@ -18,6 +18,7 @@ const sourceForUnit = (unit, index) => ({
 });
 
 const PublishedContextEventDetail = ({
+    focusTargetRef,
     tree,
     selectedFragmentId,
     selectedGroupId,
@@ -36,7 +37,16 @@ const PublishedContextEventDetail = ({
         ? fragment.unitIds.map((unitId, index) => sourceForUnit(tree.units[unitId] || { id: unitId, label: unitId }, index))
         : [];
     return (
-        <Paper className={styles.detailPanel} p="md" withBorder data-remis-surface="paper" data-testid="published-context-detail">
+        <Paper
+            ref={focusTargetRef}
+            id="published-context-detail"
+            tabIndex={-1}
+            className={styles.detailPanel}
+            p="md"
+            withBorder
+            data-remis-surface="paper"
+            data-testid="published-context-detail"
+        >
             <header className={styles.detailHeader}>
                 <div>
                     <Text className={styles.detailEyebrow}>{text(t, 'mod_archive.tree_v2.detail_eyebrow', 'EVENT DETAIL')}</Text>
@@ -110,7 +120,7 @@ const PublishedContextEventDetail = ({
                     {!fragment && group && (
                         <section className={styles.chainDetailSection}>
                             <Text className={styles.sourceHeading}>{text(t, 'mod_archive.tree_v2.chain_fragments', 'Chain details')}</Text>
-                            <div className={styles.chainDetailList}>
+                            <div className={styles.chainDetailList} data-testid="published-context-chain-detail-list">
                                 {groupFragments.map((item, index) => (
                                     <button
                                         type="button"

@@ -1299,6 +1299,8 @@
       "detail_empty_title": "Selecciona una cadena de eventos",
       "detail_empty_desc": "Elige una cadena o tarjeta a la izquierda para revisar su relación y texto fuente.",
       "chain_fragments": "Detalles de la cadena",
+      "view_all_fragments": "Ver los {{count}} elementos ({{remaining}} más)",
+      "show_fewer_fragments": "Mostrar menos elementos",
       "fragments": "{{count}} tarjetas",
       "units": "{{count}} unidades",
       "source_text": "Texto fuente original",

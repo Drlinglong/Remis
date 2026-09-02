@@ -1299,6 +1299,8 @@
       "detail_empty_title": "Ereigniskette auswählen",
       "detail_empty_desc": "Wählen Sie links eine Ereigniskette oder Karte, um Beziehung und Quelltext zu prüfen.",
       "chain_fragments": "Kettendetails",
+      "view_all_fragments": "Alle {{count}} Einträge anzeigen ({{remaining}} weitere)",
+      "show_fewer_fragments": "Weniger Einträge anzeigen",
       "fragments": "{{count}} Karten",
       "units": "{{count}} Einheiten",
       "source_text": "Originaler Quelltext",

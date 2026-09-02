@@ -1300,6 +1300,8 @@
       "detail_empty_title": "イベントチェーンを選択",
       "detail_empty_desc": "左側のチェーンまたはカードを選ぶと、関係とソーステキストを確認できます。",
       "chain_fragments": "チェーンの詳細",
+      "view_all_fragments": "{{count}}件をすべて表示（残り{{remaining}}件）",
+      "show_fewer_fragments": "表示件数を減らす",
       "fragments": "カード {{count}} 枚",
       "units": "ユニット {{count}} 件",
       "source_text": "元のソーステキスト",

@@ -1295,6 +1295,8 @@
       "detail_empty_title": "Wybierz łańcuch zdarzeń",
       "detail_empty_desc": "Wybierz po lewej łańcuch lub kartę, aby sprawdzić relację i tekst źródłowy.",
       "chain_fragments": "Szczegóły łańcucha",
+      "view_all_fragments": "Pokaż wszystkie {{count}} elementów (jeszcze {{remaining}})",
+      "show_fewer_fragments": "Pokaż mniej elementów",
       "fragments": "Kart: {{count}}",
       "units": "Jednostek: {{count}}",
       "source_text": "Oryginalny tekst źródłowy",

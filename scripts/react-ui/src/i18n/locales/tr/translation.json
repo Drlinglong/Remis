@@ -1295,6 +1295,8 @@
       "detail_empty_title": "Bir olay zinciri seçin",
       "detail_empty_desc": "İlişkisini ve kaynak metnini incelemek için soldan bir zincir veya kart seçin.",
       "chain_fragments": "Zincir ayrıntıları",
+      "view_all_fragments": "{{count}} öğenin tümünü görüntüle ({{remaining}} daha)",
+      "show_fewer_fragments": "Daha az öğe göster",
       "fragments": "{{count}} kart",
       "units": "{{count}} birim",
       "source_text": "Özgün kaynak metni",

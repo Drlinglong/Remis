@@ -8,7 +8,14 @@ import PublishedContextGroupHeading from './PublishedContextGroupHeading';
 import styles from './PublishedContextWorkbench.module.css';
 import { fragmentDropId, groupDropId } from './useFragmentDrag';
 
-const text = (t, key, fallback, options = {}) => t(key, { defaultValue: fallback, ...options });
+export const OVERVIEW_FRAGMENT_PREVIEW_LIMIT = 6;
+
+const text = (t, key, fallback, options = {}) => {
+    const value = t(key, { defaultValue: fallback, ...options });
+    return typeof value === 'string'
+        ? value.replace(/\{\{(\w+)\}\}/g, (_, name) => options[name] ?? `{{${name}}}`)
+        : value;
+};
 
 const kickerFor = ({ focused, kind, t }) => {
     if (focused) return 'EVENT CHAIN';
@@ -80,12 +87,34 @@ const PublishedContextGroupColumn = ({
     onRenameGroup,
     onDeleteGroup,
     kind = 'event',
+    totalFragmentCount = fragments.length,
+    onViewAll,
+    isOverview = false,
     t,
 }) => {
+    const [expanded, setExpanded] = React.useState(false);
     const { setNodeRef, isOver } = useDroppable({
         id: groupDropId(group.id),
         data: { type: 'group', groupId: group.id },
     });
+    const isPreview = isOverview && fragments.length > OVERVIEW_FRAGMENT_PREVIEW_LIMIT;
+    const visibleFragments = isPreview && !expanded
+        ? fragments.slice(0, OVERVIEW_FRAGMENT_PREVIEW_LIMIT)
+        : fragments;
+    const fragmentsId = `published-context-fragments-${group.id}`;
+    const handleViewAll = (event) => {
+        if (onViewAll) {
+            onViewAll(group.id, event.currentTarget.id);
+            return;
+        }
+        setExpanded((current) => !current);
+    };
+    const viewAllLabel = expanded && !onViewAll
+        ? text(t, 'mod_archive.tree_v2.show_fewer_fragments', 'Show fewer items')
+        : text(t, 'mod_archive.tree_v2.view_all_fragments', 'View all {{count}} items ({{remaining}} more)', {
+            count: fragments.length,
+            remaining: fragments.length - OVERVIEW_FRAGMENT_PREVIEW_LIMIT,
+        });
     return (
         <Paper
             ref={setNodeRef}
@@ -99,7 +128,7 @@ const PublishedContextGroupColumn = ({
         >
             <PublishedContextGroupHeading
                 group={group}
-                fragmentCount={fragments.length}
+                fragmentCount={totalFragmentCount}
                 focused={focused}
                 kicker={kickerFor({ focused, kind, t })}
                 onSelectGroup={onSelectGroup}
@@ -107,8 +136,13 @@ const PublishedContextGroupColumn = ({
                 onDeleteGroup={onDeleteGroup}
                 t={t}
             />
-            <div className={`${styles.fragmentList} ${focused ? styles.focusedFragmentList : ''}`}>
-                {fragments.map((fragment, index) => (
+            <div
+                id={fragmentsId}
+                data-testid={fragmentsId}
+                className={`${styles.fragmentList} ${focused ? styles.focusedFragmentList : ''} ${expanded ? styles.expandedFragmentList : ''}`}
+                data-preview-expanded={expanded ? 'true' : 'false'}
+            >
+                {visibleFragments.map((fragment, index) => (
                     <FragmentCard
                         key={fragment.id}
                         fragment={fragment}
@@ -124,6 +158,22 @@ const PublishedContextGroupColumn = ({
                     </div>
                 )}
             </div>
+            {isPreview && (
+                <button
+                    id={`published-context-view-all-${group.id}`}
+                    type="button"
+                    className={styles.viewAllButton}
+                    data-testid={`published-context-view-all-${group.id}`}
+                    aria-controls={onViewAll ? 'published-context-detail' : fragmentsId}
+                    aria-expanded={onViewAll ? undefined : String(expanded)}
+                    onClick={handleViewAll}
+                >
+                    <span>{viewAllLabel}</span>
+                    <span className={styles.viewAllHint} aria-hidden="true">
+                        {onViewAll ? '→' : (expanded ? '↑' : '↓')}
+                    </span>
+                </button>
+            )}
         </Paper>
     );
 };

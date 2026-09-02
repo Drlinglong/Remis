@@ -1357,6 +1357,8 @@
       "detail_empty_title": "选择一条事件链",
       "detail_empty_desc": "点击左侧事件链或卡片，查看关系和源文本。",
       "chain_fragments": "事件链详情",
+      "view_all_fragments": "查看全部 {{count}} 项（还有 {{remaining}} 项）",
+      "show_fewer_fragments": "收起列表",
       "fragments": "卡片：{{count}}",
       "units": "单元：{{count}}",
       "source_text": "原始源文本",

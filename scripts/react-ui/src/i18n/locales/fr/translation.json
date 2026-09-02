@@ -1299,6 +1299,8 @@
       "detail_empty_title": "Sélectionnez une chaîne d’événements",
       "detail_empty_desc": "Choisissez une chaîne ou une carte à gauche pour examiner sa relation et son texte source.",
       "chain_fragments": "Détails de la chaîne",
+      "view_all_fragments": "Voir les {{count}} éléments ({{remaining}} de plus)",
+      "show_fewer_fragments": "Afficher moins d’éléments",
       "fragments": "{{count}} cartes",
       "units": "{{count}} unités",
       "source_text": "Texte source original",

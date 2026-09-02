@@ -1303,6 +1303,8 @@
       "detail_empty_title": "Select an event chain",
       "detail_empty_desc": "Choose an event chain or card on the left to inspect its relationship and source text.",
       "chain_fragments": "Chain details",
+      "view_all_fragments": "View all {{count}} items ({{remaining}} more)",
+      "show_fewer_fragments": "Show fewer items",
       "fragments": "{{count}} cards",
       "units": "{{count}} units",
       "source_text": "Original source text",

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { Alert, Badge, Button, Group, Stack, Text, Title } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 
@@ -13,6 +13,18 @@ import PublishedContextProjectSummary from './PublishedContextProjectSummary';
 import styles from './PublishedContextWorkbench.module.css';
 
 const text = (t, key, fallback, options = {}) => t(key, { defaultValue: fallback, ...options });
+const isStackedLayout = () => (
+    typeof window !== 'undefined'
+    && window.matchMedia?.('(max-width: 52em)').matches
+);
+
+const focusAndReveal = (element) => {
+    if (!element) return;
+    element.focus({ preventScroll: true });
+    if (isStackedLayout()) {
+        element.scrollIntoView({ block: 'start', inline: 'nearest', behavior: 'auto' });
+    }
+};
 
 export const ContextTreeV2ArchiveSummary = ({ tree, mode = 'published' }) => {
     const { t } = useTranslation();
@@ -35,7 +47,29 @@ export const ContextTreeV2ArchiveSummary = ({ tree, mode = 'published' }) => {
         fragments: normalizedTree.fragments,
         identity: tree?.release_id || tree?.releaseId,
     });
+    const detailFocusRef = useRef(null);
+    const returnFocusIdRef = useRef(null);
+    const detailFocusPendingRef = useRef(false);
     const detailState = selection.selectedFragmentId || selection.selectedGroupId ? 'selected' : 'empty';
+
+    useEffect(() => {
+        if (!detailFocusPendingRef.current || !selection.selectedGroupId) return;
+        detailFocusPendingRef.current = false;
+        focusAndReveal(detailFocusRef.current);
+    }, [selection.selectedGroupId]);
+
+    useEffect(() => {
+        if (selection.selectedFragmentId || selection.selectedGroupId || !returnFocusIdRef.current) return;
+        const returnTarget = document.getElementById(returnFocusIdRef.current);
+        returnFocusIdRef.current = null;
+        focusAndReveal(returnTarget);
+    }, [selection.selectedFragmentId, selection.selectedGroupId]);
+
+    const viewAllGroup = (groupId, triggerId) => {
+        returnFocusIdRef.current = triggerId;
+        detailFocusPendingRef.current = true;
+        selection.selectGroup(groupId);
+    };
 
     const deleteGroup = (groupId) => {
         archiveState.deleteGroup(groupId);
@@ -89,9 +123,11 @@ export const ContextTreeV2ArchiveSummary = ({ tree, mode = 'published' }) => {
                     onRenameGroup={archiveState.renameGroup}
                     onDeleteGroup={deleteGroup}
                     onMoveFragment={archiveState.moveFragment}
+                    onViewAllGroup={viewAllGroup}
                     t={t}
                 />
                 <PublishedContextEventDetail
+                    focusTargetRef={detailFocusRef}
                     tree={normalizedTree}
                     selectedFragmentId={selection.selectedFragmentId}
                     selectedGroupId={selection.selectedGroupId}

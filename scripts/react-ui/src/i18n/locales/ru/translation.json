@@ -1361,6 +1361,8 @@
       "detail_empty_title": "Выберите цепочку событий",
       "detail_empty_desc": "Выберите слева цепочку или карточку, чтобы проверить связь и исходный текст.",
       "chain_fragments": "Сведения о цепочке",
+      "view_all_fragments": "Показать все элементы: {{count}} (ещё {{remaining}})",
+      "show_fewer_fragments": "Показать меньше элементов",
       "fragments": "Карточек: {{count}}",
       "units": "Единиц: {{count}}",
       "source_text": "Исходный текст",

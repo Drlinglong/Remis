@@ -33,6 +33,7 @@ const PublishedContextMap = ({
     onRenameGroup,
     onDeleteGroup,
     onMoveFragment,
+    onViewAllGroup,
     t,
 }) => {
     const [showCreateGroup, setShowCreateGroup] = useState(false);
@@ -95,7 +96,13 @@ const PublishedContextMap = ({
         ? allFragments.find((fragment) => fragment.id === drag.activeFragmentId)
         : null;
 
-    const renderGroup = (group, fragments, selectable = true, kind = 'event') => (
+    const renderGroup = (
+        group,
+        fragments,
+        selectable = true,
+        kind = 'event',
+        totalFragmentCount = fragments.length,
+    ) => (
         <PublishedContextGroupColumn
             key={group.id}
             group={group}
@@ -106,6 +113,9 @@ const PublishedContextMap = ({
             onSelectGroup={selectable ? onSelectGroup : null}
             onRenameGroup={selectable ? onRenameGroup : null}
             onDeleteGroup={selectable ? onDeleteGroup : null}
+            totalFragmentCount={totalFragmentCount}
+            onViewAll={selectable ? onViewAllGroup : null}
+            isOverview={!focused}
             kind={kind}
             t={t}
         />
@@ -220,7 +230,15 @@ const PublishedContextMap = ({
                                 </aside>
                             )}
                             <div className={styles.focusedColumn}>
-                                {renderGroup(focusedGroup, focusedGroup.fragmentIds.map((id) => tree.fragments[id]).filter(Boolean))}
+                                {renderGroup(
+                                    focusedGroup,
+                                    focusedGroup.fragmentIds
+                                        .map((id) => tree.fragments[id])
+                                        .filter(Boolean),
+                                    true,
+                                    'event',
+                                    focusedGroup.fragmentIds.length,
+                                )}
                             </div>
                         </div>
                     </div>
@@ -237,7 +255,12 @@ const PublishedContextMap = ({
                                 className={styles.groupGrid}
                                 style={{ '--chain-count': Math.max(1, overviewItems.length) }}
                             >
-                                {overviewItems.map(({ group, fragments, selectable, kind }) => renderGroup(group, fragments, selectable, kind))}
+                                {overviewItems.map(({ group, fragments, selectable, kind }) => renderGroup(
+                                    group,
+                                    fragments,
+                                    selectable,
+                                    kind,
+                                ))}
                             </div>
                         </div>
                     </div>

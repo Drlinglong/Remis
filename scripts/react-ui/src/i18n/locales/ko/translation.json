@@ -1300,6 +1300,8 @@
       "detail_empty_title": "이벤트 체인을 선택하세요",
       "detail_empty_desc": "왼쪽에서 이벤트 체인이나 카드를 선택해 관계와 원본 텍스트를 확인하세요.",
       "chain_fragments": "체인 세부 정보",
+      "view_all_fragments": "{{count}}개 항목 모두 보기 ({{remaining}}개 더 있음)",
+      "show_fewer_fragments": "항목 접기",
       "fragments": "카드 {{count}}개",
       "units": "단위 {{count}}개",
       "source_text": "원본 소스 텍스트",

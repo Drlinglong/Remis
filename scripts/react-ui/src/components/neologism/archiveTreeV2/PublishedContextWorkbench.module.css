@@ -261,11 +261,19 @@
 .detailPanel {
     position: sticky;
     top: 1rem;
+    max-height: min(42rem, calc(100vh - 2rem));
+    overflow-y: auto;
+    scrollbar-gutter: stable;
     background: var(--paper-bg) !important;
     border-color: color-mix(in srgb, var(--paper-text-main) 18%, transparent) !important;
     color: var(--paper-text-main);
     --mantine-color-text: var(--paper-text-main);
     --mantine-color-dimmed: var(--paper-text-muted);
+}
+
+.detailPanel:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
 }
 
 .overviewGraph,
@@ -355,6 +363,7 @@
     display: grid;
     grid-template-columns: repeat(var(--chain-count), minmax(var(--chain-card-min), 1fr));
     gap: 0.75rem;
+    align-items: start;
     min-width: max(100%, calc(var(--chain-count) * var(--chain-card-min) + (var(--chain-count) - 1) * 0.75rem));
 }
 
@@ -372,6 +381,7 @@
     display: grid;
     align-content: start;
     gap: 0.75rem;
+    align-self: start;
     min-width: 0;
     margin-top: 1.5rem;
     border-color: color-mix(in srgb, var(--paper-text-main) 18%, transparent) !important;
@@ -427,7 +437,7 @@
 
 .focusedGroupStage {
     display: flex;
-    align-items: stretch;
+    align-items: flex-start;
     justify-content: center;
     gap: 0.75rem;
     min-width: 0;
@@ -651,6 +661,51 @@
     gap: 0.5rem;
     min-width: 0;
     min-height: 2.8rem;
+}
+
+.expandedFragmentList,
+.focusedFragmentList {
+    max-height: min(28rem, 60vh);
+    overflow-y: auto;
+    padding-right: 0.25rem;
+    scrollbar-gutter: stable;
+}
+
+.viewAllButton {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    width: 100%;
+    min-height: 2.75rem;
+    margin-top: 0.25rem;
+    padding: 0.5rem 0.625rem;
+    border: 1px solid color-mix(in srgb, var(--interactive-accent) 42%, var(--paper-text-main));
+    border-radius: 0.5rem;
+    background: color-mix(in srgb, var(--interactive-accent) 8%, var(--paper-bg));
+    color: var(--paper-text-main);
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-align: left;
+}
+
+.viewAllButton:hover,
+.viewAllButton:focus-visible {
+    border-color: var(--interactive-accent);
+    background: color-mix(in srgb, var(--interactive-accent) 15%, var(--paper-bg));
+}
+
+.viewAllButton:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+
+.viewAllHint {
+    flex: 0 0 auto;
+    color: var(--interactive-accent);
+    font-size: 1rem;
 }
 
 .focusedFragmentList {
