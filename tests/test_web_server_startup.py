@@ -87,11 +87,11 @@ def test_port_preflight_refuses_to_continue_when_non_remis_process_keeps_port(mo
     assert cleanup_calls == [(1453, None)]
 
 
-def test_packaged_build_hides_copilot_router_by_default(monkeypatch):
+def test_packaged_build_enables_copilot_router_by_default(monkeypatch):
     monkeypatch.setattr(sys, "frozen", True, raising=False)
     monkeypatch.delenv("REMIS_ENABLE_COPILOT", raising=False)
 
-    assert web_server.copilot_router_enabled() is False
+    assert web_server.copilot_router_enabled() is True
 
 
 def test_copilot_router_can_be_explicitly_enabled(monkeypatch):

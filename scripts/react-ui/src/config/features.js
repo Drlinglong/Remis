@@ -5,6 +5,7 @@
 const ENABLE_EXPERIMENTAL_FEATURES = false;
 export const BUILD_CHANNEL = import.meta.env.VITE_REMIS_BUILD_CHANNEL || 'stable';
 export const IS_AGENT_PREVIEW = BUILD_CHANNEL === 'agent-preview';
+export const IS_RELEASED_WORKFLOW_CHANNEL = BUILD_CHANNEL === 'stable' || IS_AGENT_PREVIEW;
 
 export const FEATURES = {
     // Master switch for unfinished or internal-only features
@@ -17,11 +18,11 @@ export const FEATURES = {
 
     // Mature workflow pages
     ENABLE_NEOLOGISM_TRIBUNAL: true,
-    ENABLE_MOD_ARCHIVE: true,
-    ENABLE_CHECKPOINT_RESUME: true,
+    ENABLE_MOD_ARCHIVE: IS_RELEASED_WORKFLOW_CHANNEL,
+    ENABLE_CHECKPOINT_RESUME: IS_RELEASED_WORKFLOW_CHANNEL,
 
-    // Help Copilot is visible only in the explicit Agent Preview build channel.
-    ENABLE_REMIS_COPILOT: IS_AGENT_PREVIEW,
+    // Help Copilot is available in the stable release and its isolated preview channel.
+    ENABLE_REMIS_COPILOT: IS_RELEASED_WORKFLOW_CHANNEL,
 
     // Developer-only pages and tools
     ENABLE_DOCS: ENABLE_EXPERIMENTAL_FEATURES,

@@ -20,7 +20,7 @@
     "source": "developer-only context research smoke"
   },
   "source": {
-    "root": "J:\\V3_Mod_Localization_Factory-worktrees\\issue-198-archive-hardening-v3.1.8\\assets\\release_demo_content\\demos\\Test_Project_Remis_stellaris\\localisation\\english",
+    "root": "assets/release_demo_content/demos/Test_Project_Remis_stellaris/localisation/english",
     "file_count": 3,
     "item_count": 25,
     "files": [
@@ -1110,7 +1110,7 @@
     "game_name": "Stellaris",
     "description_language": "zh-CN",
     "reasoning_language": "Simplified Chinese",
-    "source_root": "J:\\V3_Mod_Localization_Factory-worktrees\\issue-198-archive-hardening-v3.1.8\\assets\\release_demo_content\\demos\\Test_Project_Remis_stellaris\\localisation\\english",
+    "source_root": "assets/release_demo_content/demos/Test_Project_Remis_stellaris/localisation/english",
     "dry_run": false
   },
   "schema_version": "context-research-preview-v1"

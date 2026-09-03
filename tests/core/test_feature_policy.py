@@ -23,3 +23,16 @@ def test_translation_policy_preserves_archive_and_resume():
     assert request.context_release_id == "release-1"
     assert request.use_resume is True
     assert warning is None
+
+
+def test_unknown_build_channel_fails_closed(monkeypatch):
+    from types import SimpleNamespace
+
+    monkeypatch.setattr(
+        feature_policy,
+        "BUILD_PROFILE",
+        SimpleNamespace(channel="future-experiment"),
+    )
+
+    assert feature_policy.mod_archive_enabled() is False
+    assert feature_policy.checkpoint_resume_enabled() is False

@@ -1,14 +1,20 @@
 """Feature policy for governed production workflows."""
 
+from scripts.app_settings import BUILD_PROFILE
+from scripts.build_profile import AGENT_PREVIEW_CHANNEL, STABLE_CHANNEL
+
+
+RELEASED_WORKFLOW_CHANNELS = frozenset({STABLE_CHANNEL, AGENT_PREVIEW_CHANNEL})
+
 
 def mod_archive_enabled() -> bool:
-    """Project Archive now uses persisted, source-snapshot-bound readiness state."""
-    return True
+    """Expose Project Archive only in explicitly supported build channels."""
+    return BUILD_PROFILE.channel in RELEASED_WORKFLOW_CHANNELS
 
 
 def checkpoint_resume_enabled() -> bool:
-    """Checkpoint recovery is owned by the persisted translation task lifecycle."""
-    return True
+    """Expose checkpoint recovery only in explicitly supported build channels."""
+    return BUILD_PROFILE.channel in RELEASED_WORKFLOW_CHANNELS
 
 
 def enforce_checkpoint_resume_policy(requested: bool) -> bool:

@@ -99,7 +99,7 @@
 - `read_only_network`：测试连接等，不写项目文件
 - `requires_confirmation`：该意图必须进入整份计划确认；高风险操作还要醒目标注
 
-### 5.1 帮助与导航（优先实现）
+### 5.1 当前 Registry 中的帮助与导航
 
 | action | 何时建议 | 风险 | 用户确认 |
 |--------|----------|------|----------|
@@ -107,7 +107,6 @@
 | `open_api_settings` | 用户不会填 Key / Provider / Base URL | `safe_ui_navigation` | 否 |
 | `open_log_folder` | 闪退、报错、需要自查日志 | `safe_ui_navigation` | 否 |
 | `open_provider_docs` | 需要某服务商配置说明（客户端内文档页或帮助入口） | `safe_ui_navigation` | 否 |
-| `run_connection_test` | 怀疑 API / 本地模型连不上 | `read_only_network` | 否或轻提示 |
 | `open_github_issues` | 需要反馈 Bug / 功能 / 无法在客户端解决的问题 | `safe_ui_navigation` | 否 |
 | `open_github_issue_132` | 用户在讨论 Copilot / Agent 方向本身 | `safe_ui_navigation` | 否 |
 | `open_deploy_dialog` | 用户问如何进游戏、部署、假本地化（先打开内置对话框） | `safe_ui_navigation` | 否 |
@@ -122,13 +121,16 @@
 `open_github_issue_132` 可对应：`https://github.com/Drlinglong/Remis/issues/132`
 若客户端暂无专用 action，可用文字给出上述链接，**不要**改用「本地改代码」方案。
 
-### 5.2 项目只读检查（有则用）
+### 5.2 未来候选：项目只读检查（当前不得输出）
 
 | action | 何时建议 | 风险 | 用户确认 |
 |--------|----------|------|----------|
 | `validate_project` | 用户想检查格式 / 变量 / 漏翻等 | `read_only` | 否 |
 
-### 5.3 部署与假本地化（**优先于**教用户手删文件夹）
+`validate_project` 目前不在服务端 Registry。项目校验应引导用户进入现有校验、任务或日志页面，
+不得把这个名称作为可点击 action 输出。
+
+### 5.3 未来候选：部署与假本地化（当前不得输出）
 
 界面中文参考：`一键部署`、`删除假本地化文件`、对话框 `清理假本地化与部署`。
 
@@ -140,7 +142,8 @@
 
 引导原则：
 
-当前 Registry 没有上述三个执行 action；未注册前只能导航或说明，不能输出它们假装可执行。
+当前 Registry 没有上述三个执行 action；未注册前只能使用 `open_deploy_dialog` 导航或说明，
+不能输出它们假装可执行。
 
 1. 汉化不生效 / 假中文 → **先** `open_deploy_dialog` 或说明点 **「一键部署」**
 2. 需要清假文件 → 在对话框内走 **删除假本地化**（用户确认后），**不要**先甩长篇手动 Steam 路径教程
@@ -154,12 +157,16 @@ Agent 没有通用“修改原始 Mod／创意工坊文件”能力。不得把�
 不存在独立的“删除部署数据”功能。不得生成 `delete_deployment`、`remove_deployed_mod`
 之类 action；同名部署时替换旧目标只能作为 `deploy_mod` 的明确步骤展示。
 
-### 5.4 会改动翻译项目的操作（须确认；Command 阶段）
+### 5.4 未来候选：会改动翻译项目的操作（当前不得输出）
 
 | action | 含义（用户语言） | 风险 | 用户确认 |
 |--------|------------------|------|----------|
 | `translate` | 翻译（须带 mode，见下） | 写项目 | **是** |
 | `repair_selected_entries` | 修复用户选中的校验问题 | 写项目 | **是** |
+
+上表的 `translate` 与 `repair_selected_entries` 是目标契约中的未来候选，不是当前 Copilot
+Action Registry。Agent API 的 `start_translation`、`repair`、`export` 是另一套本机执行能力，
+必须走 `/api/agent` 的 capability、preflight 和批准门，不能混写成 Copilot action。
 
 翻译 `mode` 建议枚举：
 
@@ -231,14 +238,14 @@ explanation: string            # 用用户语言解释将要做什么
 | 「Mod 更新了 / 只翻新的」 | 引导 **增量翻译**；无归档则初次翻译或 **翻译上载**；见 incremental-update |
 | 「别人的汉化 / 半成品怎么导入」 | **项目管理 → 历史 → 翻译上载**；见 import-existing-translations；再增量 |
 | 「Gemini / Ollama 怎么配？」 | **设置 → API**（provider-setup-index）；`open_api_settings` |
-| 「连不上 API」 | 检查常见填错项 + `run_connection_test` + `open_log_folder`；语料见日志/Provider 文档 |
-| 「汉化进游戏不显示」 | **先**引导 **一键部署** + 对话框内 **删除假本地化**（`open_deploy_dialog` / `deploy_mod` / `clean_fake_localization`）；再查启动器加载顺序；内置仍失败才给手动备用步骤 |
+| 「连不上 API」 | 检查常见填错项 + `open_api_settings` + `open_log_folder`；语料见日志/Provider 文档 |
+| 「汉化进游戏不显示」 | **先**引导 **一键部署** 对话框（`open_deploy_dialog`）；当前不能把 `deploy_mod` / `clean_fake_localization` 当成已注册 action；再查启动器加载顺序；内置仍失败才给手动备用步骤 |
 | 「怎么部署 / 装进游戏」 | 引导 one-click-deploy；优先内置，勿先教手拷 Documents |
 | 「怎么手改译文 / 校对」 | 侧栏 **校对** → 改最终定稿 → 保存；勿改 Key；见 proofreading |
 | 「变量/格式一堆错 / 智能工坊」 | 引导 agent-workshop 扫描→修复→复扫；搞不定转校对；见 error-catalog |
 | 「术语不统一 / 词典 / 词汇表」 | 词汇表管理补词条；翻译开主词典/额外词典；Mod 专名用项目词典；见 glossary |
 | 「日志在哪？」 | 说明 `%APPDATA%\RemisModFactory\logs` + `open_log_folder`；见 logs-and-diagnostics |
-| 「只翻新增的，旧的别动」 | `CommandIntent`: translate + only_new + preserve_existing；**确认后执行** |
+| 「只翻新增的，旧的别动」 | 说明当前 Copilot 没有可直接输出的 `translate` action；引导用户进入增量翻译页面，**确认后执行** |
 | 「帮我改一下 Remis 让它支持 XXX」 | **GitHub Issues**；可说明当前版本有无变通 |
 | 「你直接改我电脑上的 yml」 | 说明只能通过 Remis 确认后的流程修改项目，不私自写盘 |
 | 「变量吞没 / 变量被翻译是什么？」 | 用 error-catalog 白话解释 + 建议校验/修复（有则给 action） |

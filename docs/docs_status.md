@@ -32,7 +32,11 @@
 改造成对应的用户指南、产品意图或开发契约，而不是直接扩大目录白名单。
 
 第一轮治理完成的核心模块以 3.1.0 为 `last_verified`：翻译主流程、部署、校对、术语表、
-Model Arena、Task Center、智能工坊，以及 Agent / Copilot 隐藏预览。
+Model Arena、Task Center 和智能工坊。
+
+3.2.0 发布治理新增并核验：Project Archive 用户入口与档案证据边界、Agent / Copilot
+stable/preview 通道、Action Registry、Agent capability/preflight，以及 Task Center 的
+检查点恢复和协作取消语义。长档案分析质量仍需真实语料抽查，不因任务成功而自动视为内容正确。
 
 第二轮功能覆盖以 2026-07-31 代码为 `last_verified`：项目管理、Mod 监控与封面图生成器。
 这三组文档已分别形成产品意图、用户指南和开发契约；契约中的“当前差距”不是当前能力，
@@ -83,11 +87,12 @@ Model Arena、Task Center、智能工坊，以及 Agent / Copilot 隐藏预览�
 - `docs/zh/developer/build-release-script-guide.md`
 - `docs/zh/developer/feature_flags.md`
 
-### Remis Agent / Copilot 产品契约与隐藏工程预览（#132）
+### Remis Agent / Copilot 产品契约与 3.2.0 发布通道（#132）
 
 面向普通用户的同一聊天入口：Copilot 负责帮助答疑，Agent 负责把自然语言目标整理成待批准
-的 Remis 工作流。它不是开发者编码助手，也不能直接改文件。3.1.1 保留代码与测试作为隐藏
-工程预览；公开版本仍需完成发布门禁，当前尚未支持通用多步骤编排和聊天内终态总结。
+的 Remis 工作流。它不是开发者编码助手，也不能直接改文件。3.2.0 stable 与 Agent Preview
+均提供入口，但仍不支持通用多步骤编排和聊天内可靠终态总结；能力以 Action Registry、Agent
+capabilities 和持久化 Task Center 状态为准。
 
 - `docs/zh/product-intent-agent-copilot.md` — 用户价值、统一入口、确认、成功标准与公开目标
 - `docs/zh/user-guides/remis-assistant.md` — 普通用户如何提问、批准计划和判断真实完成

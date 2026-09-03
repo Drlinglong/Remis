@@ -420,10 +420,7 @@ async def get_capabilities():
                 "supported": False,
                 "reason": "The current runner has no safe cooperative pause boundary.",
             },
-            "cancel": {
-                "supported": False,
-                "reason": "The current runner has no safe cooperative cancellation boundary.",
-            },
+            "cancel": {"supported": True, "requires_approval": True, "endpoint": "/api/tasks/{task_id}/cancel", "task_kinds": ["initial_translation", "translation", "incremental_translation"]},
             "repair": {"supported": True, "requires_approval": True},
             "export": {"supported": True, "requires_approval": True},
             **AGENT_CONTEXT_CAPABILITIES,

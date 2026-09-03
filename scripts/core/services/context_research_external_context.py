@@ -188,7 +188,7 @@ def _fetch_workshop(item_id: str, opener: Callable[..., Any] | None) -> dict[str
     request = Request(
         STEAM_WORKSHOP_DETAILS_URL,
         data=urlencode({"itemcount": "1", "publishedfileids[0]": item_id}).encode("ascii"),
-        headers={"User-Agent": "Remis-context-research/3.1.8"},
+        headers={"User-Agent": "Remis-context-research/3.2.0"},
         method="POST",
     )
     open_url = opener or urlopen

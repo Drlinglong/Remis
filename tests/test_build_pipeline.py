@@ -90,7 +90,7 @@ def test_verify_frozen_backend_accepts_healthy_packaged_process():
         )
 
     assert verify_copilot.call_count == 1
-    assert verify_copilot.call_args.kwargs == {"enabled": False}
+    assert verify_copilot.call_args.kwargs == {"enabled": True}
     assert verify_copilot.call_args.args[0] == int(
         popen.call_args.kwargs["env"]["REMIS_BACKEND_PORT"]
     )

@@ -49,6 +49,7 @@
 - [假本地化说明](user-guides/fake-localization.md) - 假中文原理；优先内置清理，手动为备用
 - [校对](user-guides/proofreading.md) - 三栏编辑器、补丁模式、保存与验证
 - [智能工坊](user-guides/agent-workshop.md) - 扫描格式问题并用 AI 修复
+- [模组档案馆](user-guides/mod-archive.md) - 整理、发布和审阅可追溯项目档案
 - [词典与词汇表](user-guides/glossary.md) - 主词典 / 额外词典 / 项目词典与翻译启用
 - [模型竞技场](user-guides/model-arena.md) - 正式翻译前比较 2 或 3 个候选模型
 - [任务中心](user-guides/task-center.md) - 查看后台进度、失败、结果和全部日志
@@ -67,11 +68,12 @@
 - [开发环境搭建指南](developer/development-setup.md) - 仓库开发环境说明
 - [CI、依赖维护与仓库门禁](developer/ci-setup.md) - GitHub Actions、Dependabot 与本地等价命令
 
-## Remis Agent / Copilot（3.1.0 隐藏预览）
+## Remis Agent / Copilot（3.2.0 stable / Agent Preview）
 - [Copilot 文档入口](copilot/README.md) - `user-help` / `agent-planning` / 固定操作契约
 - [Remis 小助手用户指南](user-guides/remis-assistant.md) - 在同一聊天框问问题、批准计划和检查结果
 - [Copilot 与 Agent 双层语料边界](copilot/rag-corpus-boundary.md) - 两层索引白名单、优先级与排除项
 - [Agent 操作说明书](copilot/agent-operations.md) - 可提议操作、禁止改源码、引导 GitHub 反馈
+- [3.2.0 发布冒烟与风险清单](developer/release-v3.2.0-smoke-test.md) - 发版前验证、失败定位与已知边界
 
 ## 开发者文档
 - [文档状态说明](../docs_status.md) - 当前文档入口与历史记录说明
