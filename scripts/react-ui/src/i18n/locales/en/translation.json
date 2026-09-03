@@ -1986,6 +1986,7 @@
     "open_logs_btn": "Open Logs Directory"
   },
   "api_desc_gemini": "Google Gemini (Official API)",
+  "api_desc_meta": "Meta Model API from Meta",
   "api_desc_openai": "Current text models through the official OpenAI API",
   "api_desc_grok": "Current Grok text models through the official xAI API",
   "api_desc_anthropic": "Current Claude text models through the official Anthropic API",

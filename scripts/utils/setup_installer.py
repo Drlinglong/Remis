@@ -50,6 +50,14 @@ class SetupInstaller:
                 "type": "key_required"
             },
             "3": {
+                "name": "Meta Model API",
+                "package": "openai",
+                "env_key": "MODEL_API_KEY",
+                "url": "https://dev.meta.ai/",
+                "description": "setup_desc_meta",
+                "type": "key_required"
+            },
+            "4": {
                 "name": "DeepSeek",
                 "package": "deepseek",
                 "env_key": "DEEPSEEK_API_KEY",
@@ -57,7 +65,7 @@ class SetupInstaller:
                 "description": "setup_desc_deepseek",
                 "type": "key_required"
             },
-            "4": {
+            "5": {
                 "name": "阿里云通义千问 (Qwen)",
                 "package": "dashscope",
                 "env_key": "DASHSCOPE_API_KEY", 
@@ -65,7 +73,7 @@ class SetupInstaller:
                 "description": "setup_desc_qwen",
                 "type": "key_required"
             },
-            "5": {
+            "6": {
                 "name": "Grok (xAI)",
                 "package": "openai",
                 "env_key": "XAI_API_KEY",
@@ -73,7 +81,7 @@ class SetupInstaller:
                 "description": "setup_desc_grok",
                 "type": "key_required"
             },
-            "6": {
+            "7": {
                 "name": "ModelScope (魔搭)",
                 "package": "openai",
                 "env_key": "MODELSCOPE_API_KEY",
@@ -81,7 +89,7 @@ class SetupInstaller:
                 "description": "setup_desc_modelscope",
                 "type": "key_required"
             },
-            "7": {
+            "8": {
                 "name": "SiliconFlow (硅基流动)",
                 "package": "openai",
                 "env_key": "SILICONFLOW_API_KEY",
@@ -89,7 +97,7 @@ class SetupInstaller:
                 "description": "setup_desc_siliconflow",
                 "type": "key_required"
             },
-            "8": {
+            "9": {
                 "name": "Ollama (本地模型)",
                 "url": "https://ollama.com/",
                 "description": "setup_desc_ollama",

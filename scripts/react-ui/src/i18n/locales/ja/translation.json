@@ -1941,6 +1941,7 @@
     "open_logs_btn": "ログディレクトリを開く"
   },
   "api_desc_gemini": "Google Gemini (公式API)",
+  "api_desc_meta": "Meta のモデル API",
   "api_desc_openai": "OpenAI 公式 API の現行テキストモデル",
   "api_desc_grok": "xAI 公式 API の現行 Grok テキストモデル",
   "api_desc_anthropic": "Anthropic 公式 API の現行 Claude テキストモデル",

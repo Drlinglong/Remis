@@ -1940,6 +1940,7 @@
     "open_logs_btn": "Log-Verzeichnis öffnen"
   },
   "api_desc_gemini": "Google Gemini (Offizielle API)",
+  "api_desc_meta": "Meta Model API von Meta",
   "api_desc_openai": "Aktuelle Textmodelle über die offizielle OpenAI-API",
   "api_desc_grok": "Aktuelle Grok-Textmodelle über die offizielle xAI-API",
   "api_desc_anthropic": "Aktuelle Claude-Textmodelle über die offizielle Anthropic-API",

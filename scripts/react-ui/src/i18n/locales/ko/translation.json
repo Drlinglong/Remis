@@ -1941,6 +1941,7 @@
     "open_logs_btn": "로그 디렉토리 열기"
   },
   "api_desc_gemini": "Google Gemini (공식 API)",
+  "api_desc_meta": "Meta 모델 API",
   "api_desc_openai": "공식 OpenAI API의 최신 텍스트 모델",
   "api_desc_grok": "공식 xAI API의 최신 Grok 텍스트 모델",
   "api_desc_anthropic": "공식 Anthropic API의 최신 Claude 텍스트 모델",

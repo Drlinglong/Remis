@@ -2110,6 +2110,7 @@
     "open_logs_btn": "打开日志目录"
   },
   "api_desc_gemini": "Google Gemini (官方对接)",
+  "api_desc_meta": "Meta 官方模型 API",
   "api_desc_openai": "通过 OpenAI 官方接口使用当前文本模型",
   "api_desc_grok": "通过 xAI 官方 API 访问当前的 Grok 文本模型",
   "api_desc_anthropic": "通过 Anthropic 官方接口使用当前 Claude 文本模型",

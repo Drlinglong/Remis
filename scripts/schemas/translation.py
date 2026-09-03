@@ -83,7 +83,7 @@ class InitialTranslationRequest(BaseModel):
     source_lang_code: LanguageCode
     target_lang_codes: List[LanguageCode] = [LanguageCode.ZH_CN]
     api_provider: str = "gemini"
-    model: str = "gemini-3.7-flash"
+    model: str = "gemini-3.8-flash"
     batch_size_limit: Optional[int] = None
     source_context_overlap: int = Field(default=0, ge=0, le=100)
     translation_context_mode: Optional[Literal["none", "glossaries", "archive"]] = None
@@ -158,7 +158,7 @@ class IncrementalUpdateConfig(BaseModel):
     project_id: str
     target_lang_codes: List[LanguageCode] = [LanguageCode.ZH_CN]
     api_provider: str = "gemini"
-    model: str = "gemini-3.7-flash"
+    model: str = "gemini-3.8-flash"
     mod_context: Optional[str] = ""
     source_context_overlap: int = Field(default=0, ge=0, le=100)
     use_project_context: bool = True

@@ -1936,6 +1936,7 @@
     "open_logs_btn": "Günlük Dizinini Aç"
   },
   "api_desc_gemini": "Google Gemini (Resmi API)",
+  "api_desc_meta": "Meta Model API (Meta)",
   "api_desc_openai": "Resmi OpenAI API üzerinden güncel metin modelleri",
   "api_desc_grok": "Resmi xAI API üzerinden güncel Grok metin modelleri",
   "api_desc_anthropic": "Resmi Anthropic API üzerinden güncel Claude metin modelleri",

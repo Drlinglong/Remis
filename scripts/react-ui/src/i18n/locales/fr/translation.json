@@ -1940,6 +1940,7 @@
     "open_logs_btn": "Ouvrir le répertoire des journaux"
   },
   "api_desc_gemini": "Google Gemini (API officielle)",
+  "api_desc_meta": "API de modèles Meta",
   "api_desc_openai": "Modèles de texte actuels via l'API officielle OpenAI",
   "api_desc_grok": "Modèles de texte Grok actuels via l'API officielle xAI",
   "api_desc_anthropic": "Modèles de texte Claude actuels via l'API officielle Anthropic",

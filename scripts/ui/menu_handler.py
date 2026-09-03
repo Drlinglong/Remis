@@ -83,6 +83,7 @@ def preflight_checks():
     api_keys = [
         "OPENAI_API_KEY", 
         "GEMINI_API_KEY", 
+        "MODEL_API_KEY",
         "DASHSCOPE_API_KEY",
         "DEEPSEEK_API_KEY",
         "XAI_API_KEY",

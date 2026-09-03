@@ -24,6 +24,7 @@ from .yourfavourite_handler import YourFavouriteHandler
 
 OPENAI_COMPATIBLE_PROVIDER_IDS = {
     "openai",
+    "meta",
     "kimi",
     "minimax",
     "zhipu",

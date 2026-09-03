@@ -42,8 +42,8 @@ def test_gemini_25_family_is_removed_from_the_presets():
 def test_approved_provider_catalogs_and_defaults_are_locked():
     expected = {
         "gemini": (
-            "gemini-3.7-flash",
-            ["gemini-3.7-flash", "gemini-3.6-flash"],
+            "gemini-3.8-flash",
+            ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash"],
         ),
         "anthropic": (
             "claude-sonnet-5",
@@ -65,6 +65,10 @@ def test_approved_provider_catalogs_and_defaults_are_locked():
             ["MiniMax-M3", "MiniMax-M2.7", "MiniMax-M2.7-highspeed"],
         ),
         "zhipu": ("glm-5.3-flash", ["glm-5.3-flash"]),
+        "meta": (
+            "muse-spark-1.3",
+            ["muse-spark-1.2", "muse-spark-1.3"],
+        ),
     }
 
     for provider_id, (default_model, models) in expected.items():
@@ -92,9 +96,11 @@ def test_curated_aggregator_catalogs_never_infer_reasoning():
             "openai/gpt-5.6-luna",
             [
                 "openai/gpt-5.6-luna",
+                "google/gemini-3.8-flash",
                 "google/gemini-3.7-flash",
                 "qwen/qwen3.8-max",
                 "meta/muse-spark-1.2",
+                "meta/muse-spark-1.3",
             ],
         ),
         "nvidia": (

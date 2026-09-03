@@ -44,6 +44,7 @@ import { FEATURES } from '../config/features';
 const formatModelSummary = (modelName = '') => {
   const knownModels = {
     'gemini-3.1-pro-preview': 'Gemini 3.1 Pro',
+    'gemini-3.8-flash': 'Gemini 3.8 Flash',
     'gemini-3.7-flash': 'Gemini 3.7 Flash',
     'gemini-3.6-flash': 'Gemini 3.6 Flash',
   };
@@ -181,7 +182,7 @@ const InitialTranslation = () => {
       source_lang_code: 'en',
       target_lang_codes: [],
       api_provider: 'gemini',
-      model_name: 'gemini-3.7-flash',
+      model_name: 'gemini-3.8-flash',
       mod_context: '',
       selected_glossary_ids: [],
       translation_context_mode: 'glossaries',
