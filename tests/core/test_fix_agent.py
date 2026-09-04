@@ -151,3 +151,48 @@ async def test_fix_batch_loop_reports_retry_reflection_attempts():
     assert result["attempts"][1]["remaining_count"] == 0
     assert result["max_retries"] == 3
     handler.generate_response.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_fix_issue_loop_assesses_reasonable_format_count_variation():
+    handler = MagicMock()
+    handler.generate_response = AsyncMock(side_effect=[
+        "The target merges a repeated visible phrase.",
+        "#bold 合并后的文字#!",
+        '{"verdict":"reasonable","evidence":["The wrapper identity is unchanged"],"confidence":0.92}',
+    ])
+    agent = ReflexionFixAgent(handler)
+
+    result = await agent.fix_issue_loop(
+        source="#bold First#! and #bold Second#!",
+        target="#bold 旧译文#!",
+        error_type="format count",
+        details="The target has fewer repeated wrappers.",
+        game_id="vic3",
+        target_lang_code="zh-CN",
+    )
+
+    assert result["status"] == "REVIEW"
+    assert result["disposition"] == "accepted_reasonable"
+    assert result["reflection"] == "我认为这是合理的改动"
+    assert result["assessment"]["verdict"] == "reasonable"
+    assert handler.generate_response.await_count == 3
+
+
+@pytest.mark.asyncio
+async def test_fix_issue_loop_does_not_call_model_for_source_format_anomaly():
+    handler = MagicMock()
+    handler.generate_response = AsyncMock()
+    agent = ReflexionFixAgent(handler)
+
+    result = await agent.fix_issue_loop(
+        source="#bold Broken source",
+        target="#bold 译文",
+        error_type="format count",
+        details="Source is malformed.",
+        game_id="vic3",
+    )
+
+    assert result["status"] == "REVIEW"
+    assert result["disposition"] == "source_issue"
+    handler.generate_response.assert_not_awaited()

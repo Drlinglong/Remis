@@ -409,6 +409,14 @@ async def get_project_validation_status(project_id: str, sidecar_path: Optional[
             sidecar_status["issues"],
             project_files,
         )
+        repair_issues = validation_sidecars.attach_project_file_ids(
+            sidecar_status.get("repair_issues", []),
+            project_files,
+        )
+        review_issues = validation_sidecars.attach_project_file_ids(
+            sidecar_status.get("review_issues", []),
+            project_files,
+        )
         counts = sidecar_status["issue_type_counts"]
         selected_sidecar_path = sidecar_status["sidecar_path"]
         last_updated_at = sidecar_status["last_updated_at"]
@@ -416,6 +424,8 @@ async def get_project_validation_status(project_id: str, sidecar_path: Optional[
         sidecar_scope = sidecar_status["sidecar_scope"]
     else:
         active_issues = []
+        repair_issues = []
+        review_issues = []
         counts = {}
         selected_sidecar_path = str(ValidationLogger._get_log_path(project_root))
         last_updated_at = None
@@ -434,6 +444,10 @@ async def get_project_validation_status(project_id: str, sidecar_path: Optional[
         "project_id": project_id,
         "issues_count": len(active_issues),
         "issues": active_issues,
+        "repair_issue_count": len(repair_issues),
+        "repair_issues": repair_issues,
+        "review_issue_count": len(review_issues),
+        "review_issues": review_issues,
         "issue_type_counts": counts,
         "last_updated_at": last_updated_at,
         "sidecar_path": selected_sidecar_path,

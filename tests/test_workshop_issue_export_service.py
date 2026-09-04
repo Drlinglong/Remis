@@ -151,6 +151,48 @@ def test_export_writes_project_run_and_source_version_metadata(tmp_path):
     assert issue["source_version_id"] == 42
 
 
+def test_write_issues_reconciles_review_state_and_reopens_changed_target(tmp_path):
+    output_root = tmp_path / "output"
+    output_root.mkdir()
+    issue = {
+        "project_id": "project-1",
+        "target_lang": "en",
+        "file_name": "sample.yml",
+        "key": "demo.key",
+        "line_number": 2,
+        "error_code": "validation_variable_parity_mismatch",
+        "source_str": "$VALUE$",
+        "target_str": "VALUE",
+    }
+
+    service = WorkshopIssueExportService()
+    service.write_issues(output_root, [issue])
+    workshop_path = output_root / "workshop_issues.json"
+    payload = json.loads(workshop_path.read_text(encoding="utf-8"))
+    payload["issues"][0].update(
+        status="review",
+        disposition="accepted_reasonable",
+        assessment="reasonable",
+        attempts=2,
+    )
+    workshop_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+
+    service.write_issues(output_root, [issue])
+    preserved = json.loads(workshop_path.read_text(encoding="utf-8"))["issues"][0]
+    assert preserved["status"] == "review"
+    assert preserved["disposition"] == "accepted_reasonable"
+    assert preserved["assessment"] == "reasonable"
+    assert preserved["attempts"] == 2
+
+    changed_issue = {**issue, "target_str": "$VALUE$ 已修复"}
+    service.write_issues(output_root, [changed_issue])
+    reopened = json.loads(workshop_path.read_text(encoding="utf-8"))["issues"][0]
+    assert reopened["issue_id"] == preserved["issue_id"]
+    assert reopened["status"] == "detected"
+    assert reopened["disposition"] == "detected"
+    assert "assessment" not in reopened
+
+
 def test_vic3_country_adjective_reference_is_exported_for_human_review(tmp_path):
     source_root = tmp_path / "source"
     output_root = tmp_path / "output"

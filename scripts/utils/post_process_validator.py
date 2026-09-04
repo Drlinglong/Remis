@@ -21,6 +21,8 @@ from typing import Dict, List, Tuple, Optional, Any, Callable
 from dataclasses import dataclass
 from enum import Enum
 
+from scripts.utils.game_format_contract import compare_format_structure
+
 # 导入国际化支持
 try:
     from . import i18n
@@ -83,6 +85,7 @@ class BaseGameValidator:
             "formatting_tags": self._check_formatting_tags,
             "mismatched_tags": self._check_mismatched_tags,
             "format_marker_parity": self._check_format_marker_parity,
+            "structure_parity": self._check_structure_parity,
             "informational_pattern": self._check_informational_pattern,
             "variable_parity": self._check_variable_parity,
         }
@@ -288,6 +291,47 @@ class BaseGameValidator:
                 text_sample=text[:100],
             )
         ]
+
+    def _check_structure_parity(
+        self,
+        text: str,
+        rule: Dict,
+        line_number: Optional[int],
+        source_text: Optional[str] = None,
+        **kwargs,
+    ) -> List[ValidationResult]:
+        """Check exact runtime identity and formatting structure."""
+        if source_text is None:
+            return []
+
+        from scripts.utils.format_structure_validator import structure_findings
+
+        contract_id = self.config.get("format_contract_id", self.config.get("game_id", ""))
+        diff = compare_format_structure(source_text, text, contract_id)
+        results: List[ValidationResult] = []
+        for finding in structure_findings(diff):
+            message = self._get_i18n_message(finding["code"])
+            if message == finding["code"]:
+                message = finding["default_message"]
+            details_params = diff.as_dict()
+            details_params.update({
+                "classification": finding["classification"],
+                "blocking": finding["blocking"],
+                "repairQueue": finding["repair_queue"],
+                "reviewQueue": finding["review_queue"],
+            })
+            results.append(ValidationResult(
+                is_valid=False,
+                level=ValidationLevel.ERROR if finding["blocking"] else ValidationLevel.WARNING,
+                message=message,
+                code=finding["code"],
+                details=finding["details"],
+                details_code=finding["code"],
+                details_params=details_params,
+                line_number=line_number,
+                text_sample=text[:100],
+            ))
+        return results
         
     def _check_informational_pattern(self, text: str, rule: Dict, line_number: Optional[int], **kwargs) -> List[ValidationResult]:
         """
@@ -315,6 +359,11 @@ class BaseGameValidator:
         patterns = params.get("patterns", [])
         
         if not patterns:
+            return results
+
+        contract_id = self.config.get("format_contract_id", self.config.get("game_id", ""))
+        structure_diff = compare_format_structure(source_text, text, contract_id)
+        if structure_diff.runtime_variation_only:
             return results
             
         from collections import Counter

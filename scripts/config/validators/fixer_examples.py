@@ -1,5 +1,7 @@
 # scripts/config/validators/fixer_examples.py
-from typing import List, Set
+from typing import Iterable, List, Set
+
+from scripts.utils.game_format_contract import format_structure_signature, normalize_game_id
 
 # 针对各游戏引擎的修复 Prompt 少样本示例字典
 # 结构: ERROR_CATEGORY -> { "default": "...", "game_id": "..." }
@@ -51,12 +53,15 @@ FIXER_EXAMPLES = {
         "vic3": (
             "Error Type: Formatting Tags (Victoria 3 uses #color and closes with #!, or uses #tooltippable;tooltip:<...>)\n"
             "  [Bad] Source: A #variable number#! of #tooltippable;tooltip:<GUI_TOOLTIP>items#!. | Target: 一个变量数量的物品。\n"
-            "  [Fixed] 一个 #variable 数量#!的 #tooltippable;tooltip:<GUI_TOOLTIP>物品#!。"
+            "  [Fixed] 一个 #variable 数量#!的 #tooltippable;tooltip:<GUI_TOOLTIP>物品#!。\n"
+            "  [Exact identity] #BOLD Important#! must remain #BOLD 重要#!; never rewrite it as #bold or #b.\n"
+            "  [Forbidden] #blue Text#! -> #b lue 文本#! and #italic Text#! -> #b 文本#!."
         ),
         "stellaris": (
             "Error Type: Formatting Tags (Stellaris uses §Y, §R, §G, etc. and closes with §!)\n"
             "  [Bad] Source: Effect: §G+10%§! yield. | Target: 效果：§G+10% 产出。\n"
-            "  [Fixed] 效果：§G+10%§! 产出。"
+            "  [Fixed] 效果：§G+10%§! 产出。\n"
+            "  [Exact identity] §YImportant§! must remain §Y重要§!, not §R重要§!."
         ),
         "eu4": (
             "Error Type: Formatting Tags (EU4 uses §Y, §R, §G, etc. and closes with §!)\n"
@@ -66,17 +71,20 @@ FIXER_EXAMPLES = {
         "hoi4": (
             "Error Type: Formatting Tags (HOI4 uses §Y, §R, §G, etc. and closes with §!)\n"
             "  [Bad] Source: Attack: §R+5%§!. | Target: 攻击：§R+5%。\n"
-            "  [Fixed] 攻击：§R+5%§!。"
+            "  [Fixed] 攻击：§R+5%§!。\n"
+            "  [Exact identity] §YImportant§! must remain §Y重要§!, and @GER/£army_xp£ must remain exact."
         ),
         "ck3": (
             "Error Type: Formatting Tags (CK3 uses #color ... #!)\n"
             "  [Bad] Source: Earn #P Prestige#!. | Target: 获得 #P 威望。\n"
-            "  [Fixed] 获得 #P 威望#!。"
+            "  [Fixed] 获得 #P 威望#!。\n"
+            "  [Exact identity] #BOLD Important#! must remain #BOLD 重要#!, not #bold 重要#!."
         ),
         "eu5": (
             "Error Type: Formatting Tags (EU5 uses #tag ... #!)\n"
             "  [Bad] Source: The #bold text#! matters. | Target: 这个#bold文本 很重要。\n"
-            "  [Fixed] 这个 #bold 文本#!很重要。"
+            "  [Fixed] 这个 #bold 文本#!很重要。\n"
+            "  [Exact identity] #BOLD Important#! must remain #BOLD 重要#!, not #bold or #b."
         )
     },
     "BANNED_CHARS": {
@@ -106,7 +114,17 @@ GAME_SPECIFIC_REPAIR_RULES = {
     "hoi4": (
         "**HEARTS OF IRON IV COLOR TAGS**: Color tags start with the section sign '§' and a "
         "single letter (for example §Y or §g), and close with §!. Restore corrupted forms such as "
-        "%g to §g from the Source, and preserve every color code."
+        "%g to §g from the Source, and preserve every color code. Preserve [ROOT.GetName], "
+        "[?variable|format], $KEY$, £icon£, and @TAG exactly."
+    ),
+    "stellaris": (
+        "**STELLARIS FORMAT STRUCTURE**: Preserve every § opener and §! closer exactly, "
+        "including case and order. Translate only visible text; preserve [Root.GetName], "
+        "$VALUE|Y$, and £minerals£. A changed occurrence count requires semantic review, not an automatic rewrite."
+    ),
+    "eu5": (
+        "**EUROPA UNIVERSALIS V FORMAT STRUCTURE**: Preserve #tag ... #!, [scope/function], "
+        "$VALUE$, and @icon! exactly. Translate visible text inside a tag; do not change its raw opener."
     ),
 }
 
@@ -129,6 +147,57 @@ def get_examples_for_game(game_id: str, error_categories: Set[str]) -> List[str]
             if example_str:
                 examples.append(example_str)
                 
+    return examples
+
+
+def get_structure_examples_for_game(game_id: str, source_texts: Iterable[str]) -> List[str]:
+    """Build targeted examples from the actual format openers in a batch.
+
+    The source strings remain visible in the repair payload.  These examples
+    only teach the model the observed delimiter family and raw opener identity;
+    they never replace a semantic token with an alias or placeholder.
+    """
+    normalized_game_id = normalize_game_id(game_id)
+    observed_openers = []
+    has_nested = False
+    has_unbalanced_source = False
+    for source in source_texts:
+        signature = format_structure_signature(source or "", normalized_game_id)
+        observed_openers.extend(signature["format_openers"])
+        has_nested = has_nested or signature["has_nested_formatting"]
+        has_unbalanced_source = has_unbalanced_source or not signature["balanced"]
+
+    examples: List[str] = []
+    unique_openers = list(dict.fromkeys(observed_openers))
+    if normalized_game_id in {"victoria3", "ck3"}:
+        for opener in unique_openers[:4]:
+            if opener.startswith("#"):
+                examples.append(
+                    f"Observed exact identity: Source {opener} Important#! -> Target {opener} 重要#!; keep the opener raw."
+                )
+        if not unique_openers:
+            examples.append(
+                "Hash-format identity: #BOLD Important#! -> #BOLD 重要#!; #blue must never become #b lue."
+            )
+    elif normalized_game_id in {"hoi4", "stellaris"}:
+        for opener in unique_openers[:4]:
+            if opener.startswith("§"):
+                examples.append(
+                    f"Observed exact identity: Source {opener}Important§! -> Target {opener}重要§!; keep the opener raw."
+                )
+        if not unique_openers:
+            examples.append(
+                "Section-format identity: §YImportant§! -> §Y重要§!; never change §Y to §R or another code."
+            )
+
+    if has_nested:
+        examples.append(
+            "Nested structure: #b #i Important#!#! or §Y§RImportant§!§! must keep opener/closer order and nesting."
+        )
+    if has_unbalanced_source:
+        examples.append(
+            "Source-side anomaly: if the Source is unbalanced, preserve the source structure and do not invent a target close marker."
+        )
     return examples
 
 

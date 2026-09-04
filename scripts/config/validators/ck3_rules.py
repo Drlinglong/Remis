@@ -2,6 +2,7 @@
 
 RULES = {
   "game_id": "5",
+  "format_contract_id": "ck3",
   "game_name": "Crusader Kings III",
   "rules": [
     {
@@ -27,7 +28,7 @@ RULES = {
     {
       "name": "non_ascii_in_trait_or_title_key",
       "check_function": "banned_chars",
-      "pattern": r"\[(?:GetTrait|GetTitleByKey)'([^']*)'\]",
+      "pattern": r"\[(?:GetTrait|GetTitleByKey)\('([^']*)'\)",
       "level": "error",
       "message_key": "validation_ck3_trait_or_title_key_non_ascii",
       "params": {
@@ -78,6 +79,12 @@ RULES = {
         "unsupported_formatting_details_key": "validation_ck3_unsupported_formatting",
         "missing_space_details_key": "validation_ck3_formatting_found_at"
       }
+    },
+    {
+      "name": "structure_parity",
+      "check_function": "structure_parity",
+      "level": "error",
+      "message_key": "validation_format_structure_mismatch"
     }
   ]
 }
