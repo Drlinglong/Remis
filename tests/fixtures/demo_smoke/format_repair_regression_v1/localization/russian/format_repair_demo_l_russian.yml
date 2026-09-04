@@ -1,0 +1,4 @@
+l_russian:
+ workshop_demo.variable_boundary:0 "Переместить $COUNT единиц в [TARGET.GetName]."
+ workshop_demo.russian_multiline:0 "Первая строка.\nВторая строка.\n"
+ workshop_demo.blue:0 "#b lue Выбранная политика#! активна."
