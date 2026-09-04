@@ -58,6 +58,10 @@ governed workflows with separate ports and data directories.
   writes production translations or calls a paid provider.
 - Repair issues now carry stable identity and source/target snapshots, so stale
   or ambiguous requests are rejected before model-backed writeback.
+- Agent documentation now records the token-safety rule: semantically
+  meaningful Paradox tokens remain visible in complete source context, while
+  only non-semantic serialization delimiters may be masked. The project
+  creation dialog also has a tested theme-readable input treatment.
 
 ### Validation evidence
 
@@ -131,6 +135,8 @@ governed workflows with separate ports and data directories.
 - 档案馆 A/B 评测工作台仅作为 developer-only 工具存在于 Agent Preview，并且必须显式开启本地
   开关。dry-run 使用 fake Provider／judge，保持盲评边界，不写入生产译文，也不调用付费 Provider。
 - 修复问题现在携带稳定身份以及源文／译文快照；过期或有歧义的请求会在模型写回前被拒绝。
+- Agent 文档补充 token 安全治理：有语义的 Paradox token 必须保留在完整源文上下文中，只有不承载
+  语义身份的序列化分隔符允许遮罩；项目创建弹窗同时修复了主题下输入框的可读性，并加入契约测试。
 
 ### 验证证据
 
