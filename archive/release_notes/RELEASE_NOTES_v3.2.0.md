@@ -26,11 +26,13 @@ governed workflows with separate ports and data directories.
 - **Meta AI Platform is available as a provider.** The provider catalog and
   setup flow include Meta's OpenAI-compatible endpoint and Muse Spark models,
   alongside the refreshed Gemini 3.8 model catalog.
-- **Checkpoint resume is restored around Task Center state.** Interrupted
-  translation tasks retain their checkpoint, validate source/configuration
-  compatibility before resuming, and use idempotency keys to avoid duplicate
-  child tasks. When a checkpoint is not compatible, users can start over while
-  the original task remains recoverable.
+- **Checkpoint resume now works at batch level for initial translation.** Each
+  accepted successful batch is atomically saved before file reconstruction
+  finishes. After a restart, only missing batches are sent to the provider
+  again, provided the relative file path, batch range, source-entry mapping,
+  source snapshot, and provider runtime still match. Failed or fallback batches
+  are never reused; incompatible work can still be started over while the
+  original task remains recoverable.
 - **Translation cancellation and recovery are explicit.** Supported
   translation tasks can be cooperatively cancelled; the runner stops new
   batches, completes the safe boundary, and releases the project lock. Fatal
@@ -58,6 +60,11 @@ governed workflows with separate ports and data directories.
   writes production translations or calls a paid provider.
 - Repair issues now carry stable identity and source/target snapshots, so stale
   or ambiguous requests are rejected before model-backed writeback.
+- Initial-translation batch checkpoints use stable relative paths and source
+  hashes, so same-named files in different directories cannot reuse one
+  another's batches. Completed-file checkpoints remain readable and can be
+  upgraded while retaining cumulative progress; incremental translation is
+  outside this batch-level recovery contract.
 - Agent documentation now records the token-safety rule: semantically
   meaningful Paradox tokens remain visible in complete source context, while
   only non-semantic serialization delimiters may be masked. The project
@@ -65,7 +72,7 @@ governed workflows with separate ports and data directories.
 
 ### Validation evidence
 
-- Backend: `python -m pytest -q` — 1681 passed, 3 skipped (1684 collected).
+- Backend: `python -m pytest -q` — 1696 passed, 3 skipped (1699 collected).
 - Frontend: `npm.cmd test -- --run` — 230 files and 920 tests passed; lint has
   0 errors and 13 existing maintainability/Fast Refresh warnings; production
   build passed.
@@ -97,6 +104,8 @@ governed workflows with separate ports and data directories.
   Hearts of Iron IV, Stellaris, and Europa Universalis V. Europa Universalis IV
   continues to use its existing validator rules and is not covered by this new
   contract layer.
+- Batch-level checkpoint recovery in this release covers initial translation.
+  Do not treat it as equivalent support for incremental translation.
 - The multilingual fixture validates deterministic detection and expected
   cases; it does not prove model quality for every language or provider. Run a
   real approved Format Repair smoke test before packaging.
@@ -115,9 +124,10 @@ governed workflows with separate ports and data directories.
   用户前往“设置 → 小助手设置”。
 - **支持 Meta AI Platform。** Provider 目录和设置流程加入 Meta OpenAI 兼容接口及 Muse
   Spark 模型，同时更新 Gemini 3.8 模型目录。
-- **断点续传围绕 Task Center 状态机恢复。** 中断翻译会保留检查点，恢复前校验源文件／配置
-  快照兼容性，并通过幂等键避免重复创建子任务。检查点不兼容时可以选择“从头开始”，原任务
-  仍可找回。
+- **初次翻译支持批次级断点续传。** 每个成功且被接受的 batch 会在完整文件重建前原子保存。
+  重启后只有缺失 batch 会再次调用 Provider，并且会校验稳定相对路径、批次范围、源条目映射、
+  源快照和 Provider runtime 是否一致。失败或回退 batch 不会被复用；检查点不兼容时可以选择
+  “从头开始”，原任务仍可找回。
 - **翻译取消与恢复语义明确。** 支持的翻译任务可以协作式取消：停止新增 batch，安全完成当前
   边界后释放项目锁。致命 Provider 错误会快速终止，不再无限重复同一种错误。
 - **版本与通道门禁统一。** stable 为 3.2.0；Agent Preview 为 3.2.0-agent-preview.1。
@@ -135,12 +145,15 @@ governed workflows with separate ports and data directories.
 - 档案馆 A/B 评测工作台仅作为 developer-only 工具存在于 Agent Preview，并且必须显式开启本地
   开关。dry-run 使用 fake Provider／judge，保持盲评边界，不写入生产译文，也不调用付费 Provider。
 - 修复问题现在携带稳定身份以及源文／译文快照；过期或有歧义的请求会在模型写回前被拒绝。
+- 初次翻译批次检查点按稳定相对路径和源文 hash 保存，因此不同目录下的同名文件不会串用批次。
+  已完成文件的旧 checkpoint 仍可读取并升级，同时保留累计进度；增量翻译不属于本次批次级恢复
+  合同。
 - Agent 文档补充 token 安全治理：有语义的 Paradox token 必须保留在完整源文上下文中，只有不承载
   语义身份的序列化分隔符允许遮罩；项目创建弹窗同时修复了主题下输入框的可读性，并加入契约测试。
 
 ### 验证证据
 
-- 后端：`python -m pytest -q` —— 1684 项收集，1681 passed、3 skipped。
+- 后端：`python -m pytest -q` —— 1699 项收集，1696 passed、3 skipped。
 - 前端：`npm.cmd test -- --run` —— 230 个测试文件、920 个测试全部通过；lint 为 0 errors，
   保留 13 个既有的可维护性／Fast Refresh warnings；生产 build 通过。
 - Python 架构闸门、`python -m compileall -q scripts tests`、JSON 解析、格式修复定向回归测试
@@ -161,6 +174,7 @@ governed workflows with separate ports and data directories.
   已经适合直接用于翻译上下文。
 - 新的精确结构契约层覆盖 Victoria 3、Crusader Kings III、Hearts of Iron IV、Stellaris 和
   Europa Universalis V。Europa Universalis IV 继续使用既有验证规则，不在本次新契约层覆盖范围内。
+- 本版本的批次级 checkpoint 恢复只覆盖初次翻译，不应理解为增量翻译也具备同等能力。
 - 多语言夹具验证的是确定性检测和预期案例，不代表每种语言或 Provider 的模型质量。打包前仍需
   用明确批准的真实格式修复流程完成一次冒烟测试。
 
