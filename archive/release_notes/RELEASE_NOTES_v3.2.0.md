@@ -72,7 +72,8 @@ governed workflows with separate ports and data directories.
 
 ### Validation evidence
 
-- Backend: `python -m pytest -q` — 1696 passed, 3 skipped (1699 collected).
+- Backend: `python -m pytest -q` — 1696 passed, 3 skipped (1699 collected); the
+  suite emitted 352 existing deprecation warnings.
 - Frontend: `npm.cmd test -- --run` — 230 files and 920 tests passed; lint has
   0 errors and 13 existing maintainability/Fast Refresh warnings; production
   build passed.
@@ -153,7 +154,8 @@ governed workflows with separate ports and data directories.
 
 ### 验证证据
 
-- 后端：`python -m pytest -q` —— 1699 项收集，1696 passed、3 skipped。
+- 后端：`python -m pytest -q` —— 1699 项收集，1696 passed、3 skipped；测试套件产生 352 条
+  既有 deprecation warnings。
 - 前端：`npm.cmd test -- --run` —— 230 个测试文件、920 个测试全部通过；lint 为 0 errors，
   保留 13 个既有的可维护性／Fast Refresh warnings；生产 build 通过。
 - Python 架构闸门、`python -m compileall -q scripts tests`、JSON 解析、格式修复定向回归测试
