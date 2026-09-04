@@ -184,7 +184,7 @@ function EmptyState({ onSuggestion }) {
       <Text c="dimmed" size="sm" maw={480} ta="center">
         {t(
           'copilot.empty_desc',
-          '问我如何使用 Remis。测试阶段默认使用本地 LM Studio；如需修改 Provider、模型或 API 配置，请前往“设置 → 小助手设置”。我可以解释流程，并给出可点击的页面跳转建议。',
+          '问我如何使用 Remis。请先前往“设置 → 小助手设置”，根据需要修改 Provider、模型或 API 配置；测试阶段可使用本地 LM Studio。我可以解释流程，并给出可点击的页面跳转建议。',
         )}
       </Text>
       <Group gap="xs" mt="md" justify="center" wrap="wrap">
