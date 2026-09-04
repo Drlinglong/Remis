@@ -24,7 +24,8 @@ const SettingsPageContent = () => {
     const { t, i18n } = useTranslation();
     const { theme, toggleTheme } = useContext(ThemeContext);
     const { startTour, setPageContext } = useTutorial();
-    const [resetModalOpen, setResetModalOpen] = React.useState(false);
+    const [resetProjectDbModalOpen, setResetProjectDbModalOpen] = React.useState(false);
+    const [resetDemoModalOpen, setResetDemoModalOpen] = React.useState(false);
     const [showTutorialPrompt, setShowTutorialPrompt] = React.useState(false);
     const [activeTab, setActiveTab] = React.useState('general');
     const [rpmLimit, setRpmLimit] = React.useState('40');
@@ -211,10 +212,24 @@ const SettingsPageContent = () => {
                                         >
                                             {t('button_open_folder')}
                                         </Button>
-                                        <Button color="red" variant="light" onClick={() => setResetModalOpen(true)}>
+                                        <Button color="red" variant="light" onClick={() => setResetProjectDbModalOpen(true)}>
                                             {t('btn_reset_db')}
                                         </Button>
                                     </Group>
+                                </Group>
+
+                                <Divider />
+
+                                <Group justify="space-between" align="flex-start">
+                                    <Box>
+                                        <Text fw={500} c="orange">{t('settings_reset_demo_title')}</Text>
+                                        <Text size="sm" c="dimmed" maw={720}>
+                                            {t('settings_reset_demo_desc')}
+                                        </Text>
+                                    </Box>
+                                    <Button color="orange" variant="light" onClick={() => setResetDemoModalOpen(true)}>
+                                        {t('btn_reset_demo')}
+                                    </Button>
                                 </Group>
                             </Stack>
                         </Tabs.Panel>
@@ -241,8 +256,8 @@ const SettingsPageContent = () => {
             </Container>
 
             <Modal
-                opened={resetModalOpen}
-                onClose={() => setResetModalOpen(false)}
+                opened={resetProjectDbModalOpen}
+                onClose={() => setResetProjectDbModalOpen(false)}
                 title={<Text c="red" fw={700}>{t('modal_reset_db_title')}</Text>}
                 centered
             >
@@ -267,16 +282,55 @@ const SettingsPageContent = () => {
                     </ul>
 
                     <Group justify="flex-end" mt="md">
-                        <Button variant="default" onClick={() => setResetModalOpen(false)}>{t('cancel')}</Button>
+                        <Button variant="default" onClick={() => setResetProjectDbModalOpen(false)}>{t('cancel')}</Button>
                         <Button color="red" onClick={async () => {
                             try {
-                                await api.post('/api/system/reset-db');
-                                setResetModalOpen(false);
+                                await api.post('/api/system/reset-project-db');
+                                setResetProjectDbModalOpen(false);
                                 alert(t('msg_reset_success'));
                                 window.location.reload();
                             } catch (e) {
                                 const detail = e?.response?.data?.detail || e?.message || '';
                                 alert(`${t('msg_reset_fail')}${detail}`);
+                            }
+                        }}>
+                            {t('btn_confirm_reset')}
+                        </Button>
+                    </Group>
+                </Stack>
+            </Modal>
+
+            <Modal
+                opened={resetDemoModalOpen}
+                onClose={() => setResetDemoModalOpen(false)}
+                title={<Text c="orange" fw={700}>{t('modal_reset_demo_title')}</Text>}
+                centered
+            >
+                <Stack>
+                    <Text size="sm">{t('modal_reset_demo_confirm_text')}</Text>
+                    <Text size="sm" fw={700}>{t('modal_reset_demo_impact_title')}</Text>
+                    <ul style={{ fontSize: '0.9em', marginTop: 0 }}>
+                        <li>{t('modal_reset_demo_impact_1')}</li>
+                        <li>{t('modal_reset_demo_impact_2')}</li>
+                    </ul>
+                    <Text size="sm" fw={700} c="green">{t('modal_reset_demo_safe_title')}</Text>
+                    <ul style={{ fontSize: '0.9em', marginTop: 0 }}>
+                        <li>{t('modal_reset_demo_safe_1')}</li>
+                        <li>{t('modal_reset_demo_safe_2')}</li>
+                    </ul>
+
+                    <Group justify="flex-end" mt="md">
+                        <Button variant="default" onClick={() => setResetDemoModalOpen(false)}>{t('cancel')}</Button>
+                        <Button color="orange" onClick={async () => {
+                            try {
+                                const response = await api.post('/api/system/reset-demo-state');
+                                setResetDemoModalOpen(false);
+                                const backup = response.data?.backup_root || '';
+                                alert(`${t('msg_reset_demo_success')} ${backup}`.trim());
+                                window.location.reload();
+                            } catch (e) {
+                                const detail = e?.response?.data?.detail || e?.message || '';
+                                alert(`${t('msg_reset_demo_fail')}${detail}`);
                             }
                         }}>
                             {t('btn_confirm_reset')}

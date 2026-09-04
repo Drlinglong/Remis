@@ -52,8 +52,35 @@ def is_main_db_fresh(db_path):
         return True
 
 
-def fix_demo_paths(conn, persistent_demo_root, persistent_translation_root):
-    """Hydrates demo placeholders and legacy dev paths with current runtime paths."""
+def _repair_demo_folder_names(persistent_translation_root):
+    """Repair legacy bundled translation folder names when allowed."""
+    renames = (
+        ("Multilanguage-Test_Project_Remis_Vic3", "en-Test_Project_Remis_Vic3"),
+        ("Multilanguage-Test_Project_Remis_stellaris", "zh-CN-Test_Project_Remis_stellaris"),
+    )
+    for old_dir_name, new_dir_name in renames:
+        try:
+            old_full_path = os.path.join(persistent_translation_root, old_dir_name)
+            new_full_path = os.path.join(persistent_translation_root, new_dir_name)
+            if os.path.exists(old_full_path) and not os.path.exists(new_full_path):
+                shutil.move(old_full_path, new_full_path)
+                init_logger.info(
+                    "[REPAIR] Renamed valid disk folder: %s -> %s",
+                    old_dir_name,
+                    new_dir_name,
+                )
+        except Exception as error:
+            init_logger.error("[REPAIR] Failed to rename disk folder: %s", error)
+
+
+def fix_demo_paths(
+    conn,
+    persistent_demo_root,
+    persistent_translation_root,
+    *,
+    repair_disk_paths=True,
+):
+    """Hydrate demo paths and optionally repair legacy folders on disk."""
     try:
         demo_root = persistent_demo_root.replace("\\", "/")
         trans_root = persistent_translation_root.replace("\\", "/")
@@ -141,16 +168,8 @@ def fix_demo_paths(conn, persistent_demo_root, persistent_translation_root):
 
         init_logger.info("[INIT] Running self-healing repairs...")
 
-        try:
-            old_dir_name = "Multilanguage-Test_Project_Remis_Vic3"
-            new_dir_name = "en-Test_Project_Remis_Vic3"
-            old_full_path = os.path.join(persistent_translation_root, old_dir_name)
-            new_full_path = os.path.join(persistent_translation_root, new_dir_name)
-            if os.path.exists(old_full_path) and not os.path.exists(new_full_path):
-                shutil.move(old_full_path, new_full_path)
-                init_logger.info("[REPAIR] Renamed valid disk folder: %s -> %s", old_dir_name, new_dir_name)
-        except Exception as e:
-            init_logger.error("[REPAIR] Failed to rename disk folder: %s", e)
+        if repair_disk_paths:
+            _repair_demo_folder_names(persistent_translation_root)
 
         cursor.execute(
             """
@@ -165,17 +184,6 @@ def fix_demo_paths(conn, persistent_demo_root, persistent_translation_root):
             "UPDATE projects SET target_path = ? WHERE project_id = ?",
             (f"{trans_root}/en-Test_Project_Remis_Vic3", "a525f596-6c71-43fe-ade2-52c9205a2720"),
         )
-
-        try:
-            old_dir_name = "Multilanguage-Test_Project_Remis_stellaris"
-            new_dir_name = "zh-CN-Test_Project_Remis_stellaris"
-            old_full_path = os.path.join(persistent_translation_root, old_dir_name)
-            new_full_path = os.path.join(persistent_translation_root, new_dir_name)
-            if os.path.exists(old_full_path) and not os.path.exists(new_full_path):
-                shutil.move(old_full_path, new_full_path)
-                init_logger.info("[REPAIR] Renamed valid disk folder: %s -> %s", old_dir_name, new_dir_name)
-        except Exception as e:
-            init_logger.error("[REPAIR] Failed to rename disk folder (Stellaris): %s", e)
 
         cursor.execute(
             """
@@ -202,6 +210,47 @@ def run_projects_db_migrations(db_path):
     except Exception as e:
         init_logger.error("Failed to run DB migrations: %s", e)
         raise
+
+
+def reset_database_without_file_changes(
+    *,
+    remis_db_path=None,
+    app_data_dir=None,
+    resource_dir=None,
+):
+    """Rebuild managed database state without extracting or editing user files.
+
+    This is deliberately separate from startup initialization.  Startup may
+    hydrate bundled demos and repair their sidecars; the Settings recovery
+    action must only touch the managed SQLite databases and their DB paths.
+    """
+    remis_db_path = remis_db_path or app_settings.REMIS_DB_PATH
+    app_data_dir = app_data_dir or app_settings.APP_DATA_DIR
+    resource_dir = resource_dir or app_settings.RESOURCE_DIR
+    mods_cache_path = os.path.join(app_data_dir, "mods_cache.sqlite")
+    mods_cache_skeleton = os.path.join(resource_dir, "assets", "mods_cache_skeleton.sqlite")
+
+    if not os.path.isdir(os.path.dirname(remis_db_path)):
+        raise FileNotFoundError(
+            f"Remis database directory does not exist: {os.path.dirname(remis_db_path)}"
+        )
+    if os.path.exists(mods_cache_skeleton):
+        if os.path.exists(mods_cache_path):
+            for suffix in ("", "-wal", "-shm"):
+                candidate = f"{mods_cache_path}{suffix}"
+                if os.path.exists(candidate):
+                    os.remove(candidate)
+        shutil.copy2(mods_cache_skeleton, mods_cache_path)
+
+    run_projects_db_migrations(remis_db_path)
+    seed_main_database(remis_db_path, resource_dir)
+    with sqlite3.connect(remis_db_path) as conn:
+        fix_demo_paths(
+            conn,
+            os.path.join(app_data_dir, "demos"),
+            os.path.join(app_data_dir, "my_translation"),
+            repair_disk_paths=False,
+        )
 
 
 def sync_development_demo_sources(source_mod_root, persistent_demo_root):

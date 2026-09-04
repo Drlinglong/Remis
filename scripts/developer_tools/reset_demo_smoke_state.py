@@ -41,6 +41,10 @@ TERMINAL_TASK_STATUSES = (
 WORKSHOP_FIXTURE_RELATIVE = Path(
     "tests/fixtures/demo_smoke/agent_workshop_broken"
 )
+FORMAT_REPAIR_FIXTURE_RELATIVE = Path(
+    "tests/fixtures/demo_smoke/format_repair_regression_v1"
+)
+RELEASE_DEMO_CONTENT_RELATIVE = Path("assets/release_demo_content")
 VIC3_BASE_RELATIVE = Path("source_mod/Test_Project_Remis_Vic3")
 VIC3_UPDATE_RELATIVE = Path(
     "source_mod/Test_Project_Remis_Vic3_Incremental_Frozen"
@@ -204,6 +208,7 @@ class DemoSmokeReset:
                 [
                     "restore the deterministic broken Agent Workshop fixture",
                     "register and index that fixture on the Stellaris demo project",
+                    "restore the Victoria 3 Format Repair regression fixture",
                 ]
             )
         if "neologism" in self.scopes:
@@ -213,6 +218,8 @@ class DemoSmokeReset:
                     "delete only the Stellaris demo-owned project glossary",
                 ]
             )
+        if set(self.scopes) == set(SCOPES):
+            actions.append("restore all official Demo source and translation trees")
         return actions
 
     def backend_is_listening(self) -> bool:
@@ -253,6 +260,25 @@ class DemoSmokeReset:
             fixture = self.paths.repo_root / WORKSHOP_FIXTURE_RELATIVE
             if not fixture.is_dir():
                 raise ResetSafetyError(f"Missing workshop fixture: {fixture}")
+            format_fixture = self.paths.repo_root / FORMAT_REPAIR_FIXTURE_RELATIVE
+            if not format_fixture.is_dir():
+                raise ResetSafetyError(
+                    f"Missing Format Repair fixture: {format_fixture}"
+                )
+        if set(self.scopes) == set(SCOPES):
+            factory_root = self.paths.repo_root / RELEASE_DEMO_CONTENT_RELATIVE
+            for relative in (
+                Path("demos/Test_Project_Remis_stellaris"),
+                Path("demos/Test_Project_Remis_Vic3"),
+                Path("demos/Test_Project_Remis_EU5"),
+                Path("translations/zh-CN-Test_Project_Remis_stellaris"),
+                Path("translations/en-Test_Project_Remis_Vic3"),
+                Path("translations/zh-CN-Test_Project_Remis_EU5"),
+            ):
+                if not (factory_root / relative).is_dir():
+                    raise ResetSafetyError(
+                        f"Missing official Demo factory tree: {factory_root / relative}"
+                    )
 
     def apply(self, *, allow_running_backend: bool = False) -> dict:
         self.validate(allow_running_backend=allow_running_backend)
@@ -272,6 +298,8 @@ class DemoSmokeReset:
             "moved_paths": [],
             "archived_task_count": 0,
         }
+        if set(self.scopes) == set(SCOPES):
+            self._reset_official_demo_trees(report)
         if "initial" in self.scopes:
             self._reset_initial(report)
         if "incremental" in self.scopes:
@@ -339,6 +367,48 @@ class DemoSmokeReset:
     def _relativize_app_data_path(self, path: Path) -> str:
         relative = path.resolve().relative_to(self.paths.app_data_dir.resolve())
         return "{{APP_DATA_DIR}}/" + relative.as_posix()
+
+    def _copy_factory_tree(self, source: Path, target: Path, report: dict, label: str) -> None:
+        self._move_to_backup(target, report, label=label)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(source, target)
+        sidecar = target / ".remis_project.json"
+        if sidecar.is_file():
+            content = sidecar.read_text(encoding="utf-8")
+            content = content.replace(
+                "{{BUNDLED_DEMO_ROOT}}",
+                (self.paths.app_data_dir / "demos").as_posix(),
+            )
+            content = content.replace(
+                "{{BUNDLED_TRANSLATION_ROOT}}",
+                (self.paths.app_data_dir / "my_translation").as_posix(),
+            )
+            sidecar.write_text(content, encoding="utf-8")
+
+    def _reset_official_demo_trees(self, report: dict) -> None:
+        factory_root = self.paths.repo_root / RELEASE_DEMO_CONTENT_RELATIVE
+        trees = (
+            ("demos/Test_Project_Remis_stellaris", "demos", "Test_Project_Remis_stellaris"),
+            ("demos/Test_Project_Remis_Vic3", "demos", "Test_Project_Remis_Vic3"),
+            ("demos/Test_Project_Remis_EU5", "demos", "Test_Project_Remis_EU5"),
+            ("translations/zh-CN-Test_Project_Remis_stellaris", "my_translation", "zh-CN-Test_Project_Remis_stellaris"),
+            ("translations/en-Test_Project_Remis_Vic3", "my_translation", "en-Test_Project_Remis_Vic3"),
+            ("translations/zh-CN-Test_Project_Remis_EU5", "my_translation", "zh-CN-Test_Project_Remis_EU5"),
+        )
+        for source_relative, target_root_name, target_name in trees:
+            source = factory_root / source_relative
+            target = self.paths.app_data_dir / target_root_name / target_name
+            _require_within(
+                target,
+                self.paths.app_data_dir / target_root_name,
+                label="official Demo factory target",
+            )
+            self._copy_factory_tree(
+                source,
+                target,
+                report,
+                label=f"official-demo-{target_root_name}-{target_name}",
+            )
 
     def _reset_initial(self, report: dict) -> None:
         project = self._project(EU5_PROJECT_ID)
@@ -822,6 +892,23 @@ class DemoSmokeReset:
                     ),
                 )
             connection.commit()
+        format_fixture_source = self.paths.repo_root / FORMAT_REPAIR_FIXTURE_RELATIVE
+        format_fixture_target = (
+            self.paths.app_data_dir
+            / "demo_smoke"
+            / "format_repair_regression_v1"
+        )
+        _require_within(
+            format_fixture_target,
+            self.paths.app_data_dir / "demo_smoke",
+            label="Format Repair fixture",
+        )
+        self._move_to_backup(
+            format_fixture_target,
+            report,
+            label="format-repair-regression-fixture",
+        )
+        shutil.copytree(format_fixture_source, format_fixture_target)
 
     def _reset_neologism(self, report: dict) -> None:
         cache_name = _candidate_cache_name(STELLARIS_PROJECT_ID)
@@ -933,7 +1020,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Reset official Remis demos for initial translation, incremental "
-            "translation, Agent Workshop, and neologism smoke tests."
+            "translation, Format Repair, Agent Workshop, and neologism smoke tests."
         )
     )
     parser.add_argument(

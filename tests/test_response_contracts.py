@@ -29,3 +29,9 @@ def test_high_risk_router_response_contracts_are_published():
     assert _response_schema(
         paths, "/api/system/reset-db", "post", "200"
     )["$ref"].endswith("/SystemActionResponse")
+    assert _response_schema(
+        paths, "/api/system/reset-project-db", "post", "200"
+    )["$ref"].endswith("/SystemActionResponse")
+    assert _response_schema(
+        paths, "/api/system/reset-demo-state", "post", "200"
+    )["$ref"].endswith("/DemoResetResponse")

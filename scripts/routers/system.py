@@ -2,6 +2,7 @@ import os
 import subprocess
 import platform
 import logging
+import threading
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
@@ -10,6 +11,7 @@ from scripts.shared import task_state
 from scripts.app_settings import APP_DATA_DIR, PROJECT_ROOT, REMIS_DB_PATH, resolve_path
 from scripts.schemas.system import (
     DatabaseFolderResponse,
+    DemoResetResponse,
     SystemActionResponse,
     SystemStatsResponse,
 )
@@ -31,6 +33,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/system", tags=["System"])
 reference_library_service = ReferenceLibraryService()
+_database_maintenance_lock = threading.Lock()
 
 
 def _normalized_abs_path(path: str) -> str:
@@ -97,6 +100,22 @@ def _run_reference_maintenance(action):
         }) from exc
     except (OSError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+async def _close_database_handles():
+    """Release singleton handles before replacing managed SQLite files."""
+    from scripts.core.db_manager import db_manager
+    from scripts.shared.services import archive_manager
+
+    if getattr(archive_manager, "_conn", None) is not None:
+        archive_manager.close()
+        archive_manager._conn = None
+
+    if hasattr(db_manager, "_async_engine"):
+        engine = db_manager._async_engine
+        if engine is not None:
+            await engine.dispose()
+        delattr(db_manager, "_async_engine")
 
 
 @router.get("/reference-library")
@@ -215,41 +234,74 @@ async def get_system_stats():
     response_model_exclude_none=True,
 )
 async def reset_database():
-    """
-    Rebuilds the main Remis database from its default skeleton.
-    Source and translation project folders are outside this database and remain untouched.
-    """
+    """Backward-compatible alias for the database-only recovery action."""
+    return await reset_project_database()
+
+
+@router.post(
+    "/reset-project-db",
+    response_model=SystemActionResponse,
+    response_model_exclude_none=True,
+)
+async def reset_project_database():
+    """Rebuild the managed database without touching project files."""
     try:
-        from scripts.core.db_initializer import initialize_database
-        from scripts.core.db_manager import db_manager
-        from scripts.shared.services import archive_manager
-
-        if getattr(archive_manager, "_conn", None) is not None:
-            archive_manager.close()
-            archive_manager._conn = None
-
-        if hasattr(db_manager, "_async_engine"):
-            await db_manager._async_engine.dispose()
-            delattr(db_manager, "_async_engine")
-
-        _remove_sqlite_family(REMIS_DB_PATH)
-        initialize_database()
+        from scripts.core import db_initializer
         from scripts.core.repositories.task_repository import TaskRepository
-        from scripts.shared import task_state
 
-        task_state.configure_repository(
-            TaskRepository(REMIS_DB_PATH),
-            hydrate=True,
-            replace=True,
-        )
+        with _database_maintenance_lock:
+            await _close_database_handles()
+            _remove_sqlite_family(REMIS_DB_PATH)
+            db_initializer.reset_database_without_file_changes(
+                remis_db_path=REMIS_DB_PATH,
+                app_data_dir=APP_DATA_DIR,
+                resource_dir=db_initializer.app_settings.RESOURCE_DIR,
+            )
+            task_state.configure_repository(
+                TaskRepository(REMIS_DB_PATH),
+                hydrate=True,
+                replace=True,
+            )
 
         return {
             "status": "success",
-            "message": "Main Remis database has been rebuilt from the default skeleton.",
+            "message": "Remis project databases have been rebuilt; project files were not changed.",
         }
     except Exception as e:
-        logger.error(f"Failed to reset main database: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to reset database: {str(e)}")
+        logger.error(f"Failed to reset project database: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to reset project database: {str(e)}")
+
+
+@router.post(
+    "/reset-demo-state",
+    response_model=DemoResetResponse,
+    response_model_exclude_none=True,
+)
+async def reset_demo_state():
+    """Restore all bundled Demo Mods and versioned smoke-test fixtures."""
+    try:
+        from scripts.app_settings import get_backend_port
+        from scripts.core.services.demo_reset_service import reset_all_demo_state
+
+        with _database_maintenance_lock:
+            await _close_database_handles()
+            result = reset_all_demo_state(
+                project_root=PROJECT_ROOT,
+                app_data_dir=APP_DATA_DIR,
+                backend_port=get_backend_port(),
+            )
+
+        return {
+            "status": "success",
+            "message": "All Demo Mods and smoke-test fixtures have been restored.",
+            "backup_root": result["backup_root"],
+            "scopes": result["scopes"],
+            "moved_path_count": len(result["moved_paths"]),
+            "archived_task_count": result["archived_task_count"],
+        }
+    except Exception as e:
+        logger.error(f"Failed to reset Demo state: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to reset Demo state: {str(e)}")
 
 
 @router.post(

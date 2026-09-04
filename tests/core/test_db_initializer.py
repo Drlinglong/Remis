@@ -15,6 +15,7 @@ from scripts.core.db_migrations import (
 from scripts.core.db_initializer import (
     extract_bundled_demo_translations,
     initialize_database,
+    reset_database_without_file_changes,
     run_projects_db_migrations,
 )
 
@@ -170,6 +171,33 @@ def test_extract_bundled_demo_translations_only_replaces_bundled_children(tmp_pa
     assert (dest_root / "zh-CN-Test_Project_Remis_Vic3" / "fresh.yml").exists()
     assert not (dest_root / "zh-CN-Test_Project_Remis_Vic3" / "stale.yml").exists()
     assert (dest_root / "user-project" / "keep.yml").exists()
+
+
+def test_database_only_reset_does_not_modify_demo_files(tmp_path):
+    app_data_dir = tmp_path / "appdata"
+    main_db = app_data_dir / "remis.sqlite"
+    demo_file = app_data_dir / "demos" / "Test_Project_Remis_Vic3" / "keep.yml"
+    translation_file = (
+        app_data_dir
+        / "my_translation"
+        / "Multilanguage-Test_Project_Remis_Vic3"
+        / "keep.yml"
+    )
+    _write_file(demo_file, "demo content")
+    _write_file(translation_file, "translation content")
+    before_demo = demo_file.read_bytes()
+    before_translation = translation_file.read_bytes()
+
+    reset_database_without_file_changes(
+        remis_db_path=str(main_db),
+        app_data_dir=str(app_data_dir),
+        resource_dir=str(Path(app_settings.RESOURCE_DIR)),
+    )
+
+    assert demo_file.read_bytes() == before_demo
+    assert translation_file.read_bytes() == before_translation
+    assert main_db.is_file()
+    assert (app_data_dir / "mods_cache.sqlite").is_file()
 
 
 def test_seed_failure_is_recorded_and_retried_without_overwriting_user_data(
