@@ -61,8 +61,8 @@ governed workflows with separate ports and data directories.
 
 ### Validation evidence
 
-- Backend: `python -m pytest -q` — 1618 passed, 3 skipped (1621 collected).
-- Frontend: `npm.cmd test -- --run` — 222 files and 887 tests passed; lint has
+- Backend: `python -m pytest -q` — 1681 passed, 3 skipped (1684 collected).
+- Frontend: `npm.cmd test -- --run` — 230 files and 920 tests passed; lint has
   0 errors and 13 existing maintainability/Fast Refresh warnings; production
   build passed.
 - Python architecture guard, `python -m compileall -q scripts tests`, JSON
@@ -134,8 +134,8 @@ governed workflows with separate ports and data directories.
 
 ### 验证证据
 
-- 后端：`python -m pytest -q` —— 1621 项收集，1618 passed、3 skipped。
-- 前端：`npm.cmd test -- --run` —— 222 个测试文件、887 个测试全部通过；lint 为 0 errors，
+- 后端：`python -m pytest -q` —— 1684 项收集，1681 passed、3 skipped。
+- 前端：`npm.cmd test -- --run` —— 230 个测试文件、920 个测试全部通过；lint 为 0 errors，
   保留 13 个既有的可维护性／Fast Refresh warnings；生产 build 通过。
 - Python 架构闸门、`python -m compileall -q scripts tests`、JSON 解析、格式修复定向回归测试
   和 `git diff --check` 均通过。
