@@ -123,15 +123,10 @@ describe('SettingsPage database recovery controls', () => {
     expect((await screen.findAllByText('您还有未保存的改动，确定要现在离开吗？')).length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole('button', { name: '放弃改动并离开' }));
     await waitFor(() => expect(screen.getByRole('tab', { name: 'settings_general' })).toHaveAttribute('aria-selected', 'true'));
+  });
 
   it('opens a separate confirmation for restoring Demo fixtures', async () => {
-    render(
-      <MantineProvider>
-        <ThemeContext.Provider value={{ theme: 'scifi', toggleTheme: vi.fn() }}>
-          <SettingsPage />
-        </ThemeContext.Provider>
-      </MantineProvider>,
-    );
+    renderSettings();
 
     fireEvent.click(await screen.findByRole('button', { name: 'btn_reset_demo' }));
 
