@@ -228,6 +228,41 @@ def _prepare_translation_run(
     )
 
 
+def _resolve_run_identity(
+    recovery_identity: Optional[dict],
+    task_id: Optional[str],
+    run_id: Optional[str],
+    progress_callback: Optional[Any],
+) -> tuple[dict, Optional[str], str]:
+    identity = dict(recovery_identity or {})
+    resolved_task_id = identity.get("checkpoint_owner_task_id") or task_id or getattr(
+        progress_callback, "task_id", None
+    )
+    resolved_run_id = identity.get("checkpoint_owner_run_id") or run_id or getattr(
+        progress_callback, "run_id", None
+    ) or str(uuid.uuid4())
+    return identity, resolved_task_id, resolved_run_id
+
+
+def _build_run_plan(mod_name: str, target_languages: list[dict]):
+    run_plan = build_run_plan(mod_name, target_languages)
+    return run_plan, run_plan.output_folder_name, run_plan.primary_target_lang
+
+
+def _unpack_prepared_run(prepared: PreparedTranslationRun, recovery_identity: dict):
+    return (
+        prepared.output_dir_path,
+        prepared.source_result,
+        prepared.all_files_content,
+        prepared.context_selection,
+        prepared.total_batches,
+        prepared.version_id,
+        prepared.source_root,
+        recovery_identity.get("source_snapshot_hash") or prepared.source_snapshot_hash,
+        prepared.effective_chunk_size,
+    )
+
+
 def run(
     mod_name: str, source_lang: dict, target_languages: list[dict],
     game_profile: dict, mod_context: str, selected_provider: str = "gemini",
@@ -250,12 +285,10 @@ def run(
 ):
     """【最终版】初次翻译工作流（多语言 & 多游戏兼容）- 流式处理 & 断点续传版"""
     logging.info(f"--- Starting 'Initial Translation' workflow for: {mod_name} ---")
-    recovery_identity = recovery_identity or {}
-    task_id = recovery_identity.get("checkpoint_owner_task_id") or task_id or getattr(progress_callback, "task_id", None)
-    run_id = recovery_identity.get("checkpoint_owner_run_id") or run_id or getattr(progress_callback, "run_id", None) or str(uuid.uuid4())
-    run_plan = build_run_plan(mod_name, target_languages)
-    output_folder_name = run_plan.output_folder_name
-    primary_target_lang = run_plan.primary_target_lang
+    recovery_identity, task_id, run_id = _resolve_run_identity(
+        recovery_identity, task_id, run_id, progress_callback
+    )
+    run_plan, output_folder_name, primary_target_lang = _build_run_plan(mod_name, target_languages)
     logging.info(i18n.t("start_workflow",
                  workflow_name=i18n.t("workflow_initial_translate_name"),
                  mod_name=mod_name))
@@ -286,12 +319,10 @@ def run(
         stale_choice=stale_choice,
         stale_acknowledgement=stale_acknowledgement,
     )
-    output_dir_path, source_result = prepared.output_dir_path, prepared.source_result
-    all_files_content, context_selection = prepared.all_files_content, prepared.context_selection
-    total_batches, version_id = prepared.total_batches, prepared.version_id
-    source_root = prepared.source_root
-    source_snapshot_hash = recovery_identity.get("source_snapshot_hash") or prepared.source_snapshot_hash
-    effective_chunk_size = prepared.effective_chunk_size
+    (
+        output_dir_path, source_result, all_files_content, context_selection,
+        total_batches, version_id, source_root, source_snapshot_hash, effective_chunk_size,
+    ) = _unpack_prepared_run(prepared, recovery_identity)
     last_target_lang = target_languages[-1]
     reference_metrics = _run_language_targets(
         target_languages=target_languages,

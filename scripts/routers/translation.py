@@ -364,7 +364,6 @@ def run_translation_workflow_v2(
         )
         status, message, issue_count = _workflow_outcome_values(outcome)
         finalize_task(task_id, status, message, "Completed", issue_count)
-
         if project_id:
             try:
                 _run_async(project_manager.log_history_event(
