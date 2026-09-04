@@ -17,8 +17,12 @@ describe('Create Project modal visual reliability contract', () => {
     expect(modalSource).toContain('header: styles.modalHeader');
     expect(modalSource).toContain('data-remis-surface="paper"');
     expect(modalSource).toContain('className={styles.importModeAlert}');
+    expect(modalSource.match(/classNames=\{\{ input: styles\.modalInput \}\}/g)).toHaveLength(2);
     expect(modalCss).toContain('var(--paper-text-main)');
     expect(modalCss).toContain('var(--paper-text-muted)');
+    expect(modalCss).toContain('.modalInput::placeholder');
+    expect(modalCss).toContain('caret-color: var(--paper-text-main, var(--surface-text-main))');
+    expect(modalCss).toContain('var(--paper-bg, var(--surface-bg-solid))');
     expect(modalCss).not.toMatch(/data-theme|\.byzantine|\.wwii|\.medieval/);
   });
 

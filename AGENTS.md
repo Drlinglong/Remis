@@ -16,6 +16,12 @@ operator guide over the product; it is not the product itself.
 - Require explicit approval before paid translation, model-backed repair,
   export, deployment, or overwrite.
 - Preserve Paradox keys, variables, formatting, encoding, and folder structure.
+- Permanent design prohibition: never replace semantically meaningful Paradox
+  tokens such as `$...$`, `[...]`, or formatting tags with generic placeholders
+  (for example `变量1` or opaque sentinels) before sending text to an LLM. The
+  complete source context must remain visible. Masking remains allowed only for
+  serialization/layout delimiters that do not carry the token's semantic
+  identity, currently quotes and escaped line breaks.
 - Leave ambiguous text for human review.
 
 ## Repository workflow
