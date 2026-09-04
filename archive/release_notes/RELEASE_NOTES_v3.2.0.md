@@ -31,8 +31,11 @@ governed workflows with separate ports and data directories.
   finishes. After a restart, only missing batches are sent to the provider
   again, provided the relative file path, batch range, source-entry mapping,
   source snapshot, and provider runtime still match. Failed or fallback batches
-  are never reused; incompatible work can still be started over while the
-  original task remains recoverable.
+  are never reused. New runs start fresh by default and still write a new
+  checkpoint; reading the previous project slot is an explicit setting. A
+  project-level clear action is available only when no translation is active.
+  Incompatible work can still be started over while the original task remains
+  recoverable.
 - **Translation cancellation and recovery are explicit.** Supported
   translation tasks can be cooperatively cancelled; the runner stops new
   batches, completes the safe boundary, and releases the project lock. Fatal
@@ -65,6 +68,10 @@ governed workflows with separate ports and data directories.
   another's batches. Completed-file checkpoints remain readable and can be
   upgraded while retaining cumulative progress; incremental translation is
   outside this batch-level recovery contract.
+- Checkpoint reads and writes are now independent: the advanced translation
+  settings show an explicit “read previous checkpoint” switch, while every
+  run continues to persist accepted progress. Clearing a project's target
+  language slots is confirmation-gated and rejects active translations.
 - Agent documentation now records the token-safety rule: semantically
   meaningful Paradox tokens remain visible in complete source context, while
   only non-semantic serialization delimiters may be masked. The project
@@ -72,9 +79,9 @@ governed workflows with separate ports and data directories.
 
 ### Validation evidence
 
-- Backend: `python -m pytest -q` — 1696 passed, 3 skipped (1699 collected); the
+- Backend: `python -m pytest -q` — 1703 passed, 3 skipped (1706 collected); the
   suite emitted 352 existing deprecation warnings.
-- Frontend: `npm.cmd test -- --run` — 230 files and 920 tests passed; lint has
+- Frontend: `npm.cmd test -- --run` — 230 files and 921 tests passed; lint has
   0 errors and 13 existing maintainability/Fast Refresh warnings; production
   build passed.
 - Python architecture guard, `python -m compileall -q scripts tests`, JSON
@@ -127,8 +134,9 @@ governed workflows with separate ports and data directories.
   Spark 模型，同时更新 Gemini 3.8 模型目录。
 - **初次翻译支持批次级断点续传。** 每个成功且被接受的 batch 会在完整文件重建前原子保存。
   重启后只有缺失 batch 会再次调用 Provider，并且会校验稳定相对路径、批次范围、源条目映射、
-  源快照和 Provider runtime 是否一致。失败或回退 batch 不会被复用；检查点不兼容时可以选择
-  “从头开始”，原任务仍可找回。
+  源快照和 Provider runtime 是否一致。失败或回退 batch 不会被复用。新任务默认从头开始，但
+  仍会持续写入新的 checkpoint；读取项目上次槽位必须在高级设置中明确打开。只有没有活动翻译
+  时才允许清空项目 checkpoint；检查点不兼容时可以选择“从头开始”，原任务仍可找回。
 - **翻译取消与恢复语义明确。** 支持的翻译任务可以协作式取消：停止新增 batch，安全完成当前
   边界后释放项目锁。致命 Provider 错误会快速终止，不再无限重复同一种错误。
 - **版本与通道门禁统一。** stable 为 3.2.0；Agent Preview 为 3.2.0-agent-preview.1。
@@ -149,14 +157,16 @@ governed workflows with separate ports and data directories.
 - 初次翻译批次检查点按稳定相对路径和源文 hash 保存，因此不同目录下的同名文件不会串用批次。
   已完成文件的旧 checkpoint 仍可读取并升级，同时保留累计进度；增量翻译不属于本次批次级恢复
   合同。
+- checkpoint 的读取与写入已经解耦：高级翻译设置明确显示“读取此前 checkpoint”，但每次任务
+  仍会保存本次已接受的进度；项目级清空需要确认，活动翻译期间会被拒绝。
 - Agent 文档补充 token 安全治理：有语义的 Paradox token 必须保留在完整源文上下文中，只有不承载
   语义身份的序列化分隔符允许遮罩；项目创建弹窗同时修复了主题下输入框的可读性，并加入契约测试。
 
 ### 验证证据
 
-- 后端：`python -m pytest -q` —— 1699 项收集，1696 passed、3 skipped；测试套件产生 352 条
+- 后端：`python -m pytest -q` —— 1706 项收集，1703 passed、3 skipped；测试套件产生 352 条
   既有 deprecation warnings。
-- 前端：`npm.cmd test -- --run` —— 230 个测试文件、920 个测试全部通过；lint 为 0 errors，
+- 前端：`npm.cmd test -- --run` —— 230 个测试文件、921 个测试全部通过；lint 为 0 errors，
   保留 13 个既有的可维护性／Fast Refresh warnings；生产 build 通过。
 - Python 架构闸门、`python -m compileall -q scripts tests`、JSON 解析、格式修复定向回归测试
   和 `git diff --check` 均通过。
