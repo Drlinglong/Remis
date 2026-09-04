@@ -32,6 +32,32 @@ governed workflows with separate ports and data directories.
 - **Release metadata and channel gates are aligned.** Stable is 3.2.0;
   Agent Preview is 3.2.0-agent-preview.1. Unknown build channels fail closed
   for Project Archive and checkpoint/resume.
+- **Format Repair now protects exact game structure.** Victoria 3, Crusader
+  Kings III, Hearts of Iron IV, Stellaris, and Europa Universalis V repairs
+  preserve formatting identity, runtime tokens, boundaries, and nesting before
+  a candidate can be written back.
+
+### Engineering quality and reliability
+
+- Format Repair distinguishes hard structural corruption from review-only
+  variation. Source-side format anomalies, reasonable repeated-token
+  reductions, and damaged localization keys remain outside automatic repair.
+- The release includes a deterministic multilingual Victoria 3 regression
+  fixture covering English, French, Polish, Russian, Simplified Chinese, and
+  Turkish cases. The fixture is test-only and does not call a model or modify a
+  real Mod.
+- Repair issues now carry stable identity and source/target snapshots, so stale
+  or ambiguous requests are rejected before model-backed writeback.
+
+### Validation evidence
+
+- Backend: `python -m pytest -q` — 1618 passed, 3 skipped (1621 collected).
+- Frontend: `npm.cmd test -- --run` — 222 files and 887 tests passed; lint has
+  0 errors and 13 existing maintainability/Fast Refresh warnings; production
+  build passed.
+- Python architecture guard, `python -m compileall -q scripts tests`, JSON
+  parsing, focused Format Repair regression tests, and `git diff --check`
+  passed.
 
 ### Known boundaries
 
@@ -49,6 +75,13 @@ governed workflows with separate ports and data directories.
 - Entity merging, event-chain continuity, and source contamination in long
   archive analyses remain quality-review concerns. A successful task status is
   not a substitute for reviewing provenance and representative stories.
+- The new exact structure-contract layer covers Victoria 3, Crusader Kings III,
+  Hearts of Iron IV, Stellaris, and Europa Universalis V. Europa Universalis IV
+  continues to use its existing validator rules and is not covered by this new
+  contract layer.
+- The multilingual fixture validates deterministic detection and expected
+  cases; it does not prove model quality for every language or provider. Run a
+  real approved Format Repair smoke test before packaging.
 
 ## 中文
 
@@ -67,6 +100,25 @@ governed workflows with separate ports and data directories.
   边界后释放项目锁。致命 Provider 错误会快速终止，不再无限重复同一种错误。
 - **版本与通道门禁统一。** stable 为 3.2.0；Agent Preview 为 3.2.0-agent-preview.1。
   未知构建通道会对项目档案馆和断点续传采取 fail-closed。
+- **格式修复现在保护精确的游戏结构。** Victoria 3、Crusader Kings III、Hearts of Iron IV、
+  Stellaris 和 Europa Universalis V 的修复，在候选写回前会保留格式身份、运行时 token、
+  边界和嵌套关系。
+
+### 工程质量与可靠性
+
+- 格式修复会区分“确定的结构损坏”和“需要复核的合理变化”。源文格式异常、合理的重复
+  token 减少以及损坏的 localization key 不会进入自动修复。
+- 本版本加入确定性的 Victoria 3 多语言回归夹具，覆盖英语、法语、波兰语、俄语、简体中文
+  和土耳其语。夹具只用于测试，不调用模型，也不会修改真实 Mod。
+- 修复问题现在携带稳定身份以及源文／译文快照；过期或有歧义的请求会在模型写回前被拒绝。
+
+### 验证证据
+
+- 后端：`python -m pytest -q` —— 1621 项收集，1618 passed、3 skipped。
+- 前端：`npm.cmd test -- --run` —— 222 个测试文件、887 个测试全部通过；lint 为 0 errors，
+  保留 13 个既有的可维护性／Fast Refresh warnings；生产 build 通过。
+- Python 架构闸门、`python -m compileall -q scripts tests`、JSON 解析、格式修复定向回归测试
+  和 `git diff --check` 均通过。
 
 ### 已知边界与发版注意事项
 
@@ -79,6 +131,10 @@ governed workflows with separate ports and data directories.
   状态进行冒烟测试。
 - 长文本档案分析中的实体归并、事件链连续性和来源污染仍需人工抽查；任务成功不等于档案内容
   已经适合直接用于翻译上下文。
+- 新的精确结构契约层覆盖 Victoria 3、Crusader Kings III、Hearts of Iron IV、Stellaris 和
+  Europa Universalis V。Europa Universalis IV 继续使用既有验证规则，不在本次新契约层覆盖范围内。
+- 多语言夹具验证的是确定性检测和预期案例，不代表每种语言或 Provider 的模型质量。打包前仍需
+  用明确批准的真实格式修复流程完成一次冒烟测试。
 
 ### 发版前冒烟入口
 

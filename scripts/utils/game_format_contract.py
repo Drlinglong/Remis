@@ -383,7 +383,7 @@ def _scan_format_tokens(
 
     while index < len(value):
         if value.startswith("\\n", index):
-            _append_token(tokens, "runtime", "\\n", index, index + 2, len(open_stack))
+            _append_token(tokens, "layout", "\\n", index, index + 2, len(open_stack))
             index += 2
             continue
 

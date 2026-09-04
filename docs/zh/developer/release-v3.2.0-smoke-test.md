@@ -62,7 +62,35 @@ provider setup 和 `allowed_actions`，不能只因为接口响应 200 就继续
 - Copilot 计划：`scripts/core/copilot/workflow.py`、`scripts/routers/copilot.py`
 - 前端入口：`scripts/react-ui/src/components/copilot/`
 
-## 4. 断点续传、取消与重启
+## 4. 格式修复与多语言回归夹具
+
+1. 先运行无模型、无写盘的确定性回归：
+
+   ```powershell
+   python -m pytest -q tests/test_format_repair_smoke_fixture.py
+   ```
+
+   夹具位于 `tests/fixtures/demo_smoke/format_repair_regression_v1/`，覆盖 Victoria 3 的
+   英语源文，以及法语、波兰语、俄语、简体中文和土耳其语目标样本。
+2. 检查 `manifest.json` 中的 `repair`、`review`、`control` 和 `report_only` 四类结果：
+   格式身份、闭合符、`$...$`、`[...]` 和转义换行损坏应进入确定性检查；合理的重复 token
+   减少应留在复核队列；损坏 key 只能报告，不能调用模型。
+3. 在真实项目中手动回放时，将夹具的 `localization` 作为 Victoria 3 翻译目录，先重新扫描，
+   再在批准弹窗核对项目、问题数量、Provider 和模型。确认写回后复扫，并核对只改变目标
+   key 的值，原始 Mod、key、编码和其它条目不变。
+
+重点代码定位：
+
+- 跨游戏结构契约：`scripts/utils/game_format_contract.py`、
+  `scripts/utils/format_structure_validator.py`
+- 验证汇总：`scripts/utils/post_process_validator.py`
+- 模型循环与复核分流：`scripts/core/agents/fix_agent.py`
+- 问题绑定与安全写回：`scripts/core/services/workshop_issue_binding_service.py`、
+  `scripts/core/services/workshop_writeback_service.py`
+- 夹具契约：`tests/test_format_repair_smoke_fixture.py`、
+  `tests/utils/test_game_format_contract.py`
+
+## 5. 断点续传、取消与重启
 
 1. 启动一个翻译任务，在有检查点后关闭桌面端／结束 worker，再启动应用；确认原任务为中断，
    项目锁不会永久占用，检查点仍存在。
@@ -83,7 +111,7 @@ provider setup 和 `allowed_actions`，不能只因为接口响应 200 就继续
 - Task Center 动作：`scripts/routers/tasks.py`
 - 取消与 worker 终态：`scripts/core/services/translation_task_service.py`
 
-## 5. 容易出问题的地方与定位方法
+## 6. 容易出问题的地方与定位方法
 
 | 现象 | 优先检查 |
 |---|---|
@@ -96,11 +124,15 @@ provider setup 和 `allowed_actions`，不能只因为接口响应 200 就继续
 | 档案发布内容不连续或污染 | provenance、实体规范化、事件链和 route-aware gold；检查原始 source fixture，不只看页面摘要 |
 | Agent 提议不存在的 action | `/api/copilot/actions` 与 `scripts/core/copilot/actions.py`；文档中的未来候选不能输出 |
 | Provider 失败反复重试 | preflight、Provider 错误分类、task fatal terminal state 和日志目录 |
+| 格式修复把 `#italic` 当成 `#b` 或改动 `$...$` / `[...]` | `scripts/utils/game_format_contract.py`、`scripts/utils/post_process_validator.py`；对照 fixture 的 `expected` 和前后值 |
+| 合理的重复 token 被反复自动修复 | `validation_format_structure_variation`、`classification=possible_reasonable_variation`；确认它留在复核队列 |
+| 多语言样本解析异常或出现乱码 | fixture 文件的 UTF-8 内容、`parse_file()` 结果和 `textEncodingIntegrity.test.js` |
+| EU4 的结构损坏未触发新契约检查 | 这是已知覆盖边界；检查 EU4 既有规则，不要把它误报为新结构契约已覆盖 |
 
 日志默认在 `%APPDATA%\RemisModFactory\logs`；Agent Preview 使用其隔离的数据目录。提交诊断
 时不要包含 API key、Cookie、完整私人路径或整个用户 Mod。
 
-## 6. 发布门槛
+## 7. 发布门槛
 
 - 后端测试、前端测试／lint／build、Python compileall 和架构门禁全部通过。
 - `git diff --check` 通过；没有把工作区绝对路径、密钥或临时产物写进发布文件。

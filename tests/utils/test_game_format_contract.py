@@ -112,6 +112,19 @@ def test_known_format_count_delta_is_reviewable_not_automatically_repaired():
     assert not diff.repairable
 
 
+def test_escaped_line_break_reflow_is_not_a_runtime_token_mismatch():
+    diff = compare_format_structure(
+        "First\\n\\n#bold [Root.GetName]#!\\n\\nSecond",
+        "First\\n\\n#bold [Root.GetName]#! translated\\n\\nSecond",
+        "vic3",
+    )
+
+    assert all(token.raw != "\\n" for token in diff.source.runtime_tokens)
+    assert all(token.raw != "\\n" for token in diff.target.runtime_tokens)
+    assert "protected_token_parity" not in diff.hard_issues
+    assert "protected_token_order" not in diff.hard_issues
+
+
 @pytest.mark.parametrize(
     ("source", "target"),
     [

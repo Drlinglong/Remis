@@ -204,8 +204,11 @@ async def _run_embedded_batches(
                     "workshop_progress": {
                         "detected_count": initial_issue_count,
                         "processed_count": len(results),
-                        "fixed_count": sum(result.get("status") == "fixed" for result in results),
-                        "failed_count": sum(result.get("status") == "failed" for result in results),
+                        "fixed_count": sum(result.get("status") == "SUCCESS" for result in results),
+                        "failed_count": sum(
+                            result.get("status") in {"FAILED", "REVIEW"}
+                            for result in results
+                        ),
                         "reflection_round": 1,
                     },
                 })

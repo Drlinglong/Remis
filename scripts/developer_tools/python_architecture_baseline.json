@@ -12,7 +12,7 @@
     "scripts/core/services/model_arena_execution_service.py": 1163,
     "scripts/core/services/model_arena_service.py": 949,
     "scripts/routers/agent.py": 1047,
-    "scripts/routers/agent_workshop.py": 1375
+    "scripts/routers/agent_workshop.py": 1316
   },
   "function_line_exceptions": {
     "scripts/build_pipeline.py::main": 252,

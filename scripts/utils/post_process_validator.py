@@ -552,6 +552,9 @@ class BaseGameValidator:
         punctuation_results = self._check_residual_punctuation(text, line_number, source_lang, target_lang=target_lang)
         all_results.extend(punctuation_results)
 
+        if any(result.code and "variable_parity" in result.code for result in all_results):
+            all_results = [result for result in all_results if result.code != "validation_protected_token_mismatch"]
+
         return all_results
     
     def validate_entry(self, key: str, value: str, line_number: Optional[int] = None, source_lang: Optional[Dict] = None, source_value: Optional[str] = None, target_lang: Optional[str] = None, **kwargs) -> List[ValidationResult]:

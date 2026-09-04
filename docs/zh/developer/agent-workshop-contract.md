@@ -1,7 +1,7 @@
 # 智能工坊开发契约
 
 本文把[智能工坊产品意图](../product-intent-agent-workshop.md)转换成实现契约，并区分
-3.1.0 已实现行为、高风险差距和后续测试门禁。当前操作见
+3.2.0 已实现行为、高风险差距和后续测试门禁。当前操作见
 [智能工坊用户指南](../user-guides/agent-workshop.md)。
 
 ## 范围
@@ -48,6 +48,24 @@
 - 颜色和格式标签不一致；
 - 源语言标点残留；
 - 其它验证器返回的 error 级格式问题。
+
+### 精确结构契约与问题身份
+
+Victoria 3、Crusader Kings III、Hearts of Iron IV、Stellaris 和 Europa Universalis V 的规则
+配置启用 `structure_parity`。`game_format_contract` 在不修改输入文本的前提下解析并比较：
+
+- 格式 opener／closer 的精确身份、顺序和闭合状态；
+- `$...$`、`[...]`、`@...!`、`@TAG`、`£...£` 等运行时 token 的原始身份和顺序；
+- 格式 span 与受保护 token 的绑定、边界和嵌套；
+- 可保守解释的重复 token 减少，并将其标记为 `possible_reasonable_variation` 供复核。
+
+结构比较只保留原始 lexeme，不以通用占位符替换语义 token。源文自身格式不平衡会标为
+`source_defect` 并退出自动修复队列；损坏 key 仍为 `report_only`。EU4 继续使用既有验证规则，
+不在本次新增精确契约层内。
+
+扫描和修复问题会带有稳定 `issue_id`、观察 fingerprint、源／目标 hash、classification、
+repair/review queue 和 disposition。单条或批量模型请求必须绑定当前 sidecar 中唯一且未过期的
+问题快照；快照变化、项目不匹配或问题已转为复核队列时，在模型调用和写回前拒绝。
 
 扫描还会单独解析正常 parser 拒绝的损坏 key，并报告
 `validation_invalid_key_format`。这类记录没有可靠的正常 key 定位，产品规则要求只报告，
@@ -108,6 +126,10 @@
 3. 通过的条目退出活动集合；
 4. 后续轮次为剩余条目生成诊断 reflection，再调用模型；
 5. 达到 `max_retries` 后返回 `FAILED`。
+
+候选不只有成功／失败两种结果：源缺陷和合理变化会返回 `REVIEW`，不会进入自动写回；只有
+确定性验证没有 blocking finding 的候选才会进入安全写回服务。结构契约的具体 finding 包括
+格式身份、token 身份、边界、嵌套和未闭合结构，而不是只比较 marker 数量。
 
 Prompt 当前允许 format repair、failed-chunk recovery 和 limited source-aware revision。这是
 产品设计：Remis 在送入模型前只能确定该条存在格式问题，不能判断它是否同时存在明显
@@ -276,6 +298,10 @@ containment 的文件；内嵌工坊只接受本次 output root 内文件。取�
 14. 任意 `file_path`、source path fallback、路径穿越或链接逃逸不能越过登记的翻译目录。
 15. 工坊不部署、不写原始 Mod、不静默换模型。
 16. 词典上下文接入后，整句修订不得破坏适用于当前语境的有效术语。
+17. 五个结构契约游戏的格式身份、token 顺序、边界和嵌套必须逐项覆盖；合理重复 token 减少
+    只能进入复核队列。
+18. 多语言 Victoria 3 回归夹具必须覆盖 repair、review、control、report_only，并且测试
+    不调用模型、不修改真实 Mod。
 
 ## 代码证据
 
@@ -284,6 +310,10 @@ containment 的文件；内嵌工坊只接受本次 output root 内文件。取�
 - `scripts/core/services/embedded_workshop_service.py`
 - `scripts/core/services/initial_translation_workshop_service.py`
 - `scripts/core/agents/fix_agent.py`
+- `scripts/utils/game_format_contract.py`
+- `scripts/utils/format_structure_validator.py`
+- `scripts/core/services/workshop_issue_binding_service.py`
+- `scripts/core/services/workshop_batch_result_service.py`
 - `scripts/utils/post_process_validator.py`
 - `scripts/utils/punctuation_handler.py`
 - `scripts/routers/agent_workshop.py`
@@ -296,6 +326,9 @@ containment 的文件；内嵌工坊只接受本次 output root 内文件。取�
 - `tests/test_initial_translation_workshop_service.py`
 - `tests/test_routers_agent_workshop.py`
 - `tests/test_workshop_issue_export_service.py`
+- `tests/test_format_repair_smoke_fixture.py`
+- `tests/utils/test_game_format_contract.py`
+- `tests/utils/test_validation_issue_identity.py`
 - `tests/test_demo_repair_logic.py`
 - `scripts/react-ui/src/pages/AgentWorkshop.issue-fix-modal.test.jsx`
 - `scripts/react-ui/src/pages/AgentWorkshop.invalid-key.test.jsx`
