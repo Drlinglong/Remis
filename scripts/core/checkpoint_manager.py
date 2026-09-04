@@ -54,6 +54,7 @@ class CheckpointManager:
         self.metadata: Dict[str, Any] = dict(self.current_config)
         self.progress: Dict[str, int] = {}
         self._batch_progress_base = 0
+        self.read_enabled = True
         self.compatibility = "missing"
         self.compatibility_reason: Optional[str] = None
         self.logger = logging.getLogger(__name__)
@@ -278,7 +279,7 @@ class CheckpointManager:
                     os.unlink(temp_path)
 
     def is_file_completed(self, filename: str) -> bool:
-        if self.compatibility not in {"compatible", "missing"}:
+        if not self.read_enabled or self.compatibility not in {"compatible", "missing"}:
             return False
         with self._lock:
             return self._normalize_file_identity(filename) in self.completed_files
@@ -395,7 +396,7 @@ class CheckpointManager:
         source_entry_indices: List[int],
     ) -> Optional[Dict[str, Any]]:
         """Return a batch only when its exact source partition still matches."""
-        if self.compatibility != "compatible":
+        if not self.read_enabled or self.compatibility != "compatible":
             return None
         with self._lock:
             file_identity = self._normalize_file_identity(filename)
@@ -417,7 +418,7 @@ class CheckpointManager:
             }
 
     def filter_pending_files(self, all_files_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        if self.compatibility not in {"compatible", "missing"}:
+        if not self.read_enabled or self.compatibility not in {"compatible", "missing"}:
             return list(all_files_data)
         with self._lock:
             completed = set(self.completed_files)
@@ -427,6 +428,18 @@ class CheckpointManager:
             if self._normalize_file_identity(item.get("file_path") or item["filename"])
             not in completed
         ]
+
+    def begin_fresh_run(self) -> None:
+        """Ignore the saved slot in memory without deleting it from disk."""
+        with self._lock:
+            self.read_enabled = False
+            self.completed_files.clear()
+            self.batch_results.clear()
+            self.metadata = dict(self.current_config)
+            self.progress = {}
+            self._batch_progress_base = 0
+            self.compatibility = "missing"
+            self.compatibility_reason = None
 
     def clear_checkpoint(self) -> None:
         with self._lock:

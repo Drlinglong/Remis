@@ -11,6 +11,7 @@ def build_translation_progress_callback(
     task_id: str,
     *,
     use_resume: bool,
+    resume_supported: bool = True,
     run_id: Optional[str] = None,
 ):
     """Build a callback that persists throttled workflow progress."""
@@ -65,8 +66,8 @@ def build_translation_progress_callback(
             push=should_push,
             fields={
                 "checkpoint": {
-                    "available": bool(use_resume and current > 0 and not is_final),
-                    "resume_supported": bool(use_resume),
+                    "available": bool(current > 0 and not is_final),
+                    "resume_supported": bool(resume_supported),
                     "stage": stage,
                     "cursor": current_file or str(current),
                     "updated_at": task_state.utc_now_iso(),

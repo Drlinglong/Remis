@@ -98,7 +98,7 @@ class InitialTranslationRequest(BaseModel):
     selected_glossary_ids: Optional[List[int]] = []
     use_main_glossary: bool = True
     clean_source: bool = False
-    use_resume: bool = True
+    use_resume: bool = False
     custom_lang_config: Optional[CustomLangConfig] = None
     embedded_workshop: Optional[EmbeddedWorkshopConfig] = None
     reference_reuse: Optional[ReferenceReuseConfig] = None
@@ -134,7 +134,7 @@ class TranslationRequestV2(BaseModel):
     use_main_glossary: bool = True
     clean_source: bool = False
     is_existing_source: bool = False
-    use_resume: bool = True
+    use_resume: bool = False
     custom_lang_config: Optional[CustomLangConfig] = None
     embedded_workshop: Optional[EmbeddedWorkshopConfig] = None
     reference_reuse: Optional[ReferenceReuseConfig] = None

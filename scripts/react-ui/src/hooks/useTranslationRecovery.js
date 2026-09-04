@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import api from '../utils/api';
 
 export const TRANSLATION_RECOVERY_ACTIONS = Object.freeze({
+  CLEAR: 'clear_checkpoint',
   RESUME: 'resume_task',
   START_OVER: 'start_over_task',
 });
@@ -18,6 +19,10 @@ const isRecord = (value) => value !== null && typeof value === 'object' && !Arra
 
 export const buildTranslationRecoveryEndpoint = (projectId) => (
   `/api/projects/${encodeURIComponent(projectId)}/translation-recovery`
+);
+
+export const buildTranslationCheckpointEndpoint = (projectId) => (
+  `/api/projects/${encodeURIComponent(projectId)}/translation-checkpoint`
 );
 
 export const buildTranslationRecoveryActionEndpoint = (taskId, action) => {
@@ -146,15 +151,47 @@ export function useTranslationRecovery(projectId, {
     payload,
   ), [performAction]);
 
+  const clearCheckpoint = useCallback(async () => {
+    const action = TRANSLATION_RECOVERY_ACTIONS.CLEAR;
+    if (!isRecoveryActionAllowed(state.recovery, action)) {
+      const error = new TranslationRecoveryActionError(action);
+      setState((previous) => ({ ...previous, error }));
+      throw error;
+    }
+
+    const sequence = requestSequence.current + 1;
+    requestSequence.current = sequence;
+    setState((previous) => ({ ...previous, phase: 'action', pendingAction: action, error: null }));
+
+    try {
+      const response = await apiClient.delete(buildTranslationCheckpointEndpoint(projectId));
+      const recovery = normalizeTranslationRecovery(response);
+      if (requestSequence.current === sequence) {
+        setState({ phase: 'ready', recovery, error: null, pendingAction: null });
+      }
+      return response.data;
+    } catch (error) {
+      if (requestSequence.current === sequence) {
+        setState((previous) => ({ ...previous, phase: 'error', error, pendingAction: null }));
+      }
+      throw error;
+    }
+  }, [apiClient, projectId, state.recovery]);
+
   return {
     ...state,
     isLoading: state.phase === 'loading',
     isActionPending: state.phase === 'action',
     canResume: isRecoveryActionAllowed(state.recovery, TRANSLATION_RECOVERY_ACTIONS.RESUME),
     canStartOver: isRecoveryActionAllowed(state.recovery, TRANSLATION_RECOVERY_ACTIONS.START_OVER),
+    canClearCheckpoint: isRecoveryActionAllowed(
+      state.recovery,
+      TRANSLATION_RECOVERY_ACTIONS.CLEAR,
+    ),
     loadRecovery,
     refresh: loadRecovery,
     resume,
     startOver,
+    clearCheckpoint,
   };
 }

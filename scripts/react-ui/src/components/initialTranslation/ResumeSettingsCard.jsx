@@ -1,15 +1,27 @@
 import React from 'react';
-import { Card, Stack, Switch, Text } from '@mantine/core';
+import { Button, Card, Group, Stack, Switch, Text } from '@mantine/core';
 import { IconClockHour4 } from '@tabler/icons-react';
 
 import CollapsibleSettingsCard from './CollapsibleSettingsCard';
 
 export default function ResumeSettingsCard({
   checkpointHintInfo,
+  checkpointActionPending,
   form,
+  onClearCheckpoint,
   t,
 }) {
   const [showResumeDetails, setShowResumeDetails] = React.useState(false);
+
+  const clearCheckpoint = async () => {
+    const confirmed = window.confirm(t(
+      'translation_page.resume_clear_confirm',
+      { defaultValue: '清空这个项目此前保存的 checkpoint？此操作无法撤销。' },
+    ));
+    if (!confirmed) return;
+    await onClearCheckpoint();
+    form.setFieldValue('use_resume', false);
+  };
 
   return (
     <CollapsibleSettingsCard
@@ -23,9 +35,12 @@ export default function ResumeSettingsCard({
       action={(
         <Switch
           id="use-resume-switch"
-          label={t('form_label_use_resume')}
-          description={t('form_desc_use_resume')}
+          label={t('translation_page.resume_read_label', { defaultValue: '读取此前 checkpoint' })}
+          description={t('translation_page.resume_read_desc', {
+            defaultValue: '关闭时会从头执行，但仍会持续保存本次任务的 checkpoint。',
+          })}
           checked={form.values.use_resume}
+          disabled={!checkpointHintInfo?.resumable}
           onChange={(event) => form.setFieldValue('use_resume', event.currentTarget.checked)}
         />
       )}
@@ -68,6 +83,19 @@ export default function ResumeSettingsCard({
             <Text size="sm" c="dimmed">
               {t('translation_page.resume_detail_empty', { defaultValue: '当前没有可展示的断点详情。' })}
             </Text>
+          )}
+          {checkpointHintInfo.can_clear && (
+            <Group justify="flex-end">
+              <Button
+                color="red"
+                loading={checkpointActionPending === 'clear_checkpoint'}
+                onClick={clearCheckpoint}
+                size="xs"
+                variant="light"
+              >
+                {t('translation_page.resume_clear', { defaultValue: '清空保存的 checkpoint' })}
+              </Button>
+            </Group>
           )}
         </Stack>
       ) : (

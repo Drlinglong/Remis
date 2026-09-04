@@ -270,7 +270,7 @@ def run(
     model_name: Optional[str] = None, use_glossary: bool = True,
     project_id: Optional[str] = None, custom_lang_config: Optional[dict] = None,
     progress_callback: Optional[Any] = None,
-    override_path: Optional[str] = None, use_resume: bool = True,
+    override_path: Optional[str] = None, use_resume: bool = False,
     clean_source: bool = False, batch_size_limit: Optional[int] = None,
     source_context_overlap: int = 0, concurrency_limit: Optional[int] = None,
     rpm_limit: Optional[int] = 40, embedded_workshop: Optional[dict] = None,

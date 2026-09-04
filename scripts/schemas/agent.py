@@ -17,7 +17,7 @@ class AgentJobPlanRequest(BaseModel):
     batch_size_limit: Optional[int] = None
     concurrency_limit: Optional[int] = 1
     rpm_limit: Optional[int] = 40
-    use_resume: bool = True
+    use_resume: bool = False
     use_main_glossary: bool = True
     translation_context_mode: Literal["none", "glossaries", "archive"] = "archive"
     context_release_id: Optional[str] = None

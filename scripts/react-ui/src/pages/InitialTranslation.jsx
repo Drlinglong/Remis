@@ -331,6 +331,8 @@ const InitialTranslation = () => {
 
   const {
     checkpointInfo: recoveryInfo,
+    checkpointActionPending,
+    handleClearCheckpoint,
     handleResume,
     handleStartClick,
     handleStartOver,
@@ -359,7 +361,9 @@ const InitialTranslation = () => {
       completed_count: recoveryInfo.checkpoint.completed_units ?? 0,
       total_files_estimate: recoveryInfo.checkpoint.total_files_estimate ?? 0,
       metadata: recoveryInfo.checkpoint.metadata,
+      resumable: recoveryInfo.checkpoint.resumable === true,
       targets: recoveryInfo.checkpoint.targets || [],
+      can_clear: recoveryInfo.allowed_actions?.includes('clear_checkpoint') || false,
     }
     : null;
 
@@ -426,6 +430,7 @@ const InitialTranslation = () => {
                 availableGlossaries={availableGlossaries}
                 availableModels={availableModels}
                 checkpointHintInfo={checkpointHintInfo}
+                checkpointActionPending={checkpointActionPending}
                 config={config}
                 embeddedWorkshopModels={buildModelOptions(
                   form.values.embedded_workshop_follow_primary_settings
@@ -435,6 +440,7 @@ const InitialTranslation = () => {
                 )}
                 form={form}
                 onSubmit={handleStartClick}
+                onClearCheckpoint={handleClearCheckpoint}
                 selectedProject={selectedProject}
                 selectedProjectId={selectedProjectId}
                 onPreviewReferenceReuse={referenceReuse.preview}

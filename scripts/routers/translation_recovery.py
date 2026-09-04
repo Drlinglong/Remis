@@ -24,6 +24,17 @@ async def get_translation_recovery(project_id: str):
     return TranslationRecoveryService(repository).inspect(project_id)
 
 
+@router.delete("/api/projects/{project_id}/translation-checkpoint")
+async def clear_translation_checkpoint(project_id: str):
+    repository = task_state.get_repository()
+    if repository is None:
+        raise HTTPException(status_code=503, detail="Task persistence is unavailable")
+    try:
+        return TranslationRecoveryService(repository).clear_project_checkpoint(project_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
 @router.post(
     "/api/tasks/{task_id}/resume",
     response_model=TranslationTaskResponse,

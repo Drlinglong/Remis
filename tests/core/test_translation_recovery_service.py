@@ -210,6 +210,82 @@ def test_start_over_clears_checkpoint_only_after_replacement_owns_lock(tmp_path)
     assert repository.get_task("task-interrupted")["checkpoint"]["available"] is False
 
 
+def test_explicit_project_clear_removes_checkpoint_slot(tmp_path):
+    repository = _repository(tmp_path)
+    source_root = tmp_path / "source"
+    source_root.mkdir()
+    source_file = source_root / "localization.yml"
+    source_file.write_text('l_english:\n key:0 "Value"\n', encoding="utf-8")
+    recovery = build_recovery_descriptor(
+        task_id="task-interrupted",
+        project_id="project-1",
+        source_root=str(source_root),
+        output_dir=str(tmp_path / "output"),
+        target_lang_codes=["zh-CN"],
+        configuration={"project_id": "project-1"},
+        snapshot_hash=source_tree_hash(str(source_root)),
+    )
+    repository.save_task({
+        "task_id": "task-interrupted",
+        "kind": "initial_translation",
+        "project_id": "project-1",
+        "status": "interrupted",
+        "created_at": "2026-08-31T00:00:00Z",
+        "updated_at": "2026-08-31T00:01:00Z",
+        "recovery": recovery,
+    })
+    checkpoint = _checkpoint(recovery)
+    checkpoint.mark_file_completed(str(source_file))
+    stale_target_checkpoint = _checkpoint(recovery, target_code="ja")
+    stale_target_checkpoint.mark_file_completed(str(source_file))
+    service = TranslationRecoveryService(repository)
+
+    assert "clear_checkpoint" in service.inspect("project-1")["allowed_actions"]
+    assert len(service.inspect("project-1")["checkpoint"]["targets"]) == 2
+    projection = service.clear_project_checkpoint("project-1")
+
+    assert checkpoint.get_checkpoint_info()["exists"] is False
+    assert stale_target_checkpoint.get_checkpoint_info()["exists"] is False
+    assert projection["checkpoint"]["available"] is False
+    assert "clear_checkpoint" not in projection["allowed_actions"]
+    assert repository.get_task("task-interrupted")["checkpoint"]["metadata"] == {
+        "cleared_by_user": True,
+    }
+
+
+def test_explicit_project_clear_rejects_active_writer(tmp_path):
+    repository = _repository(tmp_path)
+    source_root = tmp_path / "source"
+    source_root.mkdir()
+    source_file = source_root / "localization.yml"
+    source_file.write_text('l_english:\n key:0 "Value"\n', encoding="utf-8")
+    recovery = build_recovery_descriptor(
+        task_id="task-active",
+        project_id="project-1",
+        source_root=str(source_root),
+        output_dir=str(tmp_path / "output"),
+        target_lang_codes=["zh-CN"],
+        configuration={"project_id": "project-1"},
+        snapshot_hash=source_tree_hash(str(source_root)),
+    )
+    repository.save_task({
+        "task_id": "task-active",
+        "kind": "initial_translation",
+        "project_id": "project-1",
+        "status": "processing",
+        "created_at": "2026-08-31T00:00:00Z",
+        "updated_at": "2026-08-31T00:01:00Z",
+        "recovery": recovery,
+    })
+    checkpoint = _checkpoint(recovery)
+    checkpoint.mark_file_completed(str(source_file))
+
+    with pytest.raises(ValueError, match="while translation is active"):
+        TranslationRecoveryService(repository).clear_project_checkpoint("project-1")
+
+    assert checkpoint.get_checkpoint_info()["exists"] is True
+
+
 def test_latest_completed_translation_supersedes_older_cancelled_recovery(tmp_path):
     repository = _repository(tmp_path)
     source_root = tmp_path / "source"

@@ -26,7 +26,7 @@ def test_build_checkpoint_manager_uses_per_language_metadata(tmp_path):
     assert manager.metadata["target_lang_code"] == "zh-CN"
 
 
-def test_build_checkpoint_manager_clears_checkpoint_when_resume_disabled(tmp_path):
+def test_build_checkpoint_manager_preserves_checkpoint_when_reads_are_disabled(tmp_path):
     checkpoint_path = tmp_path / ".remis_checkpoint_ja.json"
     checkpoint_path.write_text(
         json.dumps(
@@ -52,7 +52,29 @@ def test_build_checkpoint_manager_clears_checkpoint_when_resume_disabled(tmp_pat
     )
 
     assert manager.CHECKPOINT_FILENAME == ".remis_checkpoint_ja.json"
-    assert not checkpoint_path.exists()
+    assert checkpoint_path.exists()
+    assert manager.read_enabled is False
+    assert manager.is_file_completed("old.yml") is False
+    assert manager.completed_files == set()
+
+    manager.mark_file_completed("new.yml")
+
+    saved = json.loads(checkpoint_path.read_text(encoding="utf-8"))
+    assert saved["completed_files"] == ["new.yml"]
+
+
+def test_language_run_state_starts_fresh_when_checkpoint_reads_are_disabled():
+    state = LanguageRunState.from_checkpoint(SimpleNamespace(
+        read_enabled=False,
+        progress={"completed_batches": 5, "successful_batches": 4, "failed_batches": 1},
+        metadata={"completed_batches": 2},
+    ))
+
+    assert state.checkpoint_progress() == {
+        "completed_batches": 0,
+        "successful_batches": 0,
+        "failed_batches": 0,
+    }
 
 
 def test_build_checkpoint_manager_carries_v2_recovery_identity(tmp_path):
@@ -80,7 +102,7 @@ def test_build_checkpoint_manager_carries_v2_recovery_identity(tmp_path):
     assert manager.identity["source_snapshot_hash"] == "source-sha-213"
     assert manager.identity["config_fingerprint"]
     assert str(manager.source_root) == str(source_root.resolve())
-    assert manager.resume_enabled is True
+    assert manager.read_enabled is True
 
 
 def test_language_run_state_hydrates_cumulative_batch_counters():

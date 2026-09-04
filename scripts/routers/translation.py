@@ -246,7 +246,7 @@ def run_translation_workflow_v2(
     selected_glossary_ids: List[int], model_name: Optional[str], use_main_glossary: bool,
     custom_lang_config: Optional[CustomLangConfig] = None,
     project_id: Optional[str] = None,
-    use_resume: bool = True,
+    use_resume: bool = False,
     clean_source: bool = False,
     batch_size_limit: Optional[int] = None,
     source_context_overlap: int = 0,
@@ -282,8 +282,8 @@ def run_translation_workflow_v2(
             logging.error(f"Failed to log activity (v2): {e}")
     task_state.init_progress(task_id)
     progress_callback = build_translation_progress_callback(
-        task_id,
-        use_resume=use_resume,
+        task_id, use_resume=use_resume,
+        resume_supported=checkpoint_resume_enabled(),
     )
     try:
         logging.info(f"Starting V2 Workflow for Task {task_id}"); logging.info(f"Params: game_profile_id={game_profile_id}, source={source_lang_code}, targets={target_lang_codes}")
@@ -355,7 +355,7 @@ def run_translation_workflow_v2(
                 "reference_metrics": list(getattr(outcome, "reference_metrics", ())),
                 "checkpoint": {
                     "available": False,
-                    "resume_supported": bool(use_resume),
+                    "resume_supported": checkpoint_resume_enabled(),
                     "stage": "Completed",
                     "updated_at": task_state.utc_now_iso(),
                 },
@@ -477,7 +477,7 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    resume_supported = bool(request.use_resume and checkpoint_resume_enabled())
+    resume_supported = checkpoint_resume_enabled()
     try:
         create_initial_translation_task(
             task_id=task_id,

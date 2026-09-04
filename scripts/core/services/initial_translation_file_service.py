@@ -255,7 +255,7 @@ def finalize_translated_file(
         })
         logging.info(i18n.t("file_build_completed", filename=os.path.basename(dest_file_path)))
 
-    if not is_failed and getattr(checkpoint_manager, "resume_enabled", True):
+    if not is_failed:
         # V2 checkpoints use project-relative paths. Keep the basename fallback
         # for legacy/test checkpoint adapters that do not expose V2 progress.
         checkpoint_identity = file_task.filename

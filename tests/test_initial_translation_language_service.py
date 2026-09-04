@@ -1,4 +1,6 @@
 import pytest
+from types import SimpleNamespace
+from unittest.mock import MagicMock
 
 from scripts.core.services import initial_translation_language_service as language_service
 
@@ -210,3 +212,35 @@ def test_success_persists_glossary_evidence_and_separates_recovered_retry(monkey
     retry_call = next(call for call in calls if call[0] == "retries")
     assert len(warning_call[1][1]) == 3
     assert len(retry_call[1][1]) == 1
+
+
+def test_successful_batch_is_checkpointed_when_old_reads_are_disabled():
+    checkpoint = SimpleNamespace(
+        read_enabled=False,
+        resume_enabled=False,
+        mark_batch_completed=MagicMock(),
+    )
+    batch_task = SimpleNamespace(
+        failed=False,
+        fell_back_to_source=False,
+        batch_index=0,
+        start_index=0,
+        end_index=1,
+        texts=["Hello"],
+        translated_texts=["你好"],
+        warnings=[],
+        file_task=SimpleNamespace(
+            filename="demo.yml",
+            file_path="localization/demo.yml",
+            translation_entry_indices=[0],
+            texts_to_translate=["Hello"],
+        ),
+    )
+
+    language_service._persist_checkpoint_batch(
+        checkpoint,
+        batch_task,
+        {"completed_batches": 1, "successful_batches": 1, "failed_batches": 0},
+    )
+
+    checkpoint.mark_batch_completed.assert_called_once()

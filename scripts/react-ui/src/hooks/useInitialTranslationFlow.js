@@ -196,8 +196,27 @@ export function useInitialTranslationFlow({
     }
   };
 
+  const handleClearCheckpoint = async () => {
+    try {
+      await recoveryController.clearCheckpoint();
+      notificationService.success(
+        t('translation_checkpoint_cleared', 'Saved checkpoint cleared.'),
+        notificationStyle,
+      );
+    } catch (error) {
+      notificationService.error(
+        t('translation_checkpoint_clear_failed', 'Failed to clear the saved checkpoint.'),
+        notificationStyle,
+      );
+      console.error(error);
+      throw error;
+    }
+  };
+
   return {
     checkpointInfo: recoveryController.recovery,
+    checkpointActionPending: recoveryController.pendingAction,
+    handleClearCheckpoint,
     handleResume,
     handleStartClick,
     handleStartOver,

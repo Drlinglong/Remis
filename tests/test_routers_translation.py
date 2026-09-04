@@ -5,8 +5,9 @@ from types import SimpleNamespace
 import pytest
 from fastapi.testclient import TestClient
 
-from scripts.routers import translation
+from scripts.routers import translation, translation_recovery
 from scripts.core.provider_errors import ProviderFatalError
+from scripts.schemas.translation import InitialTranslationRequest
 from scripts.shared.state import tasks
 from scripts.shared import task_state
 from scripts.web_server import app
@@ -161,7 +162,7 @@ def test_run_translation_workflow_v2_projects_fatal_provider_reason(monkeypatch)
     assert task["attention_reason"].startswith("The selected model is invalid")
 
 
-def test_run_translation_workflow_v2_tracks_recovery_checkpoint(monkeypatch):
+def test_run_translation_workflow_v2_tracks_checkpoint_when_old_reads_are_disabled(monkeypatch):
     task_state.create_task("task-checkpoint", status="pending")
     monkeypatch.setattr(translation.i18n, "load_language", MagicMock())
 
@@ -193,8 +194,8 @@ def test_run_translation_workflow_v2_tracks_recovery_checkpoint(monkeypatch):
     )
 
     checkpoint = tasks["task-checkpoint"]["checkpoint"]
-    assert checkpoint["available"] is False
-    assert checkpoint["resume_supported"] is False
+    assert checkpoint["available"] is True
+    assert checkpoint["resume_supported"] is True
     assert checkpoint["metadata"]["resume_requested"] is False
     assert checkpoint["cursor"] == "localisation/events.yml"
     assert checkpoint["metadata"]["completed"] == 2
@@ -209,6 +210,38 @@ def test_legacy_checkpoint_status_is_retired():
 
     assert response.status_code == 410
     assert "translation-recovery" in response.json()["detail"]
+
+
+def test_initial_translation_request_does_not_read_checkpoint_by_default():
+    request = InitialTranslationRequest(
+        project_id="project-1",
+        source_lang_code="en",
+    )
+
+    assert request.use_resume is False
+
+
+def test_clear_translation_checkpoint_uses_project_slot_endpoint(monkeypatch):
+    repository = object()
+    clear = MagicMock(return_value={
+        "task_id": "task-interrupted",
+        "status": "interrupted",
+        "checkpoint": {"available": False},
+        "allowed_actions": ["return_to_workflow"],
+    })
+    monkeypatch.setattr(task_state, "get_repository", lambda: repository)
+    monkeypatch.setattr(
+        translation_recovery.TranslationRecoveryService,
+        "clear_project_checkpoint",
+        clear,
+    )
+
+    response = TestClient(app).delete(
+        "/api/projects/project-1/translation-checkpoint"
+    )
+
+    assert response.status_code == 200
+    clear.assert_called_once_with("project-1")
 
 
 def test_run_translation_workflow_v2_logs_project_history_through_async_bridge(monkeypatch, tmp_path):
@@ -389,7 +422,7 @@ def test_run_translation_workflow_v2_none_mode_mounts_no_context_resources(
     assert call["selected_glossary_ids"] == []
     assert call["use_glossary"] is False
     assert call["use_project_context"] is False
-    assert call["use_resume"] is True
+    assert call["use_resume"] is False
     assert call["override_path"] == str(tmp_path)
     glossary_manager.get_available_glossaries.assert_not_awaited()
     glossary_manager.get_project_glossary.assert_not_awaited()

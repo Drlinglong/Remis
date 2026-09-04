@@ -290,7 +290,7 @@ describe('InitialTranslation', () => {
           },
         ],
       },
-      allowed_actions: ['resume_task', 'start_over_task'],
+      allowed_actions: ['resume_task', 'start_over_task', 'clear_checkpoint'],
     };
 
     const defaultGet = apiGetMock.getMockImplementation();
@@ -300,6 +300,14 @@ describe('InitialTranslation', () => {
       }
       return defaultGet(url, ...args);
     });
+    apiDeleteMock.mockResolvedValue({
+      data: {
+        ...mockRecoveryResponse,
+        checkpoint: { available: false, resumable: false },
+        allowed_actions: ['return_to_workflow'],
+      },
+    });
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
 
     renderPage(['/?projectId=proj-1']);
 
@@ -328,6 +336,11 @@ describe('InitialTranslation', () => {
       expect(screen.getByText('zh-CN')).toBeInTheDocument();
       expect(screen.getByText('已完成文件：{{count}}')).toBeInTheDocument();
     });
+    fireEvent.click(screen.getByRole('button', { name: '清空保存的 checkpoint' }));
+    await waitFor(() => {
+      expect(apiDeleteMock).toHaveBeenCalledWith('/api/projects/proj-1/translation-checkpoint');
+    });
+    expect(confirm).toHaveBeenCalled();
     expect(apiPostMock).not.toHaveBeenCalledWith('/api/translation/checkpoint-status', expect.anything());
   });
 

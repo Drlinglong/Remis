@@ -67,8 +67,6 @@ def _mark_checkpoint_completed(
     file_data: dict,
     run_state: LanguageRunState,
 ) -> None:
-    if not getattr(checkpoint_manager, "resume_enabled", True):
-        return
     identity = _checkpoint_file_identity(file_data)
     if hasattr(checkpoint_manager, "progress"):
         checkpoint_manager.mark_file_completed(

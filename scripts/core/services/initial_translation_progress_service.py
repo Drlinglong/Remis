@@ -22,6 +22,13 @@ class LanguageRunState:
     @classmethod
     def from_checkpoint(cls, checkpoint_manager: Any) -> "LanguageRunState":
         """Hydrate counters from the task-owned checkpoint projection."""
+        read_enabled = getattr(
+            checkpoint_manager,
+            "read_enabled",
+            getattr(checkpoint_manager, "resume_enabled", True),
+        )
+        if not read_enabled:
+            return cls()
         progress = getattr(checkpoint_manager, "progress", {}) or {}
         metadata = getattr(checkpoint_manager, "metadata", {}) or {}
         values = {**metadata, **progress}
@@ -107,10 +114,13 @@ def build_checkpoint_manager(
         config_fingerprint=config_fingerprint,
         source_snapshot_hash=source_snapshot_hash,
     )
-    checkpoint_manager.resume_enabled = bool(use_resume)
+    checkpoint_manager.read_enabled = bool(use_resume)
     if not use_resume:
-        checkpoint_manager.clear_checkpoint()
-        logging.info(f"use_resume is False - cleared checkpoint for {target_lang.get('code')}")
+        checkpoint_manager.begin_fresh_run()
+        logging.info(
+            "Checkpoint reads disabled for %s; preserving the project slot",
+            target_lang.get("code"),
+        )
     return checkpoint_manager
 
 

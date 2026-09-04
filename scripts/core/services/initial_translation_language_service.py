@@ -40,8 +40,13 @@ def _batch_checkpoint_identity(batch_task) -> str:
 
 
 def _restore_checkpoint_batch(checkpoint_manager, batch_task) -> bool:
+    read_enabled = getattr(
+        checkpoint_manager,
+        "read_enabled",
+        getattr(checkpoint_manager, "resume_enabled", True),
+    )
     if (
-        not getattr(checkpoint_manager, "resume_enabled", True)
+        not read_enabled
         or not hasattr(checkpoint_manager, "restore_batch")
     ):
         return False
@@ -65,7 +70,6 @@ def _persist_checkpoint_batch(checkpoint_manager, batch_task, progress_metadata)
     if (
         batch_task.failed
         or batch_task.fell_back_to_source
-        or not getattr(checkpoint_manager, "resume_enabled", True)
         or not hasattr(checkpoint_manager, "mark_batch_completed")
     ):
         return

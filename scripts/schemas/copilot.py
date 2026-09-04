@@ -106,7 +106,7 @@ class CopilotWorkflowPlanRequest(BaseModel):
     batch_size_limit: Optional[int] = Field(default=10, ge=1, le=1000)
     concurrency_limit: Optional[int] = Field(default=1, ge=1, le=100)
     rpm_limit: Optional[int] = Field(default=40, ge=1, le=100000)
-    use_resume: bool = True
+    use_resume: bool = False
     use_main_glossary: bool = True
     embedded_workshop_enabled: bool = True
 
@@ -125,7 +125,7 @@ class CopilotTranslationPlanRequest(BaseModel):
     batch_size_limit: Optional[int] = Field(default=10, ge=1, le=1000)
     concurrency_limit: Optional[int] = Field(default=1, ge=1, le=100)
     rpm_limit: Optional[int] = Field(default=40, ge=1, le=100000)
-    use_resume: bool = True
+    use_resume: bool = False
     use_main_glossary: bool = True
     embedded_workshop_enabled: bool = True
 

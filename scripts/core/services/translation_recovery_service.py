@@ -123,6 +123,20 @@ class TranslationRecoveryService:
         task.setdefault("progress", {})["stage"] = "Interrupted"
 
     @staticmethod
+    def _checkpoint_target_codes(recovery: dict[str, Any]) -> list[str]:
+        target_codes = {str(code) for code in recovery.get("target_lang_codes", [])}
+        output_dir_value = recovery.get("output_dir")
+        output_dir = Path(str(output_dir_value)) if output_dir_value else None
+        if output_dir is not None and output_dir.is_dir():
+            prefix = ".remis_checkpoint_"
+            suffix = ".json"
+            for checkpoint_path in output_dir.glob(f"{prefix}*{suffix}"):
+                target_code = checkpoint_path.name[len(prefix):-len(suffix)]
+                if target_code:
+                    target_codes.add(target_code)
+        return sorted(target_codes)
+
+    @staticmethod
     def _checkpoint_managers(task: dict[str, Any]) -> list[tuple[str, CheckpointManager]]:
         recovery = task.get("recovery") or {}
         return [
@@ -139,20 +153,24 @@ class TranslationRecoveryService:
                     source_snapshot_hash=recovery["source_snapshot_hash"],
                 ),
             )
-            for target_code in recovery.get("target_lang_codes", [])
+            for target_code in TranslationRecoveryService._checkpoint_target_codes(recovery)
         ]
 
     @staticmethod
     def _actions_for_task(task: dict[str, Any], *, resumable: bool, has_checkpoint: bool) -> list[str]:
         status = str(task.get("status") or "").lower()
         if status in {"completed", "complete", "success"}:
-            return ["view_task", "archive_task"]
+            actions = ["view_task", "archive_task"]
+            if has_checkpoint:
+                actions.insert(-1, "clear_checkpoint")
+            return actions
         if status == "interrupted":
             actions = ["view_task"]
             if resumable:
                 actions.append("resume_task")
             if has_checkpoint:
                 actions.append("start_over_task")
+                actions.append("clear_checkpoint")
             else:
                 actions.append("return_to_workflow")
             actions.append("archive_task")
@@ -161,12 +179,17 @@ class TranslationRecoveryService:
             actions = ["view_task"]
             if resumable:
                 actions.append("resume_task")
+            if has_checkpoint:
+                actions.append("clear_checkpoint")
             actions.extend(["return_to_workflow", "archive_task"])
             return actions
         if status in ACTIVE_STATUSES:
             return ["view_task"]
         if status in TERMINAL_STATUSES or status == "unknown":
-            return ["view_task", "return_to_workflow", "archive_task"]
+            actions = ["view_task", "return_to_workflow", "archive_task"]
+            if has_checkpoint:
+                actions.insert(-1, "clear_checkpoint")
+            return actions
         return ["view_task"]
 
     def _inspect_task(self, task: dict[str, Any]) -> dict[str, Any]:
@@ -262,6 +285,29 @@ class TranslationRecoveryService:
         ):
             raise ValueError("Task does not allow start over")
         return task
+
+    def clear_project_checkpoint(self, project_id: str) -> dict[str, Any]:
+        """Explicitly clear the single recovery slot owned by one project."""
+        task = self.latest_recovery_task(project_id)
+        if task is None or not task.get("recovery"):
+            return self.inspect(project_id)
+        if str(task.get("status") or "").lower() in ACTIVE_STATUSES:
+            raise ValueError("Cannot clear a checkpoint while translation is active")
+        projection = self._inspect_task(task)
+        if "clear_checkpoint" not in projection.get("allowed_actions", []):
+            return projection
+        for _target_code, manager in self._checkpoint_managers(task):
+            manager.clear_checkpoint()
+        task["checkpoint"] = {
+            "available": False,
+            "resume_supported": bool(
+                (task.get("checkpoint") or {}).get("resume_supported", True)
+            ),
+            "stage": "cleared",
+            "metadata": {"cleared_by_user": True},
+        }
+        self.repository.save_task(task)
+        return self.inspect(project_id)
 
     def finalize_start_over(
         self,
