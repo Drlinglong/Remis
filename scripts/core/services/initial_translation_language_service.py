@@ -28,6 +28,60 @@ from scripts.core.services.vanilla_reference_factory import create_reference_res
 from scripts.utils import i18n
 
 
+def _batch_entry_indices(batch_task) -> list[int]:
+    indices = list(batch_task.file_task.translation_entry_indices)
+    if len(indices) != len(batch_task.file_task.texts_to_translate):
+        indices = list(range(len(batch_task.file_task.texts_to_translate)))
+    return indices[batch_task.start_index:batch_task.end_index]
+
+
+def _batch_checkpoint_identity(batch_task) -> str:
+    return (batch_task.file_task.file_path or batch_task.file_task.filename).replace("\\", "/")
+
+
+def _restore_checkpoint_batch(checkpoint_manager, batch_task) -> bool:
+    if (
+        not getattr(checkpoint_manager, "resume_enabled", True)
+        or not hasattr(checkpoint_manager, "restore_batch")
+    ):
+        return False
+    restored = checkpoint_manager.restore_batch(
+        _batch_checkpoint_identity(batch_task),
+        batch_index=batch_task.batch_index,
+        start_index=batch_task.start_index,
+        end_index=batch_task.end_index,
+        source_texts=list(batch_task.texts),
+        source_entry_indices=_batch_entry_indices(batch_task),
+    )
+    if restored is None:
+        return False
+    batch_task.translated_texts = restored["translated_texts"]
+    batch_task.warnings = restored["warnings"]
+    batch_task.resumed_from_checkpoint = True
+    return True
+
+
+def _persist_checkpoint_batch(checkpoint_manager, batch_task, progress_metadata) -> None:
+    if (
+        batch_task.failed
+        or batch_task.fell_back_to_source
+        or not getattr(checkpoint_manager, "resume_enabled", True)
+        or not hasattr(checkpoint_manager, "mark_batch_completed")
+    ):
+        return
+    checkpoint_manager.mark_batch_completed(
+        _batch_checkpoint_identity(batch_task),
+        batch_index=batch_task.batch_index,
+        start_index=batch_task.start_index,
+        end_index=batch_task.end_index,
+        source_texts=list(batch_task.texts),
+        source_entry_indices=_batch_entry_indices(batch_task),
+        translated_texts=list(batch_task.translated_texts or []),
+        warnings=list(batch_task.warnings or []),
+        progress_metadata=progress_metadata,
+    )
+
+
 def _process_file_tasks(
     *,
     processor: ParallelProcessor,
@@ -45,19 +99,29 @@ def _process_file_tasks(
     project_id: Optional[str],
     version_id: Optional[int],
     all_files_content: List[dict],
+    total_batches: int,
     should_cancel: Optional[Any] = None,
 ) -> None:
     def translation_wrapper(batch_task):
+        if _restore_checkpoint_batch(checkpoint_manager, batch_task):
+            return batch_task
         return handler.translate_batch(batch_task)
 
     def on_batch_completed(batch_task):
-        with progress_lock:
-            run_state.completed_batches += 1
-            if batch_task.failed or batch_task.fell_back_to_source:
-                run_state.failed_batches += 1
-            else:
-                run_state.successful_batches += 1
-            update_progress(batch_task.file_task.filename)
+        resumed = bool(getattr(batch_task, "resumed_from_checkpoint", False))
+        if not resumed:
+            with progress_lock:
+                run_state.completed_batches += 1
+                if batch_task.failed or batch_task.fell_back_to_source:
+                    run_state.failed_batches += 1
+                else:
+                    run_state.successful_batches += 1
+                progress_metadata = {
+                    **run_state.checkpoint_progress(),
+                    "total_batches": total_batches,
+                }
+            _persist_checkpoint_batch(checkpoint_manager, batch_task, progress_metadata)
+        update_progress(batch_task.file_task.filename)
 
     with temporary_rpm_limit(rpm_limit):
         with progress_log_bridge(update_progress):
@@ -273,6 +337,7 @@ def run_language_translation(
         project_id=project_id,
         version_id=version_id,
         all_files_content=all_files_content,
+        total_batches=total_batches,
         should_cancel=should_cancel,
     )
     if run_state.error_count:

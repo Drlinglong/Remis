@@ -474,6 +474,7 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
             project=project,
             task_id=task_id,
             target_languages=target_languages,
+            provider_runtime=provider_runtime,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

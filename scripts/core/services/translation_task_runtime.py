@@ -41,12 +41,17 @@ def prepare_initial_recovery(
     project: dict,
     task_id: str,
     target_languages: list[dict],
+    provider_runtime: Any = None,
 ) -> tuple[str, dict]:
     source_path = str(project.get("source_path") or "")
     if not os.path.isdir(source_path):
         raise ValueError(f"Project source path not found: {source_path}")
     mod_name = os.path.basename(os.path.normpath(source_path))
     configuration = canonical_configuration(request.model_dump(mode="json"))
+    if provider_runtime is not None and hasattr(provider_runtime, "safe_metadata"):
+        runtime_fingerprint = provider_runtime.safe_metadata().get("config_fingerprint")
+        if runtime_fingerprint:
+            configuration["provider_runtime_fingerprint"] = runtime_fingerprint
     owner_task_id = task_id
     owner_run_id = task_id
     if request.resume_from_task_id:

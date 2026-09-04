@@ -157,6 +157,12 @@ class TranslationRecoveryService:
                 actions.append("return_to_workflow")
             actions.append("archive_task")
             return actions
+        if status in {"failed", "cancelled"}:
+            actions = ["view_task"]
+            if resumable:
+                actions.append("resume_task")
+            actions.extend(["return_to_workflow", "archive_task"])
+            return actions
         if status in ACTIVE_STATUSES:
             return ["view_task"]
         if status in TERMINAL_STATUSES or status == "unknown":
@@ -203,7 +209,15 @@ class TranslationRecoveryService:
                 "resumable": resumable,
                 "compatibility": compatibility,
                 "reason_code": reason,
+                "granularity": (
+                    "batch"
+                    if any(item.get("completed_batch_count", 0) for item in existing)
+                    else "file"
+                ),
                 "completed_units": sum(item["completed_count"] for item in existing),
+                "completed_batches": sum(
+                    item.get("completed_batch_count", 0) for item in existing
+                ),
                 "targets": target_infos,
             },
             "allowed_actions": self._actions_for_task(

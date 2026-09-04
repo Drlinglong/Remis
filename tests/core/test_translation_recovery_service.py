@@ -68,6 +68,50 @@ def test_recovery_projection_reads_only_the_task_owned_checkpoint(tmp_path):
     assert "resume_task" in projection["allowed_actions"]
 
 
+@pytest.mark.parametrize("status", ["interrupted", "failed", "cancelled"])
+def test_recovery_projection_reports_batch_checkpoint_without_completed_file(tmp_path, status):
+    repository = _repository(tmp_path)
+    source_root = tmp_path / "source"
+    source_root.mkdir()
+    source_file = source_root / "localization.yml"
+    source_file.write_text("l_english:\n key:0 \"Value\"\n", encoding="utf-8")
+    recovery = build_recovery_descriptor(
+        task_id="task-batch",
+        project_id="project-batch",
+        source_root=str(source_root),
+        output_dir=str(tmp_path / "output"),
+        target_lang_codes=["zh-CN"],
+        configuration={"project_id": "project-batch", "source_lang_code": "en"},
+        snapshot_hash=source_tree_hash(str(source_root)),
+    )
+    repository.save_task({
+        "task_id": "task-batch",
+        "kind": "initial_translation",
+        "project_id": "project-batch",
+        "status": status,
+        "created_at": "2026-09-05T00:00:00Z",
+        "updated_at": "2026-09-05T00:01:00Z",
+        "recovery": recovery,
+    })
+    _checkpoint(recovery).mark_batch_completed(
+        "localization.yml",
+        batch_index=0,
+        start_index=0,
+        end_index=1,
+        source_texts=["Value"],
+        source_entry_indices=[0],
+        translated_texts=["值"],
+    )
+
+    projection = TranslationRecoveryService(repository).inspect("project-batch")
+
+    assert projection["checkpoint"]["granularity"] == "batch"
+    assert projection["checkpoint"]["completed_units"] == 0
+    assert projection["checkpoint"]["completed_batches"] == 1
+    assert projection["checkpoint"]["targets"][0]["completed_batch_count"] == 1
+    assert "resume_task" in projection["allowed_actions"]
+
+
 @pytest.mark.parametrize("status", ["processing", "completed"])
 def test_start_over_rejects_non_interrupted_tasks_without_clearing_checkpoint(tmp_path, status):
     repository = _repository(tmp_path)
@@ -285,6 +329,65 @@ def test_continuation_preserves_checkpoint_owner_and_rejects_config_drift(tmp_pa
             assert "configuration changed" in str(exc)
         else:
             raise AssertionError("Configuration drift must block checkpoint continuation")
+    finally:
+        task_state.configure_repository(previous_repository, hydrate=False)
+
+
+def test_continuation_rejects_provider_runtime_drift(tmp_path):
+    repository = _repository(tmp_path)
+    previous_repository = task_state.get_repository()
+    task_state.configure_repository(repository, hydrate=False)
+    source_root = tmp_path / "source"
+    source_root.mkdir()
+    (source_root / "localization.yml").write_text("l_english:\n", encoding="utf-8")
+    request_payload = {
+        "project_id": "project-runtime",
+        "api_provider": "custom-profile",
+        "model": "model-1",
+        "target_lang_codes": ["zh-CN"],
+        "use_resume": True,
+        "resume_from_task_id": None,
+    }
+    request = SimpleNamespace(
+        resume_from_task_id=None,
+        project_id="project-runtime",
+        model_dump=lambda mode=None: dict(request_payload),
+    )
+    runtime_a = SimpleNamespace(
+        safe_metadata=lambda: {"config_fingerprint": "runtime-a"},
+    )
+    runtime_b = SimpleNamespace(
+        safe_metadata=lambda: {"config_fingerprint": "runtime-b"},
+    )
+    try:
+        _, recovery = prepare_initial_recovery(
+            request=request,
+            project={"source_path": str(source_root)},
+            task_id="task-runtime",
+            target_languages=[{"code": "zh-CN", "folder_prefix": "zh-CN-"}],
+            provider_runtime=runtime_a,
+        )
+        repository.save_task({
+            "task_id": "task-runtime",
+            "kind": "initial_translation",
+            "project_id": "project-runtime",
+            "status": "interrupted",
+            "created_at": "2026-09-05T00:00:00Z",
+            "updated_at": "2026-09-05T00:01:00Z",
+            "recovery": recovery,
+        })
+        _checkpoint(recovery).mark_file_completed("localization.yml")
+        request.resume_from_task_id = "task-runtime"
+        request_payload["resume_from_task_id"] = "task-runtime"
+
+        with pytest.raises(ValueError, match="configuration changed"):
+            prepare_initial_recovery(
+                request=request,
+                project={"source_path": str(source_root)},
+                task_id="task-runtime-resumed",
+                target_languages=[{"code": "zh-CN", "folder_prefix": "zh-CN-"}],
+                provider_runtime=runtime_b,
+            )
     finally:
         task_state.configure_repository(previous_repository, hydrate=False)
 
