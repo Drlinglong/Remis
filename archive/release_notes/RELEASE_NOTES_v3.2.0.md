@@ -15,11 +15,17 @@ governed workflows with separate ports and data directories.
   analysis produces immutable published releases with source snapshots,
   entities, events, provenance, and route-aware context. A new draft inherits
   from a selected release; published releases are not edited in place and the
-  original mod files are not rewritten by the archive workflow.
+  original mod files are not rewritten by the archive workflow. Workflow v3
+  adds stale-release choices, published source evidence, traceable workflow
+  telemetry, and a card-based terminology review surface.
 - **Remis Agent and Copilot are available behind governed boundaries.** Copilot
   answers from the user-document corpus and exposes only the server-owned
   Action Registry. The localhost Agent API exposes capability discovery,
-  preflight, task operations, and read-only published-context inspection.
+  preflight, task operations, and read-only published-context inspection. The
+  assistant points API/model changes to Settings > Copilot Settings.
+- **Meta AI Platform is available as a provider.** The provider catalog and
+  setup flow include Meta's OpenAI-compatible endpoint and Muse Spark models,
+  alongside the refreshed Gemini 3.8 model catalog.
 - **Checkpoint resume is restored around Task Center state.** Interrupted
   translation tasks retain their checkpoint, validate source/configuration
   compatibility before resuming, and use idempotency keys to avoid duplicate
@@ -46,6 +52,10 @@ governed workflows with separate ports and data directories.
   fixture covering English, French, Polish, Russian, Simplified Chinese, and
   Turkish cases. The fixture is test-only and does not call a model or modify a
   real Mod.
+- The archive A/B evaluation workbench is available only as a developer tool
+  in Agent Preview with an explicit local flag. Its dry-run runner uses fake
+  provider/judge adapters, preserves blind-review boundaries, and never
+  writes production translations or calls a paid provider.
 - Repair issues now carry stable identity and source/target snapshots, so stale
   or ambiguous requests are rejected before model-backed writeback.
 
@@ -63,6 +73,10 @@ governed workflows with separate ports and data directories.
 
 - Agent direct context-analysis planning/start is not exposed. Start archive
   analysis from the normal Remis archive workflow and Task Center.
+- Archive A/B review is not a production translation workflow. Enable it only
+  in Agent Preview with `REMIS_ENABLE_ARCHIVE_AB_REVIEW=1`; missing persisted
+  archive artifacts are reported explicitly instead of being fabricated from
+  fixture text.
 - Pause is not supported because there is no safe cooperative pause boundary.
   Cancel is cooperative and limited to the translation task kinds advertised
   by `/api/agent/capabilities`.
@@ -89,10 +103,14 @@ governed workflows with separate ports and data directories.
 
 - **项目档案馆在发布通道上线。** 完整档案分析会生成带源快照、人物／地点／组织／事件、
   provenance 和路由化上下文的不可变发布版本；可以从发布版本创建独立草稿。发布版本不会
-  原地编辑，档案馆工作流也不会改写原始 Mod 文件。
+  原地编辑，档案馆工作流也不会改写原始 Mod 文件。workflow v3 增加过期 release 选择、
+  已发布源证据、可追踪工作流 telemetry 和卡片式术语审阅界面。
 - **Remis Agent 与 Copilot 在受治理边界内上线。** Copilot 只从用户文档语料回答，并且只能
   使用服务端 Action Registry 中的 action。本机 Agent API 提供 capability、preflight、任务
-  操作以及已发布档案的只读读取能力。
+  操作以及已发布档案的只读读取能力。需要修改小助手的 Provider、模型或 API 时，界面会引导
+  用户前往“设置 → 小助手设置”。
+- **支持 Meta AI Platform。** Provider 目录和设置流程加入 Meta OpenAI 兼容接口及 Muse
+  Spark 模型，同时更新 Gemini 3.8 模型目录。
 - **断点续传围绕 Task Center 状态机恢复。** 中断翻译会保留检查点，恢复前校验源文件／配置
   快照兼容性，并通过幂等键避免重复创建子任务。检查点不兼容时可以选择“从头开始”，原任务
   仍可找回。
@@ -110,6 +128,8 @@ governed workflows with separate ports and data directories.
   token 减少以及损坏的 localization key 不会进入自动修复。
 - 本版本加入确定性的 Victoria 3 多语言回归夹具，覆盖英语、法语、波兰语、俄语、简体中文
   和土耳其语。夹具只用于测试，不调用模型，也不会修改真实 Mod。
+- 档案馆 A/B 评测工作台仅作为 developer-only 工具存在于 Agent Preview，并且必须显式开启本地
+  开关。dry-run 使用 fake Provider／judge，保持盲评边界，不写入生产译文，也不调用付费 Provider。
 - 修复问题现在携带稳定身份以及源文／译文快照；过期或有歧义的请求会在模型写回前被拒绝。
 
 ### 验证证据
@@ -124,6 +144,8 @@ governed workflows with separate ports and data directories.
 
 - Agent 尚不能直接规划／启动档案馆分析；请从 Remis 档案馆页面进入普通工作流，并以 Task
   Center 状态为准。
+- A/B 评测不是生产翻译工作流，只能在 Agent Preview 设置 `REMIS_ENABLE_ARCHIVE_AB_REVIEW=1`
+  后使用；缺少持久化档案 artifact 时会明确报告缺失，不会拿 fixture 说明文字冒充档案内容。
 - 暂停仍不支持；取消是协作式取消，且只对 `/api/agent/capabilities` 声明的翻译任务类型开放。
 - Copilot 尚无可任意串联“检查更新 → 新词挖掘 → 增量翻译 → 生成封面”的通用 DAG；应用重启后，
   内存中的聊天计划必须重新生成。

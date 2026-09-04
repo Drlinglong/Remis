@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 from scripts.core import feature_policy
 
 

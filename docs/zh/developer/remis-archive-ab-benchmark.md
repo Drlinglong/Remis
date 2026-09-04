@@ -1,7 +1,7 @@
 # Issue #198 档案上下文翻译 A/B 评测包
 
-这是 developer-only 的离线评测工具，不是生产翻译 workflow。它读取
-`J:\remis-aventine-benchmark-corpus` 的原文和三轴 gold；Wiki 事实作为 judge/人工证据，
+这是 developer-only 的离线评测工具，不是生产翻译 workflow。它读取已配置 benchmark corpus root
+中的原文和三轴 gold；Wiki 事实作为 judge/人工证据，
 真实 B 臂上下文只能通过 Remis Agent API 读取已发布的 archive release。默认 dry-run
 不调用真实 provider，不做付费翻译或 judge。
 

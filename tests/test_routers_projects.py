@@ -281,6 +281,13 @@ def test_incremental_task_records_exact_workflow_context(mock_project_manager, m
     assert task["workflow_context"] == {
         "mode": "pre_scan",
         "project_id": "project-1",
+        "context_resolution": {
+            "code": "project_context_degraded",
+            "reason_code": "context_release_missing",
+            "requested_mode": "archive",
+            "effective_mode": "glossaries",
+            "warnings": ["project_glossary_empty", "context_release_missing"],
+        },
     }
 
 

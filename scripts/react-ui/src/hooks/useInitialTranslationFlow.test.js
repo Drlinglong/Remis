@@ -187,6 +187,14 @@ describe('useInitialTranslationFlow reference gate', () => {
     expect(setActive).toHaveBeenLastCalledWith(1);
     expect(setIsProcessing).toHaveBeenLastCalledWith(false);
   });
+
+  it('uses the backend recovery task action instead of legacy checkpoint endpoints', async () => {
+    api.get.mockResolvedValue({ data: {
+      task_id: 'task-interrupted',
+      checkpoint: { available: true, resumable: true },
+      allowed_actions: ['resume_task', 'start_over_task'],
+    } });
+    api.post.mockResolvedValueOnce({ data: { task_id: 'task-resumed', status: 'queued' } });
     const { result } = renderHook(() => useInitialTranslationFlow({
       config: { languages: [] },
       notificationStyle: {},

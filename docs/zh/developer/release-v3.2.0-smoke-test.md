@@ -32,8 +32,17 @@ provider setup 和 `allowed_actions`，不能只因为接口响应 200 就继续
 3. 从发布版本创建草稿，改一条摘要或关系，保存并再次打开；确认旧发布版本不变，新草稿带有
    正确父版本 ID 和“已继承”标识。
 4. 在源文件变化后重新查看发布版本，确认页面显示过期，而不是静默把旧档案当成最新档案。
-5. 在发布或删除档案请求中重复点击／重复发送，观察是否出现重复发布、半删除或错误 500；
+5. 在源文件变化后启动翻译或增量流程，确认陈旧 release 会要求明确选择“使用旧档案”或
+   “从头开始”，而不是静默继续；选择结果、release ID 和 source snapshot hash 应进入请求/日志。
+6. 打开卡片式术语审阅和事件链视图，检查长列表是否受控、焦点是否可移动、发布源证据是否
+   能定位到原始文件；不要只看摘要判断档案质量。
+7. 在发布或删除档案请求中重复点击／重复发送，观察是否出现重复发布、半删除或错误 500；
    删除前确认项目名、审批和“分析任务正在运行”保护都生效。
+
+如需测试 developer-only 的档案 A/B 盲评工作台，先在 Agent Preview 设置
+`REMIS_ENABLE_ARCHIVE_AB_REVIEW=1`，再运行 `python scripts/developer_tools/run_archive_ab_benchmark.py --dry-run`。
+它只读固定 fixture／本地结果，不调用真实 Provider；界面入口是
+`#/developer/archive-ab-review`，提交一条人工判断后才允许 reveal。
 
 重点代码定位：
 
@@ -46,13 +55,16 @@ provider setup 和 `allowed_actions`，不能只因为接口响应 200 就继续
 
 1. Copilot 只问一个文档问题，确认回答带来源／置信度，不把 developer 文档、源码、密钥或用户
    Mod 全文当作帮助语料。
-2. 让 Copilot 生成“创建项目 + 初次翻译”计划：检查只读规划不写盘；批准前不产生模型费用；
+2. 进入“设置 → 小助手设置”，确认 Provider、模型、reasoning 和 API 配置入口清晰；测试阶段
+   默认提示本地 LM Studio，但修改配置时应留在该设置页。若选择 Meta AI Platform，确认模型目录
+   和 API 基础 URL 来自设置页，且密钥不出现在聊天或日志中。
+3. 让 Copilot 生成“创建项目 + 初次翻译”计划：检查只读规划不写盘；批准前不产生模型费用；
    批准后 Task Center 中出现准确 task ID。
-3. 发送未知 action、额外参数和模型伪造的 risk/approval 字段，确认服务端 Registry 拒绝或
+4. 发送未知 action、额外参数和模型伪造的 risk/approval 字段，确认服务端 Registry 拒绝或
    覆盖，而不是照单执行。
-4. 访问 `/api/agent/capabilities`，确认 `resume_from_checkpoint`、`repair`、`export` 和
+5. 访问 `/api/agent/capabilities`，确认 `resume_from_checkpoint`、`repair`、`export` 和
    `cancel` 的批准门；确认 `pause` 明确为不支持，`context_analysis` 明确为未开放。
-5. 不配置 Provider 或 preflight 失败时，确认 Agent 停在门禁并给出可行动信息；不要把失败当成
+6. 不配置 Provider 或 preflight 失败时，确认 Agent 停在门禁并给出可行动信息；不要把失败当成
    “没有任务”或成功。
 
 重点代码定位：
@@ -120,8 +132,10 @@ provider setup 和 `allowed_actions`，不能只因为接口响应 200 就继续
 | “已启动”却找不到结果 | Task Center 数据库中的 task ID、`allowed_actions`、业务结果路径；不要看聊天文字 |
 | 恢复重复创建任务 | `translation_recovery.py` 的幂等键、父子 task 关系、数据库唯一约束 |
 | 恢复被拒绝 | 源文件／配置快照兼容性、checkpoint 版本、项目锁和任务状态 |
+| 档案 release 过期后流程静默继续 | `translation_context_readiness.py`、陈旧选择 409 payload、前端 `useStaleTranslationContextRetry`；检查 release ID 和 source snapshot hash |
 | 取消后项目仍锁死 | `cancelling` → terminal 的 worker 收尾、锁释放和重启恢复路径 |
 | 档案发布内容不连续或污染 | provenance、实体规范化、事件链和 route-aware gold；检查原始 source fixture，不只看页面摘要 |
+| A/B 评测页面 404 或 reveal 越权 | Agent Preview channel、`REMIS_ENABLE_ARCHIVE_AB_REVIEW=1`、`archive_ab_review_enabled()` 和固定 `.tmp/archive-ab` 边界 |
 | Agent 提议不存在的 action | `/api/copilot/actions` 与 `scripts/core/copilot/actions.py`；文档中的未来候选不能输出 |
 | Provider 失败反复重试 | preflight、Provider 错误分类、task fatal terminal state 和日志目录 |
 | 格式修复把 `#italic` 当成 `#b` 或改动 `$...$` / `[...]` | `scripts/utils/game_format_contract.py`、`scripts/utils/post_process_validator.py`；对照 fixture 的 `expected` 和前后值 |
@@ -137,6 +151,8 @@ provider setup 和 `allowed_actions`，不能只因为接口响应 200 就继续
 - 后端测试、前端测试／lint／build、Python compileall 和架构门禁全部通过。
 - `git diff --check` 通过；没有把工作区绝对路径、密钥或临时产物写进发布文件。
 - `RELEASE_NOTES_v3.2.0.md`、版本元数据、stable/preview 配置和 feature tests 一致。
+- 档案 A/B dry-run、workflow v3 陈旧选择和 Meta provider 设置检查均完成；A/B 结果不能替代真实
+  档案内容和已批准 Provider 的人工验收。
 - 上述冒烟场景至少各跑一次；失败时记录 task ID、project ID、build channel、日志位置和
   可复现步骤，再决定是否阻止发布。
 - 本分支完成本地 commit 后才进入玲珑的人工测试；push、PR、merge、tag 和正式发布仍是

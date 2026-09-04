@@ -247,7 +247,6 @@ def run(
     should_cancel: Optional[Any] = None, recovery_identity: Optional[dict] = None,
     stale_choice: Optional[str] = None,
     stale_acknowledgement: Optional[dict] = None,
-    should_cancel: Optional[Any] = None,
 ):
     """【最终版】初次翻译工作流（多语言 & 多游戏兼容）- 流式处理 & 断点续传版"""
     logging.info(f"--- Starting 'Initial Translation' workflow for: {mod_name} ---")
