@@ -37,13 +37,14 @@ def test_hoi4_russian_inside_tag_fails():
     assert len(results) > 0
     assert "Д" in results[0].details
 
-    # Russian 'П' inside a nested string tag - NOW ALLOWED in HOI4!
+    # Russian 'П' inside a nested string key must be rejected by the HOI4 contract.
     test_text = "$ПЕРЕМЕННАЯ$"
     results = validator.validate_game_text(game_id, test_text, 1, target_lang="zh-CN")
-    # Check that there are NO errors for this specific nested string
-    nested_errors = [r for r in results if r.level == ValidationLevel.ERROR and "nested_strings" in r.message] # Wait, message might be different
-    # Better: just check that it's valid now
-    assert len(results) == 0, f"Nested string should be allowed now: {results[0].details if results else ''}"
+    nested_errors = [
+        r for r in results
+        if r.level == ValidationLevel.ERROR and "nested_string_key" in r.message
+    ]
+    assert nested_errors, "Non-ASCII nested string key was not rejected"
 
 def test_hoi4_spaces_in_tag_prevents_match():
     """
