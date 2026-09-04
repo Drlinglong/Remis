@@ -26,6 +26,16 @@ RULES = {
       }
     },
     {
+      "name": "non_ascii_in_nested_string_key",
+      "check_function": "banned_chars",
+      "pattern": r"\$([^$\s]+)\$",
+      "level": "error",
+      "message_key": "validation_hoi4_nested_string_key_non_ascii",
+      "params": {
+        "capture_group": 1
+      }
+    },
+    {
       "name": "non_ascii_in_icon_tag_key",
       "check_function": "banned_chars",
       "pattern": r"£([^£\s|]+)",
