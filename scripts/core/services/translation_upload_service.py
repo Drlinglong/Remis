@@ -33,6 +33,28 @@ class InstalledTranslationArchive:
     source_path: str
 
 
+_WINDOWS_RESERVED_DEVICE_NAMES = frozenset(
+    ("CON", "PRN", "AUX", "NUL")
+    + tuple(f"COM{index}" for index in range(1, 10))
+    + tuple(f"LPT{index}" for index in range(1, 10))
+)
+
+
+def _is_reserved_windows_name(name: str) -> bool:
+    """Match ``ntpath.isreserved`` on Python versions that do not provide it."""
+
+    checker = getattr(os.path, "isreserved", None)
+    if checker is not None:
+        return bool(checker(name))
+    if name != name.rstrip(" ."):
+        return True
+    if any(character in name for character in '<>:"/\\|?*'):
+        return True
+    if any(ord(character) < 32 for character in name):
+        return True
+    return name.split(".", 1)[0].upper() in _WINDOWS_RESERVED_DEVICE_NAMES
+
+
 def _safe_upload_name(filename: str | None) -> tuple[str, str]:
     value = str(filename or "")
     if not value or PurePosixPath(value).name != value or PureWindowsPath(value).name != value:
@@ -42,7 +64,7 @@ def _safe_upload_name(filename: str | None) -> tuple[str, str]:
     mod_name = value[:-4]
     if not mod_name or mod_name in {".", ".."}:
         raise TranslationArchiveUploadError("Archive filename must include a non-empty mod name.")
-    if os.path.isreserved(mod_name):
+    if _is_reserved_windows_name(mod_name):
         raise TranslationArchiveUploadError("Archive filename uses a reserved Windows name.")
     return value, mod_name
 

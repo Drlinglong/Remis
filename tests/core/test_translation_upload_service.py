@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from scripts.core.services import translation_upload_service
 from scripts.core.services.translation_upload_service import (
     TranslationArchiveUploadError,
     install_translation_archive,
@@ -33,6 +34,14 @@ def test_rejects_unsafe_upload_name_without_touching_existing_source(tmp_path, f
         install_translation_archive(_archive({"file.txt": "value"}), filename, source_root)
 
     assert existing.read_text(encoding="utf-8") == "keep"
+
+
+@pytest.mark.parametrize("filename", ["CON.zip", "CON.txt.zip", "COM1.zip", "LPT9.zip", "demo .zip"])
+def test_rejects_reserved_windows_upload_name_on_python_310(monkeypatch, filename):
+    monkeypatch.delattr(translation_upload_service.os.path, "isreserved", raising=False)
+
+    with pytest.raises(TranslationArchiveUploadError, match="reserved Windows name"):
+        translation_upload_service._safe_upload_name(filename)
 
 
 def test_invalid_zip_preserves_existing_mod_directory(tmp_path):

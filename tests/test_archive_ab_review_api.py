@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 from scripts.developer_tools import archive_ab_review_adapter as adapter
 from scripts.developer_tools.run_archive_ab_benchmark import main as run_benchmark
 from scripts.routers import archive_ab_review as review_router
+from tests.archive_ab_corpus_fixture import materialize_archive_ab_corpus
 
 
 def _result_payload() -> dict:
@@ -117,8 +118,11 @@ def test_api_contract_reads_real_runner_review_artifact(tmp_path: Path, monkeypa
     output_root = tmp_path / "archive-ab"
     output_root.mkdir()
     output = output_root / "runner.json"
+    manifest_path, corpus_root = materialize_archive_ab_corpus(tmp_path)
     monkeypatch.setattr(sys, "argv", [
-        "run_archive_ab_benchmark.py", "--dry-run", "--archive-mode", "none", "--output", str(output),
+        "run_archive_ab_benchmark.py", "--dry-run", "--archive-mode", "none",
+        "--fixture", str(manifest_path), "--corpus-root", str(corpus_root),
+        "--output", str(output),
     ])
     assert run_benchmark() == 0
     monkeypatch.setattr(adapter, "ARCHIVE_AB_OUTPUT_ROOT", output_root)

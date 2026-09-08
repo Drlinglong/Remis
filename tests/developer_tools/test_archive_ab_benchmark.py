@@ -20,6 +20,7 @@ from scripts.developer_tools.archive_ab_review_queue import (
 )
 from scripts.developer_tools.archive_ab_runner import blind_judge, hard_check, translate_pair
 from scripts.developer_tools.archive_ab_scorer import summarize
+from tests.archive_ab_corpus_fixture import materialize_archive_ab_corpus
 
 
 class FakeProvider:
@@ -151,8 +152,11 @@ def test_hard_check_rejects_empty_and_protected_token_corruption():
 def test_cli_dry_run_uses_safe_marker_and_asserts_hard_checks(tmp_path: Path):
     root = Path(__file__).resolve().parents[2]
     output = tmp_path / "none.json"
+    manifest_path, corpus_root = materialize_archive_ab_corpus(tmp_path)
     completed = subprocess.run(
-        [sys.executable, "scripts/developer_tools/run_archive_ab_benchmark.py", "--dry-run", "--archive-mode", "none", "--output", str(output)],
+        [sys.executable, "scripts/developer_tools/run_archive_ab_benchmark.py", "--dry-run",
+         "--archive-mode", "none", "--fixture", str(manifest_path),
+         "--corpus-root", str(corpus_root), "--output", str(output)],
         cwd=root, capture_output=True, text=True, check=False,
     )
     assert completed.returncode == 0, completed.stderr
@@ -174,7 +178,7 @@ def test_judge_schema_requires_per_arm_error_maps():
         JudgeOutput.model_validate({"winner": "tie", "confidence": 0, "error_tags": [], "evidence": []})
 
 
-def test_published_archive_release_is_loaded_from_local_remis_api(monkeypatch):
+def test_published_archive_release_is_loaded_from_local_remis_api(monkeypatch, tmp_path: Path):
     payload = {
         "release": {
             "release_id": "release-1",
@@ -196,9 +200,9 @@ def test_published_archive_release_is_loaded_from_local_remis_api(monkeypatch):
 
     requests = []
     monkeypatch.setattr(archive_ab_fixtures, "urlopen", lambda request, timeout: (requests.append((request.full_url, timeout)) or Response()))
-    root = Path(r"J:\remis-aventine-benchmark-corpus")
+    manifest_path, root = materialize_archive_ab_corpus(tmp_path)
     cases, provenance = load_cases(
-        Path("tests/fixtures/remis_archive_ab_v1/cases.json"),
+        manifest_path,
         root,
         archive_api_base_url="http://127.0.0.1:1453",
         archive_release_id="release-1",
@@ -213,8 +217,11 @@ def test_published_archive_release_is_loaded_from_local_remis_api(monkeypatch):
 def test_cli_fresh_run_explicitly_skips_without_persisted_archive(tmp_path: Path):
     root = Path(__file__).resolve().parents[2]
     output = tmp_path / "fresh.json"
+    manifest_path, corpus_root = materialize_archive_ab_corpus(tmp_path)
     completed = subprocess.run(
-        [sys.executable, "scripts/developer_tools/run_archive_ab_benchmark.py", "--dry-run", "--output", str(output)],
+        [sys.executable, "scripts/developer_tools/run_archive_ab_benchmark.py", "--dry-run",
+         "--fixture", str(manifest_path), "--corpus-root", str(corpus_root),
+         "--output", str(output)],
         cwd=root, capture_output=True, text=True, check=False,
     )
     assert completed.returncode == 0, completed.stderr
@@ -311,11 +318,9 @@ def test_scorer_bootstraps_canonical_cluster_once():
     assert score["overall"]["case_count"] == 1
 
 
-def test_real_corpus_manifest_expands_whole_chain_and_reference_batch():
-    root = Path(r"J:\remis-aventine-benchmark-corpus")
-    if not root.exists():
-        return
-    cases, provenance = load_cases(Path("tests/fixtures/remis_archive_ab_v1/cases.json"), root)
+def test_local_corpus_manifest_expands_whole_chain_and_reference_batch(tmp_path: Path):
+    manifest_path, root = materialize_archive_ab_corpus(tmp_path)
+    cases, provenance = load_cases(manifest_path, root)
     by_id = {case.case_id: case for case in cases}
     assert len(by_id["horizon_signal__chain"].source_entries) > 20
     assert len(by_id["toxic_god__first_quest_sinople"].source_entries) > 20
