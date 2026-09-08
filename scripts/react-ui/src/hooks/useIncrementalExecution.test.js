@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import translationService from '../services/translationService';
 import { useIncrementalExecution } from './useIncrementalExecution';
+import { useStaleTranslationContextRetry } from './useStaleTranslationContextRetry';
 
 vi.mock('../services/translationService', () => ({
   default: { startIncrementalUpdate: vi.fn() },
@@ -38,6 +39,16 @@ const buildOptions = () => ({
   setLogs: vi.fn(),
   setProgress: vi.fn(),
   setProgressInfo: vi.fn(),
+  staleContextSubmit: async ({ payload, request, onSuccess, onError }) => {
+    try {
+      const response = await request(payload);
+      await onSuccess(response);
+      return response;
+    } catch (error) {
+      onError(error);
+      return false;
+    }
+  },
   t: (key) => key,
 });
 
@@ -78,5 +89,54 @@ describe('useIncrementalExecution', () => {
         reference_reuse: expect.objectContaining({ enabled: false }),
       }),
     );
+  });
+
+  it('asks how to handle a stale archive and retries incremental execution with only glossaries', async () => {
+    const staleError = {
+      response: {
+        status: 409,
+        data: {
+          detail: {
+            code: 'context_release_stale_choice_required',
+            context_readiness: {
+              archive: {
+                release_id: 'release-2',
+                current_source_snapshot_hash: 'hash-2',
+              },
+            },
+          },
+        },
+      },
+    };
+    translationService.startIncrementalUpdate.mockRejectedValueOnce(staleError)
+      .mockResolvedValueOnce({ data: { task_id: 'task-2' } });
+    const input = buildOptions();
+    const { result } = renderHook(() => {
+      const staleContext = useStaleTranslationContextRetry();
+      const execution = useIncrementalExecution({
+        ...input,
+        staleContextSubmit: staleContext.submit,
+      });
+      return { execution, staleContext };
+    });
+
+    await act(async () => result.current.execution());
+    expect(result.current.staleContext.opened).toBe(true);
+
+    await act(async () => result.current.staleContext.choose('disable_archive'));
+
+    expect(translationService.startIncrementalUpdate).toHaveBeenLastCalledWith(
+      'demo',
+      expect.objectContaining({
+        translation_context_mode: 'archive',
+        stale_choice: 'disable_archive',
+        stale_acknowledgement: {
+          choice: 'disable_archive',
+          context_release_id: 'release-2',
+          source_snapshot_hash: 'hash-2',
+        },
+      }),
+    );
+    expect(input.setCurrentTaskId).toHaveBeenCalledWith('task-2');
   });
 });

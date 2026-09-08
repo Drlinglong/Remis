@@ -1,0 +1,5 @@
+l_turkish:
+ workshop_demo.italic:0 "#b İtalik vurgu#! görünür kalır."
+ workshop_demo.chemistry:0 "Yeni kimyasal ürün: Nitрофosfat."
+ workshop_demo.warning:0 "#warning Tehlikeli işlem inceleme gerektiriyor."
+ workshop_demo.turkish_multiline:0 "İlk satır hazır. İkinci satır hazır."

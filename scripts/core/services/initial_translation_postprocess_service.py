@@ -6,6 +6,22 @@ from scripts.core.services.workshop_issue_export_service import resolve_dynamic_
 from scripts.app_settings import DEST_DIR, SOURCE_DIR
 
 
+def build_format_validation_summary(total_errors: int, total_warnings: int) -> str:
+    """Build a summary whose wording cannot misclassify zero-count errors."""
+    total_issues = total_errors + total_warnings
+    if total_issues == 0:
+        return "Final file format validation completed. Found 0 format issues."
+    counts = []
+    if total_errors:
+        counts.append(f"{total_errors} error(s)")
+    if total_warnings:
+        counts.append(f"{total_warnings} warning(s)")
+    return (
+        "Final file format validation completed. "
+        f"Found {total_issues} format issue(s): {', '.join(counts)}."
+    )
+
+
 def run_post_processing(
     mod_name,
     game_profile,
@@ -40,11 +56,7 @@ def run_post_processing(
 
         if update_progress_callback:
             update_progress_callback(
-                log_message=(
-                    "Final file format validation completed. "
-                    f"Found {total_issues} format issue(s): {total_errors} error(s), "
-                    f"{total_warnings} warning(s)."
-                ),
+                log_message=build_format_validation_summary(total_errors, total_warnings),
                 format_issues_override=total_issues,
             )
 

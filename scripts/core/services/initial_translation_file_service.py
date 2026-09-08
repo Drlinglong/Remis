@@ -213,6 +213,7 @@ def finalize_translated_file(
     project_id: Optional[str],
     version_id: Optional[int],
     all_files_content: List[dict],
+    progress_metadata: Optional[dict] = None,
 ):
     """Write translated content, update trackers, and archive the result."""
     source_texts = file_task.all_source_texts or file_task.texts_to_translate
@@ -255,7 +256,17 @@ def finalize_translated_file(
         logging.info(i18n.t("file_build_completed", filename=os.path.basename(dest_file_path)))
 
     if not is_failed:
-        checkpoint_manager.mark_file_completed(file_task.filename)
+        # V2 checkpoints use project-relative paths. Keep the basename fallback
+        # for legacy/test checkpoint adapters that do not expose V2 progress.
+        checkpoint_identity = file_task.filename
+        if hasattr(checkpoint_manager, "progress"):
+            checkpoint_identity = (file_task.file_path or file_task.filename).replace("\\", "/")
+            checkpoint_manager.mark_file_completed(
+                checkpoint_identity,
+                progress_metadata=progress_metadata,
+            )
+        else:
+            checkpoint_manager.mark_file_completed(checkpoint_identity)
 
     if project_id and not is_failed:
         sync_project_file_status(project_id, source_file_path)

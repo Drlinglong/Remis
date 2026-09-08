@@ -25,6 +25,13 @@ TREE_V2_PROMPT_VERSION = "context-archive-tree-v2"
 TREE_V2_CHECKPOINT_COMPATIBILITY_VERSION = "context-analysis-tree-v2"
 
 TreeRoute = Literal["narrative", "reference_asset", "no_context"]
+ContentRole = Literal[
+    "event_narrative",
+    "background_narrative",
+    "static_reference",
+    "utility_or_noise",
+]
+DeliveryRoute = Literal["event", "reference", "none"]
 
 
 class ChunkEdgeMetadata(BaseModel):
@@ -81,12 +88,21 @@ class LocalFragment(BaseModel):
 
 
 class UnitRoute(BaseModel):
-    """The only extraction-owned delivery role for one core local unit."""
+    """Orthogonal content and delivery judgments for one core local unit.
+
+    ``route`` remains as the Tree v2 compatibility projection.  Workflow v3
+    models author ``content_role`` and ``delivery_route``; the compatibility
+    route is then derived deterministically instead of asking the model to
+    keep two representations synchronized.
+    """
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
     local_unit_id: str = Field(min_length=1, max_length=200)
     route: TreeRoute
+    content_role: ContentRole
+    delivery_route: DeliveryRoute
+    summary: str | None = Field(default=None, max_length=1_000)
     fragment_ids: list[str] = Field(default_factory=list, max_length=8)
 
     @model_validator(mode="before")
@@ -100,18 +116,39 @@ class UnitRoute(BaseModel):
                 if alias in normalized:
                     normalized["route"] = normalized.pop(alias)
                     break
+        legacy_route = normalized.get("route")
+        if "content_role" not in normalized:
+            normalized["content_role"] = {
+                "narrative": "event_narrative",
+                "reference_asset": "static_reference",
+                "no_context": "utility_or_noise",
+            }.get(legacy_route, "utility_or_noise")
+        if "delivery_route" not in normalized:
+            normalized["delivery_route"] = {
+                "narrative": "event",
+                "reference_asset": "reference",
+                "no_context": "none",
+            }.get(legacy_route, "none")
+        if "content_role" in value or "delivery_route" in value:
+            normalized["route"] = {
+                "event": "narrative",
+                "reference": "reference_asset",
+                "none": "no_context",
+            }[normalized["delivery_route"]]
         return normalized
 
     @model_validator(mode="after")
     def validate_route(self) -> "UnitRoute":
         if len(self.fragment_ids) != len(set(self.fragment_ids)):
             raise ValueError("unit route fragment identities must be unique")
-        if self.route == "narrative" and not self.fragment_ids:
-            raise ValueError("narrative routes require at least one fragment")
-        if self.route != "narrative" and self.fragment_ids:
+        if self.content_role == "event_narrative" and not self.fragment_ids:
+            raise ValueError("event narratives require at least one fragment")
+        if self.content_role != "event_narrative" and self.fragment_ids:
             raise ValueError(
-                "reference_asset and no_context routes cannot receive event fragments"
+                "only event narratives may receive event fragments"
             )
+        if self.delivery_route == "event" and self.content_role != "event_narrative":
+            raise ValueError("event delivery requires event_narrative content")
         return self
 
     @property
@@ -239,7 +276,7 @@ class TreeCatalogResult(BaseModel):
 
 
 class ProjectedUnitRoute(BaseModel):
-    """Program projection of unit -> fragment -> group."""
+    """Program projection preserving content ownership and delivery policy."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -249,6 +286,9 @@ class ProjectedUnitRoute(BaseModel):
     group_ids: list[str] = Field(default_factory=list, max_length=80)
     unresolved_fragment_ids: list[str] = Field(default_factory=list, max_length=8)
     receives_event_context: bool
+    content_role: ContentRole | None = None
+    delivery_route: DeliveryRoute | None = None
+    summary: str | None = Field(default=None, max_length=1_000)
 
 
 class TreeProjectionResult(BaseModel):

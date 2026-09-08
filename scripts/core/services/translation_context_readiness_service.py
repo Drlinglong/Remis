@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sqlite3
 from dataclasses import dataclass
 from typing import Any
 
@@ -17,6 +18,15 @@ from scripts.core.services.translation_context_gate import (
 from scripts.core.services.translation_context_service import (
     build_translation_source_snapshot,
 )
+from scripts.core.services.translation_source_snapshot_builder import (
+    build_legacy_trimmed_source_snapshot,
+)
+from scripts.core.services.translation_context_stale_policy import (
+    STALE_DISABLE_ARCHIVE,
+    stale_decision,
+)
+from scripts.core.repositories.context_tree_v2_repository import ContextTreeV2Repository
+from scripts.core.services.context_tree_v2_translation_adapter import ContextTreeV2TranslationAdapter
 
 
 @dataclass(frozen=True)
@@ -24,6 +34,7 @@ class TranslationContextModeResolution:
     requested_mode: str | None
     effective_mode: str | None
     readiness: dict[str, Any] | None = None
+    requires_user_choice: bool = False
 
     @property
     def degraded(self) -> bool:
@@ -31,20 +42,30 @@ class TranslationContextModeResolution:
 
     @property
     def warning(self) -> dict[str, Any] | None:
-        if not self.degraded or self.readiness is None:
+        if self.readiness is None or (not self.degraded and not self.requires_user_choice):
             return None
         archive = self.readiness.get("archive") or {}
         archive_readiness = archive.get("readiness") or {}
         return {
-            "code": "project_context_degraded",
+            "code": (
+                "context_release_stale_choice_required"
+                if self.requires_user_choice else "project_context_degraded"
+            ),
             "reason_code": archive_readiness.get("reason_code"),
             "requested_mode": self.requested_mode,
             "effective_mode": self.effective_mode,
             "warnings": list(self.readiness.get("warnings") or []),
+            **({"required_choices": ["use_old_archive", "disable_archive"]}
+               if self.requires_user_choice else {}),
         }
 
     @property
     def user_message(self) -> str | None:
+        if self.requires_user_choice:
+            return (
+                "The project archive is stale. Choose whether to use its Mod summary "
+                "only or continue with glossaries without archive context."
+            )
         if not self.degraded:
             return None
         return (
@@ -61,6 +82,7 @@ class TranslationContextReadinessService:
         glossary_manager: Any,
         candidate_store: Any,
         source_inventory_service: Any | None = None,
+        tree_v2_repository: Any | None = None,
     ):
         self.glossary_manager = glossary_manager
         self.candidate_store = candidate_store
@@ -68,6 +90,7 @@ class TranslationContextReadinessService:
         self.context_service = ContextService(self.repository)
         self.snapshot_service = SourceSnapshotService()
         self.source_inventory_service = source_inventory_service or IncrementalSnapshotService()
+        self.tree_v2_repository = tree_v2_repository
 
     async def resolve_mode(
         self,
@@ -75,8 +98,10 @@ class TranslationContextReadinessService:
         requested_mode: str | None,
         inspection: dict[str, Any] | None,
         requested_release_id: str | None = None,
+        stale_choice: str | dict[str, Any] | None = None,
+        stale_acknowledgement: dict[str, Any] | None = None,
     ) -> TranslationContextModeResolution:
-        """Turn an unavailable archive into a glossary-only soft fallback."""
+        """Resolve archive readiness and require an explicit choice when stale."""
 
         if requested_mode != "archive":
             return TranslationContextModeResolution(requested_mode, requested_mode)
@@ -86,6 +111,26 @@ class TranslationContextReadinessService:
             inspection,
             requested_release_id=requested_release_id,
         )
+        if (
+            not readiness["can_start"]
+            and (readiness.get("archive") or {}).get("readiness", {}).get("reason_code")
+            == "context_release_stale"
+        ):
+            archive = readiness.get("archive") or {}
+            choice, acknowledged = stale_decision(
+                stale_choice,
+                stale_acknowledgement,
+                str(archive.get("release_id") or ""),
+                str(archive.get("source_snapshot_hash") or ""),
+                str(archive.get("current_source_snapshot_hash") or ""),
+            )
+            effective_mode = "glossaries" if acknowledged and choice == STALE_DISABLE_ARCHIVE else "archive"
+            return TranslationContextModeResolution(
+                requested_mode,
+                effective_mode,
+                readiness,
+                requires_user_choice=not acknowledged,
+            )
         effective_mode = "archive" if readiness["can_start"] else "glossaries"
         return TranslationContextModeResolution(
             requested_mode,
@@ -201,6 +246,11 @@ class TranslationContextReadinessService:
         *,
         requested_release_id: str | None = None,
     ) -> dict[str, Any]:
+        v3_details = self._v3_release_details(
+            project_id, project, requested_release_id=requested_release_id,
+        )
+        if v3_details is not None:
+            return v3_details
         releases = self.repository.list_releases(project_id)
         if not releases:
             return {}
@@ -215,7 +265,7 @@ class TranslationContextReadinessService:
             return {}
         effective = self.context_service.effective_context(release.release_id)
         config = release.metadata.analysis_config
-        current_snapshot_hash, current_file_count = self._current_snapshot(project)
+        current_snapshot_hash, current_file_count, compatible_hashes = self._current_snapshot(project)
         release_hash = release.metadata.source_snapshot_hash
         return {
             "release_id": release.release_id,
@@ -224,7 +274,7 @@ class TranslationContextReadinessService:
             "source_snapshot_match": (
                 None
                 if current_snapshot_hash is None
-                else current_snapshot_hash == release_hash
+                else release_hash in compatible_hashes
             ),
             "source_inventory_file_count": current_file_count,
             "effective_context_items": (
@@ -236,28 +286,71 @@ class TranslationContextReadinessService:
             "prompt_version": release.metadata.prompt_version,
         }
 
-    def _current_snapshot(self, project: dict[str, Any]) -> tuple[str | None, int]:
+    def _v3_release_details(
+        self,
+        project_id: str,
+        project: dict[str, Any],
+        *,
+        requested_release_id: str | None,
+    ) -> dict[str, Any] | None:
+        repository = self.tree_v2_repository or ContextTreeV2Repository(PROJECTS_DB_PATH)
+        try:
+            projection = ContextTreeV2TranslationAdapter(repository).resolve(
+                project_id, requested_release_id,
+            )
+        except (sqlite3.OperationalError, ValueError):
+            return None
+        if projection is None:
+            return None
+        current_snapshot_hash, current_file_count, compatible_hashes = self._current_snapshot(project)
+        return {
+            "release_id": projection.release_id,
+            "source_snapshot_hash": projection.source_snapshot_hash,
+            "current_source_snapshot_hash": current_snapshot_hash,
+            "source_snapshot_match": (
+                None
+                if current_snapshot_hash is None
+                else projection.source_snapshot_hash in compatible_hashes
+            ),
+            "source_inventory_file_count": current_file_count,
+            "effective_context_items": (
+                len(projection.project_summary) + len(projection.direct_index)
+            ),
+            "description_language": None,
+            "prompt_version": None,
+            "release_source": "context_tree_v2",
+        }
+
+    def _current_snapshot(
+        self, project: dict[str, Any],
+    ) -> tuple[str | None, int, frozenset[str]]:
         source_root = project.get("source_path")
         if not source_root:
-            return None, 0
+            return None, 0, frozenset()
         try:
             files = self.source_inventory_service.build_snapshot(
                 str(source_root), self._source_language_info(project),
             )
             if not files:
-                return None, 0
+                return None, 0, frozenset()
             snapshot = build_translation_source_snapshot(files, self.snapshot_service)
+            legacy = build_legacy_trimmed_source_snapshot(files, self.snapshot_service)
         except (OSError, UnicodeError, ValueError, TypeError):
-            return None, 0
-        return snapshot.source_snapshot_hash, len(files)
+            return None, 0, frozenset()
+        compatible_hashes = frozenset({
+            snapshot.source_snapshot_hash,
+            legacy.source_snapshot_hash,
+        })
+        return snapshot.source_snapshot_hash, len(files), compatible_hashes
 
     @staticmethod
     def _source_language_info(project: dict[str, Any]) -> dict[str, str]:
-        language = str(
+        raw_language = (
             project.get("source_language")
             or project.get("source_lang")
             or "english"
-        ).strip()
+        )
+        language = str(getattr(raw_language, "value", raw_language)).strip()
         normalized = language.casefold()
         names = {
             "en": "English",

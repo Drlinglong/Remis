@@ -1,0 +1,66 @@
+{
+  "schema_version": "remis-archive-ab-fixture-v1",
+  "fixture_version": "2026-09-02-ab-v1",
+  "corpus_root_required": "J:/remis-aventine-benchmark-corpus",
+  "selection_contract": {
+    "event_chain": "all assignments in one chain_memberships value; one case, no string voting",
+    "reference_batch": "all matching semantic family rows; deterministic group/key order",
+    "chunking": "only split at a declared deterministic boundary when limits require it"
+  },
+  "wiki_sources": [
+    "paradox-horizon-signal",
+    "paradox-toxic-god-events"
+  ],
+  "wiki_evidence_path": "wiki_evidence.json",
+  "cases": [
+    {
+      "case_id": "horizon_signal__chain",
+      "dataset_id": "stellaris:horizon-signal",
+      "case_kind": "event_chain",
+      "source_path": "projects/stellaris/horizonsignal_demo/horizonsignal_l_english.yml",
+      "gold_path": "corpus/stellaris/context-archive-gold/horizon-signal/2026-09-01-three-axis-v3/horizon_signal_event_chain_gold_manifest.json",
+      "selection": {"chain_id": "horizon_signal"},
+      "gold_facts": [
+        "The case is the complete horizon_signal event chain, including its branching choices.",
+        "The Worm-in-Waiting is the story entity behind the signal and the later loop consequences."
+      ],
+      "wiki_evidence_ids": ["paradox-horizon-signal"],
+      "mod_summary": "A rare cosmic-horror event chain about a signal, a temporal loop, and the Worm-in-Waiting.",
+      "matched_chain_context": "The signal begins as an investigation and develops through the Worm's message, loop imagery, choices, and a consequential ending.",
+      "old_mod_summary": "This mod contains strange science-fiction event stories and unusual anomalies.",
+      "glossary": {"Worm-in-Waiting": "守候之螶", "Horizon Signal": "视界信号"}
+    },
+    {
+      "case_id": "toxic_god__first_quest_sinople",
+      "dataset_id": "stellaris:toxic-god",
+      "case_kind": "event_chain",
+      "source_path": "corpus/stellaris/context-archive-gold/toxic-god/2026-09-01-three-axis-v3/toxic_god_context_benchmark_l_english.yml",
+      "gold_path": "corpus/stellaris/context-archive-gold/toxic-god/2026-09-01-three-axis-v3/toxic_god_context_archive_gold_manifest.json",
+      "selection": {"chain_id": "first_quest_sinople"},
+      "gold_facts": [
+        "The first quest follows the banished knight and the return of Sinople.",
+        "Choice branches can change the resulting reward; do not flatten conditional outcomes."
+      ],
+      "wiki_evidence_ids": ["paradox-toxic-god-events"],
+      "mod_summary": "A knightly quest begins under the Toxic God situation and ties discovery to conditional rewards.",
+      "matched_chain_context": "The first quest moves from a banished knight through investigation and choices toward the Sinople outcome.",
+      "old_mod_summary": "This mod contains a knight order, a toxic deity, and several quests.",
+      "glossary": {"Toxic God": "剧毒之神", "Knight": "骑士", "Sinople": "辛诺普"}
+    },
+    {
+      "case_id": "horizon_signal__technology_reference_batch",
+      "dataset_id": "stellaris:horizon-signal",
+      "case_kind": "reference_batch",
+      "reference_batch_id": "horizon_signal_technology_family",
+      "source_path": "projects/stellaris/horizonsignal_demo/horizonsignal_l_english.yml",
+      "gold_path": "corpus/stellaris/context-archive-gold/horizon-signal/2026-09-01-three-axis-v3/horizon_signal_event_chain_gold_manifest.json",
+      "selection": {"content_role": "static_reference", "group_prefix": "tech_akx_worm_"},
+      "gold_facts": ["These are related static technology references, not an event-chain delivery target."],
+      "wiki_evidence_ids": ["paradox-horizon-signal"],
+      "mod_summary": "Reference terminology for the Horizon Signal technology family.",
+      "matched_chain_context": "",
+      "old_mod_summary": "Reference terms for a science-fiction technology family.",
+      "glossary": {"Omega Theory": "欧米伽理论", "Entropic Recursion": "熵递归"}
+    }
+  ]
+}

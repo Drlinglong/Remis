@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNotification } from '../context/NotificationContextCore';
 import { useTranslationContext } from '../context/TranslationContextCore';
@@ -27,6 +27,7 @@ import controlsStyles from '../components/initialTranslation/InitialTranslationC
 import ConfigStep from '../components/initialTranslation/ConfigStep';
 import ProjectSelectionStep from '../components/initialTranslation/ProjectSelectionStep';
 import ResumeCheckpointModal from '../components/initialTranslation/ResumeCheckpointModal';
+import TranslationContextStaleModal from '../components/TranslationContextStaleModal';
 import TaskRunner from '../components/TaskRunner';
 import { useInitialTranslationFlow } from '../hooks/useInitialTranslationFlow';
 import { useInitialTranslationPageData } from '../hooks/useInitialTranslationPageData';
@@ -38,13 +39,13 @@ import {
   findLanguageByCode,
   findProjectById,
 } from '../utils/initialTranslation';
-import api from '../utils/api';
 import { useTaskCenter } from '../context/TaskCenterContextCore';
 import { useInitialReferenceReuse } from '../hooks/useInitialReferenceReuse';
 import { FEATURES } from '../config/features';
 const formatModelSummary = (modelName = '') => {
   const knownModels = {
     'gemini-3.1-pro-preview': 'Gemini 3.1 Pro',
+    'gemini-3.8-flash': 'Gemini 3.8 Flash',
     'gemini-3.7-flash': 'Gemini 3.7 Flash',
     'gemini-3.6-flash': 'Gemini 3.6 Flash',
   };
@@ -177,15 +178,12 @@ const InitialTranslation = () => {
   const location = useLocation();
 
   const [, setStatus] = useState(null);
-  const [checkpointHintInfo, setCheckpointHintInfo] = useState(null);
-  const checkpointHintRequestRef = useRef(0);
-
   const form = useForm({
     initialValues: {
       source_lang_code: 'en',
       target_lang_codes: [],
       api_provider: 'gemini',
-      model_name: 'gemini-3.7-flash',
+      model_name: 'gemini-3.8-flash',
       mod_context: '',
       selected_glossary_ids: [],
       translation_context_mode: 'glossaries',
@@ -236,9 +234,6 @@ const InitialTranslation = () => {
 
   const selectedProject = findProjectById(projects, selectedProjectId);
   const filteredProjects = filterProjects(projects, gameFilter, searchQuery);
-  const checkpointTargetSignature = form.values.english_disguise
-    ? 'custom'
-    : form.values.target_lang_codes.join('|');
   const referenceReuse = useInitialReferenceReuse({
     excludedEntries: form.values.reference_reuse_excluded_entries,
     localizationPath: form.values.reference_localization_path,
@@ -310,46 +305,6 @@ const InitialTranslation = () => {
   }, [active, setPageContext]);
 
   useEffect(() => {
-    if (!FEATURES.ENABLE_CHECKPOINT_RESUME || active !== 1 || !selectedProject?.label) {
-      setCheckpointHintInfo(null);
-      return;
-    }
-
-    const targetLangCodes = getTargetLangCodes(form.values);
-    if (!targetLangCodes.length) {
-      setCheckpointHintInfo(null);
-      return;
-    }
-
-    const requestId = checkpointHintRequestRef.current + 1;
-    checkpointHintRequestRef.current = requestId;
-
-    api.post('/api/translation/checkpoint-status', {
-      project_id: selectedProjectId,
-      target_lang_codes: targetLangCodes,
-    })
-      .then((response) => {
-        if (checkpointHintRequestRef.current !== requestId) {
-          return;
-        }
-        setCheckpointHintInfo(response.data?.exists ? response.data : null);
-      })
-      .catch((error) => {
-        if (checkpointHintRequestRef.current !== requestId) {
-          return;
-        }
-        console.error('Failed to check checkpoint hint:', error);
-        setCheckpointHintInfo(null);
-      });
-  }, [
-    active,
-    checkpointTargetSignature,
-    form.values,
-    selectedProject?.label,
-    selectedProjectId,
-  ]);
-
-  useEffect(() => {
     if (form.values.embedded_workshop_follow_primary_settings) {
       return;
     }
@@ -375,7 +330,10 @@ const InitialTranslation = () => {
   // Polling Logic removed from here (now in TranslationContext)
 
   const {
-    checkpointInfo,
+    checkpointInfo: recoveryInfo,
+    checkpointActionPending,
+    canStartOver,
+    handleClearCheckpoint,
     handleResume,
     handleStartClick,
     handleStartOver,
@@ -384,6 +342,7 @@ const InitialTranslation = () => {
     resumeModalOpen,
     setReferencePromptOpen,
     setResumeModalOpen,
+    staleContext,
   } = useInitialTranslationFlow({
     config,
     notificationStyle,
@@ -396,6 +355,18 @@ const InitialTranslation = () => {
     setTranslationDetails,
     t,
   });
+
+  const checkpointHintInfo = recoveryInfo?.checkpoint?.available
+    ? {
+      exists: true,
+      completed_count: recoveryInfo.checkpoint.completed_units ?? 0,
+      total_files_estimate: recoveryInfo.checkpoint.total_files_estimate ?? 0,
+      metadata: recoveryInfo.checkpoint.metadata,
+      resumable: recoveryInfo.checkpoint.resumable === true,
+      targets: recoveryInfo.checkpoint.targets || [],
+      can_clear: recoveryInfo.allowed_actions?.includes('clear_checkpoint') || false,
+    }
+    : null;
 
   const handleBack = () => {
     if (active > 0) {
@@ -460,6 +431,7 @@ const InitialTranslation = () => {
                 availableGlossaries={availableGlossaries}
                 availableModels={availableModels}
                 checkpointHintInfo={checkpointHintInfo}
+                checkpointActionPending={checkpointActionPending}
                 config={config}
                 embeddedWorkshopModels={buildModelOptions(
                   form.values.embedded_workshop_follow_primary_settings
@@ -469,6 +441,7 @@ const InitialTranslation = () => {
                 )}
                 form={form}
                 onSubmit={handleStartClick}
+                onClearCheckpoint={handleClearCheckpoint}
                 selectedProject={selectedProject}
                 selectedProjectId={selectedProjectId}
                 onPreviewReferenceReuse={referenceReuse.preview}
@@ -512,14 +485,24 @@ const InitialTranslation = () => {
 
       {FEATURES.ENABLE_CHECKPOINT_RESUME && (
         <ResumeCheckpointModal
-          checkpointInfo={checkpointInfo}
+          checkpointInfo={checkpointHintInfo}
           onClose={() => setResumeModalOpen(false)}
           onResume={handleResume}
           onStartOver={handleStartOver}
+          canStartOver={canStartOver}
           opened={resumeModalOpen}
           t={t}
         />
       )}
+
+      <TranslationContextStaleModal
+        detail={staleContext.detail}
+        opened={staleContext.opened}
+        onCancel={staleContext.cancel}
+        onDisableArchive={() => staleContext.choose('disable_archive')}
+        onUseOldArchive={() => staleContext.choose('use_old_archive')}
+        t={t}
+      />
 
       <Modal
         opened={referencePromptOpen}

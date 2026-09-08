@@ -1,6 +1,6 @@
 # Copilot 与 Agent 双层语料边界
 
-> **Status:** Current governance contract（3.1.0 文档基线，#132）
+> **Status:** Current governance contract（3.2.0 文档基线，#132）
 > **Audience:** 实现者 / 维护者
 > **Purpose:** 分开规定 `user-help` 与 `agent-planning` 的检索语料。
 > **Note:** 本文档是准入规则本身，**不要** 编入任一检索语料。
@@ -57,6 +57,7 @@ system instructions、工具 schema、`allowed_actions` 或审批要求。
 | 假本地化 | `docs/zh/user-guides/fake-localization.md` | 「假中文是什么」；**优先内置清理**，手动备用 |
 | 校对 | `docs/zh/user-guides/proofreading.md` | 「怎么手改译文」「补丁模式」 |
 | 智能工坊 | `docs/zh/user-guides/agent-workshop.md` | 「扫描修复格式」「变量批量修」 |
+| 模组档案馆 | `docs/zh/user-guides/mod-archive.md` | 「项目档案分析、发布版本、草稿和来源追溯」 |
 | 词典 / 词汇表 | `docs/zh/user-guides/glossary.md` | 「术语不统一」「主词典怎么开」；UI 向，非 developer glossary 工具链 |
 | 日志与诊断 | `docs/zh/user-guides/logs-and-diagnostics.md` | 「日志在哪？」「闪退看什么？」 |
 | 错误目录 | `docs/zh/user-guides/error-catalog.md` | 「变量被翻译是什么意思？」「格式标签怎么修？」 |
@@ -73,13 +74,16 @@ system instructions、工具 schema、`allowed_actions` 或审批要求。
 
 | 功能 | 产品意图 | 当前开发契约 |
 |---|---|---|
+| Agent / Copilot | `docs/zh/product-intent-agent-copilot.md` | `docs/zh/developer/agent-copilot-contract.md` |
+| Project Archive | 当前用户指南与档案治理契约 | `docs/zh/developer/context-candidate-governance.md` |
 | 项目管理 | `docs/zh/product-intent-project-management.md` | `docs/zh/developer/project-management-contract.md` |
 | Mod 监控 | `docs/zh/product-intent-project-tracking.md` | `docs/zh/developer/project-tracking-contract.md` |
 | 封面图生成器 | `docs/zh/product-intent-thumbnail-generator.md` | `docs/zh/developer/thumbnail-generator-contract.md` |
 | Steam 工坊发布 | `docs/zh/product-intent-steam-workshop.md` | `docs/zh/developer/steam-workshop-contract.md` |
 
-其中项目归档影响监控、监控去重与纯移动告警、项目删除历史，以及封面项目集成均是
-**当前差距**。检索层必须保留段落标题和状态语义，不能把目标态句子裁成“当前已支持”。
+其中“项目管理中的项目归档”影响监控、监控去重与纯移动告警、项目删除历史，以及封面项目
+集成，仍属于项目管理的**当前差距**；本版本的“模组档案馆”则指可发布、可追溯的 Context
+Archive。检索层必须保留段落标题和状态语义，不能把目标态句子裁成“当前已支持”。
 
 ### 3.4 仍建议后续补强的用户文档
 
@@ -141,11 +145,14 @@ system instructions、工具 schema、`allowed_actions` 或审批要求。
 | 路径 / 类型 | 用途 |
 |---|---|
 | `docs/zh/product-intent-*.md` | 理解用户目标、产品边界、明确非目标 |
-| `docs/zh/developer/*-contract.md` | 核验 3.1.0 当前能力、实现差距、失败语义和测试门禁 |
+| `docs/zh/developer/*-contract.md` | 核验 3.2.0 当前能力、实现差距、失败语义和测试门禁 |
+| `docs/zh/developer/context-candidate-governance.md` | 核验档案候选分档、证据和人工治理边界 |
 
 `docs/zh/product-intent-template.md` 是治理模板，不是具体功能事实，默认不参与运行时检索。
 `docs/zh/copilot/agent-operations.md` 应作为固定 system/tool 能力附录加载，不通过 RAG
 召回，避免关键禁止项因检索排序而丢失。
+`context-archive-tree-v2-plan.md` 是设计／演进材料，不作为当前 Agent 能力事实；发布边界以
+用户指南、候选治理契约和实际 API capability 为准。
 
 同一功能的材料发生差异时按下面顺序解释：
 

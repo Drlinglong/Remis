@@ -2,6 +2,7 @@
 
 RULES = {
   "game_id": "1",
+  "format_contract_id": "victoria3",
   "game_name": "Victoria 3",
   "rules": [
     {
@@ -120,6 +121,12 @@ RULES = {
         "patterns": [r"\$[^$\s|]+\$", r"\[[^\]]+\]"],
         "details_key": "validation_generic_variable_parity_details"
       }
+    },
+    {
+      "name": "structure_parity",
+      "check_function": "structure_parity",
+      "level": "error",
+      "message_key": "validation_format_structure_mismatch"
     },
     {
       "name": "incorrect_color_symbol_vic3",

@@ -6,7 +6,6 @@ import {
     Checkbox,
     Group,
     Paper,
-    SegmentedControl,
     Stack,
     Text,
     Title,
@@ -48,7 +47,6 @@ const JudgmentDocket = ({
     focusRequest,
     loading,
     onBatchConfirm,
-    onDocketViewChange,
     onSelectCandidate,
     onToggleAll,
     onToggleCandidate,
@@ -62,7 +60,9 @@ const JudgmentDocket = ({
     useEffect(() => {
         if (!focusRequest) return;
         const selectedButton = candidateButtonRefs.current.get(selectedId);
-        (selectedButton || docketRef.current)?.focus();
+        const focusTarget = selectedButton || docketRef.current;
+        focusTarget?.scrollIntoView?.({ block: 'nearest' });
+        focusTarget?.focus();
     }, [focusRequest, selectedId]);
 
     const handleCandidateKeyDown = (event, candidateIndex) => {
@@ -100,16 +100,6 @@ const JudgmentDocket = ({
                     {candidates.length}
                 </Badge>
             </Group>
-            <SegmentedControl
-                fullWidth
-                size="xs"
-                value={docketView}
-                onChange={onDocketViewChange}
-                data={[
-                    { value: 'pending', label: t('neologism_review.court.pending_docket') },
-                    { value: 'processed', label: t('neologism_review.court.processed_docket') },
-                ]}
-            />
             {candidates.length > 0 && (
                 <Stack gap="xs" className={styles.batchToolbar}>
                     <Checkbox

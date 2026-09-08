@@ -12,7 +12,7 @@ export function useIncrementalExecution(options) {
     i18n, loading, notificationStyle, preScanInFlightRef, selectedLangs, selectedProject,
     referenceReuseBypassed,
     setActive, setConflictingTaskId, setCurrentTaskId, setCurrentTaskMode, setExecuting,
-    setFinalSummary, setLogs, setProgress, setProgressInfo, t,
+    setFinalSummary, setLogs, setProgress, setProgressInfo, staleContextSubmit, t,
   } = options;
 
   return useCallback(async () => {
@@ -41,17 +41,14 @@ export function useIncrementalExecution(options) {
     });
     completionSourceRef.current = null;
 
-    try {
-      const response = await translationService.startIncrementalUpdate(
-        selectedProject.project_id,
-        buildIncrementalUpdatePayload({
-          ...options,
-          dryRun: false,
-          projectId: selectedProject.project_id,
-          referenceReuseEnabled: options.referenceReuseEnabled && !referenceReuseBypassed,
-          targetLangCodes,
-        }),
-      );
+    const payload = buildIncrementalUpdatePayload({
+      ...options,
+      dryRun: false,
+      projectId: selectedProject.project_id,
+      referenceReuseEnabled: options.referenceReuseEnabled && !referenceReuseBypassed,
+      targetLangCodes,
+    });
+    const onSuccess = async (response) => {
       const taskId = response.data.task_id;
       if (!taskId) throw new Error(t('incremental_translation.task_id_missing'));
 
@@ -60,7 +57,8 @@ export function useIncrementalExecution(options) {
       setCurrentTaskMode('execution');
       connectWebSocket(taskId);
       notificationService.info(t('incremental_translation.background_task_notice'), notificationStyle);
-    } catch (error) {
+    };
+    const onError = (error) => {
       const detail = error?.response?.data?.detail;
       const duplicateTaskId = detail?.code === 'duplicate_task' ? detail.existing_task_id : null;
       if (duplicateTaskId) {
@@ -72,12 +70,24 @@ export function useIncrementalExecution(options) {
       }
       setExecuting(false);
       executionInFlightRef.current = false;
-    }
+    };
+    await staleContextSubmit({
+      payload,
+      request: (nextPayload) => translationService.startIncrementalUpdate(
+        selectedProject.project_id, nextPayload,
+      ),
+      onSuccess,
+      onError,
+      onCancel: () => {
+        setExecuting(false);
+        executionInFlightRef.current = false;
+      },
+    });
   }, [
     addLog, archiveInfo, completionSourceRef, connectWebSocket, executing, executionInFlightRef,
     i18n, loading, notificationStyle, options, preScanInFlightRef, referenceReuseBypassed,
     selectedLangs, selectedProject,
     setActive, setConflictingTaskId, setCurrentTaskId, setCurrentTaskMode, setExecuting,
-    setFinalSummary, setLogs, setProgress, setProgressInfo, t,
+    setFinalSummary, setLogs, setProgress, setProgressInfo, staleContextSubmit, t,
   ]);
 }

@@ -1,6 +1,8 @@
 import os
+from types import SimpleNamespace
 
 from scripts.core.services import initial_translation_workspace_service as workspace_service
+from scripts.workflows.initial_translate import _unpack_prepared_run
 
 
 def test_prepare_output_workspace_creates_structure_and_copies_assets(monkeypatch):
@@ -51,3 +53,24 @@ def test_clean_source_directory_keeps_localization_and_metadata(tmp_path):
     assert (tmp_path / "thumbnail.png").exists()
     assert not removable_dir.exists()
     assert not (tmp_path / "notes.txt").exists()
+
+
+def test_prepared_run_uses_snapshot_after_clean_source():
+    prepared = SimpleNamespace(
+        output_dir_path="out",
+        source_result="source-result",
+        all_files_content=[],
+        context_selection=None,
+        total_batches=0,
+        version_id=1,
+        source_root="source",
+        source_snapshot_hash="snapshot-after-clean",
+        effective_chunk_size=1,
+    )
+
+    unpacked = _unpack_prepared_run(
+        prepared,
+        {"source_snapshot_hash": "snapshot-before-clean"},
+    )
+
+    assert unpacked[-2] == "snapshot-after-clean"

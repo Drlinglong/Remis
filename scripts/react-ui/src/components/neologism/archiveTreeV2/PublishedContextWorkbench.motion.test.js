@@ -22,8 +22,10 @@ describe('Published context workbench motion contract', () => {
         expect(styles).toContain('grid-template-rows: 1fr');
     });
 
-    it('keeps focused chain rails fixed, compact, and hidden below the desktop threshold', () => {
-        expect(styles).toMatch(/\.miniRail\s*\{[\s\S]*flex:\s*0 0 72px;[\s\S]*width:\s*72px;/);
+    it('keeps other chains in a readable scroller above the full-width focused chain', () => {
+        expect(styles).toMatch(/\.focusedGroupStage\s*\{[\s\S]*display:\s*grid;[\s\S]*grid-template-columns:\s*minmax\(0, 1fr\);/);
+        expect(styles).toMatch(/\.focusedMiniRails\s*\{[\s\S]*overflow-x:\s*auto;/);
+        expect(styles).toMatch(/\.miniRail\s*\{[\s\S]*flex:\s*0 0 11rem;[\s\S]*width:\s*11rem;/);
         expect(styles).toMatch(/\.miniRailLabel\s*\{[\s\S]*-webkit-line-clamp:\s*2;[\s\S]*line-clamp:\s*2;/);
         expect(styles).toMatch(/@media \(max-width: 64em\)\s*\{[\s\S]*\.focusedMiniRails\s*\{[\s\S]*display:\s*none;/);
     });

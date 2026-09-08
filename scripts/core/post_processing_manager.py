@@ -190,7 +190,7 @@ class PostProcessingManager:
     
     def _sanitize_content(self, content: str) -> str:
         """
-        [Sanitizer] 自动修复常见的 AI 格式幻觉。
+        [Sanitizer] Propose common AI-format corrections without writing files.
         """
         import re
         original_content = content
@@ -277,18 +277,15 @@ class PostProcessingManager:
             with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
                 content = f.read()
             
-            # [Fix] 自动清理幻觉
+            # Generate a diagnostic proposal, but keep validation read-only.
+            # Any mutation must go through the explicit, validated writeback
+            # path so a scan cannot silently alter localization files.
             sanitized_content = self._sanitize_content(content)
-            
-            # 如果内容有变化，回写文件
             if sanitized_content != content:
-                try:
-                    with open(file_path, 'w', encoding='utf-8') as f:
-                        f.write(sanitized_content)
-                    content = sanitized_content # 使用修复后的内容进行验证
-                    self.logger.info(f"Auto-fixed formatting issues in {os.path.basename(file_path)}")
-                except Exception as e:
-                    self.logger.error(f"Failed to write back sanitized content: {e}")
+                self.logger.info(
+                    "Detected a sanitization candidate in %s; no file mutation was applied.",
+                    os.path.basename(file_path),
+                )
 
             source_entries = self._load_source_entries(file_path, target_lang, source_lang)
             file_results = []

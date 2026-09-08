@@ -193,6 +193,7 @@ def test_finalize_translated_file_updates_tracker_checkpoint_and_archive(monkeyp
     task = _file_task(source_root)
     tracker = FakeTracker()
     checkpoint = FakeCheckpoint()
+    checkpoint.resume_enabled = False
     archive_calls = []
     synced_paths = []
 

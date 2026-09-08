@@ -1,6 +1,6 @@
 # Demo 冒烟夹具一键重置
 
-开发版提供一个定向重置工具，用于反复执行 UI 和主流程冒烟测试。它只处理三个官方 demo 项目以及仓库自带的测试夹具，不等同于“重置项目数据库”，也不会触碰普通用户项目。
+开发版提供一个定向重置工具，用于反复执行 UI 和主流程冒烟测试。它只处理三个官方 demo 项目以及仓库自带的测试夹具，不等同于“重置项目数据库”，也不会触碰普通用户项目。设置页的 **恢复所有 Demo 与测试夹具** 按钮调用同一套恢复逻辑。
 
 ## 使用方式
 
@@ -67,6 +67,14 @@ scripts\developer_tools\windows\reset-demo-smoke-state.bat --scope workshop --sc
 
 每次重置都会从仓库内只读模板重新复制，其中固定包含非法 key、变量缺失、格式标记不闭合和残留中文标点等问题。该目录会被注册并索引为 Stellaris demo 的翻译输入。
 
+Victoria 3 的格式修复回归夹具也会同时恢复到：
+
+```text
+%APPDATA%\RemisModFactoryDev\demo_smoke\format_repair_regression_v1
+```
+
+它与 Stellaris Agent Workshop 夹具相互独立，测试结束后再次点击设置页按钮即可复原。不要直接修改仓库内的基线目录。
+
 ### 新词挖掘与审判庭
 
 使用官方 Stellaris demo。
@@ -82,3 +90,4 @@ scripts\developer_tools\windows\reset-demo-smoke-state.bat --scope workshop --sc
 - 生成输出先移入备份目录，不执行不可恢复的递归删除。
 - 数据库修改在 SQLite 事务内完成，执行前保留完整数据库副本。
 - 工具不会发起模型调用、翻译、修复、导出或部署。
+- 使用全部范围（默认设置页按钮的行为）时，还会从 `assets/release_demo_content` 恢复三个官方 Demo 的源文件和译文目录；单独指定范围时保留原有的隔离语义。

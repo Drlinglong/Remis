@@ -26,6 +26,7 @@ const cloneTree = (tree) => ({
     ])),
     units: { ...(tree?.units || {}) },
     referenceAssets: [...(tree?.referenceAssets || [])],
+    archiveNarrativeIds: [...(tree?.archiveNarrativeIds || [])],
     unresolvedFragmentIds: [...(tree?.unresolvedFragmentIds || [])],
 });
 
@@ -138,6 +139,7 @@ export const moveFragment = (tree, {
     });
     fragment.route = TREE_ROUTE.NARRATIVE;
     next.unresolvedFragmentIds = next.unresolvedFragmentIds.filter((id) => id !== fragmentId);
+    next.archiveNarrativeIds = next.archiveNarrativeIds.filter((id) => id !== fragmentId);
     removeReferenceAssetForFragment(next, fragmentId);
     return next;
 };
@@ -161,6 +163,7 @@ export const setFragmentDisposition = (tree, fragmentId, route, { targetGroupId,
     removeFragmentFromGroups(next, fragmentId);
     removeReferenceAssetForFragment(next, fragmentId);
     next.unresolvedFragmentIds = next.unresolvedFragmentIds.filter((id) => id !== fragmentId);
+    next.archiveNarrativeIds = next.archiveNarrativeIds.filter((id) => id !== fragmentId);
     fragment.route = Object.values(TREE_ROUTE).includes(route) ? route : TREE_ROUTE.UNRESOLVED;
     if (fragment.route === TREE_ROUTE.NARRATIVE && targetGroupId) {
         const targetGroup = getGroupById(next, targetGroupId);
@@ -177,6 +180,8 @@ export const setFragmentDisposition = (tree, fragmentId, route, { targetGroupId,
             sourceRefs: [...(fragment.sourceRefs || [])],
             metadata: { ...fragment.metadata },
         });
+    } else if (fragment.route === TREE_ROUTE.NO_CONTEXT) {
+        next.archiveNarrativeIds = unique([...next.archiveNarrativeIds, fragmentId]);
     } else {
         next.unresolvedFragmentIds = unique([...next.unresolvedFragmentIds, fragmentId]);
     }
@@ -222,6 +227,13 @@ export const serializeArchiveTree = (tree) => ({
         summary: asset.summary,
         tier: asset.tier,
         unit_ids: [...(asset.unitIds || [])],
+    })),
+    archive_narratives: tree.archiveNarrativeIds.map((fragmentId) => ({
+        fragment_id: fragmentId,
+        label: tree.fragments[fragmentId]?.label || fragmentId,
+        summary: tree.fragments[fragmentId]?.summary || '',
+        unit_ids: [...(tree.fragments[fragmentId]?.unitIds || [])],
+        route: TREE_ROUTE.NO_CONTEXT,
     })),
     unresolved_fragment_ids: [...tree.unresolvedFragmentIds],
 });

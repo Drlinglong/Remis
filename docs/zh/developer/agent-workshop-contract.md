@@ -1,7 +1,7 @@
 # 智能工坊开发契约
 
 本文把[智能工坊产品意图](../product-intent-agent-workshop.md)转换成实现契约，并区分
-3.1.0 已实现行为、高风险差距和后续测试门禁。当前操作见
+3.2.0 已实现行为、高风险差距和后续测试门禁。当前操作见
 [智能工坊用户指南](../user-guides/agent-workshop.md)。
 
 ## 范围
@@ -48,6 +48,24 @@
 - 颜色和格式标签不一致；
 - 源语言标点残留；
 - 其它验证器返回的 error 级格式问题。
+
+### 精确结构契约与问题身份
+
+Victoria 3、Crusader Kings III、Hearts of Iron IV、Stellaris 和 Europa Universalis V 的规则
+配置启用 `structure_parity`。`game_format_contract` 在不修改输入文本的前提下解析并比较：
+
+- 格式 opener／closer 的精确身份、顺序和闭合状态；
+- `$...$`、`[...]`、`@...!`、`@TAG`、`£...£` 等运行时 token 的原始身份和顺序；
+- 格式 span 与受保护 token 的绑定、边界和嵌套；
+- 可保守解释的重复 token 减少，并将其标记为 `possible_reasonable_variation` 供复核。
+
+结构比较只保留原始 lexeme，不以通用占位符替换语义 token。源文自身格式不平衡会标为
+`source_defect` 并退出自动修复队列；损坏 key 仍为 `report_only`。EU4 继续使用既有验证规则，
+不在本次新增精确契约层内。
+
+扫描和修复问题会带有稳定 `issue_id`、观察 fingerprint、源／目标 hash、classification、
+repair/review queue 和 disposition。单条或批量模型请求必须绑定当前 sidecar 中唯一且未过期的
+问题快照；快照变化、项目不匹配或问题已转为复核队列时，在模型调用和写回前拒绝。
 
 扫描还会单独解析正常 parser 拒绝的损坏 key，并报告
 `validation_invalid_key_format`。这类记录没有可靠的正常 key 定位，产品规则要求只报告，
@@ -109,12 +127,55 @@
 4. 后续轮次为剩余条目生成诊断 reflection，再调用模型；
 5. 达到 `max_retries` 后返回 `FAILED`。
 
+候选不只有成功／失败两种结果：源缺陷和合理变化会返回 `REVIEW`，不会进入自动写回；只有
+确定性验证没有 blocking finding 的候选才会进入安全写回服务。结构契约的具体 finding 包括
+格式身份、token 身份、边界、嵌套和未闭合结构，而不是只比较 marker 数量。
+
 Prompt 当前允许 format repair、failed-chunk recovery 和 limited source-aware revision。这是
 产品设计：Remis 在送入模型前只能确定该条存在格式问题，不能判断它是否同时存在明显
 误译、遗漏或生硬表达，因此允许模型审视该条完整句子。
 
 入口边界比修改边界更严格：没有格式规则命中的条目不得进入工坊；已经进入的条目可以做
 有限语义恢复，但不能自由润色、修改其它条目或把工坊变成项目级校对。
+
+## 架构决策：永久禁止用通用占位符遮罩语义 token
+
+**状态：永久否决。** 自 2026-09-04 起，Remis 的翻译、增量翻译、格式修复、重试和 few-shot
+构建流程均不得把有语义的 Paradox token 替换成“变量1”“变量2”、`[TOKEN_1]` 或其它不透明
+占位符后再发送给模型。这个方案不能重新提出为默认方案、优化方案或安全兜底方案。
+
+否决原因是上下文损失，而不只是格式风险。例如：
+
+```text
+[TARGET_COUNTRY.GetName] was granted $ut_share_nuclear_power_research_name$ from [INITIATOR_COUNTRY.GetName].
+```
+
+原句中的两个国家名 token 和一个研究项目名 token 向模型传达了明确的故事结构。若变成
+`[变量1] was granted [变量2] from [变量3].`，短句也许仍可翻译，但长句和有明确叙事关系的句子
+会丢失决定性语义。Remis 的优势正是让模型看到完整上下文，因此不能为降低 token 损坏率而牺牲
+上下文理解能力。
+
+这里必须区分两类处理：
+
+- **允许的低语义遮罩**：引号和转义换行目前可以遮罩，因为它们主要是本地化文件的序列化／版式
+  分隔符，不承载变量、概念、国家、项目或格式标签的身份。该例外不允许扩展成对游戏 token
+  的通用遮罩。
+- **必须保留在模型上下文中的内容**：`$...$`、`[...]`、`@...!`、`#tag`、`#!` 以及它们周围的
+  完整句子。特别是 Victoria 3 中，`$...$` 和 `[...]` 内部是英文运行时代码；`#blue`、`#bold`、
+  `#italic` 等是格式控制符本身，标签必须保留，但标签范围内的可见文字可以翻译。
+
+### 采用方向：完整上下文 + 针对性格式示例
+
+后续格式修复应沿用以下方向，而不是隐藏原文：
+
+1. 格式修复模型同时看到完整 Source、完整当前译文和错误详情；
+2. 根据格式检查器实际检测到的原始格式，生成针对该格式的 few-shot 示例；
+3. 示例必须展示真实的完整标签，例如 `#blue ...#!`、`#bold ...#!` 或 `#italic ...#!`，并明确
+   “复制标签本身，翻译标签内部的可见文字”；不得把标签泛化成“某种颜色标签”；
+4. 格式检查器应逐步从数量检查升级为精确的 token 身份、边界和嵌套检查。当前数量相等并不代表
+   `#italic` 没有被错误改成 `#b`；
+5. 源文本自身格式不平衡时，单独标记为源文件问题，不能强迫模型为了凑闭合数量而改写译文；
+6. 无法确定的情况进入人工复核，而不是用占位符继续调用模型。
 
 ## 逐条写回
 
@@ -276,6 +337,10 @@ containment 的文件；内嵌工坊只接受本次 output root 内文件。取�
 14. 任意 `file_path`、source path fallback、路径穿越或链接逃逸不能越过登记的翻译目录。
 15. 工坊不部署、不写原始 Mod、不静默换模型。
 16. 词典上下文接入后，整句修订不得破坏适用于当前语境的有效术语。
+17. 五个结构契约游戏的格式身份、token 顺序、边界和嵌套必须逐项覆盖；合理重复 token 减少
+    只能进入复核队列。
+18. 多语言 Victoria 3 回归夹具必须覆盖 repair、review、control、report_only，并且测试
+    不调用模型、不修改真实 Mod。
 
 ## 代码证据
 
@@ -284,6 +349,10 @@ containment 的文件；内嵌工坊只接受本次 output root 内文件。取�
 - `scripts/core/services/embedded_workshop_service.py`
 - `scripts/core/services/initial_translation_workshop_service.py`
 - `scripts/core/agents/fix_agent.py`
+- `scripts/utils/game_format_contract.py`
+- `scripts/utils/format_structure_validator.py`
+- `scripts/core/services/workshop_issue_binding_service.py`
+- `scripts/core/services/workshop_batch_result_service.py`
 - `scripts/utils/post_process_validator.py`
 - `scripts/utils/punctuation_handler.py`
 - `scripts/routers/agent_workshop.py`
@@ -296,6 +365,9 @@ containment 的文件；内嵌工坊只接受本次 output root 内文件。取�
 - `tests/test_initial_translation_workshop_service.py`
 - `tests/test_routers_agent_workshop.py`
 - `tests/test_workshop_issue_export_service.py`
+- `tests/test_format_repair_smoke_fixture.py`
+- `tests/utils/test_game_format_contract.py`
+- `tests/utils/test_validation_issue_identity.py`
 - `tests/test_demo_repair_logic.py`
 - `scripts/react-ui/src/pages/AgentWorkshop.issue-fix-modal.test.jsx`
 - `scripts/react-ui/src/pages/AgentWorkshop.invalid-key.test.jsx`

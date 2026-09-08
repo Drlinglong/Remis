@@ -49,6 +49,7 @@ export const buildIncrementalUpdatePayload = ({
   rpm_limit: Number(rpmLimit),
   custom_source_path: customSourcePath,
   use_resume: useResume,
+  translation_context_mode: 'archive',
   reference_reuse: {
     enabled: referenceReuseEnabled !== false,
     localization_path: referenceLocalizationPath || '',

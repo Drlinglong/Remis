@@ -97,6 +97,34 @@ def test_invalid_key_issue_is_scan_only():
     }) is True
 
 
+def test_structured_blocking_warning_cannot_reach_file_write(monkeypatch):
+    result = type("Result", (), {
+        "level": type("Level", (), {"value": "warning"})(),
+        "message": "format structure is not safe",
+        "details_params": {"blocking": True},
+    })()
+    monkeypatch.setattr(
+        writeback.PostProcessValidator,
+        "validate_entry",
+        lambda *_args, **_kwargs: [result],
+    )
+
+    assert writeback._validation_errors(
+        "hoi4",
+        "demo.one:0",
+        "Source",
+        "Target",
+        "en",
+    ) == ["format structure is not safe"]
+
+
+def test_review_only_issue_is_not_repairable():
+    assert writeback.is_repairable_workshop_issue({
+        "classification": "possible_reasonable_variation",
+        "repair_queue": False,
+    }) is False
+
+
 def test_embedded_workshop_excludes_invalid_keys_before_batching(tmp_path):
     sidecar = tmp_path / "workshop_issues.json"
     sidecar.write_text(json.dumps({

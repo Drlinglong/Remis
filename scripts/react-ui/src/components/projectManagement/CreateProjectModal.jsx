@@ -67,6 +67,7 @@ export function CreateProjectModal({
     >
       <Stack data-remis-surface="paper">
         <TextInput
+          classNames={{ input: styles.modalInput }}
           label={t('form_label_project_name')}
           placeholder={t('form_placeholder_project_name')}
           value={newProjectName}
@@ -74,6 +75,7 @@ export function CreateProjectModal({
         />
         <Group align="flex-end">
           <TextInput
+            classNames={{ input: styles.modalInput }}
             label={t('form_label_folder_path')}
             placeholder={t('form_placeholder_folder_path')}
             description={t('form_desc_folder_path')}

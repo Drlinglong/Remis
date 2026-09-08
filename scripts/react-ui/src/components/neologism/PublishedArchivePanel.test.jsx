@@ -7,6 +7,7 @@ import api from '../../utils/api';
 import PublishedArchivePanel from './PublishedArchivePanel';
 import {
     PUBLISHED_ARCHIVE_DEMO_PROJECT_ID,
+    publishedArchiveDemoProject,
     publishedArchiveDemoTree,
 } from './archiveTreeV2/publishedArchiveDemoFixture';
 
@@ -31,6 +32,8 @@ vi.mock('./useArchiveProjectContext', () => ({
 
 const onSelectedProjectChange = vi.fn();
 const demoTree = { ...publishedArchiveDemoTree, project_id: 'project-1' };
+const demoProjectName = publishedArchiveDemoProject.name;
+const firstDemoEventFragmentId = publishedArchiveDemoTree.groups[0].fragment_ids[0];
 const release = {
     release_id: demoTree.release_id,
     project_id: 'project-1',
@@ -86,15 +89,18 @@ describe('PublishedArchivePanel', () => {
         const projectSelect = screen.getByRole('textbox', { name: 'neologism_review.court.current_project' });
         fireEvent.mouseDown(projectSelect);
 
-        expect(await screen.findByText('星港远征：失落航道（演示项目）')).toBeInTheDocument();
+        expect(await screen.findByText(demoProjectName)).toBeInTheDocument();
     });
 
     it('renders the demo project without requesting or deleting backend archive data', async () => {
         renderPanel(PUBLISHED_ARCHIVE_DEMO_PROJECT_ID);
 
         expect(await screen.findByTestId('published-context-map')).toBeInTheDocument();
-        expect(screen.getAllByText('星港远征：失落航道').length).toBeGreaterThan(0);
+        expect(screen.getAllByText(demoProjectName).length).toBeGreaterThan(0);
         expect(screen.getByRole('button', { name: 'Delete archive data' })).toBeDisabled();
+        expect(screen.getByTestId('published-context-entity-entity_remis')).toHaveTextContent('Remis');
+        expect(screen.queryByTestId('published-context-group-group-unassigned')).not.toBeInTheDocument();
+        expect(screen.queryByText('Needs placement')).not.toBeInTheDocument();
         expect(api.get).not.toHaveBeenCalledWith(expect.stringContaining(PUBLISHED_ARCHIVE_DEMO_PROJECT_ID));
         fireEvent.click(screen.getByTestId('mod-archive-remove'));
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -117,10 +123,10 @@ describe('PublishedArchivePanel', () => {
         renderPanel();
         await screen.findByTestId('published-context-map');
 
-        fireEvent.click(screen.getByTestId('published-context-fragment-fragment-signal'));
+        fireEvent.click(screen.getByTestId(`published-context-fragment-${firstDemoEventFragmentId}`));
         await waitFor(() => {
-            expect(screen.getByTestId('published-context-detail')).toHaveTextContent('解读求救讯号');
-            expect(screen.getByTestId('published-context-detail')).toHaveTextContent('events/starport_expedition.yml:27');
+            expect(screen.getByTestId('published-context-detail')).toHaveTextContent('Remis');
+            expect(screen.getByTestId('published-context-detail')).toHaveTextContent('remis_crisis.1.desc');
         });
 
         fireEvent.click(screen.getByTestId('mod-archive-remove'));

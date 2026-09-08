@@ -2,6 +2,7 @@
 
 RULES = {
   "game_id": "6",
+  "format_contract_id": "eu5",
   "game_name": "Europa Universalis V",
   "rules": [
     {
@@ -72,6 +73,12 @@ RULES = {
         "end_tag_string": "#!",
         "details_key": "validation_eu5_mismatched_tags_details"
       }
+    },
+    {
+      "name": "structure_parity",
+      "check_function": "structure_parity",
+      "level": "error",
+      "message_key": "validation_format_structure_mismatch"
     }
   ]
 }

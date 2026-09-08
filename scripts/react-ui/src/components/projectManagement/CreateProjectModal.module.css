@@ -23,6 +23,19 @@
   text-shadow: none !important;
 }
 
+/* Keep typed values readable even when a legacy theme input rule wins globally. */
+.modalInput {
+  background: var(--paper-bg, var(--surface-bg-solid)) !important;
+  border-color: var(--paper-text-muted, var(--surface-border)) !important;
+  color: var(--paper-text-main, var(--surface-text-main)) !important;
+  caret-color: var(--paper-text-main, var(--surface-text-main)) !important;
+}
+
+.modalInput::placeholder {
+  color: var(--paper-text-muted, var(--surface-text-muted)) !important;
+  opacity: 1;
+}
+
 .modalClose {
   background: transparent !important;
   border: 1px solid transparent !important;

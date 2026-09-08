@@ -5,8 +5,9 @@ from types import SimpleNamespace
 import pytest
 from fastapi.testclient import TestClient
 
-from scripts.routers import translation
+from scripts.routers import translation, translation_recovery
 from scripts.core.provider_errors import ProviderFatalError
+from scripts.schemas.translation import InitialTranslationRequest
 from scripts.shared.state import tasks
 from scripts.shared import task_state
 from scripts.web_server import app
@@ -161,7 +162,7 @@ def test_run_translation_workflow_v2_projects_fatal_provider_reason(monkeypatch)
     assert task["attention_reason"].startswith("The selected model is invalid")
 
 
-def test_run_translation_workflow_v2_tracks_recovery_checkpoint(monkeypatch):
+def test_run_translation_workflow_v2_tracks_checkpoint_when_old_reads_are_disabled(monkeypatch):
     task_state.create_task("task-checkpoint", status="pending")
     monkeypatch.setattr(translation.i18n, "load_language", MagicMock())
 
@@ -201,35 +202,46 @@ def test_run_translation_workflow_v2_tracks_recovery_checkpoint(monkeypatch):
     assert checkpoint["metadata"]["total"] == 5
 
 
-def test_checkpoint_status_resolves_real_project_source(monkeypatch, tmp_path):
-    source_path = tmp_path / "Real_Source_Mod"
-    (source_path / "localisation").mkdir(parents=True)
-    (source_path / "localisation" / "events.yml").write_text("l_english:\n", encoding="utf-8")
-    (source_path / "localisation" / "tech.txt").write_text("tech = {}\n", encoding="utf-8")
-    destination = tmp_path / "translations"
-    monkeypatch.setattr(translation, "DEST_DIR", str(destination))
-    manager = MagicMock()
-    manager.get_project = AsyncMock(return_value={"source_path": str(source_path)})
-    monkeypatch.setattr(translation, "project_manager", manager)
-    target_languages = translation._resolve_target_languages(["zh-CN"])
-    output_dir = translation._get_checkpoint_output_dir(source_path.name, target_languages)
-    os.makedirs(output_dir, exist_ok=True)
-    checkpoint = translation.CheckpointManager(
-        output_dir,
-        checkpoint_filename=".remis_checkpoint_zh-CN.json",
-    )
-    checkpoint.mark_file_completed("events.yml")
-
+def test_legacy_checkpoint_status_is_retired():
     response = TestClient(app).post(
         "/api/translation/checkpoint-status",
         json={"project_id": "project-1", "target_lang_codes": ["zh-CN"]},
     )
 
+    assert response.status_code == 410
+    assert "translation-recovery" in response.json()["detail"]
+
+
+def test_initial_translation_request_does_not_read_checkpoint_by_default():
+    request = InitialTranslationRequest(
+        project_id="project-1",
+        source_lang_code="en",
+    )
+
+    assert request.use_resume is False
+
+
+def test_clear_translation_checkpoint_uses_project_slot_endpoint(monkeypatch):
+    repository = object()
+    clear = MagicMock(return_value={
+        "task_id": "task-interrupted",
+        "status": "interrupted",
+        "checkpoint": {"available": False},
+        "allowed_actions": ["return_to_workflow"],
+    })
+    monkeypatch.setattr(task_state, "get_repository", lambda: repository)
+    monkeypatch.setattr(
+        translation_recovery.TranslationRecoveryService,
+        "clear_project_checkpoint",
+        clear,
+    )
+
+    response = TestClient(app).delete(
+        "/api/projects/project-1/translation-checkpoint"
+    )
+
     assert response.status_code == 200
-    assert response.json()["exists"] is True
-    assert response.json()["completed_count"] == 1
-    assert response.json()["total_files_estimate"] == 2
-    manager.get_project.assert_awaited_once_with("project-1")
+    clear.assert_called_once_with("project-1")
 
 
 def test_run_translation_workflow_v2_logs_project_history_through_async_bridge(monkeypatch, tmp_path):

@@ -66,7 +66,14 @@ def _tree() -> ReadTreeResponse:
                 source_evidence_refs=(evidence,),
             ),
         ),
-        unit_routes=(UnitRoute(local_unit_id="unit-1", route="narrative", fragment_ids=("fragment-1",)),),
+        unit_routes=(UnitRoute(
+            local_unit_id="unit-1",
+            route="narrative",
+            fragment_ids=("fragment-1",),
+            content_role="event_narrative",
+            delivery_route="event",
+            summary="A concrete event route.",
+        ),),
         stories=(Story(story_id="story-1", group_ids=("group-1", "group-2")),),
         groups=(
             SiblingGroup(group_id="group-1", story_id="story-1", fragment_ids=("fragment-1",)),
@@ -100,6 +107,9 @@ def test_repository_round_trips_full_entity_evidence_without_digest_budget_crop(
     assert stored.entity_digests[0].alias_descriptions[0].description == "An archive alias."
     assert stored.project_summary.startswith("A compact project")
     assert stored.local_fragments[0].source_evidence_refs[0].full_source_text.startswith("The complete")
+    assert stored.unit_routes[0].content_role == "event_narrative"
+    assert stored.unit_routes[0].delivery_route == "event"
+    assert stored.unit_routes[0].summary == "A concrete event route."
 
 
 def test_draft_move_changes_relationship_projection_but_not_source_evidence(repository):
@@ -125,6 +135,26 @@ def test_draft_move_changes_relationship_projection_but_not_source_evidence(repo
 
 def test_source_rows_are_immutable(repository):
     repository.save_tree(_tree())
+
+
+def test_event_narrative_fragments_roundtrip_when_delivery_route_is_none(repository):
+    tree = _tree().model_copy(update={
+        "unit_routes": (UnitRoute(
+            local_unit_id="unit-1",
+            route="no_context",
+            fragment_ids=("fragment-1",),
+            content_role="event_narrative",
+            delivery_route="none",
+            summary="An archive-only narrative.",
+        ),),
+    })
+
+    repository.save_tree(tree)
+
+    stored = repository.get_tree("project-1", "tree-1")
+    assert stored.unit_routes[0].content_role == "event_narrative"
+    assert stored.unit_routes[0].delivery_route == "none"
+    assert stored.unit_routes[0].fragment_ids == ("fragment-1",)
     with sqlite3.connect(repository.db_path) as connection:
         with pytest.raises(sqlite3.IntegrityError):
             connection.execute(

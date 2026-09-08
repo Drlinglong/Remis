@@ -18,6 +18,7 @@ TURNKEY_CLOUD_PROVIDER_IDS = [
     "gemini",
     "anthropic",
     "openai",
+    "meta",
     "qwen",
     "grok",
     "deepseek",
@@ -380,6 +381,7 @@ def test_each_cloud_provider_initializes_with_only_its_declared_key(provider_id)
     ("provider_id", "expected_handler"),
     [
         ("openai", "OpenAIHandler"),
+        ("meta", "OpenAIHandler"),
         ("kimi", "OpenAIHandler"),
         ("minimax", "OpenAIHandler"),
         ("zhipu", "OpenAIHandler"),

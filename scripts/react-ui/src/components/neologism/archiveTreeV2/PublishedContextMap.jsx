@@ -33,6 +33,7 @@ const PublishedContextMap = ({
     onRenameGroup,
     onDeleteGroup,
     onMoveFragment,
+    onViewAllGroup,
     t,
 }) => {
     const [showCreateGroup, setShowCreateGroup] = useState(false);
@@ -53,6 +54,9 @@ const PublishedContextMap = ({
         .map((asset) => tree.fragments[asset.fragmentId || asset.id])
         .filter(Boolean)
         .map((fragment) => [fragment.id, fragment])).values()], [tree.fragments, tree.referenceAssets]);
+    const archiveFragments = useMemo(() => (tree.archiveNarrativeIds || [])
+        .map((fragmentId) => tree.fragments[fragmentId])
+        .filter(Boolean), [tree.archiveNarrativeIds, tree.fragments]);
     const eventGroups = stories.flatMap((story) => story.groupIds
         .map((groupId) => tree.groups.find((group) => group.id === groupId))
         .filter(Boolean)
@@ -64,6 +68,16 @@ const PublishedContextMap = ({
         })));
     const overviewItems = [
         ...eventGroups,
+        ...(archiveFragments.length > 0 ? [{
+            group: {
+                id: 'group-archive-only',
+                label: text(t, 'mod_archive.tree_v2.archive_only_text', 'Archive narrative · never delivered'),
+                fragmentIds: archiveFragments.map((fragment) => fragment.id),
+            },
+            fragments: archiveFragments,
+            selectable: false,
+            kind: 'archive',
+        }] : []),
         ...(supportFragments.length > 0 ? [{
             group: { id: 'group-support', label: text(t, 'mod_archive.tree_v2.supporting_text', 'Supporting text'), fragmentIds: supportFragments.map((fragment) => fragment.id) },
             fragments: supportFragments,
@@ -82,7 +96,13 @@ const PublishedContextMap = ({
         ? allFragments.find((fragment) => fragment.id === drag.activeFragmentId)
         : null;
 
-    const renderGroup = (group, fragments, selectable = true, kind = 'event') => (
+    const renderGroup = (
+        group,
+        fragments,
+        selectable = true,
+        kind = 'event',
+        totalFragmentCount = fragments.length,
+    ) => (
         <PublishedContextGroupColumn
             key={group.id}
             group={group}
@@ -93,6 +113,11 @@ const PublishedContextMap = ({
             onSelectGroup={selectable ? onSelectGroup : null}
             onRenameGroup={selectable ? onRenameGroup : null}
             onDeleteGroup={selectable ? onDeleteGroup : null}
+            totalFragmentCount={totalFragmentCount}
+            totalUnitCount={new Set(fragments.flatMap((fragment) => fragment.unitIds || [])).size
+                || fragments.length}
+            onViewAll={selectable ? onViewAllGroup : null}
+            isOverview={!focused}
             kind={kind}
             t={t}
         />
@@ -127,7 +152,7 @@ const PublishedContextMap = ({
                     <Text className={styles.panelDescription} size="sm">
                         {focused
                             ? text(t, 'mod_archive.tree_v2.focused_map_desc', 'Inspect this event chain in order. Descriptions are shown here so the relationship can be checked before saving.')
-                            : text(t, 'mod_archive.tree_v2.overview_desc', 'Project structure at a glance. Cards show titles only; choose an event chain or card to inspect its details.')}
+                            : text(t, 'mod_archive.tree_v2.overview_desc', 'Event chains are tiled. Single-part chains show their summary directly; multi-part chains keep their nested cards.')}
                     </Text>
                 </div>
                 <div className={styles.panelHeaderActions}>
@@ -207,7 +232,15 @@ const PublishedContextMap = ({
                                 </aside>
                             )}
                             <div className={styles.focusedColumn}>
-                                {renderGroup(focusedGroup, focusedGroup.fragmentIds.map((id) => tree.fragments[id]).filter(Boolean))}
+                                {renderGroup(
+                                    focusedGroup,
+                                    focusedGroup.fragmentIds
+                                        .map((id) => tree.fragments[id])
+                                        .filter(Boolean),
+                                    true,
+                                    'event',
+                                    focusedGroup.fragmentIds.length,
+                                )}
                             </div>
                         </div>
                     </div>
@@ -220,11 +253,13 @@ const PublishedContextMap = ({
                         <div className={styles.rootConnector} aria-hidden="true" />
                         <StoryRail story={stories[0]} t={t} />
                         <div className={styles.overviewRailViewport} data-testid="published-context-overview-rail">
-                            <div
-                                className={styles.groupGrid}
-                                style={{ '--chain-count': Math.max(1, overviewItems.length) }}
-                            >
-                                {overviewItems.map(({ group, fragments, selectable, kind }) => renderGroup(group, fragments, selectable, kind))}
+                            <div className={styles.groupGrid}>
+                                {overviewItems.map(({ group, fragments, selectable, kind }) => renderGroup(
+                                    group,
+                                    fragments,
+                                    selectable,
+                                    kind,
+                                ))}
                             </div>
                         </div>
                     </div>
@@ -233,7 +268,8 @@ const PublishedContextMap = ({
                     {activeFragment ? <div className={styles.dragOverlay}>{activeFragment.label}</div> : null}
                 </DragOverlay>
             </DndContext>
-            {tree.groups.length === 0 && unassigned.length === 0 && supportFragments.length === 0 && (
+            {tree.groups.length === 0 && archiveFragments.length === 0
+                && unassigned.length === 0 && supportFragments.length === 0 && (
                 <div className={styles.emptyMap}>
                     <Text fw={700}>{text(t, 'mod_archive.tree_v2.empty_map_title', 'No event chains yet')}</Text>
                     <Text size="sm">{text(t, 'mod_archive.tree_v2.empty_map_desc', 'This release does not contain relationship cards to display.')}</Text>

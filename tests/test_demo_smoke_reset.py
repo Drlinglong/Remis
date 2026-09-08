@@ -321,6 +321,12 @@ def test_all_demo_smoke_scopes_restore_isolated_ready_states(tmp_path):
         / "simp_chinese"
         / "workshop_demo_l_simp_chinese.yml"
     ).is_file()
+    assert (
+        app_data
+        / "demo_smoke"
+        / "format_repair_regression_v1"
+        / "manifest.json"
+    ).is_file()
 
     with sqlite3.connect(archive_db) as connection:
         connection.row_factory = sqlite3.Row
@@ -405,7 +411,7 @@ def test_preview_lists_scopes_without_creating_backup(tmp_path):
     )
     reset = DemoSmokeReset(
         paths,
-        ("incremental", "neologism"),
+        ("incremental", "workshop", "neologism"),
         worktree_roots=[REPO_ROOT],
         backend_port=65534,
     )
@@ -414,6 +420,7 @@ def test_preview_lists_scopes_without_creating_backup(tmp_path):
 
     assert any("Vic3 archive" in action for action in preview)
     assert any("candidate caches" in action for action in preview)
+    assert any("Format Repair" in action for action in preview)
     assert not paths.backup_root.exists()
 
 

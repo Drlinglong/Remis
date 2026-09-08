@@ -110,11 +110,18 @@ def _apply_validated_results(
     fixed_count = 0
     failed_count = 0
     issue_map = {
+        issue.get("issue_id"): issue
+        for issue in issues
+        if issue.get("issue_id")
+    }
+    legacy_issue_map = {
         (issue.get("file_name"), issue.get("key")): issue
         for issue in issues
     }
     for result in results:
-        original_issue = issue_map.get((result.get("file_name"), result.get("key")))
+        original_issue = issue_map.get(result.get("issue_id"))
+        if original_issue is None:
+            original_issue = legacy_issue_map.get((result.get("file_name"), result.get("key")))
         if result.get("status") != "SUCCESS" or not original_issue:
             failed_count += 1
             continue
@@ -197,8 +204,11 @@ async def _run_embedded_batches(
                     "workshop_progress": {
                         "detected_count": initial_issue_count,
                         "processed_count": len(results),
-                        "fixed_count": sum(result.get("status") == "fixed" for result in results),
-                        "failed_count": sum(result.get("status") == "failed" for result in results),
+                        "fixed_count": sum(result.get("status") == "SUCCESS" for result in results),
+                        "failed_count": sum(
+                            result.get("status") in {"FAILED", "REVIEW"}
+                            for result in results
+                        ),
                         "reflection_round": 1,
                     },
                 })

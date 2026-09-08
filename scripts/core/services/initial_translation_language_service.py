@@ -28,6 +28,64 @@ from scripts.core.services.vanilla_reference_factory import create_reference_res
 from scripts.utils import i18n
 
 
+def _batch_entry_indices(batch_task) -> list[int]:
+    indices = list(batch_task.file_task.translation_entry_indices)
+    if len(indices) != len(batch_task.file_task.texts_to_translate):
+        indices = list(range(len(batch_task.file_task.texts_to_translate)))
+    return indices[batch_task.start_index:batch_task.end_index]
+
+
+def _batch_checkpoint_identity(batch_task) -> str:
+    return (batch_task.file_task.file_path or batch_task.file_task.filename).replace("\\", "/")
+
+
+def _restore_checkpoint_batch(checkpoint_manager, batch_task) -> bool:
+    read_enabled = getattr(
+        checkpoint_manager,
+        "read_enabled",
+        getattr(checkpoint_manager, "resume_enabled", True),
+    )
+    if (
+        not read_enabled
+        or not hasattr(checkpoint_manager, "restore_batch")
+    ):
+        return False
+    restored = checkpoint_manager.restore_batch(
+        _batch_checkpoint_identity(batch_task),
+        batch_index=batch_task.batch_index,
+        start_index=batch_task.start_index,
+        end_index=batch_task.end_index,
+        source_texts=list(batch_task.texts),
+        source_entry_indices=_batch_entry_indices(batch_task),
+    )
+    if restored is None:
+        return False
+    batch_task.translated_texts = restored["translated_texts"]
+    batch_task.warnings = restored["warnings"]
+    batch_task.resumed_from_checkpoint = True
+    return True
+
+
+def _persist_checkpoint_batch(checkpoint_manager, batch_task, progress_metadata) -> None:
+    if (
+        batch_task.failed
+        or batch_task.fell_back_to_source
+        or not hasattr(checkpoint_manager, "mark_batch_completed")
+    ):
+        return
+    checkpoint_manager.mark_batch_completed(
+        _batch_checkpoint_identity(batch_task),
+        batch_index=batch_task.batch_index,
+        start_index=batch_task.start_index,
+        end_index=batch_task.end_index,
+        source_texts=list(batch_task.texts),
+        source_entry_indices=_batch_entry_indices(batch_task),
+        translated_texts=list(batch_task.translated_texts or []),
+        warnings=list(batch_task.warnings or []),
+        progress_metadata=progress_metadata,
+    )
+
+
 def _process_file_tasks(
     *,
     processor: ParallelProcessor,
@@ -45,19 +103,29 @@ def _process_file_tasks(
     project_id: Optional[str],
     version_id: Optional[int],
     all_files_content: List[dict],
+    total_batches: int,
     should_cancel: Optional[Any] = None,
 ) -> None:
     def translation_wrapper(batch_task):
+        if _restore_checkpoint_batch(checkpoint_manager, batch_task):
+            return batch_task
         return handler.translate_batch(batch_task)
 
     def on_batch_completed(batch_task):
-        with progress_lock:
-            run_state.completed_batches += 1
-            if batch_task.failed or batch_task.fell_back_to_source:
-                run_state.failed_batches += 1
-            else:
-                run_state.successful_batches += 1
-            update_progress(batch_task.file_task.filename)
+        resumed = bool(getattr(batch_task, "resumed_from_checkpoint", False))
+        if not resumed:
+            with progress_lock:
+                run_state.completed_batches += 1
+                if batch_task.failed or batch_task.fell_back_to_source:
+                    run_state.failed_batches += 1
+                else:
+                    run_state.successful_batches += 1
+                progress_metadata = {
+                    **run_state.checkpoint_progress(),
+                    "total_batches": total_batches,
+                }
+            _persist_checkpoint_batch(checkpoint_manager, batch_task, progress_metadata)
+        update_progress(batch_task.file_task.filename)
 
     with temporary_rpm_limit(rpm_limit):
         with progress_log_bridge(update_progress):
@@ -102,6 +170,7 @@ def _process_file_tasks(
                     project_id,
                     version_id,
                     all_files_content,
+                    progress_metadata=run_state.checkpoint_progress(),
                 )
 
 
@@ -124,6 +193,64 @@ def _prepare_reference_run(reference_reuse, game_profile, source_lang, target_la
     return resolver, [], {"model_submitted": 0}
 
 
+def _finalize_language_translation(
+    *, mod_name, game_profile, target_lang, source_lang, output_folder_name,
+    proofreading_tracker, update_progress, override_path, output_dir_path,
+    project_id, embedded_workshop, reference_protected_entries,
+    reference_resolver, reference_run_metrics, selected_provider, model_name,
+    concurrency_limit, batch_size_limit, rpm_limit, provider_runtime,
+) -> dict:
+    dynamic_valid_tags = finalize_language_run(
+        mod_name,
+        game_profile,
+        target_lang,
+        source_lang,
+        output_folder_name,
+        proofreading_tracker,
+        update_progress,
+        override_path=override_path,
+    )
+    export_workshop_issues_for_language(
+        output_dir_path,
+        override_path,
+        mod_name,
+        project_id,
+        source_lang,
+        target_lang,
+        game_profile,
+        dynamic_valid_tags=dynamic_valid_tags,
+    )
+    workshop_config = dict(embedded_workshop or {})
+    workshop_config["protected_entries"] = reference_protected_entries
+    run_embedded_workshop_for_language(
+        workshop_config,
+        output_dir_path,
+        override_path,
+        mod_name,
+        project_id,
+        source_lang,
+        target_lang,
+        game_profile,
+        selected_provider,
+        model_name,
+        concurrency_limit=concurrency_limit,
+        batch_size_limit=batch_size_limit,
+        rpm_limit=rpm_limit,
+        dynamic_valid_tags=dynamic_valid_tags,
+        update_progress_callback=update_progress,
+        provider_runtime=provider_runtime,
+    )
+    reference_metrics = (
+        reference_resolver.metrics()
+        if reference_resolver is not None
+        else {"reference_enabled": False, "reference_matched": 0, "api_skipped": 0}
+    )
+    reference_metrics["target_lang"] = target_lang.get("code")
+    reference_metrics.update(reference_run_metrics)
+    logging.info("Vanilla reference reuse metrics: %s", reference_metrics)
+    return reference_metrics
+
+
 def run_language_translation(
     *,
     mod_name: str, source_lang: dict, target_lang: dict,
@@ -139,7 +266,10 @@ def run_language_translation(
     reference_reuse: Optional[dict] = None,
     source_context_overlap: int = 0,
     context_selection: Optional[Any] = None, provider_runtime: Any = None,
-    should_cancel: Optional[Any] = None,
+    should_cancel: Optional[Any] = None, task_id: Optional[str] = None,
+    run_id: Optional[str] = None, source_root: Optional[str] = None,
+    source_snapshot_hash: Optional[str] = None,
+    config_fingerprint: Optional[str] = None,
 ) -> dict:
     logging.info(i18n.t("translating_to_language", lang_name=target_lang["name"]))
     proofreading_tracker = create_proofreading_tracker(
@@ -152,8 +282,15 @@ def run_language_translation(
         source_lang,
         target_lang,
         use_resume, context_metadata=context_selection.metadata if context_selection else None,
+        task_id=task_id,
+        run_id=run_id,
+        project_id=project_id,
+        source_root=source_root,
+        source_snapshot_hash=source_snapshot_hash,
+        config_fingerprint=config_fingerprint,
+        provider_runtime=provider_runtime,
     )
-    run_state = LanguageRunState()
+    run_state = LanguageRunState.from_checkpoint(checkpoint_manager)
     progress_lock = threading.Lock()
     (
         reference_resolver,
@@ -204,6 +341,7 @@ def run_language_translation(
         project_id=project_id,
         version_id=version_id,
         all_files_content=all_files_content,
+        total_batches=total_batches,
         should_cancel=should_cancel,
     )
     if run_state.error_count:
@@ -211,55 +349,25 @@ def run_language_translation(
         logging.error(message)
         raise RuntimeError(message)
 
-    dynamic_valid_tags = finalize_language_run(
-        mod_name,
-        game_profile,
-        target_lang,
-        source_lang,
-        output_folder_name,
-        proofreading_tracker,
-        update_progress,
+    return _finalize_language_translation(
+        mod_name=mod_name,
+        game_profile=game_profile,
+        target_lang=target_lang,
+        source_lang=source_lang,
+        output_folder_name=output_folder_name,
+        proofreading_tracker=proofreading_tracker,
+        update_progress=update_progress,
         override_path=override_path,
-    )
-    export_workshop_issues_for_language(
-        output_dir_path,
-        override_path,
-        mod_name,
-        project_id,
-        source_lang,
-        target_lang,
-        game_profile,
-        dynamic_valid_tags=dynamic_valid_tags,
-    )
-    workshop_config = dict(embedded_workshop or {})
-    workshop_config["protected_entries"] = reference_protected_entries
-    run_embedded_workshop_for_language(
-        workshop_config,
-        output_dir_path,
-        override_path,
-        mod_name,
-        project_id,
-        source_lang,
-        target_lang,
-        game_profile,
-        selected_provider,
-        model_name,
+        output_dir_path=output_dir_path,
+        project_id=project_id,
+        embedded_workshop=embedded_workshop,
+        reference_protected_entries=reference_protected_entries,
+        reference_resolver=reference_resolver,
+        reference_run_metrics=reference_run_metrics,
+        selected_provider=selected_provider,
+        model_name=model_name,
         concurrency_limit=concurrency_limit,
         batch_size_limit=batch_size_limit,
         rpm_limit=rpm_limit,
-        dynamic_valid_tags=dynamic_valid_tags,
-        update_progress_callback=update_progress, provider_runtime=provider_runtime,
+        provider_runtime=provider_runtime,
     )
-    reference_metrics = (
-        reference_resolver.metrics()
-        if reference_resolver is not None
-        else {
-            "reference_enabled": False,
-            "reference_matched": 0,
-            "api_skipped": 0,
-        }
-    )
-    reference_metrics["target_lang"] = target_lang.get("code")
-    reference_metrics.update(reference_run_metrics)
-    logging.info("Vanilla reference reuse metrics: %s", reference_metrics)
-    return reference_metrics

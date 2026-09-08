@@ -66,6 +66,13 @@ class ContextTreeV2CheckpointService:
             {"tree_v2_entity_digests": result.model_dump(mode="json")},
         )
 
+    def save_partial_artifact(
+        self, run: Any | None, source_ids: Sequence[str], payload: dict[str, Any],
+    ) -> None:
+        """Keep paid-stage output available when a later stage cannot compile."""
+
+        self._save(run, "partial_artifact", 0, source_ids, payload)
+
     def _restore(
         self, run: Any | None, phase: str, index: int, source_ids: Sequence[str],
     ) -> dict[str, Any] | None:

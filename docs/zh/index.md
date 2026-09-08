@@ -19,6 +19,7 @@
 - [术语表开发契约](developer/glossary-contract.md) - 装载优先级、数据写入与当前差距
 - [Model Arena 产品意图](product-intent-model-arena.md) - 小样比较、人工决定与禁止副作用
 - [Model Arena 开发契约](developer/model-arena-contract.md) - 抽样、匿名投票、历史与导出边界
+- [Issue #198 档案上下文 A/B 评测](developer/remis-archive-ab-benchmark.md) - 整链/完整 reference 批次、盲评、成本和 developer-only 抽检
 - [Task Center 产品意图](product-intent-task-center.md) - 任务收件箱、结果找回与主页边界
 - [Task Center 开发契约](developer/task-center-contract.md) - 状态、持久化、已处理语义与 Agent 读取边界
 - [官方参考语料库产品意图](product-intent-reference-library.md) - 官方译文复用、维护交互与禁止副作用
@@ -49,6 +50,7 @@
 - [假本地化说明](user-guides/fake-localization.md) - 假中文原理；优先内置清理，手动为备用
 - [校对](user-guides/proofreading.md) - 三栏编辑器、补丁模式、保存与验证
 - [智能工坊](user-guides/agent-workshop.md) - 扫描格式问题并用 AI 修复
+- [模组档案馆](user-guides/mod-archive.md) - 整理、发布和审阅可追溯项目档案
 - [词典与词汇表](user-guides/glossary.md) - 主词典 / 额外词典 / 项目词典与翻译启用
 - [模型竞技场](user-guides/model-arena.md) - 正式翻译前比较 2 或 3 个候选模型
 - [任务中心](user-guides/task-center.md) - 查看后台进度、失败、结果和全部日志
@@ -67,11 +69,12 @@
 - [开发环境搭建指南](developer/development-setup.md) - 仓库开发环境说明
 - [CI、依赖维护与仓库门禁](developer/ci-setup.md) - GitHub Actions、Dependabot 与本地等价命令
 
-## Remis Agent / Copilot（3.1.0 隐藏预览）
+## Remis Agent / Copilot（3.2.0 stable / Agent Preview）
 - [Copilot 文档入口](copilot/README.md) - `user-help` / `agent-planning` / 固定操作契约
 - [Remis 小助手用户指南](user-guides/remis-assistant.md) - 在同一聊天框问问题、批准计划和检查结果
 - [Copilot 与 Agent 双层语料边界](copilot/rag-corpus-boundary.md) - 两层索引白名单、优先级与排除项
 - [Agent 操作说明书](copilot/agent-operations.md) - 可提议操作、禁止改源码、引导 GitHub 反馈
+- [3.2.0 发布冒烟与风险清单](developer/release-v3.2.0-smoke-test.md) - 发版前验证、失败定位与已知边界
 
 ## 开发者文档
 - [文档状态说明](../docs_status.md) - 当前文档入口与历史记录说明
@@ -79,7 +82,7 @@
 - [架构概述](developer/architecture.md) - 系统架构和设计
 - [RAG 架构与模型选型](technical/rag-design.md) - 本地/云端双轨制 RAG 设计与模型选型方案（工程选型，非用户语料）
 - [重构决策指南](developer/refactor_decision_guide.md) - 什么时候该补丁，什么时候该重构
-- [发布构建脚本指南](developer/build-release-script-guide.md) - `build_release.bat` 脚本的使用说明
+- [发布构建脚本指南](developer/build-release-script-guide.md) - Tauri 安装包流水线与历史便携 ZIP 流程
 - [Feature Flags 说明](developer/feature_flags.md) - 前端实验功能开关
 - [动态标签验证器与工具](developer/dynamic_tag_validator_and_tools.md) - 当前验证器相关说明
 - [Victoria 3 国家形容词语义上下文](developer/vic3-country-adjective-context.md) - Issue #207 生产 MVP、版本化资源与维护门禁

@@ -9,6 +9,7 @@ from fastapi import HTTPException
 
 from scripts.core.project_json_manager import ProjectJsonManager
 from scripts.utils.validation_logger import ValidationLogger
+from scripts.utils.validation_issue_identity import enrich_issues, issue_is_active, issue_is_repairable
 
 logger = logging.getLogger(__name__)
 
@@ -77,9 +78,15 @@ class ValidationSidecarService:
         return payload
 
     def active_issues(self, issues: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        return enrich_issues([issue for issue in issues if issue_is_active(issue)])
+
+    def repair_issues(self, issues: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        return [issue for issue in self.active_issues(issues) if issue_is_repairable(issue)]
+
+    def review_issues(self, issues: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         return [
-            issue for issue in issues
-            if str(issue.get("status", "detected")).lower() not in {"fixed", "ignored"}
+            issue for issue in self.active_issues(issues)
+            if issue.get("review_queue") is True
         ]
 
     def issue_counts(self, issues: List[Dict[str, Any]]) -> Dict[str, int]:
@@ -148,10 +155,16 @@ class ValidationSidecarService:
             scope = self.CURRENT_VERSION_SCOPE
 
         active_issues = self.active_issues(self._merge_issue_paths(source_paths))
+        repair_issues = [issue for issue in active_issues if issue_is_repairable(issue)]
+        review_issues = [issue for issue in active_issues if issue.get("review_queue") is True]
 
         return {
             "issues": active_issues,
+            "repair_issues": repair_issues,
+            "review_issues": review_issues,
             "issue_type_counts": self.issue_counts(active_issues),
+            "repair_issue_count": len(repair_issues),
+            "review_issue_count": len(review_issues),
             "sidecar_path": selected_candidate["path"],
             "last_updated_at": selected_candidate.get("last_updated_at"),
             "sidecar_candidates": self._public_candidates(candidates),

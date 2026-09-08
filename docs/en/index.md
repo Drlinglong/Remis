@@ -21,7 +21,7 @@ This directory contains all English documentation for the V3 Mod Localization Fa
 - [Documentation Status](../docs_status.md) - Current entry points vs historical records
 - [AI Agent Development Regulations](../agent.md) - Deprecated legacy entry kept for compatibility
 - [Architecture Overview](developer/architecture.md) - System architecture and design
-- [Release Build Script Guide](developer/build-release-script-guide.md) - Usage guide for `build_release.bat` script
+- [Release Build Script Guide](developer/build-release-script-guide.md) - Tauri installer pipeline and legacy portable ZIP workflow
 - [Feature Flags Guide](../zh/developer/feature_flags.md) - Frontend experimental feature switches
 - [Format Prompt Improvements and Game-Specific Rules](developer/format-prompt-improvements.md) - AI prompt optimization and game-specific format rules
 - [Multi-file Parallel Processing Architecture Description](developer/parallel-processing.md) - Detailed explanation of parallel processing technology

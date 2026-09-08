@@ -7,6 +7,9 @@ from scripts.core.parallel_types import BatchTask, FileTask
 from scripts.core.services.translation_context_service import (
     TranslationContextService,
     build_translation_source_snapshot,
+    context_workflow_kwargs,
+    prepare_context_with_warnings,
+    prepare_workflow_context,
 )
 from scripts.core.services.context_source_parser import ContextSourceParser
 from scripts.core.loc_parser import parse_loc_file_with_lines
@@ -293,7 +296,7 @@ def test_stale_and_missing_releases_warn_without_context():
     stale = TranslationContextService(context_service=stale_context).prepare(
         project_id="project-1", files_data=SOURCE_FILES
     )
-    assert stale.status == "stale"
+    assert stale.status == "blocked"
     assert stale.warning["code"] == "context_release_stale"
     assert stale.warning["allowed_actions"] == ["analyze_context", "update_context_archive"]
     assert stale.select_for_batch(SOURCE_FILES[0]["file_path"], SOURCE_FILES[0]["source_entries"])[0] == []
@@ -303,8 +306,190 @@ def test_stale_and_missing_releases_warn_without_context():
     missing = TranslationContextService(context_service=missing_context).prepare(
         project_id="project-1", files_data=SOURCE_FILES
     )
-    assert missing.status == "missing"
+    assert missing.status == "blocked"
     assert missing.warning["code"] == "context_release_missing"
+
+
+def test_stale_acknowledgement_allows_only_mod_summary_and_binds_current_snapshot():
+    current_hash = build_translation_source_snapshot(SOURCE_FILES).source_snapshot_hash
+    context = FakeContextService("different-hash")
+    acknowledgement = {
+        "choice": "use_old_archive",
+        "context_release_id": "release-1",
+        "source_snapshot_hash": current_hash,
+    }
+    selection = TranslationContextService(
+        context_service=context,
+        workflow_kind="incremental",
+    ).prepare(
+        project_id="project-1",
+        files_data=SOURCE_FILES,
+        mode="archive",
+        stale_acknowledgement=acknowledgement,
+    )
+
+    assert selection.status == "stale_summary_only"
+    assert selection.direct_index == {}
+    summaries, metadata = selection.select_for_batch(
+        SOURCE_FILES[0]["file_path"], SOURCE_FILES[0]["source_entries"],
+    )
+    assert [item["context_key"] for item in summaries] == ["project:summary"]
+    assert metadata["user_choice"] == "use_old_archive"
+    assert metadata["workflow"] == "incremental"
+    assert metadata["telemetry"]["contexts"][0]["context_key"] == "project:summary"
+
+    changed_hash_ack = {**acknowledgement, "source_snapshot_hash": "another-hash"}
+    blocked = TranslationContextService(context_service=context).prepare(
+        project_id="project-1",
+        files_data=SOURCE_FILES,
+        mode="archive",
+        stale_acknowledgement=changed_hash_ack,
+    )
+    assert blocked.status == "blocked"
+    assert blocked.direct_index == {}
+
+
+def test_stale_acknowledgement_can_disable_archive_for_glossary_only_translation():
+    current_hash = build_translation_source_snapshot(SOURCE_FILES).source_snapshot_hash
+    context = FakeContextService("different-hash")
+    selection = TranslationContextService(context_service=context).prepare(
+        project_id="project-1",
+        files_data=SOURCE_FILES,
+        mode="archive",
+        stale_ack={
+            "choice": "disable_archive",
+            "context_release_id": "release-1",
+            "source_snapshot_hash": current_hash,
+        },
+    )
+    assert selection.status == "disabled"
+    assert selection.enabled is False
+    assert selection.select_for_batch(
+        SOURCE_FILES[0]["file_path"], SOURCE_FILES[0]["source_entries"],
+    )[0] == []
+
+
+def test_context_workflow_kwargs_preserves_pydantic_acknowledgement_mapping():
+    acknowledgement = {
+        "choice": "use_old_archive",
+        "context_release_id": "release-1",
+        "source_snapshot_hash": "hash-1",
+    }
+
+    assert context_workflow_kwargs(
+        SimpleNamespace(stale_acknowledgement=acknowledgement),
+    )["stale_acknowledgement"] == acknowledgement
+
+
+def test_stale_choice_and_acknowledgement_must_agree():
+    current_hash = build_translation_source_snapshot(SOURCE_FILES).source_snapshot_hash
+    context = FakeContextService("different-hash")
+    blocked = TranslationContextService(context_service=context).prepare(
+        project_id="project-1",
+        files_data=SOURCE_FILES,
+        mode="archive",
+        stale_choice="disable_archive",
+        stale_acknowledgement={
+            "choice": "use_old_archive",
+            "context_release_id": "release-1",
+            "source_snapshot_hash": current_hash,
+        },
+    )
+    assert blocked.status == "blocked"
+
+
+def test_v3_tree_projection_uses_orthogonal_delivery_route_and_mod_context():
+    from scripts.core.services.context_tree_v2_translation_adapter import (
+        ContextTreeV2TranslationAdapter,
+    )
+
+    source_hash = build_translation_source_snapshot(SOURCE_FILES).source_snapshot_hash
+    projection = ContextTreeV2TranslationAdapter._project({
+        "project_id": "project-1",
+        "release_id": "v3-release-1",
+        "source_snapshot_hash": source_hash,
+        "universal_translation_context": "围绕共和国、战争与远征展开，专名和事件因果必须保持一致。",
+        "local_fragments": [{
+            "fragment_id": "fragment-1",
+            "summary": "The republic enters the war.",
+            "source_evidence_refs": [{
+                "local_unit_id": "unit-event",
+                "source_ref": SOURCE_FILES[0]["file_path"],
+                "item_key": "republic",
+            }],
+        }],
+        "groups": [{"group_id": "group-1", "fragment_ids": ["fragment-1"]}],
+        "unit_routes": [{
+            "local_unit_id": "unit-event",
+            "route": "narrative",
+            "content_role": "event_narrative",
+            "delivery_route": "event",
+            "fragment_ids": ["fragment-1"],
+        }, {
+            "local_unit_id": "unit-noise",
+            "route": "no_context",
+            "content_role": "utility_or_noise",
+            "delivery_route": "none",
+            "fragment_ids": [],
+        }],
+        "entity_digests": [{
+            "entity_id": "entity:republic", "level": "A",
+            "final_digest": "Reference description that must not leak to event delivery.",
+        }],
+        "entity_evidence": [{
+            "entity_id": "entity:republic",
+            "local_unit_id": "unit-event",
+            "source_ref": SOURCE_FILES[0]["file_path"],
+            "item_key": "republic",
+        }],
+    })
+    assert projection.project_summary[0]["summary"]["text"].startswith("围绕共和国")
+    assert projection.direct_index[(
+        "localisation/english/foo_l_english.yml", "republic",
+    )][0]["aggregate_type"] == "event"
+
+
+def test_stale_summary_prompt_cannot_receive_old_event_chain():
+    current_hash = build_translation_source_snapshot(SOURCE_FILES).source_snapshot_hash
+    selection = TranslationContextService(
+        context_service=FakeContextService("different-hash"),
+    ).prepare(
+        project_id="project-1",
+        files_data=SOURCE_FILES,
+        mode="archive",
+        stale_acknowledgement={
+            "choice": "use_old_archive",
+            "context_release_id": "release-1",
+            "source_snapshot_hash": current_hash,
+        },
+    )
+    summaries, metadata = selection.select_for_batch(
+        SOURCE_FILES[0]["file_path"], SOURCE_FILES[0]["source_entries"],
+    )
+    batch = BatchTask(
+        file_task=SimpleNamespace(), batch_index=0, start_index=0,
+        end_index=2, texts=["The Republic", "Other"],
+    )
+    batch.context_summaries = summaries
+    batch.context_metadata = metadata
+    prompt = BaseApiHandler._build_context_release_prompt(batch)
+    assert "The project's setting." in prompt
+    assert "war spans" not in prompt
+    assert metadata["telemetry"]["workflow"] == "unknown"
+
+
+def test_initial_and_incremental_context_wrappers_label_telemetry_phase():
+    source_hash = build_translation_source_snapshot(SOURCE_FILES).source_snapshot_hash
+    initial = prepare_workflow_context(
+        "project-1", SOURCE_FILES, True, "release-1", 4000,
+        FakeContextService(source_hash),
+    )
+    incremental, _warnings = prepare_context_with_warnings(
+        "project-1", SOURCE_FILES, True, "release-1", 4000,
+        FakeContextService(source_hash),
+    )
+    assert initial.metadata["workflow"] == "initial"
+    assert incremental.metadata["workflow"] == "incremental"
 
 
 def test_initial_and_incremental_file_material_produce_same_release_gate():

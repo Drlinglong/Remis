@@ -11,12 +11,34 @@ const packageJson = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'ut
 const backendPort = process.env.VITE_BACKEND_PORT || process.env.REMIS_BACKEND_PORT || process.env.BACKEND_PORT || 1453;
 const buildChannel = process.env.VITE_REMIS_BUILD_CHANNEL || 'stable';
 const appVersion = process.env.VITE_REMIS_APP_VERSION || packageJson.version;
+const contextResearchPreviewPath = process.env.VITE_CONTEXT_RESEARCH_PREVIEW_PATH;
+
+const contextResearchPreviewPlugin = {
+  name: 'remis-context-research-preview',
+  configureServer(server) {
+    server.middlewares.use('/__remis/context-research-preview.json', (_request, response, next) => {
+      if (!contextResearchPreviewPath) {
+        next();
+        return;
+      }
+      try {
+        response.statusCode = 200;
+        response.setHeader('Content-Type', 'application/json; charset=utf-8');
+        response.end(readFileSync(contextResearchPreviewPath));
+      } catch {
+        response.statusCode = 404;
+        response.end('Context research preview artifact is unavailable.');
+      }
+    });
+  },
+};
 console.log(`[Vite Config] Proxying /api to http://127.0.0.1:${backendPort}`);
 console.log(`[Vite Config] Build channel: ${buildChannel}`);
 
 export default defineConfig({
   plugins: [
-    react()
+    react(),
+    ...(contextResearchPreviewPath ? [contextResearchPreviewPlugin] : []),
   ],
   base: './',
   define: {

@@ -15,7 +15,14 @@ pyinstaller --clean --onefile --name web_server ^
   --hidden-import pydantic ^
   --collect-submodules pydantic_ai ^
   --collect-submodules pydantic_graph ^
+  --collect-submodules pydantic_ai_harness.planning ^
+  --collect-submodules pydantic_ai_harness.subagents ^
+  --collect-submodules pydantic_ai_harness.tool_output_limits ^
+  --collect-submodules pydantic_ai_harness.compaction ^
+  --copy-metadata pydantic-ai-slim ^
+  --copy-metadata pydantic-ai-harness ^
   --collect-data genai_prices ^
+  --copy-metadata genai_prices ^
   --hidden-import psutil ^
   --hidden-import scripts.hooks ^
   --hidden-import scripts.hooks.file_parser_hook ^

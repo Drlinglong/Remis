@@ -67,6 +67,34 @@ def test_build_file_task_iterator_skips_completed_files():
     assert result == []
 
 
+def test_checkpoint_lookup_uses_project_relative_file_path():
+    class TrackingCheckpoint(FakeCheckpoint):
+        def __init__(self):
+            super().__init__()
+            self.lookups = []
+
+        def is_file_completed(self, filename):
+            self.lookups.append(filename)
+            return False
+
+    checkpoint = TrackingCheckpoint()
+    files = [{
+        "filename": "events_l_english.yml",
+        "file_path": r"module_a\localization\english\events_l_english.yml",
+        "root": "root",
+        "texts_to_translate": ["text"],
+        "original_lines": [],
+        "key_map": [],
+        "is_custom_loc": False,
+    }]
+
+    list(_build_iterator(files, checkpoint=checkpoint))
+
+    assert checkpoint.lookups == [
+        "module_a/localization/english/events_l_english.yml"
+    ]
+
+
 def test_resume_after_restart_does_not_resubmit_completed_file(tmp_path):
     checkpoint = CheckpointManager(
         str(tmp_path),
@@ -95,10 +123,32 @@ def test_resume_after_restart_does_not_resubmit_completed_file(tmp_path):
     assert reloaded_checkpoint.is_file_completed("done.yml") is True
 
 
+def test_new_run_does_not_read_existing_completed_files(tmp_path):
+    checkpoint = CheckpointManager(
+        str(tmp_path),
+        checkpoint_filename=".remis_checkpoint_zh-CN.json",
+    )
+    checkpoint.mark_file_completed("done.yml")
+    checkpoint.read_enabled = False
+    files = [{
+        "filename": "done.yml",
+        "root": "root",
+        "texts_to_translate": ["done.yml"],
+        "original_lines": [],
+        "key_map": {0: {"key_part": "done.yml"}},
+        "is_custom_loc": False,
+    }]
+
+    pending = list(_build_iterator(files, checkpoint=checkpoint))
+
+    assert [task.filename for task in pending] == ["done.yml"]
+
+
 def test_build_file_task_iterator_handles_empty_files(monkeypatch):
     handled = []
     progress_events = []
     checkpoint = FakeCheckpoint()
+    checkpoint.resume_enabled = False
 
     monkeypatch.setattr(
         task_service,

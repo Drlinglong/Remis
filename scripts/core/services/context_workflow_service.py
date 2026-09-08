@@ -54,6 +54,11 @@ from scripts.core.services.context_synthesis_execution_service import (
     ContextSynthesisExecutionService,
 )
 from scripts.core.services.context_workflow_status_service import ContextWorkflowStatusService
+from scripts.core.services.context_workflow_telemetry import (
+    handle_context_workflow_failure,
+    record_context_workflow_telemetry,
+)
+from scripts.core.services.context_tree_v2_workflow_runner import execute_tree_v2_workflow
 from scripts.core.services.provider_runtime import (
     ProviderRuntimeSnapshot,
     handler_from_runtime,
@@ -62,6 +67,7 @@ from scripts.core.repositories.context_tree_v2_repository import ContextTreeV2Re
 from scripts.core.services.context_tree_v2_production_workflow import (
     ContextTreeV2ProductionWorkflowService,
 )
+from scripts.core.prompts.context_workflow_v3_prompt import WORKFLOW_V3_CHECKPOINT_VERSION, WORKFLOW_V3_PROMPT_VERSION, WORKFLOW_V3_VERSION
 from scripts.core.services.source_snapshot_service import (
     SourceSnapshot,
     SourceSnapshotService,
@@ -81,7 +87,12 @@ class ContextWorkflowService:
     SCHEMA_VERSION = "context-v4"
     PROMPT_VERSION = "context-archive-v10"
     CHECKPOINT_COMPATIBILITY_VERSION = "context-analysis-v3"
-    TREE_V2_CHECKPOINT_OVERRIDES = {"workflow_version": "context-tree-v2", "schema_version": "context-tree-v2", "prompt_version": "context-archive-tree-v2", "checkpoint_compatibility_version": "context-analysis-tree-v2"}
+    TREE_V2_CHECKPOINT_OVERRIDES = {
+        "workflow_version": WORKFLOW_V3_VERSION,
+        "schema_version": "context-tree-v2",
+        "prompt_version": WORKFLOW_V3_PROMPT_VERSION,
+        "checkpoint_compatibility_version": WORKFLOW_V3_CHECKPOINT_VERSION,
+    }
     ACTIVE_STATUSES = ContextWorkflowStatusService.ACTIVE_STATUSES
 
     def __init__(
@@ -136,6 +147,7 @@ class ContextWorkflowService:
             candidate_store=candidate_store,
             status_service=self.status_service,
             checkpoint_repository=self.analysis_checkpoints.repository,
+            workflow_profile="workflow_v3",
         )
 
     def reserve(self, project_id: str, task_id: str, scope: AnalysisScope) -> bool:
@@ -191,8 +203,8 @@ class ContextWorkflowService:
         api_provider, model_name = ((runtime.adapter_id, runtime.model_id) if runtime else (api_provider, model_name))
         effective_description_language = description_language or review_language
         parsed_files: tuple[ParsedSourceFile, ...] = ()
-        processed_files = 0
         analysis_run, usage_ledger = None, ContextModelUsageLedger()
+        workflow_context: dict[str, Any] = {}; snapshot: SourceSnapshot | None = None
         try:
             parsed_files = self.source_parser.parse_files(file_paths, source_root)
             snapshot = self.source_parser.build_snapshot(parsed_files, self.snapshot_service)
@@ -252,7 +264,7 @@ class ContextWorkflowService:
                 workflow_context=workflow_context,
             )
             if self.workflow_version == "tree_v2":
-                return self._execute_tree_v2(locals())
+                return execute_tree_v2_workflow(self, locals())
             extractions = self._extract(
                 chunks,
                 scope,
@@ -282,34 +294,12 @@ class ContextWorkflowService:
             self._complete(project_id, task_id, result, len(parsed_files))
             return result
         except Exception as exc:
-            self.analysis_checkpoints.mark_failed(analysis_run)
-            self._failed(project_id, task_id, len(parsed_files), processed_files, exc)
+            handle_context_workflow_failure(self.status_service, self.analysis_checkpoints, project_id, task_id, len(parsed_files), 0, exc, snapshot, analysis_run, workflow_context, self.workflow_version, usage_ledger)
             raise
 
     def _execute_tree_v2(self, values: dict[str, Any]) -> dict[str, Any]:
-        result = self.tree_v2_workflow.run(
-            project_id=values["project_id"],
-            project_title=values["project_title"] or values["project_id"],
-            task_id=values["task_id"],
-            source_snapshot_hash=values["snapshot"].source_snapshot_hash,
-            source_items=values["source_items"], local_units=values["local_units"],
-            chunks=values["chunks"], scope=values["scope"],
-            api_provider=values["api_provider"], model_name=values["model_name"],
-            source_language=values["source_lang"], target_language=values["target_lang"],
-            game_name=values["game_name"],
-            description_language=values["effective_description_language"],
-            duplicate_index=values["duplicate_index"] or {},
-            analysis_run=values["analysis_run"], usage_ledger=values["usage_ledger"],
-            concurrency=values["effective_concurrency"],
-            runtime=values.get("runtime"),
-        )
-        if values["analysis_run"] is not None:
-            self._finalize_analysis_run(values["analysis_run"], result)
-        self._complete(
-            values["project_id"], values["task_id"], result,
-            len(values["parsed_files"]),
-        )
-        return result
+        """Compatibility seam for callers and tests using the old method."""
+        return execute_tree_v2_workflow(self, values)
 
     def _finalize_analysis_run(self, analysis_run: Any, result: dict[str, Any]) -> None:
         if result.get("context_release_id") is not None:
@@ -398,6 +388,16 @@ class ContextWorkflowService:
             terms["analysis_report"] = ContextAnalysisReportService.governance_only(governance)
             terms["candidate_governance"] = governance.counts()
             return terms
+        record_context_workflow_telemetry(
+            self.status_service,
+            project_id, task_id,
+            source_snapshot_hash=snapshot.source_snapshot_hash,
+            analysis_run=analysis_run,
+            workflow_context=workflow_context,
+            usage_ledger=usage_ledger,
+            analysis_report=analysis_report,
+            workflow_version=self.workflow_version,
+        )
         result = self._finish_context(
             project_id, parsed_files, snapshot, diff, parent, local_units, final_extractions,
             api_provider, model_name, upstream_version, analysis_config,

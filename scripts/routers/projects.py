@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import asyncio
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pathlib import Path
 from typing import Optional, Dict, Any, Callable, List
@@ -29,6 +30,15 @@ from scripts.core.services.validation_sidecar_service import ValidationSidecarSe
 from scripts.core.services.translation_context_readiness_service import (
     TranslationContextReadinessService,
 )
+from scripts.core.services.initial_translation_start_service import (
+    ProjectTranslationLockError,
+    claim_project_translation_lock,
+)
+from scripts.core.translation_cancellation import (
+    ProcessingCancelledError,
+    cancellable_translation_workflow,
+)
+from scripts.core.feature_policy import apply_translation_request_policy
 from scripts.routers.provider_runtime import provider_task_fields, resolve_runtime_or_400
 from scripts.core.neologism_manager import neologism_manager
 from scripts.utils.system_utils import sanitize_for_json
@@ -40,6 +50,7 @@ translation_context_readiness = TranslationContextReadinessService(
     glossary_manager,
     neologism_manager,
 )
+
 
 
 def _write_incremental_logs(output_dirs: list[str], log_lines: list[str], telemetry: Optional[Dict[str, Any]] = None):
@@ -400,6 +411,14 @@ async def get_project_validation_status(project_id: str, sidecar_path: Optional[
             sidecar_status["issues"],
             project_files,
         )
+        repair_issues = validation_sidecars.attach_project_file_ids(
+            sidecar_status.get("repair_issues", []),
+            project_files,
+        )
+        review_issues = validation_sidecars.attach_project_file_ids(
+            sidecar_status.get("review_issues", []),
+            project_files,
+        )
         counts = sidecar_status["issue_type_counts"]
         selected_sidecar_path = sidecar_status["sidecar_path"]
         last_updated_at = sidecar_status["last_updated_at"]
@@ -407,6 +426,8 @@ async def get_project_validation_status(project_id: str, sidecar_path: Optional[
         sidecar_scope = sidecar_status["sidecar_scope"]
     else:
         active_issues = []
+        repair_issues = []
+        review_issues = []
         counts = {}
         selected_sidecar_path = str(ValidationLogger._get_log_path(project_root))
         last_updated_at = None
@@ -425,6 +446,10 @@ async def get_project_validation_status(project_id: str, sidecar_path: Optional[
         "project_id": project_id,
         "issues_count": len(active_issues),
         "issues": active_issues,
+        "repair_issue_count": len(repair_issues),
+        "repair_issues": repair_issues,
+        "review_issue_count": len(review_issues),
+        "review_issues": review_issues,
         "issue_type_counts": counts,
         "last_updated_at": last_updated_at,
         "sidecar_path": selected_sidecar_path,
@@ -442,10 +467,8 @@ async def _run_incremental_workflow(request, progress_callback, provider_runtime
     )
 
 
+@cancellable_translation_workflow
 def run_incremental_update_background(task_id: str, project_id: str, request: IncrementalUpdateRequest, provider_runtime=None):
-    from scripts.shared import task_state
-    import asyncio
-
     task_state.update_task(
         task_id,
         status="processing",
@@ -457,8 +480,9 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
         },
         push=True,
     )
-    
     def progress_callback(data: Dict[str, Any]):
+        if task_state.is_task_cancellation_requested(task_id):
+            raise ProcessingCancelledError("Incremental translation cancelled by user.")
         task_state.update_task(
             task_id,
             progress=data,
@@ -467,9 +491,7 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
         )
 
     try:
-        # Run the async workflow in this thread's event loop
         result = asyncio.run(_run_incremental_workflow(request, progress_callback, provider_runtime))
-        
         if result.get("status") == "error":
             failure_message = str(result.get("message") or "Unknown incremental translation error")
             task_state.update_task(
@@ -582,6 +604,8 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
             )
             logging.info(f"Incremental task {task_id} completed successfully.")
 
+    except ProcessingCancelledError:
+        raise
     except Exception as e:
         import traceback
         logging.error(f"Incremental update background task failed: {e}")
@@ -618,10 +642,14 @@ async def run_incremental_update(project_id: str, request: IncrementalUpdateRequ
     """Triggers the incremental update workflow in background."""
     import uuid
     provider_runtime = resolve_runtime_or_400(request.api_provider, request.model)
+    # Incremental checkpoints still use the legacy file-only contract. Never
+    # consume them until that workflow is migrated to task-owned recovery.
+    request.use_resume = False
 
     project = await project_manager.get_project(project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+    apply_translation_request_policy(request)
     context_resolution = await translation_context_readiness.resolve_mode(
         project_id,
         request.translation_context_mode,
@@ -633,7 +661,10 @@ async def run_incremental_update(project_id: str, request: IncrementalUpdateRequ
             "source_language": (project or {}).get("source_language"),
         } if project else None,
         requested_release_id=request.context_release_id,
+        stale_choice=request.stale_choice,
+        stale_acknowledgement=request.stale_acknowledgement,
     )
+    if context_resolution.requires_user_choice: raise HTTPException(status_code=409, detail={"code": "context_release_stale_choice_required", "message": context_resolution.user_message, "warning": context_resolution.warning, "context_readiness": context_resolution.readiness})
     request.translation_context_mode = context_resolution.effective_mode
 
     task_id = str(uuid.uuid4())
@@ -660,6 +691,7 @@ async def run_incremental_update(project_id: str, request: IncrementalUpdateRequ
             dedupe_key=f"project_translation_write:{project_id}",
             reject_duplicate=True,
         )
+        claim_project_translation_lock(task_id=task_id, project_id=project_id)
     except task_state.DuplicateTaskError as exc:
         raise HTTPException(
             status_code=409,
@@ -667,6 +699,15 @@ async def run_incremental_update(project_id: str, request: IncrementalUpdateRequ
                 "code": "duplicate_task",
                 "message": "This project already has a translation task in progress.",
                 "existing_task_id": exc.existing_task.get("task_id"),
+            },
+        ) from exc
+    except ProjectTranslationLockError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "duplicate_task",
+                "message": "This project already has a translation task in progress.",
+                "existing_task_id": exc.existing_task_id,
             },
         ) from exc
     

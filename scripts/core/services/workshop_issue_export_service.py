@@ -12,6 +12,7 @@ from scripts.utils.i18n_utils import iso_to_paradox
 from scripts.utils.post_process_validator import PostProcessValidator
 from scripts.core.vic3_country_adjective_context import is_country_adj_reference
 from scripts.utils.validation_logger import ValidationLogger
+from scripts.utils.validation_issue_identity import reconcile_issues
 
 logger = logging.getLogger(__name__)
 
@@ -390,6 +391,8 @@ class WorkshopIssueExportService:
             }
             for issue in issues
         ]
+        previous_issues = self._load_existing_issues(output_root / self.OUTPUT_FILENAME)
+        issues = reconcile_issues(issues, previous_issues)
         ValidationLogger.save_errors(str(output_root), issues)
 
         workshop_path = output_root / self.OUTPUT_FILENAME

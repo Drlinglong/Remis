@@ -10,6 +10,7 @@ import ProjectSelectStep from '../components/incrementalTranslation/ProjectSelec
 import ConfigStep from '../components/incrementalTranslation/ConfigStep';
 import PreScanResultsStep from '../components/incrementalTranslation/PreScanResultsStep';
 import ExecutionStep from '../components/incrementalTranslation/ExecutionStep';
+import TranslationContextStaleModal from '../components/TranslationContextStaleModal';
 import styles from './Translation.module.css';
 import { useRemisCopilotContext } from '../context/CopilotContext';
 import { useCopilotStallReminder } from '../hooks/useCopilotStallReminder';
@@ -35,6 +36,12 @@ export const IncrementalTranslationPage = () => {
 
     // Business Logic Custom Hook
     const state = useIncrementalTranslation(notificationStyle);
+    const staleContext = state.staleContext || {
+        detail: null,
+        opened: false,
+        cancel: () => {},
+        choose: () => {},
+    };
     const safeProjects = Array.isArray(state.projects) ? state.projects : EMPTY_ARRAY;
     const safeModels = Array.isArray(state.models) ? state.models : EMPTY_ARRAY;
     const safeApiProviders = Array.isArray(state.apiProviders) ? state.apiProviders : EMPTY_ARRAY;
@@ -283,6 +290,15 @@ export const IncrementalTranslationPage = () => {
             </Stepper>
 
             {/* --- Tutorial Prompt Modal --- */}
+            <TranslationContextStaleModal
+                detail={staleContext.detail}
+                opened={staleContext.opened}
+                onCancel={staleContext.cancel}
+                onDisableArchive={() => staleContext.choose('disable_archive')}
+                onUseOldArchive={() => staleContext.choose('use_old_archive')}
+                t={t}
+            />
+
             <Modal
                 opened={state.showTutorialPrompt}
                 onClose={() => {

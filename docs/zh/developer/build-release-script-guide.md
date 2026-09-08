@@ -1,16 +1,18 @@
-# 发布构建脚本指南 (`build_release.bat`)
+# 发布构建指南（Tauri EXE 与历史便携 ZIP）
 
 ## 概述
 
-`build_release.bat` 是一个用于自动化构建 Project Remis 便携版发布包的脚本。它负责清理旧的构建文件、创建新的目录结构、嵌入 Python 环境、复制项目源代码、下载并打包所有依赖项，并最终生成一个可分发的 ZIP 压缩包。
+3.2.0 Windows 正式发布使用 `scripts/build_pipeline.py` 构建 Tauri NSIS
+安装包。`archive/build_release_scripts/build_release.bat` 只保留用于历史便携
+ZIP 格式；当前 EXE 发版不能使用它。
 
 ## 功能特性
 
-*   **自动化构建**：一键完成便携版发布包的构建过程。
-*   **环境隔离**：将 Python 运行时环境和所有依赖项打包到发布包中，无需用户手动安装 Python 或配置环境。
-*   **依赖管理**：自动下载 `requirements.txt` 中定义的所有 Python 依赖项，并将其放置在 `packages` 目录中。
-*   **结构化输出**：生成符合 Project Remis 便携版目录结构的发布包。
-*   **可选压缩**：如果系统安装了 7-Zip，脚本会自动将生成的发布目录压缩为 ZIP 文件。
+*   **自动化构建**：当前流水线会冻结后端、构建 React 前端并生成 Tauri Windows 安装包。
+*   **通道隔离**：stable 与 Agent Preview 使用独立的应用身份、端口和数据目录。
+*   **依赖管理**：CI 会先按锁文件安装官网和桌面前端依赖，再执行审计、测试、lint 和生产构建。
+*   **结构化输出**：在发布归档中生成带版本号的 Windows NSIS 安装包。
+*   **历史便携 ZIP**：只有明确需要旧 ZIP 格式时，才使用归档批处理脚本。
 
 ## Release Note 编写规范
 
@@ -65,7 +67,7 @@ python -m pytest -q tests/test_release_metadata.py
 
 ## 使用方法
 
-## 3.1.0 桌面安装包的数据库规则
+## 3.2.0 Tauri 桌面安装包的数据规则
 
 当前 Tauri 桌面安装包由 `scripts/build_pipeline.py` 构建。数据库初始化分成三层：
 
@@ -96,13 +98,31 @@ python scripts\db\generate_skeleton.py --from-development
 该命令会覆盖仓库内的发布资产，因此必须检查数据库差异和测试结果后再提交。
 普通发布构建不会自动运行它。
 
-### 前提条件
+### 构建当前 stable EXE
+
+在仓库根目录、发布候选通过审查后运行：
+
+```powershell
+python -m pytest -q tests/test_release_metadata.py
+python scripts/build_pipeline.py --channel stable
+```
+
+流水线使用 `local_factory` Conda 环境，冻结并健康检查 Python sidecar，构建前端，
+最后执行 Tauri 打包。stable NSIS 安装包会复制到：
+`archive/release/stable/remis-mod-factory_3.2.0_x64-setup.exe`。只有明确要生成隔离的
+`3.2.0-agent-preview.1` 预览安装包时，才使用 `--channel agent-preview`。
+
+### 历史便携 ZIP（`build_release.bat`）
+
+以下前置条件和步骤只适用于历史便携 ZIP 脚本，不属于当前 Tauri EXE 发版流程。
+
+#### 前提条件
 
 1.  **Conda 环境**：脚本假设在一个已激活的 Conda/Python 环境中运行。请确保您的系统已安装 Conda，并且 `CONDA_ROOT` 和 `ENV_NAME` 变量在脚本中配置正确。
 2.  **7-Zip (可选)**：如果希望脚本自动生成 ZIP 压缩包，请确保您的系统已安装 7-Zip，并且其可执行文件 (`7z.exe`) 位于系统 PATH 中或脚本可以找到的默认路径。
 3.  **Python 嵌入包**：确保 `archive/build_release_scripts/` 目录下存在 `python-3.10.11-embed-amd64.zip` 文件。
 
-### 运行脚本
+#### 运行历史脚本
 
 1.  **激活 Conda 环境**：
     打开命令行工具（如 Anaconda Prompt），并激活您用于构建的 Conda 环境：
@@ -111,8 +131,8 @@ python scripts\db\generate_skeleton.py --from-development
     ```
     （请将 `your_env_name` 替换为脚本中 `ENV_NAME` 定义的环境名称）
 
-2.  **执行构建脚本**：
-    导航到 `archive/build_release_scripts/` 目录，然后运行 `build_release.bat`：
+2.  **执行历史脚本**：
+    只有明确需要便携 ZIP 时，才导航到 `archive/build_release_scripts/` 目录运行 `build_release.bat`：
     ```bash
     cd J:\V3_Mod_Localization_Factory\archive\build_release_scripts\
     build_release.bat
@@ -121,7 +141,7 @@ python scripts\db\generate_skeleton.py --from-development
 3.  **等待完成**：
     脚本将自动执行所有构建步骤。过程中会输出详细的日志信息。请耐心等待，直到脚本显示 `[SUCCESS] Build process completed!`。
 
-## 脚本配置
+#### 历史脚本配置
 
 您可以在 `build_release.bat` 脚本的开头部分修改以下变量：
 
@@ -130,7 +150,7 @@ python scripts\db\generate_skeleton.py --from-development
 *   `PROJECT_NAME`：项目名称（默认为 `Project_Remis`）。
 *   `VERSION`：发布版本号（默认为 `1.1.0`）。
 
-## 构建流程概览
+#### 历史便携 ZIP 流程概览
 
 1.  **初始化**：确定项目根目录、发布目录名称和路径。
 2.  **清理**：删除之前生成的发布目录（如果存在）。
@@ -144,7 +164,7 @@ python scripts\db\generate_skeleton.py --from-development
 10. **复制运行脚本**：复制 `run.bat` 到发布目录。
 11. **最终打包 (可选)**：如果检测到 7-Zip，则将整个发布目录压缩为 ZIP 文件。
 
-## 故障排除
+#### 历史 ZIP 故障排除
 
 *   **`tar` 命令未找到**：确保您的系统安装了 `tar` 工具，或者手动解压 `python-3.10.11-embed-amd64.zip`。
 *   **`python.exe` 未找到**：检查 `python-3.10.11-embed-amd64.zip` 文件是否损坏或路径是否正确。

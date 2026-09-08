@@ -188,7 +188,7 @@ def create_localization_plan(
     batch_size_limit: int | None = 10,
     concurrency_limit: int | None = 1,
     rpm_limit: int | None = 40,
-    use_resume: bool = True,
+    use_resume: bool = False,
     use_main_glossary: bool = True,
     translation_context_mode: str | None = None,
     embedded_workshop_enabled: bool = True,
@@ -308,9 +308,14 @@ async def create_translation_plan(
     batch_size_limit: int | None = None,
     concurrency_limit: int | None = None,
     rpm_limit: int | None = 40,
-    use_resume: bool = True,
+    use_resume: bool = False,
+    resume_from_task_id: str | None = None,
+    expected_checkpoint_revision: int | None = None,
     use_main_glossary: bool = True,
     translation_context_mode: str | None = None,
+    context_release_id: str | None = None,
+    stale_choice: str | None = None,
+    stale_acknowledgement: dict[str, Any] | None = None,
     embedded_workshop_enabled: bool = True,
 ) -> dict[str, Any]:
     project = await project_manager.get_project(project_id)
@@ -352,6 +357,9 @@ async def create_translation_plan(
         "mod_context": "",
         "selected_glossary_ids": [],
         "translation_context_mode": effective_context_mode,
+        "context_release_id": context_release_id,
+        "stale_choice": stale_choice,
+        "stale_acknowledgement": stale_acknowledgement,
         "use_main_glossary": effective_context_mode != "none",
         "use_project_context": effective_context_mode == "archive",
         "clean_source": False,
@@ -364,6 +372,10 @@ async def create_translation_plan(
             "rpm_limit": rpm_limit,
         },
     }
+    if resume_from_task_id:
+        args["resume_from_task_id"] = resume_from_task_id
+    if expected_checkpoint_revision is not None:
+        args["expected_checkpoint_revision"] = expected_checkpoint_revision
     plan_id = str(uuid.uuid4())
     payload = {
         "plan_id": plan_id,

@@ -27,6 +27,7 @@ from scripts.core.services.context_tree_v2_entity_digest_validation import (
     recompute_semantic_merges,
     validate_semantic_merge,
 )
+from scripts.core.services.context_research_read_metrics import CorpusReadMeter
 from scripts.schemas.context_tree_v2_entity_digest import (
     CandidateGrade,
     CandidateKind,
@@ -60,6 +61,7 @@ class EntityDigestExecutionEngine:
         max_units: int = MAX_ENTITY_UNITS,
         max_source_chars: int = MAX_ENTITY_SOURCE_CHARS,
         max_project_overview_chars: int = MAX_PROJECT_OVERVIEW_CHARS,
+        corpus_read_meter: CorpusReadMeter | None = None,
     ) -> None:
         if not 1 <= max_units <= MAX_ENTITY_UNITS:
             raise ValueError("digest unit budget exceeds the v2 safety limit")
@@ -71,6 +73,7 @@ class EntityDigestExecutionEngine:
         self.max_units = max_units
         self.max_source_chars = max_source_chars
         self.max_project_overview_chars = max_project_overview_chars
+        self.corpus_read_meter = corpus_read_meter
 
     def run(
         self,
@@ -80,6 +83,7 @@ class EntityDigestExecutionEngine:
         project_title: str = "",
         human_project_summary: str | None = None,
         event_groups: Any = None,
+        source_items_by_unit: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
     ) -> EntityDigestRunResult:
         candidates, diagnostics = normalize_candidates(candidates)
         units, unit_diagnostics = normalize_units(units)
@@ -102,6 +106,7 @@ class EntityDigestExecutionEngine:
                 overview,
                 project_title,
                 diagnostics,
+                source_items_by_unit,
             )
             records.extend(candidate_records)
             diagnostics.extend(
@@ -156,6 +161,7 @@ class EntityDigestExecutionEngine:
         overview: ProjectOverview,
         project_title: str,
         diagnostics: list[EntityDigestDiagnostic],
+        source_items_by_unit: Mapping[str, Sequence[Mapping[str, Any]]] | None,
     ) -> tuple[list[EntityDigestCallRecord], EntityDigest | None]:
         if not self._eligible(candidate):
             return [self._skipped(candidate, diagnostics)], None
@@ -165,6 +171,7 @@ class EntityDigestExecutionEngine:
             outcome = self._call_segment(
                 candidate, segments[0], "single", catalog, overview, project_title,
                 entity_map, unit_map, evidence_bundle,
+                source_items_by_unit,
             )
             if outcome[1] is None:
                 return [outcome[0]], None
@@ -177,6 +184,7 @@ class EntityDigestExecutionEngine:
             record, partial = self._call_segment(
                 candidate, segment, "partial", catalog, overview, project_title,
                 entity_map, unit_map, evidence_bundle,
+                source_items_by_unit,
             )
             records.append(record)
             if partial is not None:
@@ -242,11 +250,13 @@ class EntityDigestExecutionEngine:
         candidates: Mapping[str, DigestCandidate],
         units: Mapping[str, DigestLocalUnit],
         evidence_bundle: EntityEvidenceBundle,
+        source_items_by_unit: Mapping[str, Sequence[Mapping[str, Any]]] | None,
     ) -> tuple[EntityDigestCallRecord, EntityDigest | None]:
         segment_id = sampling.metadata.digest_segment_id
         payload = self._payload(candidate, catalog, overview, sampling, project_title, phase)
         messages = tuple(build_entity_digest_messages(payload))
         diagnostics = list(sampling.diagnostics)
+        self._observe_digest_payload(sampling, source_items_by_unit)
         try:
             response, response_payload, parsed = parse_digest_response(
                 self._generate(messages), max_evidence_units=self.max_units,
@@ -274,6 +284,45 @@ class EntityDigestExecutionEngine:
         except Exception as error:
             diagnostics.append(diagnostic("entity_digest_handler_error", candidate.candidate_id, str(error)[:500]))
             return self._failed_record(candidate, sampling, messages, diagnostics, phase, "handler_error"), None
+
+    def _observe_digest_payload(
+        self,
+        sampling: SamplingResult,
+        source_items_by_unit: Mapping[str, Sequence[Mapping[str, Any]]] | None,
+    ) -> None:
+        """Count each raw local-unit payload sent to an entity digest call."""
+
+        if self.corpus_read_meter is None:
+            return
+        units = []
+        for unit in sampling.units:
+            entries = source_items_by_unit.get(unit.unit_id, ()) if source_items_by_unit else ()
+            if entries:
+                payload_entries = entries
+                if "\n".join(str(item.get("text", "")) for item in entries) != unit.source_text:
+                    payload_entries = ({
+                        "source_item_id": entries[0].get("source_item_id", unit.unit_id),
+                        "text": unit.source_text,
+                        "ownership": entries[0].get("ownership", "unscoped"),
+                    },)
+                units.append({
+                    "ownership": payload_entries[0].get("ownership", "unscoped"),
+                    "entries": [{
+                        "source_item_id": item.get("source_item_id", unit.unit_id),
+                        "text": item.get("text", ""),
+                    } for item in payload_entries],
+                })
+            else:
+                units.append({
+                    "ownership": "unscoped",
+                    "entries": [{
+                        "source_item_id": unit.unit_id,
+                        "text": unit.source_text,
+                    }],
+                })
+        self.corpus_read_meter.observe(
+            "read_units", {"units": units}, actor_role="production_entity_digest",
+        )
     def _final_reduction(
         self,
         candidate: DigestCandidate,

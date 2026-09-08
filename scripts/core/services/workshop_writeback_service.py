@@ -10,15 +10,34 @@ from scripts.utils.post_process_validator import PostProcessValidator
 logger = logging.getLogger(__name__)
 
 INVALID_KEY_ERROR_CODE = "validation_invalid_key_format"
+REVIEW_ONLY_ERROR_CODES = {
+    "validation_source_format_unbalanced",
+    "validation_format_structure_variation",
+}
 
 
 def is_repairable_workshop_issue(issue: Dict[str, Any]) -> bool:
+    if issue.get("repair_queue") is False or issue.get("repairable") is False:
+        return False
     if issue.get("requires_human_review") is True:
         return False
     if str(issue.get("severity") or "").strip().lower() == "human_review":
         return False
     error_code = str(issue.get("error_code") or "").strip()
     error_type = str(issue.get("error_type") or "").strip()
+    if error_code in REVIEW_ONLY_ERROR_CODES or error_type in REVIEW_ONLY_ERROR_CODES:
+        return False
+    params = issue.get("details_params")
+    classification = issue.get("classification")
+    if not classification and isinstance(params, dict):
+        classification = params.get("classification")
+    if str(classification or "").strip().lower() in {
+        "source_defect",
+        "possible_reasonable_variation",
+        "human_review",
+        "invalid_key",
+    }:
+        return False
     return INVALID_KEY_ERROR_CODE not in {error_code, error_type}
 
 
@@ -162,7 +181,12 @@ def _validation_errors(
         )
     except Exception as exc:
         return [f"Post-validation crashed: {exc}"]
-    return [result.message for result in results if result.level.value == "error"]
+    return [
+        result.message
+        for result in results
+        if result.level.value == "error"
+        or (result.details_params or {}).get("blocking") is True
+    ]
 
 
 def _restore_file(target_path: Path, original_bytes: bytes) -> bool:

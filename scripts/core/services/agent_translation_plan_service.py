@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable
 
 from scripts.schemas.agent import AgentJobPlanRequest, AgentPlanResponse
+from scripts.core.services.translation_context_readiness_service import TranslationContextModeResolution
+from scripts.core.services.translation_recovery_service import TranslationRecoveryService
 
 
 @dataclass(frozen=True)
@@ -14,6 +16,58 @@ class AgentTranslationPlanError(RuntimeError):
     code: str
     message: str
     details: dict[str, Any] = field(default_factory=dict)
+
+
+def resolve_agent_retry_checkpoint(
+    repository: Any, *, task_id: str, project_id: str,
+) -> dict[str, Any]:
+    """Return the persisted checkpoint lineage required by an Agent retry."""
+
+    if repository is None:
+        raise ValueError("Task persistence is unavailable for checkpoint retry")
+    recovery_service = TranslationRecoveryService(repository)
+    recovery_service.require_resumable_identity(task_id)
+    checkpoint = recovery_service.inspect(project_id).get("checkpoint") or {}
+    checkpoint_revision = checkpoint.get("revision")
+    if checkpoint_revision is None:
+        raise ValueError("Checkpoint revision is unavailable; refresh recovery before retrying")
+    return {
+        "use_resume": True,
+        "resume_from_task_id": task_id,
+        "expected_checkpoint_revision": int(checkpoint_revision),
+    }
+
+
+async def _resolve_agent_context(request, execution_args, plan, readiness_service):
+    resolver = getattr(readiness_service, "resolve_mode", None)
+    resolution = None
+    if callable(resolver):
+        resolution = await resolver(
+            request.project_id,
+            execution_args["translation_context_mode"],
+            plan.get("inspection"),
+            requested_release_id=request.context_release_id,
+            stale_choice=request.stale_choice,
+            stale_acknowledgement=request.stale_acknowledgement,
+        )
+    if not isinstance(resolution, TranslationContextModeResolution):
+        context_readiness = await readiness_service.inspect(
+            request.project_id,
+            execution_args["translation_context_mode"],
+            plan.get("inspection"),
+            requested_release_id=request.context_release_id,
+        )
+        resolution = TranslationContextModeResolution(
+            execution_args["translation_context_mode"],
+            execution_args["translation_context_mode"],
+            context_readiness,
+        )
+    return resolution, resolution.readiness or await readiness_service.inspect(
+        request.project_id,
+        execution_args["translation_context_mode"],
+        plan.get("inspection"),
+        requested_release_id=request.context_release_id,
+    )
 
 
 async def build_agent_translation_plan(
@@ -55,6 +109,9 @@ async def build_agent_translation_plan(
             use_resume=request.use_resume,
             use_main_glossary=request.use_main_glossary,
             translation_context_mode=request.translation_context_mode,
+            context_release_id=request.context_release_id,
+            stale_choice=request.stale_choice,
+            stale_acknowledgement=request.stale_acknowledgement,
             embedded_workshop_enabled=request.embedded_workshop_enabled,
         )
     except ValueError as exc:
@@ -68,12 +125,26 @@ async def build_agent_translation_plan(
 
     execution_args = plan["execution_args"]
     execution_args.setdefault("translation_context_mode", request.translation_context_mode)
-    context_readiness = await readiness_service.inspect(
-        request.project_id,
-        execution_args["translation_context_mode"],
-        plan.get("inspection"),
+    context_resolution, context_readiness = await _resolve_agent_context(
+        request, execution_args, plan, readiness_service,
     )
-    if not request.dry_run and not context_readiness["can_start"]:
+    if context_resolution.requires_user_choice:
+        raise AgentTranslationPlanError(
+            409,
+            "context_release_stale_choice_required",
+            context_resolution.user_message or "Choose how to handle the stale archive.",
+            {"context_readiness": context_readiness, "warning": context_resolution.warning},
+        )
+    execution_args["translation_context_mode"] = context_resolution.effective_mode
+    execution_args["context_release_id"] = request.context_release_id
+    execution_args["stale_choice"] = request.stale_choice
+    execution_args["stale_acknowledgement"] = request.stale_acknowledgement
+    stale_acknowledged = (
+        context_readiness.get("archive", {}).get("readiness", {}).get("reason_code")
+        == "context_release_stale"
+        and request.stale_acknowledgement is not None
+    )
+    if not request.dry_run and not context_readiness["can_start"] and not stale_acknowledged and context_resolution.effective_mode == "archive":
         raise AgentTranslationPlanError(
             409,
             "project_context_not_ready",

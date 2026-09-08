@@ -225,20 +225,19 @@ def test_agent_context_routes_have_structured_selection_errors(monkeypatch):
     }
 
 
-def test_agent_context_capabilities_separate_reads_from_approved_removal():
+def test_agent_context_capabilities_expose_governed_archive_and_resume():
     import asyncio
 
     from scripts.routers import agent as agent_router
 
     capabilities = asyncio.run(agent_router.get_capabilities())
-    assert capabilities["actions"]["read_context_release"]["supported"] is False
-    assert capabilities["actions"]["read_context_release"]["reason"] == (
-        "Project Archive is disabled in the stable build."
-    )
+    assert capabilities["actions"]["read_context_release"]["supported"] is True
+    assert capabilities["actions"]["read_context_release"]["requires_approval"] is False
     assert capabilities["actions"]["context_analysis"]["supported"] is False
     assert capabilities["actions"]["context_analysis"]["requires_approval"] is True
-    assert capabilities["actions"]["remove_context_archive"]["supported"] is False
-    assert capabilities["actions"]["resume_from_checkpoint"]["supported"] is False
+    assert capabilities["actions"]["remove_context_archive"]["supported"] is True
+    assert capabilities["actions"]["remove_context_archive"]["requires_approval"] is True
+    assert capabilities["actions"]["resume_from_checkpoint"]["supported"] is True
     assert capabilities["actions"]["cancel"]["supported"] is True
 
 

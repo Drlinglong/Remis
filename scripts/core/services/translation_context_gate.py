@@ -188,6 +188,8 @@ class TranslationContextGate:
                 "context_release_unverified",
                 selection=selection,
             )
+        if getattr(selection, "status", "") in {"ready", "stale_summary_only"}:
+            return selection
         warning = getattr(selection, "warning", None) or {}
         reason_code = warning.get("code")
         if reason_code not in ARCHIVE_BLOCKING_REASONS:
@@ -209,11 +211,15 @@ def prepare_and_require_workflow_context(
     prepare_context: Any,
     context_args: tuple[Any, ...],
     mode: str | None,
+    context_kwargs: dict[str, Any] | None = None,
 ) -> Any:
     """Prepare context and enforce the shared gate at a workflow boundary."""
-    prepared = prepare_context(*context_args, mode)
+    prepared = prepare_context(*context_args, mode, **(context_kwargs or {}))
     selection = prepared[0] if isinstance(prepared, tuple) else prepared
-    require_workflow_context_ready(mode, selection)
+    effective_mode = mode
+    if getattr(selection, "status", None) == "disabled" and getattr(selection, "user_choice", None) == "disable_archive":
+        effective_mode = "glossaries"
+    require_workflow_context_ready(effective_mode, selection)
     return prepared
 
 

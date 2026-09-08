@@ -1,3 +1,9 @@
+import { TERMINAL_TASK_STATUSES } from '../utils/taskStatus';
+
+export const INCREMENTAL_TERMINAL_STATUSES = TERMINAL_TASK_STATUSES;
+
+export const isIncrementalTaskTerminal = (status) => TERMINAL_TASK_STATUSES.has(status);
+
 export const shouldResyncIncrementalTask = ({
   currentTaskId,
   currentTaskMode,
@@ -26,7 +32,7 @@ export const resyncIncrementalTask = async ({
     const response = await projectService.getTaskStatus(currentTaskId);
     const taskStatus = response.data?.status;
 
-    if (taskStatus === 'completed' || taskStatus === 'failed') {
+    if (isIncrementalTaskTerminal(taskStatus)) {
       handleTaskUpdate(response.data, isPreScan, 'polling');
       return { source: 'polling', terminal: true };
     }

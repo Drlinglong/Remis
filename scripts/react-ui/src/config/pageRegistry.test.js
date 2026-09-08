@@ -78,6 +78,20 @@ describe('pageRegistry', () => {
       });
   });
 
+  it('keeps archive A/B review hidden and preview-gated', () => {
+    const page = PAGE_REGISTRY.find((item) => item.id === 'archive-ab-review');
+    expect(page.navigation.entryMode).toBe(ENTRY_MODES.HIDDEN);
+    expect(page.enabledBy).toBe('ENABLE_ARCHIVE_AB_REVIEW');
+    expect(buildAppRouteConfig({ 'archive-ab-review': 'review' }, {
+      ...FEATURES,
+      ENABLE_ARCHIVE_AB_REVIEW: false,
+    }).some((route) => route.path === '/developer/archive-ab-review')).toBe(false);
+    expect(buildAppRouteConfig({ 'archive-ab-review': 'review' }, {
+      ...FEATURES,
+      ENABLE_ARCHIVE_AB_REVIEW: true,
+    }).some((route) => route.path === '/developer/archive-ab-review')).toBe(true);
+  });
+
   it('resolves route-aware Copilot context from the registry', () => {
     const projectManagement = resolveRegisteredPage('/project-management/demo');
 

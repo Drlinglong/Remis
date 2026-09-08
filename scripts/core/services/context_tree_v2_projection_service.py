@@ -34,15 +34,6 @@ class ContextTreeV2ProjectionService:
         projected: list[ProjectedUnitRoute] = []
         unresolved: list[UnresolvedFragmentReference] = []
         for route in routes:
-            if route.route != "narrative":
-                projected.append(ProjectedUnitRoute(
-                    local_unit_id=route.local_unit_id,
-                    route=route.route,
-                    fragment_ids=[],
-                    group_ids=[],
-                    receives_event_context=False,
-                ))
-                continue
             group_ids: set[str] = set()
             unresolved_ids: list[str] = []
             for fragment_id in route.fragment_ids:
@@ -66,7 +57,14 @@ class ContextTreeV2ProjectionService:
                 fragment_ids=list(route.fragment_ids),
                 group_ids=sorted(group_ids),
                 unresolved_fragment_ids=unresolved_ids,
-                receives_event_context=bool(group_ids) and not unresolved_ids,
+                receives_event_context=(
+                    route.delivery_route == "event"
+                    and bool(group_ids)
+                    and not unresolved_ids
+                ),
+                content_role=route.content_role,
+                delivery_route=route.delivery_route,
+                summary=route.summary,
             ))
         return TreeProjectionResult(
             unit_routes=projected,

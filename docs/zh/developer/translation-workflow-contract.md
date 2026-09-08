@@ -75,6 +75,11 @@ Paradox key、变量、格式、编码和目录结构。
   `archive_translated_results()`。
 - 现有 `test_finalize_failed_file_writes_fallback_without_success_side_effects` 锁住了文件级
   “可写输出但不写归档”的边界。
+- 初次翻译每个成功且被接受的 batch 会先原子写入 task-owned checkpoint，再等待完整文件重建；
+  恢复时按稳定相对路径、batch 范围、源条目映射和源 hash 命中，失败或 fallback batch 不落盘。
+- 完整文件 checkpoint 仍保留累计进度并可升级；本次批次级恢复不扩展到增量翻译。
+- checkpoint 的读取和写入是两个独立开关：新任务默认不读取旧槽位，但仍写入本次接受的 batch；
+  项目级清空接口只在没有活动翻译时可用，并会清理所有目标语言槽位。
 
 ### 当前差异
 
@@ -189,6 +194,9 @@ Paradox key、变量、格式、编码和目录结构。
 ### 已有测试应长期保留
 
 - 初次翻译成功文件写 checkpoint、项目状态和归档；
+- 初次翻译中途强退后，已保存 batch 不重复调用 Provider，缺失 batch 会重试；
+- 新任务默认从头执行但仍产生 checkpoint；显式打开“读取此前 checkpoint”后才读取项目旧槽位；
+- 活动任务清空 checkpoint 必须被后端拒绝，非活动任务清空后所有目标语言槽位均不可恢复；
 - 初次翻译失败文件写回退输出，但不写 checkpoint、项目成功状态和归档；
 - provider 失败携带 `fallback_to_source` 结构化警告；
 - 增量结果向任务保存 warning 数量和输出路径。

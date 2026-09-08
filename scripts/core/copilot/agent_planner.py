@@ -24,7 +24,7 @@ class TranslationRecommendation(BaseModel):
     batch_size_limit: int = Field(ge=1, le=1000)
     concurrency_limit: int = Field(ge=1, le=100)
     rpm_limit: int = Field(ge=1, le=100000)
-    use_resume: bool = True
+    use_resume: bool = False
     use_main_glossary: bool = True
     embedded_workshop_enabled: bool = True
     warnings: list[str] = Field(default_factory=list)

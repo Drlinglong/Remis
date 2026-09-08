@@ -180,13 +180,15 @@ describe('InitialTranslation start contract', () => {
       if (url === '/api/glossaries/vic3') {
         return Promise.resolve({ data: [] });
       }
+      if (url === '/api/projects/project-cn/translation-recovery') {
+        return Promise.resolve({
+          data: { task_id: null, status: 'none', checkpoint: {}, allowed_actions: [] },
+        });
+      }
       return Promise.reject(new Error(`Unhandled GET ${url}`));
     });
 
     apiPostMock.mockImplementation((url) => {
-      if (url === '/api/translation/checkpoint-status') {
-        return Promise.resolve({ data: { exists: false } });
-      }
       if (url === '/api/translate/start') {
         return Promise.resolve({ data: { task_id: 'task-1' } });
       }

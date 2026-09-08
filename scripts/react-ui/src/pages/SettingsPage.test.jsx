@@ -124,4 +124,15 @@ describe('SettingsPage database recovery controls', () => {
     fireEvent.click(screen.getByRole('button', { name: '放弃改动并离开' }));
     await waitFor(() => expect(screen.getByRole('tab', { name: 'settings_general' })).toHaveAttribute('aria-selected', 'true'));
   });
+
+  it('opens a separate confirmation for restoring Demo fixtures', async () => {
+    renderSettings();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'btn_reset_demo' }));
+
+    expect(await screen.findByText('modal_reset_demo_confirm_text')).toBeInTheDocument();
+    expect(screen.getByText('modal_reset_demo_safe_2')).toBeInTheDocument();
+    expect(api.post).not.toHaveBeenCalledWith('/api/system/reset-project-db');
+    expect(api.post).not.toHaveBeenCalledWith('/api/system/reset-demo-state');
+  });
 });

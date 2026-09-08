@@ -14,6 +14,7 @@ from scripts.core.services.context_tree_v2_contract import ContextTreeV2Extracti
 from scripts.core.services.context_tree_v2_extraction_service import (
     ContextTreeV2ExtractionService,
 )
+from scripts.core.services.context_research_read_metrics import CorpusReadMeter
 from scripts.core.services.provider_runtime import (
     ProviderRuntimeSnapshot,
     handler_from_runtime,
@@ -30,11 +31,19 @@ class ContextTreeV2ExtractionExecutionService:
         checkpoints: Any,
         status_service: Any,
         usage_ledger: Any,
+        extractor_factory: Callable[[Any], ContextTreeV2ExtractionService] | None = None,
+        corpus_read_meter: CorpusReadMeter | None = None,
     ) -> None:
         self.handler_factory = handler_factory
         self.checkpoints = checkpoints
         self.status_service = status_service
         self.usage_ledger = usage_ledger
+        # Keep the default unset until execution.  Binding the class in the
+        # function signature (or constructor) freezes the original
+        # implementation and bypasses the module seam used by embedders and
+        # compatibility tests.
+        self.extractor_factory = extractor_factory
+        self.corpus_read_meter = corpus_read_meter
 
     def execute(
         self,
@@ -46,6 +55,7 @@ class ContextTreeV2ExtractionExecutionService:
         task_id: str | None,
         target_language: str,
         reasoning_language: str,
+        description_language: str | None = None,
         analysis_run: Any | None,
         api_provider: str,
         model_name: str | None,
@@ -64,16 +74,34 @@ class ContextTreeV2ExtractionExecutionService:
             _, chunk = item
             handler = self._handler(api_provider, model_name, runtime)
             try:
-                return ContextTreeV2ExtractionService(handler).extract_structured(
-                    list(chunk.source_items),
-                    scope=scope,
-                    game_name=game_name,
-                    target_language=target_language,
-                    reasoning_language=reasoning_language,
-                    core_units=chunk.core_units,
-                    edge_units=chunk.edge_units,
-                    chunk_edge_metadata=chunk.edge_metadata,
+                extractor_factory = self.extractor_factory or ContextTreeV2ExtractionService
+                observation = self._chunk_read_result(chunk)
+                if self.corpus_read_meter is not None:
+                    self.corpus_read_meter.observe(
+                        "read_units", observation,
+                        actor_role="production_context_extraction",
+                    )
+                extract_kwargs = {
+                    "scope": scope,
+                    "game_name": game_name,
+                    "target_language": target_language,
+                    "reasoning_language": reasoning_language,
+                    "core_units": chunk.core_units,
+                    "edge_units": chunk.edge_units,
+                    "chunk_edge_metadata": chunk.edge_metadata,
+                }
+                if "context_workflow_v3" in getattr(extractor_factory, "__module__", ""):
+                    extract_kwargs["description_language"] = description_language
+                result = extractor_factory(handler).extract_structured(
+                    list(chunk.source_items), **extract_kwargs,
                 )
+                if self.corpus_read_meter is not None:
+                    for _ in range(int(result.diagnostics.get("repair_count", 0))):
+                        self.corpus_read_meter.observe(
+                            "read_units", observation,
+                            actor_role="production_context_extraction_repair",
+                        )
+                return result
             finally:
                 self.usage_ledger.capture(handler, "tree_v2_extraction")
 
@@ -178,6 +206,16 @@ class ContextTreeV2ExtractionExecutionService:
     @staticmethod
     def _source_ids(chunk: ContextUnitChunk) -> list[str]:
         return [item.source_item_id for item in chunk.source_items]
+
+    @staticmethod
+    def _chunk_read_result(chunk: ContextUnitChunk) -> dict[str, Any]:
+        return {"units": [{
+            "ownership": "owned" if unit in chunk.core_units else "context_only",
+            "entries": [{
+                "source_item_id": item.source_item_id,
+                "text": item.source_text,
+            } for item in unit.items],
+        } for unit in (*chunk.core_units, *chunk.edge_units)]}
 
 
 __all__ = ["ContextTreeV2ExtractionExecutionService"]

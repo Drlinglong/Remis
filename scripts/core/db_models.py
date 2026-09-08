@@ -145,6 +145,10 @@ class SteamWorkshopAssetVersion(SQLModel, table=True):
             "status IN ('candidate', 'selected')",
             name="ck_steam_workshop_asset_status",
         ),
+        CheckConstraint(
+            "sequence > 0",
+            name="ck_steam_workshop_sequence_positive",
+        ),
     )
 
     version_id: str = Field(primary_key=True)

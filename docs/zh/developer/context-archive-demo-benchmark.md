@@ -1,9 +1,13 @@
 # Context Archive Demo 金标评分
 
-Remis 维护两套冻结的 Context Archive demo：
+Remis 维护两套路由感知的 Context Archive demo 金标：
 
-- `horizon-signal`：视界信号，95 local units；
-- `toxic-god`：毒圣骑士，201 local units。
+- `horizon-signal`：视界信号，95 local units（58 事件正文 / 37 支持性文本）；
+- `toxic-god`：毒圣骑士，201 local units（69 事件正文 / 132 支持性文本）。
+
+`primary_member` 表示事件正文；`reference_asset` 表示 UI 中独立的
+Supporting text，不属于事件链，也不接收事件上下文。旧版
+`supporting_context` 是事件链投递角色，不等同于 Supporting text。
 
 评分器只读取 Remis 数据库和私有 `remis-aventine-benchmark-corpus`，不会调用模型、修改项目或发布档案。
 
@@ -78,7 +82,7 @@ $env:REMIS_AVENTINE_BENCHMARK_CORPUS = 'J:\remis-aventine-benchmark-corpus'
 
 1. 新 run 使用完全相同的 fixture 和 gold；
 2. JSON/Markdown 报告已人工检查；
-3. 若 gold 有修改，在私有 corpus 中创建新日期版本并更新 SHA-256；
+3. 若 gold 有修改，在私有 corpus 中创建新日期版本并更新 SHA-256；当前路由感知版本为 `2026-09-01`；
 4. 不得为了提高单一指标，把 `theme_related` 或父故事元数据改成默认翻译注入。
 
 基线比较使用百分点差值；脚本不会自动把一次新结果提升为基线。

@@ -179,6 +179,36 @@ async def test_translation_plan_is_read_only_until_reserved(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_translation_plan_preserves_checkpoint_lineage_for_retry(monkeypatch):
+    async def fake_get_project(project_id):
+        return {
+            "project_id": project_id,
+            "name": "Example CN",
+            "source_language": "en",
+        }
+
+    async def fake_get_files(project_id):
+        return []
+
+    monkeypatch.setattr(workflow.project_manager, "get_project", fake_get_project)
+    monkeypatch.setattr(workflow.project_manager, "get_project_files", fake_get_files)
+
+    plan = await workflow.create_translation_plan(
+        project_id="project-1",
+        target_lang_codes=["zh-CN"],
+        api_provider="lm_studio",
+        model="local-model",
+        use_resume=True,
+        resume_from_task_id="task-previous",
+        expected_checkpoint_revision=7,
+    )
+
+    assert plan["execution_args"]["use_resume"] is True
+    assert plan["execution_args"]["resume_from_task_id"] == "task-previous"
+    assert plan["execution_args"]["expected_checkpoint_revision"] == 7
+
+
+@pytest.mark.asyncio
 async def test_translation_plan_rejects_source_as_target(monkeypatch):
     async def fake_get_project(project_id):
         return {"project_id": project_id, "name": "Example", "source_language": "en"}

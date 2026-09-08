@@ -110,6 +110,37 @@ const getSummary = (raw, fallback = '') => String(firstValue(
     fallback,
 ) || '');
 
+const summaryTitle = (summary, maxLength = 30) => {
+    const firstLine = String(summary || '')
+        .split(/\r?\n/)
+        .map((line) => line.replace(/^\s*[-*•]+\s*/, '').trim())
+        .find(Boolean) || '';
+    const firstClause = firstLine.split(/[，,。；;！？!?]/, 1)[0].trim();
+    const title = firstClause.length >= 6 ? firstClause : firstLine;
+    if (title.length <= maxLength) return title;
+    return `${title.slice(0, maxLength - 1).trim()}…`;
+};
+
+const getDisplayLabel = (raw, fallback, summary = '', derivedFallback = '') => {
+    const label = getLabel(raw, fallback);
+    if (label.localeCompare(String(fallback), undefined, { sensitivity: 'base' }) !== 0) {
+        return label;
+    }
+    return summaryTitle(summary) || derivedFallback || label;
+};
+
+const normalizeUniversalContext = (raw) => {
+    const value = typeof raw === 'string' ? { text: raw } : asObject(raw);
+    const text = String(firstValue(value.text, value.summary) || '').trim();
+    if (!text) return null;
+    return {
+        text,
+        sourceItemIds: asIdList(firstValue(value.source_item_ids, value.sourceItemIds)),
+        externalSourceKinds: asIdList(firstValue(value.external_source_kinds, value.externalSourceKinds)),
+        generation: String(firstValue(value.generation, 'unknown')),
+    };
+};
+
 const unwrapTreePayload = (payload) => {
     const value = asObject(payload);
     return asObject(firstValue(
@@ -138,16 +169,47 @@ const normalizeUnit = (raw, index) => {
     };
 };
 
+const normalizeSourceEvidence = (raw, index) => {
+    const value = asObject(raw);
+    const sourceRef = String(firstValue(
+        value.source_ref,
+        value.sourceRef,
+        value.relative_path,
+        value.path,
+        value.batch_source,
+    ) || '');
+    const itemKey = String(firstValue(value.item_key, value.itemKey, value.key) || '');
+    const localUnitId = String(firstValue(value.local_unit_id, value.localUnitId) || '');
+    const sourceItemId = String(firstValue(value.source_item_id, value.sourceItemId) || '');
+    return {
+        id: sourceItemId || `${localUnitId || 'source'}-${index + 1}`,
+        localUnitId,
+        label: [sourceRef, itemKey].filter(Boolean).join('::') || sourceItemId || localUnitId,
+        text: String(firstValue(
+            value.full_source_text,
+            value.fullSourceText,
+            value.source_text,
+            value.sourceText,
+            value.excerpt,
+            value.text,
+        ) || ''),
+        sourceOrder: Number.isFinite(Number(value.source_order))
+            ? Number(value.source_order)
+            : index,
+    };
+};
+
 const normalizeFragment = (raw, index, forcedRoute = null) => {
     const value = asObject(raw);
     const metadata = asObject(value.metadata);
     const id = asId(value) || `fragment-${index + 1}`;
     const route = forcedRoute || normalizeRawRoute(value);
     const coverage = asObject(firstValue(value.coverage, metadata.coverage));
+    const summary = getSummary(value);
     return {
         id,
-        label: getLabel(value, id),
-        summary: getSummary(value, id),
+        label: getDisplayLabel(value, id, summary),
+        summary,
         unitIds: asIdList(firstValue(
             value.unit_ids,
             value.unitIds,
@@ -169,6 +231,13 @@ const normalizeFragment = (raw, index, forcedRoute = null) => {
         sourceRefs: asList(firstValue(value.source_refs, value.sourceRefs, metadata.source_refs))
             .map((item) => String(asId(item) || item || '').trim())
             .filter(Boolean),
+        sourceEvidence: asList(firstValue(
+            value.source_evidence_refs,
+            value.sourceEvidenceRefs,
+            metadata.source_evidence_refs,
+        ))
+            .map(normalizeSourceEvidence)
+            .sort((left, right) => left.sourceOrder - right.sourceOrder || left.id.localeCompare(right.id)),
         metadata,
     };
 };
@@ -193,14 +262,15 @@ const normalizeReferenceAsset = (raw, index) => {
     };
 };
 
-const normalizeStory = (raw, index) => {
+const normalizeStory = (raw, index, projectTitle = '') => {
     const value = asObject(raw);
     const id = firstValue(value.story_id, value.storyId, asId(value))
         || `story-${slugify(getLabel(value, index + 1))}`;
+    const summary = getSummary(value);
     return {
         id: String(id),
-        label: getLabel(value, String(id)),
-        summary: getSummary(value),
+        label: getDisplayLabel(value, String(id), summary, projectTitle),
+        summary,
         groupIds: asIdList(firstValue(value.group_ids, value.groupIds, value.groups)),
     };
 };
@@ -209,11 +279,12 @@ const normalizeGroup = (raw, index) => {
     const value = asObject(raw);
     const id = firstValue(value.group_id, value.groupId, asId(value))
         || `group-${slugify(getLabel(value, index + 1))}`;
+    const summary = getSummary(value);
     return {
         id: String(id),
         storyId: firstValue(value.story_id, value.storyId, value.parent_story_id, value.parentStoryId) || null,
-        label: getLabel(value, String(id)),
-        summary: getSummary(value),
+        label: getDisplayLabel(value, String(id), summary),
+        summary,
         fragmentIds: asIdList(firstValue(
             value.fragment_ids,
             value.fragmentIds,
@@ -301,6 +372,11 @@ export const getFirstNarrativeUnitId = (tree) => getTreeUnitOptions(tree)[0]?.id
 
 export const normalizeArchiveTree = (payload) => {
     const raw = unwrapTreePayload(payload);
+    const projectTitle = getLabel(raw, firstValue(raw.project_title, raw.project_name, 'Context archive tree'));
+    const universalContext = normalizeUniversalContext(firstValue(
+        raw.universal_translation_context,
+        raw.universalTranslationContext,
+    ));
     const rawStories = asList(firstValue(raw.stories, raw.story_catalog, raw.parent_stories));
     const nestedGroups = [];
     rawStories.forEach((story) => {
@@ -316,6 +392,13 @@ export const normalizeArchiveTree = (payload) => {
     const fragments = {};
     const fragmentSources = asList(firstValue(raw.fragments, raw.local_fragments, raw.localFragments));
     fragmentSources.forEach((fragment, index) => addFragment(fragments, fragment, index));
+    const rawArchiveNarratives = asList(firstValue(
+        raw.archive_narratives,
+        raw.archiveNarratives,
+    ));
+    const archiveNarrativeIds = new Set(rawArchiveNarratives.map((fragment, index) => (
+        addFragment(fragments, fragment, fragmentSources.length + index, TREE_ROUTE.NO_CONTEXT)
+    )));
     rawGroups.forEach((group) => {
         asList(group?.fragments).forEach((fragment, index) => addFragment(fragments, fragment, index));
     });
@@ -339,7 +422,7 @@ export const normalizeArchiveTree = (payload) => {
 
     const storiesById = new Map();
     rawStories.forEach((story, index) => {
-        const normalized = normalizeStory(story, index);
+        const normalized = normalizeStory(story, index, projectTitle);
         if (!storiesById.has(normalized.id)) storiesById.set(normalized.id, normalized);
     });
     groupsById.forEach((group) => {
@@ -379,7 +462,9 @@ export const normalizeArchiveTree = (payload) => {
 
     const unresolvedIds = new Set(asIdList(raw.unresolved_fragment_ids || raw.unresolvedFragmentIds));
     Object.values(fragments).forEach((fragment) => {
-        if (fragment.route === TREE_ROUTE.REFERENCE_ASSET) return;
+        if (fragment.route === TREE_ROUTE.REFERENCE_ASSET
+            || fragment.route === TREE_ROUTE.NO_CONTEXT
+            || archiveNarrativeIds.has(fragment.id)) return;
         if (fragment.route === TREE_ROUTE.UNRESOLVED || !memberIds.has(fragment.id)) unresolvedIds.add(fragment.id);
     });
 
@@ -410,7 +495,8 @@ export const normalizeArchiveTree = (payload) => {
 
     const available = Boolean(
         payload && (rawStories.length || rawGroups.length || fragmentSources.length
-            || rawReferenceAssets.length || raw.unresolved_fragments || raw.unresolved_fragment_ids
+            || rawArchiveNarratives.length || rawReferenceAssets.length
+            || raw.unresolved_fragments || raw.unresolved_fragment_ids
             || raw.schema_version || raw.version),
     );
     return {
@@ -420,13 +506,15 @@ export const normalizeArchiveTree = (payload) => {
         treeId: firstValue(raw.tree_id, raw.treeId, null),
         releaseId: firstValue(raw.release_id, raw.releaseId, null),
         draftId: firstValue(raw.draft_id, raw.draftId, null),
-        title: getLabel(raw, firstValue(raw.project_title, raw.project_name, 'Context archive tree')),
+        title: projectTitle,
         projectSummary: String(firstValue(raw.project_summary, raw.summary, '') || ''),
+        universalTranslationContext: universalContext,
         stories: [...storiesById.values()],
         groups: [...groupsById.values()],
         fragments,
         units,
         referenceAssets: sortReferenceAssets(uniqueAssets),
+        archiveNarrativeIds: [...archiveNarrativeIds],
         unresolvedFragmentIds: [...unresolvedIds].filter((id) => Boolean(fragments[id])),
     };
 };

@@ -92,9 +92,21 @@ Use the detailed payload and status reference in
 
 ## Current boundary
 
-The Agent API intentionally reports pause and cancel as unsupported until the
-underlying workflow has safe cooperative stop boundaries. Codex must report
-that limitation rather than pretending a running task was paused.
+In the 3.2.0 stable and Agent Preview channels, the Agent API exposes
+approval-gated translation start, checkpoint resume, repair, export, and task
+cancel operations. Cancellation is cooperative and applies only to supported
+translation task kinds; it is not an immediate process kill. Pause remains
+unsupported because the runner has no safe cooperative pause boundary.
+
+Published context releases can be read through the Agent context endpoints.
+Direct Agent context-analysis planning/start is not exposed yet; use the normal
+Remis archive workflow and its Task Center approval gates. Archive removal is a
+separate approval-gated operation.
+
+Checkpoint resume is valid only when the persisted checkpoint is compatible
+with the current source/configuration snapshot. Repeating the same resume
+request with its idempotency key must return the existing child task rather than
+starting another translation.
 
 Interactive API documentation is available at `http://127.0.0.1:1453/docs`
 while the service is running.

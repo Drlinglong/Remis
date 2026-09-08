@@ -1,14 +1,19 @@
-"""Score a published context-tree-v2 archive against a legacy unit gold manifest."""
+"""Score a published context-tree-v2 archive against route-aware unit gold."""
 
 from __future__ import annotations
 
 import argparse
 import json
+import sys
 from collections import Counter, defaultdict
 from itertools import combinations
 from pathlib import Path
 from typing import Any
 from urllib.request import urlopen
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from scripts.core.repositories.context_tree_v2_repository import (
     ContextTreeV2Repository,
@@ -16,6 +21,14 @@ from scripts.core.repositories.context_tree_v2_repository import (
 
 
 DELIVERY_RELATIONS = frozenset({"primary_member", "supporting_context"})
+GOLD_ROUTE_BY_RELATION = {
+    "primary_member": "narrative",
+    "supporting_context": "narrative",
+    "theme_related": "no_context",
+    "parent_story_metadata": "no_context",
+    "reference_asset": "reference_asset",
+    "archive_narrative": "no_context",
+}
 
 
 def _ratio(numerator: int, denominator: int) -> float:
@@ -127,6 +140,11 @@ def score(tree: dict[str, Any], gold_document: dict[str, Any]) -> dict[str, Any]
         gold_row = gold[unit_id]
         prediction = predicted[unit_id]
         gold_delivery = gold_row["relation"] in DELIVERY_RELATIONS
+        expected_route = GOLD_ROUTE_BY_RELATION.get(gold_row["relation"])
+        if expected_route is None:
+            raise ValueError(
+                f"unsupported gold relation for {unit_id}: {gold_row['relation']}"
+            )
         delivered = prediction["delivered"]
         mapped_chains = {mapping.get(group_id) for group_id in prediction["group_ids"]}
         rows.append({
@@ -134,8 +152,12 @@ def score(tree: dict[str, Any], gold_document: dict[str, Any]) -> dict[str, Any]
             "group_key": gold_row["group_key"],
             "gold_chain": gold_row["chain"],
             "gold_relation": gold_row["relation"],
+            "expected_route": expected_route,
             "predicted_route": prediction["route"],
             "predicted_group_ids": prediction["group_ids"],
+            "route_verdict": (
+                "exact" if prediction["route"] == expected_route else "wrong_route"
+            ),
             "delivery_verdict": (
                 "correct_delivery" if gold_delivery and delivered
                 else "missed_delivery" if gold_delivery
@@ -151,6 +173,7 @@ def score(tree: dict[str, Any], gold_document: dict[str, Any]) -> dict[str, Any]
         })
     delivery = Counter(row["delivery_verdict"] for row in rows)
     chain = Counter(row["chain_verdict"] for row in rows)
+    routes = Counter(row["route_verdict"] for row in rows)
     tp, fp, fn = (
         delivery["correct_delivery"],
         delivery["unexpected_delivery"],
@@ -188,7 +211,7 @@ def score(tree: dict[str, Any], gold_document: dict[str, Any]) -> dict[str, Any]
             "unit_ids": sorted(unit_ids, key=lambda value: int(value.rsplit("_", 1)[1])),
         }
     return {
-        "benchmark_version": "legacy-gold-v1/tree-v2-projection-v1",
+        "benchmark_version": "route-aware-gold-v2/tree-v2-projection-v1",
         "tree_id": tree.get("tree_id"),
         "release_id": tree.get("release_id"),
         "gold_fixture": gold_document.get("fixture"),
@@ -209,6 +232,8 @@ def score(tree: dict[str, Any], gold_document: dict[str, Any]) -> dict[str, Any]
                 chain["correct"], chain["correct"] + chain["wrong_chain"] + chain["missing"],
             ),
             "strict_clustering_pairwise": _pairwise(rows),
+            "routes": dict(routes),
+            "route_accuracy": _ratio(routes["exact"], len(rows)),
             "primary_only": {
                 "unit_count": len(primary_rows),
                 "delivered": sum(
@@ -229,6 +254,7 @@ def score(tree: dict[str, Any], gold_document: dict[str, Any]) -> dict[str, Any]
             "missed_delivery": [row for row in rows if row["delivery_verdict"] == "missed_delivery"],
             "unexpected_delivery": [row for row in rows if row["delivery_verdict"] == "unexpected_delivery"],
             "wrong_chain": [row for row in rows if row["chain_verdict"] == "wrong_chain"],
+            "wrong_route": [row for row in rows if row["route_verdict"] == "wrong_route"],
         },
         "units": rows,
     }

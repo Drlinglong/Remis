@@ -18,6 +18,8 @@ def test_demo_catalog_keeps_gold_fixtures_separate():
     assert horizon.gold_path != toxic.gold_path
     assert horizon.expected_local_units == 95
     assert toxic.expected_local_units == 201
+    assert "2026-09-01" in horizon.gold_path
+    assert "2026-09-01" in toxic.gold_path
 
 
 def test_resolve_corpus_root_accepts_explicit_private_corpus(tmp_path: Path):
@@ -92,6 +94,49 @@ def test_select_latest_target_ignores_unlinked_legacy_release(tmp_path: Path):
     assert _select_latest_target(database, "snapshot-exact") == (
         "analysis_run",
         "persisted-run",
+    )
+
+
+def test_select_latest_target_skips_runs_without_final_aggregation(tmp_path: Path):
+    database = tmp_path / "context.sqlite"
+    connection = sqlite3.connect(database)
+    connection.executescript(
+        """
+        CREATE TABLE context_releases (
+            release_id TEXT PRIMARY KEY,
+            source_snapshot_hash TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            analysis_run_id TEXT
+        );
+        CREATE TABLE context_analysis_runs (
+            run_id TEXT PRIMARY KEY,
+            source_snapshot_hash TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        );
+        CREATE TABLE context_analysis_batches (
+            run_id TEXT NOT NULL,
+            phase TEXT NOT NULL,
+            status TEXT NOT NULL,
+            payload_json TEXT NOT NULL
+        );
+        INSERT INTO context_analysis_runs VALUES (
+            'scorable-run', 'snapshot-exact', '2026-08-04T01:00:00Z'
+        );
+        INSERT INTO context_analysis_runs VALUES (
+            'empty-newer-run', 'snapshot-exact', '2026-08-04T03:00:00Z'
+        );
+        INSERT INTO context_analysis_batches VALUES (
+            'scorable-run', 'aggregation', 'succeeded',
+            '{"assignment_batch":{"assignments":[{"local_unit_id":"unit_0"}]}}'
+        );
+        """
+    )
+    connection.commit()
+    connection.close()
+
+    assert _select_latest_target(database, "snapshot-exact") == (
+        "analysis_run",
+        "scorable-run",
     )
 
 

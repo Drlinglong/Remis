@@ -39,5 +39,12 @@ class SystemActionResponse(BaseModel):
     message: Optional[str] = None
 
 
+class DemoResetResponse(SystemActionResponse):
+    backup_root: Optional[str] = None
+    scopes: List[str] = Field(default_factory=list)
+    moved_path_count: int = 0
+    archived_task_count: int = 0
+
+
 class DatabaseFolderResponse(SystemActionResponse):
     database_file: str

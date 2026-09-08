@@ -169,3 +169,37 @@ async def test_independent_workshop_runtime_is_used_when_follow_primary_is_disab
     )
 
     assert handler_calls[0][0:2] == ("lm_studio", "workshop-model")
+
+
+@pytest.mark.asyncio
+async def test_embedded_progress_uses_agent_result_statuses(monkeypatch):
+    class FakeAgent:
+        async def fix_batch_loop(self, batch, *, game_id, target_lang_code):
+            return {
+                "results": [
+                    {"status": "SUCCESS"},
+                    {"status": "FAILED"},
+                    {"status": "REVIEW"},
+                ]
+            }
+
+    progress_events = []
+    results = await embedded_workshop_service._run_embedded_batches(
+        FakeAgent(),
+        [[{"key": "one"}, {"key": "two"}, {"key": "three"}]],
+        concurrency=1,
+        dispatch_interval=0,
+        game_profile={"id": "vic3"},
+        target_lang_info={"code": "zh-CN"},
+        initial_issue_count=3,
+        progress_callback=progress_events.append,
+    )
+
+    assert len(results) == 3
+    assert progress_events[-1]["workshop_progress"] == {
+        "detected_count": 3,
+        "processed_count": 3,
+        "fixed_count": 1,
+        "failed_count": 2,
+        "reflection_round": 1,
+    }

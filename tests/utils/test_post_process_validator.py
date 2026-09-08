@@ -1,11 +1,41 @@
 # tests/utils/test_post_process_validator.py
 import pytest
-from scripts.utils.post_process_validator import PostProcessValidator, ValidationLevel
+from scripts.utils.post_process_validator import BaseGameValidator, PostProcessValidator, ValidationLevel
 
 # Mock source_lang objects for testing
 SOURCE_LANG_ZH = {"code": "zh-CN", "name": "简体中文"}
 SOURCE_LANG_JA = {"code": "ja", "name": "日本語"}
 SOURCE_LANG_EN = {"code": "en", "name": "English"}
+
+
+def test_missing_rule_configuration_blocks_validation():
+    results = BaseGameValidator({}).validate_text("Translated text", line_number=7)
+
+    assert [result.code for result in results] == ["validation_rules_unavailable"]
+    assert results[0].level == ValidationLevel.ERROR
+
+
+def test_rule_exception_is_reported_as_blocking_result():
+    validator = BaseGameValidator({
+        "rules": [{"name": "broken", "check_function": "banned_chars"}],
+    })
+    validator.check_map["banned_chars"] = lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("boom"))
+
+    results = validator.validate_text("Translated text", line_number=8)
+
+    assert [result.code for result in results] == ["validation_rule_execution_failed"]
+    assert results[0].level == ValidationLevel.ERROR
+
+
+def test_unknown_rule_checker_is_reported_as_blocking_result():
+    validator = BaseGameValidator({
+        "rules": [{"name": "missing", "check_function": "not_registered"}],
+    })
+
+    results = validator.validate_text("Translated text", line_number=9)
+
+    assert [result.code for result in results] == ["validation_rule_unavailable"]
+    assert results[0].level == ValidationLevel.ERROR
 
 @pytest.fixture
 def validator():

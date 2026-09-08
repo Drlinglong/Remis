@@ -1,0 +1,352 @@
+{
+  "schema_version": 1,
+  "fixture_id": "vic3-format-repair-regression-v1",
+  "game_id": "victoria3",
+  "source_language": "en",
+  "target_languages": ["zh-CN", "fr", "pl", "tr", "ru"],
+  "cases": [
+    {
+      "id": "zh-placeholder-context",
+      "file": "localization/simp_chinese/format_repair_demo_l_simp_chinese.yml",
+      "key": "workshop_demo.placeholder_context:0",
+      "target_language": "zh-CN",
+      "kind": "repair",
+      "category": "semantic_token_loss",
+      "expected": "[TARGET_COUNTRY.GetName] 获得了 $ut_share_nuclear_power_research_name$，该项目来自 [INITIATOR_COUNTRY.GetName]。",
+      "deterministic_issue_expected": true
+    },
+    {
+      "id": "zh-bold-uppercase-split",
+      "file": "localization/simp_chinese/format_repair_demo_l_simp_chinese.yml",
+      "key": "workshop_demo.bold_upper:0",
+      "target_language": "zh-CN",
+      "kind": "repair",
+      "category": "tag_identity_drift",
+      "expected": "#BOLD 重要指示仍然可见。#!",
+      "deterministic_issue_expected": false
+    },
+    {
+      "id": "zh-blue-split",
+      "file": "localization/simp_chinese/format_repair_demo_l_simp_chinese.yml",
+      "key": "workshop_demo.blue:0",
+      "target_language": "zh-CN",
+      "kind": "repair",
+      "category": "tag_identity_drift",
+      "expected": "#blue 所选政策#! 已激活。",
+      "deterministic_issue_expected": false
+    },
+    {
+      "id": "zh-bold-lowercase-split",
+      "file": "localization/simp_chinese/format_repair_demo_l_simp_chinese.yml",
+      "key": "workshop_demo.bold_lower:0",
+      "target_language": "zh-CN",
+      "kind": "repair",
+      "category": "tag_identity_drift",
+      "expected": "#bold 历史背景#! 仍然可见。",
+      "deterministic_issue_expected": false
+    },
+    {
+      "id": "zh-italic-to-bold",
+      "file": "localization/simp_chinese/format_repair_demo_l_simp_chinese.yml",
+      "key": "workshop_demo.italic:0",
+      "target_language": "zh-CN",
+      "kind": "repair",
+      "category": "tag_identity_drift",
+      "expected": "#italic 斜体强调#! 仍然可见。",
+      "deterministic_issue_expected": false
+    },
+    {
+      "id": "zh-missing-closer",
+      "file": "localization/simp_chinese/format_repair_demo_l_simp_chinese.yml",
+      "key": "workshop_demo.warning:0",
+      "target_language": "zh-CN",
+      "kind": "repair",
+      "category": "tag_missing_closer",
+      "expected": "#warning 危险操作需要复核。#!",
+      "deterministic_issue_expected": true
+    },
+    {
+      "id": "zh-extra-closer",
+      "file": "localization/simp_chinese/format_repair_demo_l_simp_chinese.yml",
+      "key": "workshop_demo.extra_closer:0",
+      "target_language": "zh-CN",
+      "kind": "repair",
+      "category": "tag_extra_closer",
+      "expected": "#warning 危险操作#! 需要复核。",
+      "deterministic_issue_expected": true
+    },
+    {
+      "id": "zh-missing-variable",
+      "file": "localization/simp_chinese/format_repair_demo_l_simp_chinese.yml",
+      "key": "workshop_demo.variable:0",
+      "target_language": "zh-CN",
+      "kind": "repair",
+      "category": "variable_missing",
+      "expected": "将 $COUNT$ 个单位移动到 [TARGET.GetName]。",
+      "deterministic_issue_expected": true
+    },
+    {
+      "id": "zh-missing-newline",
+      "file": "localization/simp_chinese/format_repair_demo_l_simp_chinese.yml",
+      "key": "workshop_demo.newline_missing:0",
+      "target_language": "zh-CN",
+      "kind": "repair",
+      "category": "newline_missing",
+      "expected": "第一行。\\n第二行。",
+      "deterministic_issue_expected": false
+    },
+    {
+      "id": "zh-extra-newline",
+      "file": "localization/simp_chinese/format_repair_demo_l_simp_chinese.yml",
+      "key": "workshop_demo.newline_extra:0",
+      "target_language": "zh-CN",
+      "kind": "repair",
+      "category": "newline_extra",
+      "expected": "仅有第一行。",
+      "deterministic_issue_expected": false
+    },
+    {
+      "id": "zh-quote-control",
+      "file": "localization/simp_chinese/format_repair_demo_l_simp_chinese.yml",
+      "key": "workshop_demo.quote_control:0",
+      "target_language": "zh-CN",
+      "kind": "control",
+      "category": "quote_control",
+      "expected": "“乌托邦”档案已经准备好。",
+      "deterministic_issue_expected": false
+    },
+    {
+      "id": "zh-reasonable-name-merge",
+      "file": "localization/simp_chinese/format_repair_demo_l_simp_chinese.yml",
+      "key": "workshop_demo.reasonable_merge:0",
+      "target_language": "zh-CN",
+      "kind": "review",
+      "category": "reasonable_token_reduction",
+      "expected": "#blue [CHARACTER.GetFullName] 邀请其加入理事会。#!",
+      "deterministic_issue_expected": true,
+      "disposition": "accepted_reasonable_change"
+    },
+    {
+      "id": "zh-reasonable-pronoun",
+      "file": "localization/simp_chinese/format_repair_demo_l_simp_chinese.yml",
+      "key": "workshop_demo.reasonable_pronoun:0",
+      "target_language": "zh-CN",
+      "kind": "review",
+      "category": "reasonable_token_substitution",
+      "expected": "[TARGET_COUNTRY.GetName] 宣布将恢复。",
+      "deterministic_issue_expected": true,
+      "disposition": "accepted_reasonable_change"
+    },
+    {
+      "id": "zh-source-unbalanced",
+      "file": "localization/simp_chinese/format_repair_demo_l_simp_chinese.yml",
+      "key": "workshop_demo.source_unbalanced:0",
+      "target_language": "zh-CN",
+      "kind": "review",
+      "category": "source_format_anomaly",
+      "expected": "#tooltippable #tooltip:$BREAKDOWN_TAG$ 家园之外的人口接纳度较低。#!",
+      "deterministic_issue_expected": false,
+      "disposition": "source_issue_do_not_force_repair"
+    },
+    {
+      "id": "fr-blue-split",
+      "file": "localization/french/format_repair_demo_l_french.yml",
+      "key": "workshop_demo.blue:0",
+      "target_language": "fr",
+      "kind": "repair",
+      "category": "tag_identity_drift",
+      "expected": "#blue Politique sélectionnée#! active.",
+      "deterministic_issue_expected": false
+    },
+    {
+      "id": "fr-residual-chinese",
+      "file": "localization/french/format_repair_demo_l_french.yml",
+      "key": "workshop_demo.institute:0",
+      "target_language": "fr",
+      "kind": "repair",
+      "category": "foreign_language_residue",
+      "expected": "L'institut a achevé son premier jalon.",
+      "deterministic_issue_expected": false
+    },
+    {
+      "id": "fr-missing-newline",
+      "file": "localization/french/format_repair_demo_l_french.yml",
+      "key": "workshop_demo.french_multiline:0",
+      "target_language": "fr",
+      "kind": "repair",
+      "category": "newline_missing",
+      "expected": "La première ligne est complète.\\nLa deuxième ligne est complète.",
+      "deterministic_issue_expected": false
+    },
+    {
+      "id": "fr-mutated-variable",
+      "file": "localization/french/format_repair_demo_l_french.yml",
+      "key": "workshop_demo.variable_mutated:0",
+      "target_language": "fr",
+      "kind": "repair",
+      "category": "variable_mutated",
+      "expected": "Déplacez $COUNT$ unités vers [TARGET.GetName].",
+      "deterministic_issue_expected": true
+    },
+    {
+      "id": "fr-balanced-tag-control",
+      "file": "localization/french/format_repair_demo_l_french.yml",
+      "key": "workshop_demo.balanced_tag_control:0",
+      "target_language": "fr",
+      "kind": "control",
+      "category": "translated_text_inside_tag",
+      "expected": "#warning Une action dangereuse#! nécessite une vérification.",
+      "deterministic_issue_expected": false
+    },
+    {
+      "id": "pl-bold-split",
+      "file": "localization/polish/format_repair_demo_l_polish.yml",
+      "key": "workshop_demo.bold_lower:0",
+      "target_language": "pl",
+      "kind": "repair",
+      "category": "tag_identity_drift",
+      "expected": "#bold Kontekst historyczny#! pozostaje widoczny.",
+      "deterministic_issue_expected": false
+    },
+    {
+      "id": "pl-residual-russian",
+      "file": "localization/polish/format_repair_demo_l_polish.yml",
+      "key": "workshop_demo.development:0",
+      "target_language": "pl",
+      "kind": "repair",
+      "category": "foreign_language_residue",
+      "expected": "Program sfinansował nowe projekty.",
+      "deterministic_issue_expected": false
+    },
+    {
+      "id": "pl-extra-newline",
+      "file": "localization/polish/format_repair_demo_l_polish.yml",
+      "key": "workshop_demo.polish_multiline:0",
+      "target_language": "pl",
+      "kind": "repair",
+      "category": "newline_extra",
+      "expected": "Pierwsza linia.\\nDruga linia.",
+      "deterministic_issue_expected": false
+    },
+    {
+      "id": "pl-mutated-bracket-token",
+      "file": "localization/polish/format_repair_demo_l_polish.yml",
+      "key": "workshop_demo.bracket_token:0",
+      "target_language": "pl",
+      "kind": "repair",
+      "category": "bracket_token_mutated",
+      "expected": "Ten rekord kontroluje [TARGET.GetName].",
+      "deterministic_issue_expected": true
+    },
+    {
+      "id": "tr-italic-to-bold",
+      "file": "localization/turkish/format_repair_demo_l_turkish.yml",
+      "key": "workshop_demo.italic:0",
+      "target_language": "tr",
+      "kind": "repair",
+      "category": "tag_identity_drift",
+      "expected": "#italic İtalik vurgu#! görünür kalır.",
+      "deterministic_issue_expected": false
+    },
+    {
+      "id": "tr-cyrillic-residue",
+      "file": "localization/turkish/format_repair_demo_l_turkish.yml",
+      "key": "workshop_demo.chemistry:0",
+      "target_language": "tr",
+      "kind": "repair",
+      "category": "foreign_language_residue",
+      "expected": "Yeni kimyasal ürün: Nitrofosfat.",
+      "deterministic_issue_expected": false
+    },
+    {
+      "id": "tr-missing-closer",
+      "file": "localization/turkish/format_repair_demo_l_turkish.yml",
+      "key": "workshop_demo.warning:0",
+      "target_language": "tr",
+      "kind": "repair",
+      "category": "tag_missing_closer",
+      "expected": "#warning Tehlikeli işlem inceleme gerektiriyor.#!",
+      "deterministic_issue_expected": true
+    },
+    {
+      "id": "tr-missing-newline",
+      "file": "localization/turkish/format_repair_demo_l_turkish.yml",
+      "key": "workshop_demo.turkish_multiline:0",
+      "target_language": "tr",
+      "kind": "repair",
+      "category": "newline_missing",
+      "expected": "İlk satır hazır.\\nİkinci satır hazır.",
+      "deterministic_issue_expected": false
+    },
+    {
+      "id": "ru-missing-dollar-closer",
+      "file": "localization/russian/format_repair_demo_l_russian.yml",
+      "key": "workshop_demo.variable_boundary:0",
+      "target_language": "ru",
+      "kind": "repair",
+      "category": "variable_boundary_damaged",
+      "expected": "Переместить $COUNT$ единиц в [TARGET.GetName].",
+      "deterministic_issue_expected": true
+    },
+    {
+      "id": "ru-extra-newline",
+      "file": "localization/russian/format_repair_demo_l_russian.yml",
+      "key": "workshop_demo.russian_multiline:0",
+      "target_language": "ru",
+      "kind": "repair",
+      "category": "newline_extra",
+      "expected": "Первая строка.\\nВторая строка.",
+      "deterministic_issue_expected": false
+    },
+    {
+      "id": "ru-blue-split",
+      "file": "localization/russian/format_repair_demo_l_russian.yml",
+      "key": "workshop_demo.blue:0",
+      "target_language": "ru",
+      "kind": "repair",
+      "category": "tag_identity_drift",
+      "expected": "#blue Выбранная политика#! активна.",
+      "deterministic_issue_expected": false
+    },
+    {
+      "id": "zh-invalid-key-one",
+      "file": "localization/simp_chinese/format_repair_demo_l_simp_chinese.yml",
+      "key": "workshop demo.invalid_key:0",
+      "target_language": "zh-CN",
+      "kind": "report_only",
+      "category": "invalid_key_report_only",
+      "expected": null,
+      "deterministic_issue_expected": true
+    },
+    {
+      "id": "zh-invalid-key-two",
+      "file": "localization/simp_chinese/format_repair_demo_l_simp_chinese.yml",
+      "key": "workshop demo.invalid_key_two:0",
+      "target_language": "zh-CN",
+      "kind": "report_only",
+      "category": "invalid_key_report_only",
+      "expected": null,
+      "deterministic_issue_expected": true
+    },
+    {
+      "id": "zh-invalid-key-three",
+      "file": "localization/simp_chinese/format_repair_demo_l_simp_chinese.yml",
+      "key": "workshop demo.invalid_key_three:0",
+      "target_language": "zh-CN",
+      "kind": "report_only",
+      "category": "invalid_key_report_only",
+      "expected": null,
+      "deterministic_issue_expected": true
+    },
+    {
+      "id": "zh-invalid-key-four",
+      "file": "localization/simp_chinese/format_repair_demo_l_simp_chinese.yml",
+      "key": "workshop demo.invalid_key_four:0",
+      "target_language": "zh-CN",
+      "kind": "report_only",
+      "category": "invalid_key_report_only",
+      "expected": null,
+      "deterministic_issue_expected": true
+    }
+  ]
+}

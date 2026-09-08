@@ -1,0 +1,6 @@
+l_french:
+ workshop_demo.blue:0 "#b lue Politique sélectionnée#! active."
+ workshop_demo.institute:0 "L'institut a achevé son premier 里程。"
+ workshop_demo.french_multiline:0 "La première ligne est complète. La deuxième ligne est complète."
+ workshop_demo.variable_mutated:0 "Déplacez $COUNTS$ unités vers [TARGET.GetName]."
+ workshop_demo.balanced_tag_control:0 "#warning Une action dangereuse#! nécessite une vérification."

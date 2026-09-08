@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 from scripts.core.services.translation_resource_policy import (
+    normalize_translation_context_mode,
     resolve_translation_resource_policy,
     resolve_translation_run_resources,
 )
@@ -32,6 +33,21 @@ def test_explicit_translation_context_modes_are_mutually_exclusive():
     assert glossaries.include_project_context is False
     assert archive.use_glossaries is True
     assert archive.include_project_context is True
+
+
+def test_legacy_default_mode_is_normalized_before_initial_and_incremental_readiness():
+    assert normalize_translation_context_mode(
+        None, legacy_use_main_glossary=True, legacy_use_project_context=True,
+    ) == "archive"
+    assert normalize_translation_context_mode(
+        None, legacy_use_main_glossary=True, legacy_use_project_context=False,
+    ) == "glossaries"
+    assert normalize_translation_context_mode(
+        None, legacy_use_main_glossary=False, legacy_use_project_context=False,
+    ) == "none"
+    assert normalize_translation_context_mode(
+        "none", legacy_use_main_glossary=True, legacy_use_project_context=True,
+    ) == "none"
 
 
 def test_none_mode_still_resolves_the_project_path_without_loading_glossaries():

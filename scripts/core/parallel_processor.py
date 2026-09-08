@@ -376,11 +376,8 @@ class ParallelProcessor:
         batch_progress_callback: Optional[Callable[[BatchTask], None]] = None,
         should_cancel: Optional[Callable[[], bool]] = None,
     ) -> Any: # Iterator[Tuple[str, List[str], List[Dict[str, Any]]]]
-        """
-        Stream processing of files.
-        Yields (filename, translated_texts, warnings) as soon as a file is completed.
-        """
-        # Buffer to hold incomplete file batches: {filename: {batch_index: BatchTask}}
+        """Yield each file as soon as all of its translated batches complete."""
+        # Buffer to hold incomplete file batches: {stable file identity: {batch_index: BatchTask}}
         file_buffers: Dict[str, Dict[int, BatchTask]] = {}
         # Track total batches expected per file: {filename: total_batches}
         file_batch_counts: Dict[str, int] = {}
@@ -400,11 +397,12 @@ class ParallelProcessor:
                 
                 chunk_size = self._resolve_chunk_size(file_task.provider_name)
                 texts = file_task.texts_to_translate
+                file_identity = file_task.file_path or file_task.filename
                 translation_indices = self._translation_entry_indices(file_task, len(texts))
                 total_batches = (len(texts) + chunk_size - 1) // chunk_size
-                file_batch_counts[file_task.filename] = total_batches
-                file_buffers[file_task.filename] = {}
-                file_warning_buffers[file_task.filename] = []
+                file_batch_counts[file_identity] = total_batches
+                file_buffers[file_identity] = {}
+                file_warning_buffers[file_identity] = []
                 
                 for i in range(0, len(texts), chunk_size):
                     batch_texts = texts[i:i + chunk_size]
@@ -420,7 +418,7 @@ class ParallelProcessor:
                     future = self._submit_guarded_batch(
                         executor, batch_task, translation_function, abort_event, should_cancel
                     )
-                    future_to_info[future] = (file_task.filename, batch_index, batch_task)
+                    future_to_info[future] = (file_identity, batch_index, batch_task)
                 return False, None
 
             # Bound pending batches because each future retains its FileTask.
@@ -444,7 +442,7 @@ class ParallelProcessor:
                             yield empty_result
                         else:
                             # Update pending count
-                            pending_batches_count += file_batch_counts[file_task.filename]
+                            pending_batches_count += file_batch_counts[file_task.file_path or file_task.filename]
                     except StopIteration:
                         done_consuming = True
                 
@@ -462,26 +460,27 @@ class ParallelProcessor:
                             abort_event.set()
                             self._cancel_pending(future_to_info)
                             raise ProcessingCancelledError("Translation cancelled by user.")
-                        filename, batch_index, batch_task = future_to_info.pop(future)
+                        file_identity, batch_index, batch_task = future_to_info.pop(future)
                         pending_batches_count -= 1
                         warnings = []
                         
                         processed_task, warnings = self._resolve_stream_batch_future(
-                            future, batch_task, filename, batch_index, abort_event, future_to_info)
+                            future, batch_task, batch_task.file_task.filename,
+                            batch_index, abort_event, future_to_info)
 
                         self._notify_batch_progress(batch_progress_callback, processed_task)
 
-                        if filename not in file_buffers:
+                        if file_identity not in file_buffers:
                             continue
-                            
-                        file_buffers[filename][batch_index] = processed_task
+
+                        file_buffers[file_identity][batch_index] = processed_task
                         if warnings:
-                            file_warning_buffers.setdefault(filename, []).extend(warnings)
+                            file_warning_buffers.setdefault(file_identity, []).extend(warnings)
                         
                         # Check if file is complete (all batches accounted for, even if failed)
-                        if len(file_buffers[filename]) == file_batch_counts[filename]:
+                        if len(file_buffers[file_identity]) == file_batch_counts[file_identity]:
                             # Assemble file
-                            sorted_batches = [file_buffers[filename][i] for i in range(file_batch_counts[filename])]
+                            sorted_batches = [file_buffers[file_identity][i] for i in range(file_batch_counts[file_identity])]
                             
                             # Get the FileTask from the first batch (all batches share the same FileTask reference)
                             # We need this to return the full context (original lines, etc.)
@@ -495,18 +494,18 @@ class ParallelProcessor:
                                     file_failed = True
                                 full_translated_texts.extend(task.translated_texts or [])
 
-                            file_warnings = file_warning_buffers.get(filename, [])
+                            file_warnings = file_warning_buffers.get(file_identity, [])
                             
                             if file_failed:
-                                self.logger.error(f"File {filename} incomplete or failed.")
+                                self.logger.error(f"File {file_task_ref.filename} incomplete or failed.")
                                 yield (file_task_ref, full_translated_texts, file_warnings, True) # Fourth item is 'failed' flag
                             else:
                                 yield (file_task_ref, full_translated_texts, file_warnings, False)
                             
                             # Cleanup
-                            del file_buffers[filename]
-                            del file_batch_counts[filename]
-                            file_warning_buffers.pop(filename, None)
+                            del file_buffers[file_identity]
+                            del file_batch_counts[file_identity]
+                            file_warning_buffers.pop(file_identity, None)
 
     def _collect_file_results(
         self,

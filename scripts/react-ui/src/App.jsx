@@ -46,6 +46,7 @@ const TaskDetailPage = lazy(() => import('./pages/TaskDetailPage'));
 const TaskHistoryPage = lazy(() => import('./pages/TaskHistoryPage'));
 const GlossaryHealthReviewPage = lazy(() => import('./pages/GlossaryHealthReviewPage'));
 const ModelArenaPage = lazy(() => import('./pages/ModelArenaPage'));
+const ArchiveABReviewPage = lazy(() => import('./pages/ArchiveABReviewPage'));
 const SteamWorkshopPage = lazy(() => import('./pages/SteamWorkshopPage'));
 
 const RouteFallback = () => (
@@ -67,6 +68,7 @@ const pageElements = {
     'project-tracking': <ProjectTrackingPage />,
     'incremental-translation': <IncrementalTranslationPage />,
     'model-arena': <ModelArenaPage />,
+    'archive-ab-review': <ArchiveABReviewPage />,
     'neologism-review': <NeologismReviewPage />,
     archives: <ArchivesPage />,
     'agent-workshop': <AgentWorkshopPage />,

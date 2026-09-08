@@ -13,11 +13,25 @@ const text = (t, key, fallback, options = {}) => {
 
 const sourceForUnit = (unit, index) => ({
     id: `${unit.id}-${index}`,
+    localUnitId: unit.id,
     label: unit.sourceRef || unit.label || unit.id,
     text: unit.sourceText || unit.summary || '',
 });
 
+const sourcesForFragment = (fragment, units) => {
+    const evidence = fragment?.sourceEvidence || [];
+    const coveredUnitIds = new Set(evidence.map((item) => item.localUnitId).filter(Boolean));
+    const fallbacks = (fragment?.unitIds || [])
+        .filter((unitId) => !coveredUnitIds.has(unitId))
+        .map((unitId, index) => sourceForUnit(
+            units[unitId] || { id: unitId, label: unitId },
+            evidence.length + index,
+        ));
+    return [...evidence, ...fallbacks];
+};
+
 const PublishedContextEventDetail = ({
+    focusTargetRef,
     tree,
     selectedFragmentId,
     selectedGroupId,
@@ -32,11 +46,18 @@ const PublishedContextEventDetail = ({
     const groupFragments = group
         ? group.fragmentIds.map((fragmentId) => tree.fragments[fragmentId]).filter(Boolean)
         : [];
-    const sources = fragment
-        ? fragment.unitIds.map((unitId, index) => sourceForUnit(tree.units[unitId] || { id: unitId, label: unitId }, index))
-        : [];
+    const sources = fragment ? sourcesForFragment(fragment, tree.units) : [];
     return (
-        <Paper className={styles.detailPanel} p="md" withBorder data-remis-surface="paper" data-testid="published-context-detail">
+        <Paper
+            ref={focusTargetRef}
+            id="published-context-detail"
+            tabIndex={-1}
+            className={styles.detailPanel}
+            p="md"
+            withBorder
+            data-remis-surface="paper"
+            data-testid="published-context-detail"
+        >
             <header className={styles.detailHeader}>
                 <div>
                     <Text className={styles.detailEyebrow}>{text(t, 'mod_archive.tree_v2.detail_eyebrow', 'EVENT DETAIL')}</Text>
@@ -98,6 +119,9 @@ const PublishedContextEventDetail = ({
                                 <option value={TREE_ROUTE.REFERENCE_ASSET}>
                                     {text(t, 'mod_archive.tree_v2.route_reference', 'Reference asset only — exclude from event chains')}
                                 </option>
+                                <option value={TREE_ROUTE.NO_CONTEXT}>
+                                    {text(t, 'mod_archive.tree_v2.route_archive_only', 'Archive narrative only — never deliver')}
+                                </option>
                                 <option value={TREE_ROUTE.UNRESOLVED}>
                                     {text(t, 'mod_archive.tree_v2.route_unresolved', 'Do not deliver yet — mark unresolved')}
                                 </option>
@@ -107,7 +131,7 @@ const PublishedContextEventDetail = ({
                     {!fragment && group && (
                         <section className={styles.chainDetailSection}>
                             <Text className={styles.sourceHeading}>{text(t, 'mod_archive.tree_v2.chain_fragments', 'Chain details')}</Text>
-                            <div className={styles.chainDetailList}>
+                            <div className={styles.chainDetailList} data-testid="published-context-chain-detail-list">
                                 {groupFragments.map((item, index) => (
                                     <button
                                         type="button"

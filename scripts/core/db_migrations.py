@@ -20,9 +20,13 @@ from scripts.core.db_models import (
     SteamWorkshopWorkspace,
 )
 from scripts.core.context_db_migrations import CONTEXT_DB_MIGRATIONS
+from scripts.core.task_idempotency_migration import add_task_idempotency_uniqueness
+from scripts.core.steam_workshop_sequence_migration import (
+    enforce_steam_workshop_sequence_constraint,
+)
 logger = logging.getLogger("remis_init")
 
-MAIN_DB_TARGET_VERSION = 22
+MAIN_DB_TARGET_VERSION = 25
 
 
 class UnsupportedDatabaseVersionError(RuntimeError):
@@ -705,6 +709,25 @@ def _migration_013_harden_bundled_seed_state(db_path: str) -> None:
         conn.commit()
 
 
+def _migration_023_add_translation_task_lifecycle(db_path: str) -> None:
+    """Persist exclusive project ownership for translation task lifecycles."""
+    with _connect(db_path) as conn:
+        conn.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS translation_project_locks (
+                project_id TEXT PRIMARY KEY,
+                task_id TEXT NOT NULL UNIQUE,
+                acquired_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY(task_id) REFERENCES background_tasks(task_id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS ix_translation_project_locks_task
+                ON translation_project_locks (task_id);
+            """
+        )
+        conn.commit()
+
+
 MAIN_DB_MIGRATIONS: list[tuple[int, str, Callable[[str], None]]] = [
     (1, "establish_managed_main_schema", _migration_001_establish_managed_main_schema),
     (2, "add_project_watches", _migration_002_add_project_watches),
@@ -719,7 +742,11 @@ MAIN_DB_MIGRATIONS: list[tuple[int, str, Callable[[str], None]]] = [
     (11, "add_steam_workshop_assets", _migration_011_add_steam_workshop_assets),
     (12, "track_bundled_seed_state", _migration_012_track_bundled_seed_state),
     (13, "harden_bundled_seed_state", _migration_013_harden_bundled_seed_state),
-] + CONTEXT_DB_MIGRATIONS
+] + CONTEXT_DB_MIGRATIONS + [
+    (23, "add_translation_task_lifecycle", _migration_023_add_translation_task_lifecycle),
+    (24, "add_task_idempotency_uniqueness", add_task_idempotency_uniqueness),
+    (25, "enforce_steam_workshop_sequence", enforce_steam_workshop_sequence_constraint),
+]
 
 
 def migrate_main_database(

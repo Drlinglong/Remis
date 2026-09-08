@@ -2,6 +2,7 @@
 
 RULES = {
   "game_id": "2",
+  "format_contract_id": "stellaris",
   "game_name": "Stellaris",
   "rules": [
     {
@@ -14,16 +15,16 @@ RULES = {
         "capture_group": 1
       }
     },
-    # {
-    #   "name": "non_ascii_in_dollar_var_key",
-    #   "check_function": "banned_chars",
-    #   "pattern": r"\$([^$\s]+)\$",
-    #   "level": "error",
-    #   "message_key": "validation_stellaris_dollar_var_key_non_ascii",
-    #   "params": {
-    #     "capture_group": 1
-    #   }
-    # },
+    {
+      "name": "non_ascii_in_dollar_var_key",
+      "check_function": "banned_chars",
+      "pattern": r"\$([^$\s]+)\$",
+      "level": "error",
+      "message_key": "validation_stellaris_dollar_var_key_non_ascii",
+      "params": {
+        "capture_group": 1
+      }
+    },
     {
       "name": "non_ascii_in_icon_tag_key",
       "check_function": "banned_chars",
@@ -62,9 +63,15 @@ RULES = {
       "level": "error",
       "message_key": "validation_variable_parity_mismatch",
       "params": {
-        "patterns": [r"\$[^$\s|]+\$", r"\[[^\]]+\]"],
+        "patterns": [r"\$[^$\s]+\$", r"\[[^\]]+\]"],
         "details_key": "validation_generic_variable_parity_details"
       }
+    },
+    {
+      "name": "structure_parity",
+      "check_function": "structure_parity",
+      "level": "error",
+      "message_key": "validation_format_structure_mismatch"
     }
   ]
 }

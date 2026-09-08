@@ -1,0 +1,5 @@
+l_polish:
+ workshop_demo.bold_lower:0 "#b old Kontekst historyczny#! pozostaje widoczny."
+ workshop_demo.development:0 "Program sfinansował nowe разработки."
+ workshop_demo.polish_multiline:0 "Pierwsza linia.\nDruga linia.\n"
+ workshop_demo.bracket_token:0 "Ten rekord kontroluje [TARGET.GetNameDef]."

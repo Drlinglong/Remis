@@ -383,6 +383,9 @@ def test_tree_v2_receives_resolved_context_concurrency():
     })
 
     assert captured["concurrency"] == 5
+    assert service.get_status("project-1")["workflow_telemetry"][
+        "source_snapshot_hash"
+    ] == "snapshot-1"
 
 
 def test_prompt_example_exposes_all_three_model_stages():
@@ -943,6 +946,10 @@ def test_narrative_release_has_metadata_traceability_summary_and_parent_diff(tmp
     assert report["coverage_and_contamination"]["parent_story_automatic_inheritance_count"] == 0
     assert release.metadata.analysis_config["analysis_report"] == report
     assert len(service.context_service.snapshots["release-1"]["delivery_memberships"]) == 2
+    telemetry = service.get_status("project-1")["workflow_telemetry"]
+    assert telemetry["analysis_run_id"] is None
+    assert telemetry["source_snapshot_hash"] == first["source_snapshot_hash"]
+    assert telemetry["publication_status"] == "published"
     first_sources = set(repo.sources)
 
     source.write_text('l_english:\n first_key:0 "The Republic appoints a consul."\n', encoding="utf-8")

@@ -13,4 +13,11 @@ describe('TaskRunner semantic surface contract', () => {
       /<Paper\s+[\s\S]*?bg=\{theme\.colors\.dark\[7\]\}[\s\S]*?data-remis-surface="elevated"/,
     );
   });
+
+  it('renders cancelled and interrupted tasks as terminal instead of active heartbeats', () => {
+    expect(taskRunnerSource).toContain(
+      'isTerminalTaskStatus(normalizedStatus) && !isDoneWithOutput',
+    );
+    expect(taskRunnerSource).toMatch(/\{isTerminalWithoutOutput \? \([\s\S]*?<Title/);
+  });
 });

@@ -29,6 +29,10 @@ ShortText = Annotated[str, Field(min_length=1, max_length=MAX_SUMMARY_LENGTH)]
 LabelText = Annotated[str, Field(min_length=1, max_length=MAX_LABEL_LENGTH)]
 
 UnitRouteKind = Literal["reference_asset", "narrative", "no_context"]
+ContentRole = Literal[
+    "event_narrative", "background_narrative", "static_reference", "utility_or_noise",
+]
+DeliveryRoute = Literal["event", "reference", "none"]
 UnresolvedReferenceKind = Literal[
     "fragment", "fragment_edge", "group", "story", "unit_route", "source_evidence"
 ]
@@ -231,6 +235,28 @@ class UnitRoute(_ExternalContract):
     entity_evidence: tuple[EntityEvidenceReference, ...] = ()
     entity_digests: tuple[EntityDigest, ...] = ()
     entity_summary: dict[str, Any] = Field(default_factory=dict)
+    content_role: ContentRole | None = None
+    delivery_route: DeliveryRoute | None = None
+    summary: str | None = Field(default=None, max_length=1000)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _derive_legacy_axes(cls, value: Any) -> Any:
+        if not isinstance(value, dict):
+            return value
+        normalized = dict(value)
+        route = normalized.get("route", normalized.get("route_kind"))
+        normalized.setdefault("content_role", {
+            "narrative": "event_narrative",
+            "reference_asset": "static_reference",
+            "no_context": "utility_or_noise",
+        }.get(route))
+        normalized.setdefault("delivery_route", {
+            "narrative": "event",
+            "reference_asset": "reference",
+            "no_context": "none",
+        }.get(route))
+        return normalized
 
     @field_validator("fragment_ids")
     @classmethod
@@ -241,8 +267,8 @@ class UnitRoute(_ExternalContract):
 
     @model_validator(mode="after")
     def _keep_reference_assets_out_of_event_context(self) -> "UnitRoute":
-        if self.route != "narrative" and self.fragment_ids:
-            raise ValueError("reference_asset and no_context routes cannot carry fragment IDs")
+        if self.content_role != "event_narrative" and self.fragment_ids:
+            raise ValueError("only event_narrative content can carry fragment IDs")
         return self
 
 

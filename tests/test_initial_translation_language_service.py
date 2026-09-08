@@ -1,4 +1,6 @@
 import pytest
+from types import SimpleNamespace
+from unittest.mock import MagicMock
 
 from scripts.core.services import initial_translation_language_service as language_service
 
@@ -82,7 +84,11 @@ def _run_language(
     monkeypatch.setattr(language_service, "progress_log_bridge", lambda logger: _null_context(calls, "progress_log"))
     monkeypatch.setattr(language_service, "log_batch_warnings", lambda *args: calls.append(("warnings", args)))
     monkeypatch.setattr(language_service, "log_recovered_retries", lambda *args: calls.append(("retries", args)))
-    monkeypatch.setattr(language_service, "finalize_translated_file", lambda *args: calls.append(("finalize_file", args)))
+    monkeypatch.setattr(
+        language_service,
+        "finalize_translated_file",
+        lambda *args, **kwargs: calls.append(("finalize_file", args, kwargs)),
+    )
     monkeypatch.setattr(language_service, "finalize_language_run", lambda *args, **kwargs: calls.append(("postprocess", args)) or ["tag"])
     monkeypatch.setattr(language_service, "export_workshop_issues_for_language", lambda *args, **kwargs: calls.append(("export", args, kwargs)))
     monkeypatch.setattr(language_service, "run_embedded_workshop_for_language", lambda *args, **kwargs: calls.append(("workshop", args, kwargs)))
@@ -206,3 +212,35 @@ def test_success_persists_glossary_evidence_and_separates_recovered_retry(monkey
     retry_call = next(call for call in calls if call[0] == "retries")
     assert len(warning_call[1][1]) == 3
     assert len(retry_call[1][1]) == 1
+
+
+def test_successful_batch_is_checkpointed_when_old_reads_are_disabled():
+    checkpoint = SimpleNamespace(
+        read_enabled=False,
+        resume_enabled=False,
+        mark_batch_completed=MagicMock(),
+    )
+    batch_task = SimpleNamespace(
+        failed=False,
+        fell_back_to_source=False,
+        batch_index=0,
+        start_index=0,
+        end_index=1,
+        texts=["Hello"],
+        translated_texts=["你好"],
+        warnings=[],
+        file_task=SimpleNamespace(
+            filename="demo.yml",
+            file_path="localization/demo.yml",
+            translation_entry_indices=[0],
+            texts_to_translate=["Hello"],
+        ),
+    )
+
+    language_service._persist_checkpoint_batch(
+        checkpoint,
+        batch_task,
+        {"completed_batches": 1, "successful_batches": 1, "failed_batches": 0},
+    )
+
+    checkpoint.mark_batch_completed.assert_called_once()

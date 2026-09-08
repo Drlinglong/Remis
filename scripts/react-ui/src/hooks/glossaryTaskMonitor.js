@@ -1,9 +1,6 @@
-export const TERMINAL_GLOSSARY_TASK_STATUSES = new Set([
-  'completed',
-  'failed',
-  'cancelled',
-  'interrupted',
-]);
+import { TERMINAL_TASK_STATUSES } from '../utils/taskStatus';
+
+export const TERMINAL_GLOSSARY_TASK_STATUSES = TERMINAL_TASK_STATUSES;
 
 const defaultWaitForNext = (delayMs) => (
   new Promise((resolve) => window.setTimeout(resolve, delayMs))

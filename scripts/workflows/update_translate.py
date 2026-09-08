@@ -136,14 +136,14 @@ async def run_incremental_update(
     use_project_context: bool = False, context_release_id: Optional[str] = None,
     context_character_budget: int = 4000, context_service: Any = None,
     snapshot_service: Any = None,
-    translation_context_mode: Optional[str] = None,
+    translation_context_mode: Optional[str] = None, stale_choice: Optional[str] = None,
+    stale_acknowledgement: Optional[Dict[str, Any]] = None,
     provider_runtime: Any = None,
 ) -> Dict[str, Any]:
     """Run the incremental translation workflow for multiple target languages."""
     project = await project_manager.get_project(project_id)
     if not project:
         return {"status": "error", "message": f"Project {project_id} not found"}
-
     source_path = custom_source_path or project['source_path']
     project_name = project['name']
     target_codes_str = ", ".join([lang['code'] for lang in target_lang_infos])
@@ -172,7 +172,7 @@ async def run_incremental_update(
             "summary": {"total": 0, "new": 0, "changed": 0, "unchanged": 0}
         }
 
-    context_selection, overall_warnings = prepare_and_require_workflow_context(prepare_context_with_warnings, (project_id, current_files_data, use_project_context or translation_context_mode == "archive", context_release_id, context_character_budget, context_service, snapshot_service), translation_context_mode)
+    context_selection, overall_warnings = prepare_and_require_workflow_context(prepare_context_with_warnings, (project_id, current_files_data, use_project_context or translation_context_mode == "archive", context_release_id, context_character_budget, context_service, snapshot_service), translation_context_mode, {"stale_choice": stale_choice, "stale_acknowledgement": stale_acknowledgement})
     is_multilang = len(target_lang_infos) > 1
     shared_output_dir = None
     shared_output_folder_name = None

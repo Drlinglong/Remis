@@ -2,6 +2,7 @@
 
 RULES = {
   "game_id": "4",
+  "format_contract_id": "hoi4",
   "game_name": "Hearts of Iron IV",
   "rules": [
     {
@@ -24,16 +25,16 @@ RULES = {
         "capture_group": 1
       }
     },
-    # {
-    #   "name": "non_ascii_in_nested_string_key",
-    #   "check_function": "banned_chars",
-    #   "pattern": r"\$([^$\s|]+)\$",
-    #   "level": "error",
-    #   "message_key": "validation_hoi4_nested_string_key_non_ascii",
-    #   "params": {
-    #     "capture_group": 1
-    #   }
-    # },
+    {
+      "name": "non_ascii_in_nested_string_key",
+      "check_function": "banned_chars",
+      "pattern": r"\$([^$\s]+)\$",
+      "level": "error",
+      "message_key": "validation_hoi4_nested_string_key_non_ascii",
+      "params": {
+        "capture_group": 1
+      }
+    },
     {
       "name": "non_ascii_in_icon_tag_key",
       "check_function": "banned_chars",
@@ -74,6 +75,12 @@ RULES = {
         "end_tag_string": "§!",
         "details_key": "validation_generic_color_tags_count"
       }
+    },
+    {
+      "name": "structure_parity",
+      "check_function": "structure_parity",
+      "level": "error",
+      "message_key": "validation_format_structure_mismatch"
     }
   ]
 }

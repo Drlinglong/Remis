@@ -120,5 +120,8 @@ class TranslationPlanInput(BaseModel):
     use_resume: bool = True
     use_main_glossary: bool = True
     translation_context_mode: Literal["none", "glossaries", "archive"] = "archive"
+    context_release_id: str | None = None
+    stale_choice: str | None = None
+    stale_acknowledgement: dict[str, Any] | None = None
     embedded_workshop_enabled: bool = True
     dry_run: bool = False

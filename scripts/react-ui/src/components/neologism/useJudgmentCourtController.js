@@ -1,4 +1,5 @@
 import { useJudgmentCourtData } from './useJudgmentCourtData';
+import { useJudgmentCourtPresentation } from './useJudgmentCourtPresentation';
 import { useJudgmentCourtWorkflow } from './useJudgmentCourtWorkflow';
 
 export const useJudgmentCourtController = ({
@@ -12,6 +13,13 @@ export const useJudgmentCourtController = ({
         refreshToken,
         selectedProject,
         t,
+    });
+    const presentation = useJudgmentCourtPresentation({
+        batchSelectedIds: data.batchSelectedIds,
+        candidates: data.candidates,
+        onSelectCandidate: data.setSelectedId,
+        selectedId: data.selectedId,
+        updateBatchSelectedIds: data.updateBatchSelectedIds,
     });
     const workflow = useJudgmentCourtWorkflow({
         batchSelectedIds: data.batchSelectedIds,
@@ -28,5 +36,5 @@ export const useJudgmentCourtController = ({
         updateBatchSelectedIds: data.updateBatchSelectedIds,
     });
 
-    return { ...data, ...workflow };
+    return { ...data, ...workflow, ...presentation };
 };

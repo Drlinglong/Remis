@@ -14,6 +14,7 @@ import sqlite3
 import sys
 from collections import Counter, defaultdict
 from dataclasses import asdict, dataclass
+from itertools import combinations
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -339,28 +340,19 @@ def _metrics(results: list[UnitResult]) -> dict[str, Any]:
         "relaxed_chain": dict(chain),
         "relaxed_chain_accuracy": _ratio(correct_chain, evaluated_chain),
         "strict_clustering_pairwise": _pairwise_clustering_metrics(results),
+        "strict_clustering_bcubed": _bcubed_clustering_metrics(results),
+        "chain_attribution": _chain_attribution(results),
         "relation": dict(relation),
         "exact_relation_accuracy": _ratio(relation["exact"], len(results)),
     }
 
 
 def _pairwise_clustering_metrics(results: list[UnitResult]) -> dict[str, Any]:
-    relevant = [
-        result for result in results if result.gold_relation in DELIVERY_RELATIONS
-    ]
-    labels = []
-    for result in relevant:
-        delivered = sorted(
-            link.chain_id
-            for link in result.predicted_links
-            if link.relation in DELIVERY_RELATIONS
-        )
-        predicted_label = ";".join(delivered) if delivered else f"missing:{result.unit_id}"
-        labels.append((result.gold_chain, predicted_label))
+    labels = _clustering_labels(results)
     true_positive = false_positive = false_negative = 0
     for left in range(len(labels)):
         for right in range(left + 1, len(labels)):
-            same_gold = labels[left][0] == labels[right][0]
+            same_gold = labels[left][0].gold_chain == labels[right][0].gold_chain
             same_predicted = labels[left][1] == labels[right][1]
             if same_gold and same_predicted:
                 true_positive += 1
@@ -378,6 +370,122 @@ def _pairwise_clustering_metrics(results: list[UnitResult]) -> dict[str, Any]:
         "recall": recall,
         "f1": _ratio(2 * precision * recall, precision + recall),
     }
+
+
+def _clustering_labels(
+    results: list[UnitResult],
+) -> list[tuple[UnitResult, str]]:
+    """Return one deterministic predicted cluster label per gold delivery unit."""
+
+    relevant = [
+        result for result in results if result.gold_relation in DELIVERY_RELATIONS
+    ]
+    return [
+        (result, ";".join(sorted({
+            link.chain_id
+            for link in result.predicted_links
+            if link.relation in DELIVERY_RELATIONS
+        })) or f"missing:{result.unit_id}")
+        for result in relevant
+    ]
+
+
+def _bcubed_clustering_metrics(results: list[UnitResult]) -> dict[str, Any]:
+    """Score clustering with per-unit BCubed precision and recall.
+
+    The implementation intentionally treats a unit with no delivery as its own
+    predicted cluster.  This keeps missing delivery from being rewarded by an
+    artificial shared empty label while preserving the existing delivery and
+    pairwise metrics unchanged.
+    """
+
+    labels = _clustering_labels(results)
+    if not labels:
+        return {"unit_count": 0, "precision": 0.0, "recall": 0.0, "f1": 0.0}
+    gold_clusters: defaultdict[str, set[int]] = defaultdict(set)
+    predicted_clusters: defaultdict[str, set[int]] = defaultdict(set)
+    for index, (result, predicted_label) in enumerate(labels):
+        gold_clusters[result.gold_chain].add(index)
+        predicted_clusters[predicted_label].add(index)
+    precisions: list[float] = []
+    recalls: list[float] = []
+    for index, (result, predicted_label) in enumerate(labels):
+        overlap = len(
+            gold_clusters[result.gold_chain] & predicted_clusters[predicted_label]
+        )
+        precisions.append(_ratio(overlap, len(predicted_clusters[predicted_label])))
+        recalls.append(_ratio(overlap, len(gold_clusters[result.gold_chain])))
+    precision = sum(precisions) / len(precisions)
+    recall = sum(recalls) / len(recalls)
+    return {
+        "unit_count": len(labels),
+        "precision": precision,
+        "recall": recall,
+        "f1": _ratio(2 * precision * recall, precision + recall),
+    }
+
+
+def _chain_attribution(results: list[UnitResult], worst_limit: int = 10) -> dict[str, Any]:
+    """Explain mega-chain damage with per-chain FP pairs and BCubed error."""
+
+    labels = _clustering_labels(results)
+    if not labels:
+        return {"by_predicted_chain": [], "worst_bcubed_chains": []}
+    gold_clusters: defaultdict[str, set[int]] = defaultdict(set)
+    predicted_clusters: defaultdict[str, set[int]] = defaultdict(set)
+    chain_members: defaultdict[str, set[int]] = defaultdict(set)
+    for index, (result, predicted_label) in enumerate(labels):
+        gold_clusters[result.gold_chain].add(index)
+        predicted_clusters[predicted_label].add(index)
+        for link in result.predicted_links:
+            if link.relation in DELIVERY_RELATIONS:
+                chain_members[link.chain_id].add(index)
+
+    rows: list[dict[str, Any]] = []
+    for chain_id, members in sorted(chain_members.items()):
+        false_positive_pairs = sum(
+            labels[left][0].gold_chain != labels[right][0].gold_chain
+            for left, right in combinations(sorted(members), 2)
+        )
+        true_positive_pairs = sum(
+            labels[left][0].gold_chain == labels[right][0].gold_chain
+            for left, right in combinations(sorted(members), 2)
+        )
+        precision_errors = []
+        recall_errors = []
+        for index in sorted(members):
+            result, predicted_label = labels[index]
+            overlap = len(
+                gold_clusters[result.gold_chain] & predicted_clusters[predicted_label]
+            )
+            precision_errors.append(
+                1.0 - _ratio(overlap, len(predicted_clusters[predicted_label]))
+            )
+            recall_errors.append(
+                1.0 - _ratio(overlap, len(gold_clusters[result.gold_chain]))
+            )
+        row = {
+            "predicted_chain_id": chain_id,
+            "unit_count": len(members),
+            "gold_chain_ids": sorted({labels[index][0].gold_chain for index in members}),
+            "true_positive_pair_count": true_positive_pairs,
+            "false_positive_pair_count": false_positive_pairs,
+            "bcubed_precision_error": sum(precision_errors) / len(precision_errors),
+            "bcubed_recall_error": sum(recall_errors) / len(recall_errors),
+        }
+        row["bcubed_item_error"] = (
+            row["bcubed_precision_error"] + row["bcubed_recall_error"]
+        ) / 2.0
+        rows.append(row)
+    worst = sorted(
+        rows,
+        key=lambda row: (
+            -row["bcubed_item_error"],
+            -row["false_positive_pair_count"],
+            row["predicted_chain_id"],
+        ),
+    )[:worst_limit]
+    return {"by_predicted_chain": rows, "worst_bcubed_chains": worst}
 
 
 def _ratio(numerator: float, denominator: float) -> float:

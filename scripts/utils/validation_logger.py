@@ -4,6 +4,8 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
+from scripts.utils.validation_issue_identity import enrich_issues
+
 class ValidationLogger:
     """
     Manages the .remis_errors.json sidecar file in project roots.
@@ -44,34 +46,90 @@ class ValidationLogger:
             print(f"Failed to save validation log at {log_path}: {e}")
 
     @staticmethod
-    def update_error_status(project_root: str, file_name: str, key: str, status: str):
+    def _matches_issue(err: Dict[str, Any], file_name: str, key: str, issue_id: Optional[str]) -> bool:
+        if issue_id:
+            return bool(err.get("issue_id")) and err.get("issue_id") == issue_id
+        return err.get("file_name") == file_name and err.get("key") == key
+
+    @staticmethod
+    def update_error_status(
+        project_root: str,
+        file_name: str,
+        key: str,
+        status: str,
+        issue_id: Optional[str] = None,
+    ):
         """
         Updates the status of a specific error entry.
         """
         errors = ValidationLogger.load_errors(project_root)
         updated = False
         for err in errors:
-            if err.get('file_name') == file_name and err.get('key') == key:
+            if ValidationLogger._matches_issue(err, file_name, key, issue_id):
                 err['status'] = status
                 updated = True
+                if issue_id:
+                    break
         
         if updated:
             ValidationLogger.save_errors(project_root, errors)
 
     @staticmethod
-    def update_error_metadata(project_root: str, file_name: str, key: str, updates: Dict[str, Any]):
+    def update_error_metadata(
+        project_root: str,
+        file_name: str,
+        key: str,
+        updates: Dict[str, Any],
+        issue_id: Optional[str] = None,
+    ):
         """
         Updates arbitrary metadata for a specific error entry.
         """
         errors = ValidationLogger.load_errors(project_root)
         updated = False
         for err in errors:
-            if err.get('file_name') == file_name and err.get('key') == key:
+            if ValidationLogger._matches_issue(err, file_name, key, issue_id):
                 err.update(updates)
                 updated = True
+                if issue_id:
+                    break
 
         if updated:
             ValidationLogger.save_errors(project_root, errors)
+
+    @staticmethod
+    def ensure_issue_identity(project_root: str, issue: Dict[str, Any]) -> bool:
+        """Migrate one unbound legacy entry before strict ID-based updates."""
+        errors = ValidationLogger.load_errors(project_root)
+        enriched = enrich_issues(errors)
+        matches = [
+            index for index, candidate in enumerate(enriched)
+            if candidate.get("file_name") == issue.get("file_name")
+            and candidate.get("key") == issue.get("key")
+            and candidate.get("source_hash") == issue.get("source_hash")
+            and candidate.get("target_hash") == issue.get("target_hash")
+            and (
+                not issue.get("error_code")
+                or not candidate.get("error_code")
+                or candidate.get("error_code") == issue.get("error_code")
+            )
+        ]
+        if len(matches) != 1 or not issue.get("issue_id"):
+            return False
+        index = matches[0]
+        errors[index].update({
+            "issue_id": issue["issue_id"],
+            "observation_fingerprint": issue.get("observation_fingerprint"),
+            "source_hash": issue.get("source_hash"),
+            "target_hash": issue.get("target_hash"),
+            "classification": issue.get("classification"),
+            "repairable": issue.get("repairable"),
+            "repair_queue": issue.get("repair_queue"),
+            "review_queue": issue.get("review_queue"),
+            "disposition": issue.get("disposition"),
+        })
+        ValidationLogger.save_errors(project_root, errors)
+        return True
 
     @staticmethod
     def mark_attempt_result(
@@ -80,6 +138,8 @@ class ValidationLogger:
         key: str,
         *,
         status: str,
+        issue_id: Optional[str] = None,
+        disposition: Optional[str] = None,
         failure_reason: Optional[str] = None,
         failure_details: Optional[str] = None,
         last_suggested_fix: Optional[str] = None,
@@ -91,6 +151,12 @@ class ValidationLogger:
             "status": status,
             "last_attempt_at": datetime.now().isoformat(timespec="seconds"),
         }
+        if disposition is not None:
+            payload["disposition"] = disposition
+        elif status == "fixed":
+            payload["disposition"] = "fixed"
+        elif status == "review":
+            payload["disposition"] = "human_review"
         if last_suggested_fix is not None:
             payload["last_suggested_fix"] = last_suggested_fix
 
@@ -101,7 +167,20 @@ class ValidationLogger:
             payload["failure_reason"] = None
             payload["failure_details"] = None
 
-        ValidationLogger.update_error_metadata(project_root, file_name, key, payload)
+        errors = ValidationLogger.load_errors(project_root)
+        candidate_indices = [
+            index for index, err in enumerate(errors)
+            if ValidationLogger._matches_issue(err, file_name, key, issue_id)
+        ]
+        if len(candidate_indices) == 1:
+            err = errors[candidate_indices[0]]
+            err.update(payload)
+            err["attempts"] = int(err.get("attempts") or 0) + 1
+            updated = True
+        else:
+            updated = False
+        if updated:
+            ValidationLogger.save_errors(project_root, errors)
 
     @staticmethod
     def clear_fixes(project_root: str):

@@ -104,6 +104,9 @@ const releaseDuplicateValueAllowlistPatterns = [
   // Short standardized effort labels (for example, "low" or "max") can
   // legitimately have the same spelling in otherwise distinct locales.
   /^api_reasoning_preset_/,
+  // Developer-only Archive A/B review intentionally uses English fallback
+  // copy in non-Chinese locales until dedicated translations are contributed.
+  /^archive_ab_review\./,
 ];
 
 const isAllowedReleaseDuplicateKey = (key) => (

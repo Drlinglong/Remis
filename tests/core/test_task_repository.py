@@ -43,7 +43,7 @@ def test_task_ledger_survives_memory_reset_with_ordered_events(tmp_path):
         assert restored["started_at"]
         assert restored["finished_at"]
         assert restored["log"] == ["Queued", "Started", "Completed"]
-        assert "blocking" not in restored
+        assert restored["blocking"] is False
         assert "source_route" not in restored
         assert [event["message"] for event in task_state.get_task_events("task-persisted")] == [
             "Queued",
@@ -203,7 +203,7 @@ def test_progress_event_uses_explicit_logging_level(tmp_path):
         task_state.tasks.update(previous_tasks)
 
 
-def test_hydration_interrupts_only_explicitly_non_resumable_workshop_tasks(tmp_path):
+def test_hydration_interrupts_orphaned_translation_and_non_resumable_tasks(tmp_path):
     db_path = tmp_path / "task-recovery.sqlite"
     migrate_main_database(str(db_path))
     repository = TaskRepository(str(db_path))
@@ -248,12 +248,14 @@ def test_hydration_interrupts_only_explicitly_non_resumable_workshop_tasks(tmp_p
         assert workshop["status"] == "interrupted"
         assert workshop["checkpoint"]["stage"] == "interrupted"
         assert workshop["finished_at"]
-        assert translation["status"] == "processing"
+        assert translation["status"] == "interrupted"
+        assert translation["finished_at"]
         assert context["status"] == "interrupted"
         assert context["attention_reason"] == (
             "This context-analysis task cannot resume automatically. Start it again."
         )
         assert task_state.get_task_events("workshop-running")[0]["event_type"] == "recovery_interrupted"
+        assert task_state.get_task_events("translation-running")[0]["event_type"] == "recovery_interrupted"
         assert task_state.get_task_events("context-running")[0]["event_type"] == "recovery_interrupted"
     finally:
         task_state.configure_repository(None)
@@ -298,7 +300,7 @@ def test_hydration_interrupts_persisted_reference_maintenance_and_releases_dedup
         task_state.tasks.update(previous_tasks)
 
 
-def test_hydration_interrupts_initial_translation_preserves_checkpoint_and_releases_dedupe(tmp_path):
+def test_hydration_ignores_unowned_checkpoint_hint_and_releases_dedupe(tmp_path):
     db_path = tmp_path / "initial-translation-recovery.sqlite"
     migrate_main_database(str(db_path))
     repository = TaskRepository(str(db_path))
@@ -332,10 +334,10 @@ def test_hydration_interrupts_initial_translation_preserves_checkpoint_and_relea
             task_id = f"translation-{status}"
             recovered = task_state.get_task(task_id)
             assert recovered["status"] == "interrupted"
-            assert recovered["checkpoint"] == checkpoint
+            assert recovered["checkpoint"] == {}
             assert recovered["progress"]["stage"] == "Interrupted"
             assert recovered["finished_at"]
-            assert "Resume from the saved checkpoint" in recovered["attention_reason"]
+            assert "Start a new translation" in recovered["attention_reason"]
             assert repository.get_task(task_id)["status"] == "interrupted"
 
         dedupe_key = "project_translation_write:project-212-processing"

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from scripts.core.services.context_tree_v2_entity_digest_execution import (
@@ -52,12 +53,14 @@ class ContextTreeV2EntityDigestService:
         max_units: int = MAX_ENTITY_UNITS,
         max_source_chars: int = MAX_ENTITY_SOURCE_CHARS,
         max_project_overview_chars: int = MAX_PROJECT_OVERVIEW_CHARS,
+        corpus_read_meter: Any | None = None,
     ) -> None:
         self._engine = EntityDigestExecutionEngine(
             handler,
             max_units=max_units,
             max_source_chars=max_source_chars,
             max_project_overview_chars=max_project_overview_chars,
+            corpus_read_meter=corpus_read_meter,
         )
 
     def run(
@@ -73,6 +76,7 @@ class ContextTreeV2EntityDigestService:
         project_summary: str | None = None,
         event_group_summaries: Any = None,
         event_groups: Any = None,
+        source_items_by_unit: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
     ) -> EntityDigestRunResult:
         selected_candidates = _as_items(entity_candidates if candidates is None else candidates, "candidates")
         selected_units = _as_items(units if local_units is None else local_units, "local_units")
@@ -82,6 +86,7 @@ class ContextTreeV2EntityDigestService:
             project_title=project_title,
             human_project_summary=human_project_summary or manual_project_summary or project_summary,
             event_groups=event_group_summaries if event_group_summaries is not None else event_groups,
+            source_items_by_unit=source_items_by_unit,
         )
 
     def execute(self, *args: Any, **kwargs: Any) -> EntityDigestRunResult:

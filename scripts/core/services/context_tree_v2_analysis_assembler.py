@@ -55,6 +55,8 @@ class ContextTreeV2AnalysisAssembler:
         governance: Any,
         entity_digest_result: Any,
         term_result: Any,
+        prompt_version: str = "context-archive-tree-v2",
+        project_summary: str | None = None,
     ) -> ReadTreeResponse:
         item_lookup = {item.source_item_id: item for item in source_items}
         unit_lookup = {unit.unit_id: unit for unit in local_units}
@@ -97,6 +99,9 @@ class ContextTreeV2AnalysisAssembler:
                 local_unit_id=route.local_unit_id,
                 route=route.route,
                 fragment_ids=tuple(route.fragment_ids),
+                content_role=route.content_role,
+                delivery_route=route.delivery_route,
+                summary=route.summary,
             )
             for route in projection.unit_routes
         )
@@ -115,9 +120,12 @@ class ContextTreeV2AnalysisAssembler:
             tree_id=tree_id,
             source_snapshot_hash=source_snapshot_hash,
             schema_version="context-tree-v2",
-            prompt_version="context-archive-tree-v2",
+            prompt_version=prompt_version,
             project_title=project_title,
-            project_summary=entity_digest_result.project_overview.text,
+            project_summary=(
+                project_summary
+                or entity_digest_result.project_overview.text
+            ),
             local_fragments=fragment_cards,
             unit_routes=routes,
             stories=stories,

@@ -1,6 +1,6 @@
 import { formatLocalizedDateTime } from './localizedDateTime';
+import { TERMINAL_TASK_STATUSES } from './taskStatus';
 
-const TERMINAL_STATUSES = new Set(['completed', 'partial_failed', 'failed', 'interrupted', 'cancelled']);
 const ARCHIVE_STAGE_CODES = new Set([
   'idle', 'queued', 'starting', 'running', 'extracting', 'reviewing',
   'aggregating', 'synthesizing', 'publishing', 'completed', 'failed',
@@ -27,7 +27,7 @@ export const formatTaskTimestamp = (value, locale) => {
 export const getTaskStageLabel = (task, t) => {
   if (!task) return '';
   const statusLabel = t(`task_center.status.${task.status}`, { defaultValue: task.status });
-  if (TERMINAL_STATUSES.has(task.status)) return statusLabel;
+  if (TERMINAL_TASK_STATUSES.has(task.status)) return statusLabel;
 
   const raw = String(task.stage || task.message || '').trim();
   const stageCode = task.stage_code || task.progress?.stage_code;

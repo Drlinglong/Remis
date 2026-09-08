@@ -1,3 +1,4 @@
+import asyncio
 import os
 
 import pytest
@@ -150,13 +151,17 @@ def test_reference_library_delete_route_queues_scoped_removal(monkeypatch):
 
 def test_reset_db_endpoint_rebuilds_main_database(monkeypatch):
     removed_paths = []
-    initialize_called = {"value": False}
+    reset_called = []
     configured_repositories = []
     fake_engine = _FakeEngine()
     fake_archive_manager = _FakeArchiveManager()
 
     monkeypatch.setattr(system_router, "_remove_sqlite_family", removed_paths.append)
-    monkeypatch.setattr(db_initializer, "initialize_database", lambda: initialize_called.__setitem__("value", True))
+    monkeypatch.setattr(
+        db_initializer,
+        "reset_database_without_file_changes",
+        lambda **kwargs: reset_called.append(kwargs),
+    )
     monkeypatch.setattr(services, "archive_manager", fake_archive_manager)
     monkeypatch.setattr(
         task_state,
@@ -172,7 +177,11 @@ def test_reset_db_endpoint_rebuilds_main_database(monkeypatch):
     assert response.status_code == 200
     assert response.json()["status"] == "success"
     assert removed_paths == [system_router.REMIS_DB_PATH]
-    assert initialize_called["value"] is True
+    assert reset_called == [{
+        "remis_db_path": system_router.REMIS_DB_PATH,
+        "app_data_dir": system_router.APP_DATA_DIR,
+        "resource_dir": db_initializer.app_settings.RESOURCE_DIR,
+    }]
     assert fake_archive_manager.closed is True
     assert fake_archive_manager._conn is None
     assert fake_engine.disposed is True
@@ -183,6 +192,120 @@ def test_reset_db_endpoint_rebuilds_main_database(monkeypatch):
         os.path.normpath(system_router.REMIS_DB_PATH)
     )
     assert configure_options == {"hydrate": True, "replace": True}
+
+
+def test_reset_project_db_endpoint_is_database_only_alias(monkeypatch):
+    reset_called = []
+    async def _noop_close_handles():
+        return None
+
+    monkeypatch.setattr(system_router, "_remove_sqlite_family", lambda path: reset_called.append(path))
+    monkeypatch.setattr(system_router, "_close_database_handles", _noop_close_handles)
+    monkeypatch.setattr(
+        db_initializer,
+        "reset_database_without_file_changes",
+        lambda **kwargs: reset_called.append(kwargs),
+    )
+    monkeypatch.setattr(task_state, "configure_repository", lambda *_args, **_kwargs: None)
+
+    response = client.post("/api/system/reset-project-db")
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "success"
+    assert reset_called[0] == system_router.REMIS_DB_PATH
+    assert reset_called[1]["remis_db_path"] == system_router.REMIS_DB_PATH
+
+
+def test_reset_demo_state_restores_all_scopes_and_reports_backup(monkeypatch):
+    calls = []
+
+    def _fake_reset(**kwargs):
+        calls.append(kwargs)
+        return {
+            "backup_root": "C:/Remis/demo_smoke_backups/20260905-120000",
+            "scopes": ["initial", "incremental", "workshop", "neologism"],
+            "moved_paths": [{"source": "before", "backup": "after"}],
+            "archived_task_count": 4,
+        }
+
+    async def _noop_close_handles():
+        return None
+
+    from scripts.core.services import demo_reset_service
+
+    monkeypatch.setattr(system_router, "_close_database_handles", _noop_close_handles)
+    monkeypatch.setattr(demo_reset_service, "reset_all_demo_state", _fake_reset)
+
+    response = client.post("/api/system/reset-demo-state")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "status": "success",
+        "message": "All Demo Mods and smoke-test fixtures have been restored.",
+        "backup_root": "C:/Remis/demo_smoke_backups/20260905-120000",
+        "scopes": ["initial", "incremental", "workshop", "neologism"],
+        "moved_path_count": 1,
+        "archived_task_count": 4,
+    }
+    assert calls == [{
+        "project_root": system_router.PROJECT_ROOT,
+        "app_data_dir": system_router.APP_DATA_DIR,
+        "backend_port": 1453,
+    }]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "route_name",
+    ["reset_project_database", "reset_demo_state"],
+)
+async def test_overlapping_database_resets_do_not_block_event_loop(monkeypatch, route_name):
+    monkeypatch.setattr(system_router, "_database_maintenance_lock", asyncio.Lock())
+    first_close_started = asyncio.Event()
+    allow_first_close = asyncio.Event()
+    close_calls = 0
+
+    async def _close_handles():
+        nonlocal close_calls
+        close_calls += 1
+        if close_calls == 1:
+            first_close_started.set()
+            await allow_first_close.wait()
+
+    monkeypatch.setattr(system_router, "_close_database_handles", _close_handles)
+    monkeypatch.setattr(system_router, "_remove_sqlite_family", lambda _path: None)
+    monkeypatch.setattr(
+        db_initializer,
+        "reset_database_without_file_changes",
+        lambda **_kwargs: None,
+    )
+    from scripts.core.services import demo_reset_service
+
+    monkeypatch.setattr(
+        demo_reset_service,
+        "reset_all_demo_state",
+        lambda **_kwargs: {
+            "backup_root": "C:/backup",
+            "scopes": [],
+            "moved_paths": [],
+            "archived_task_count": 0,
+        },
+    )
+    monkeypatch.setattr(task_state, "configure_repository", lambda *_args, **_kwargs: None)
+
+    reset_route = getattr(system_router, route_name)
+    first = asyncio.create_task(reset_route())
+    await asyncio.wait_for(first_close_started.wait(), timeout=1)
+    second = asyncio.create_task(reset_route())
+    await asyncio.sleep(0)
+    assert not second.done()
+
+    allow_first_close.set()
+    first_result, second_result = await asyncio.wait_for(
+        asyncio.gather(first, second), timeout=1
+    )
+    assert first_result["status"] == "success"
+    assert second_result["status"] == "success"
 
 
 def test_open_database_folder_opens_main_database_parent(monkeypatch, tmp_path):

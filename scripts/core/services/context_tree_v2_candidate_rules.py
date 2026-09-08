@@ -70,6 +70,8 @@ def collect_aggregates(
     extractions: Sequence[StructuredNeologismExtraction | Mapping[str, Any]],
     source_lookup: Mapping[str, SourceItem],
     language: str,
+    *,
+    terms_only: bool = False,
 ) -> tuple[dict[str, CandidateAggregate], list[dict[str, Any]]]:
     """Collect grounded term/entity surfaces using deterministic aliases."""
 
@@ -85,8 +87,13 @@ def collect_aggregates(
         except ValidationError as error:
             dropped.append({"batch_index": batch_index, "reason": "invalid_extraction", "detail": str(error)[:500]})
             continue
-        for contribution in (*extraction.terms, *extraction.entities):
-            item = to_contribution(contribution, source_lookup)
+        contributions = extraction.terms if terms_only else (
+            *extraction.terms, *extraction.entities,
+        )
+        for contribution in contributions:
+            item = to_contribution(
+                contribution, source_lookup, force_term=terms_only,
+            )
             if item is None:
                 dropped.append({"batch_index": batch_index, "reason": "empty_or_ungrounded_candidate"})
                 continue
@@ -109,6 +116,8 @@ def bounded_candidate_id(surface: str, language: str) -> str:
 def to_contribution(
     contribution: TermContribution | EntityContribution,
     source_lookup: Mapping[str, SourceItem],
+    *,
+    force_term: bool = False,
 ) -> CandidateContribution | None:
     """Normalize one extraction contribution without assigning a grade."""
 
@@ -124,8 +133,18 @@ def to_contribution(
         return None
     declared_kind = getattr(contribution, "candidate_kind", None)
     category = getattr(contribution, "category", "other")
-    is_entity = isinstance(contribution, EntityContribution) or declared_kind is CandidateKind.ENTITY
-    if isinstance(contribution, TermContribution) and category in {"person", "place", "faction"}:
+    is_entity = (
+        not force_term
+        and (
+            isinstance(contribution, EntityContribution)
+            or declared_kind is CandidateKind.ENTITY
+        )
+    )
+    if (
+        not force_term
+        and isinstance(contribution, TermContribution)
+        and category in {"person", "place", "faction"}
+    ):
         is_entity = True
     description = getattr(contribution, "description", None) or getattr(contribution, "reasoning", None)
     return CandidateContribution(

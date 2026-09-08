@@ -154,3 +154,37 @@ def test_ungrounded_evidence_does_not_extend_source_or_local_coverage():
     assert candidate.source_item_ids == ("source-1",)
     assert candidate.local_unit_ids == ("unit_1",)
     assert candidate.local_unit_coverage == 1
+
+
+def test_terms_only_governance_never_promotes_entity_cards_to_terms():
+    items = [_item(0, "The Horizon Signal appears.")]
+    service = ContextTreeV2CandidateGovernanceService()
+
+    result = service.govern_terms(
+        [StructuredNeologismExtraction(entities=[
+            _entity("Horizon Signal", ["source-0"]),
+        ])],
+        items,
+        ContextLocalUnitBuilder.build(items),
+    )
+
+    assert result.candidates == ()
+    assert result.report["candidate_scope"] == "terms_only"
+
+
+def test_terms_only_governance_keeps_explicit_person_term_as_a_term():
+    items = [_item(0, "The Knights gather.")]
+    result = ContextTreeV2CandidateGovernanceService().govern_terms(
+        [StructuredNeologismExtraction(terms=[
+            TermContribution(
+                original="Knights",
+                category="person",
+                evidence=[SourceEvidence(source_item_id="source-0")],
+            ),
+        ])],
+        items,
+        ContextLocalUnitBuilder.build(items),
+    )
+
+    assert len(result.candidates) == 1
+    assert result.candidates[0].kind.value == "term"

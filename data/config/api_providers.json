@@ -2,8 +2,9 @@
     "gemini": {
         "api_key_env": "GEMINI_API_KEY",
         "name": "Google Gemini",
-        "default_model": "gemini-3.7-flash",
+        "default_model": "gemini-3.8-flash",
         "available_models": [
+            "gemini-3.8-flash",
             "gemini-3.7-flash",
             "gemini-3.6-flash"
         ],
@@ -12,6 +13,15 @@
             "default_enabled": false,
             "default_preset": "medium",
             "models": {
+                "gemini-3.8-flash": {
+                    "presets": {
+                        "low": {"thinking_config": {"thinking_level": "low"}},
+                        "medium": {"thinking_config": {"thinking_level": "medium"}},
+                        "high": {"thinking_config": {"thinking_level": "high"}}
+                    },
+                    "source_url": "https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash",
+                    "reviewed_at": "2026-09-03"
+                },
                 "gemini-3.7-flash": {
                     "presets": {
                         "minimal": {"thinking_config": {"thinking_level": "minimal"}},
@@ -78,6 +88,25 @@
         },
         "description_key": "api_desc_openai"
     },
+    "meta": {
+        "api_key_env": "MODEL_API_KEY",
+        "name": "Meta Model API",
+        "base_url": "https://api.meta.ai/v1",
+        "default_model": "muse-spark-1.3",
+        "available_models": [
+            "muse-spark-1.2",
+            "muse-spark-1.3"
+        ],
+        "reasoning": {
+            "default_enabled": false,
+            "default_preset": "medium",
+            "models": {
+                "muse-spark-1.2": null,
+                "muse-spark-1.3": null
+            }
+        },
+        "description_key": "api_desc_meta"
+    },
     "qwen": {
         "api_key_env": "DASHSCOPE_API_KEY",
         "default_model": "qwen3.8-max",
@@ -130,12 +159,14 @@
         "default_model": "openai/gpt-5.6-luna",
         "available_models": [
             "openai/gpt-5.6-luna",
+            "google/gemini-3.8-flash",
             "google/gemini-3.7-flash",
             "qwen/qwen3.8-max",
-            "meta/muse-spark-1.2"
+            "meta/muse-spark-1.2",
+            "meta/muse-spark-1.3"
         ],
         "name": "OpenRouter",
-        "reasoning": {"default_enabled": false, "default_preset": "medium", "models": {"openai/gpt-5.6-luna": null, "google/gemini-3.7-flash": null, "qwen/qwen3.8-max": null, "meta/muse-spark-1.2": null}},
+        "reasoning": {"default_enabled": false, "default_preset": "medium", "models": {"openai/gpt-5.6-luna": null, "google/gemini-3.8-flash": null, "google/gemini-3.7-flash": null, "qwen/qwen3.8-max": null, "meta/muse-spark-1.2": null, "meta/muse-spark-1.3": null}},
         "description_key": "api_desc_openrouter"
     },
     "ollama": {

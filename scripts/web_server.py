@@ -152,11 +152,12 @@ def setup_app_routers():
     """Deferred import and registration of routers to speed up initial boot."""
     panic_log("Including routers...")
     from scripts.routers import (
-        projects, project_watches, translation, glossary, proofreading, docs, tools,
+        projects, project_watches, translation, translation_recovery, glossary, proofreading, docs, tools,
         neologism, validation, config, system, prompts,
         agent_workshop, agent,
         tasks,
         model_arena,
+        archive_ab_review,
         steam_workshop,
     )
     from scripts.core.feature_policy import mod_archive_enabled
@@ -164,6 +165,7 @@ def setup_app_routers():
     app.include_router(projects.router)
     app.include_router(project_watches.router)
     app.include_router(translation.router)
+    app.include_router(translation_recovery.router)
     app.include_router(glossary.router)
     app.include_router(proofreading.router)
     app.include_router(agent_workshop.router)
@@ -184,6 +186,7 @@ def setup_app_routers():
     app.include_router(agent.router)
     app.include_router(tasks.router)
     app.include_router(model_arena.router)
+    app.include_router(archive_ab_review.router)
     app.include_router(steam_workshop.router)
     if copilot_router_enabled():
         from scripts.routers import copilot

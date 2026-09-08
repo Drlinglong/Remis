@@ -4,6 +4,7 @@ import { IconAlertCircle, IconPlayerPlay, IconRefresh } from '@tabler/icons-reac
 
 export default function ResumeCheckpointModal({
   checkpointInfo,
+  canStartOver = false,
   onClose,
   onResume,
   onStartOver,
@@ -36,9 +37,11 @@ export default function ResumeCheckpointModal({
           {t('translation_page.resume_modal.question')}
         </Text>
         <Group justify="flex-end" mt="md">
-          <Button variant="default" onClick={onStartOver} leftSection={<IconRefresh size={16} />}>
-            {t('translation_page.resume_modal.start_over')}
-          </Button>
+          {canStartOver && (
+            <Button variant="default" onClick={onStartOver} leftSection={<IconRefresh size={16} />}>
+              {t('translation_page.resume_modal.start_over')}
+            </Button>
+          )}
           <Button onClick={onResume} leftSection={<IconPlayerPlay size={16} />}>
             {t('translation_page.resume_modal.resume')}
           </Button>

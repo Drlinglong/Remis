@@ -128,7 +128,11 @@ Remis 3.1.1 introduced a localhost Agent API and a repository-local operator Ski
 
 This is bounded agency, not invisible autonomy. Read operations are allowlisted. Write operations remain server-owned, explicit, expiring, and approval-gated.
 
-The in-product Remis Copilot and its PydanticAI planner remain an engineering preview. Their UI and packaged API route are intentionally hidden in normal release builds while startup hardening and end-to-end validation continue.
+The in-product Remis Copilot and its PydanticAI planner are available in the
+3.2.0 stable release and the isolated Agent Preview channel. Their actions
+remain bounded by the server-side registry and explicit approval gates; the
+Agent Preview channel additionally carries developer-only archive evaluation
+tools.
 
 ### Use Remis with Codex
 
@@ -151,14 +155,19 @@ Remis has a defined **Micro-RAG** architecture for product help and localization
 - **Agent operation contract** — tool descriptions, allowed actions, approval rules, and refusal boundaries.
 - **Project context** — the user's selected mod, files, language pair, terminology, checkpoints, and task state.
 
-The hidden Copilot preview already performs model-directed retrieval over allowlisted help packs, attaches source metadata, and combines it with route and session context. The next retrieval adapter adds vector search over the curated user corpus without turning source code, secrets, developer notes, or arbitrary user files into an undifferentiated knowledge base.
+The Copilot performs model-directed retrieval over allowlisted help packs,
+attaches source metadata, and combines it with route and session context in
+the 3.2.0 stable release and Agent Preview channel. The next retrieval adapter
+adds vector search over the curated user corpus without turning source code,
+secrets, developer notes, or arbitrary user files into an undifferentiated
+knowledge base.
 
 That boundary matters more than bolting a vector database onto the product. Remis is designed so retrieval improves grounding while deterministic validators and human approval remain authoritative.
 
 | Knowledge layer | Status |
 |---|---|
-| Model-selected help packs and source-aware answers | **Engineering preview; hidden in normal release builds** |
-| Route context, session memory, and bounded project read tools | **Engineering preview; hidden in normal release builds** |
+| Model-selected help packs and source-aware answers | **Available in 3.2.0 stable and Agent Preview** |
+| Route context, session memory, and bounded project read tools | **Available in 3.2.0 stable and Agent Preview** |
 | Curated Micro-RAG corpus contract and indexing boundaries | **Architecture complete** |
 | Vector retrieval and retrieval evaluation over the user corpus | **Next adapter** |
 | Autonomous write access to arbitrary user files | **Explicitly out of scope** |
@@ -256,7 +265,7 @@ If the original mod ships duplicated "fake localization" folders, use Remis depl
 Tauri 2 / Rust
 └── React 19 + Mantine desktop interface
     └── FastAPI application services
-        ├── Agent API + hidden Copilot/PydanticAI preview
+        ├── Agent API + approval-gated Copilot/PydanticAI workflows
         ├── Provider abstraction and prompt/context assembly
         ├── Translation, proofreading, incremental update, and repair workflows
         ├── Paradox parsers, builders, and deterministic validators
@@ -267,7 +276,7 @@ Useful entry points:
 
 - [`scripts/core/copilot/`](scripts/core/copilot/) — agent planning, context budgets, tools, sessions, actions, and workflow gates
 - [`scripts/core/`](scripts/core/) — model handlers, parsing, glossaries, project state, repair, and translation services
-- [`scripts/react-ui/src/`](scripts/react-ui/src/) — React desktop product and hidden Copilot preview surfaces
+- [`scripts/react-ui/src/`](scripts/react-ui/src/) — React desktop product and Copilot workflow surfaces
 - [`scripts/developer_tools/evaluate_translation_quality.py`](scripts/developer_tools/evaluate_translation_quality.py) — reproducible translation/repair benchmark runner
 - [`tests/`](tests/) — backend, workflow, regression, benchmark, and provider contract tests
 - [`docs/`](docs/) — user guides, engineering notes, release evidence, and architecture decisions

@@ -9,6 +9,35 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, Optional
 
 
+TRANSLATION_LOCK_TASK_KINDS = (
+    "initial_translation",
+    "translation",
+    "incremental_translation",
+)
+TRANSLATION_LOCK_ACTIVE_STATUSES = (
+    "pending",
+    "starting",
+    "queued",
+    "running",
+    "processing",
+    "in_progress",
+    "cancelling",
+    "awaiting_approval",
+    "waiting_approval",
+)
+
+class TaskIdempotencyConflictError(sqlite3.IntegrityError):
+    """Raised when another connection already owns a task idempotency key."""
+
+    def __init__(self, idempotency_key: str, existing_task: Dict[str, Any]):
+        self.idempotency_key = idempotency_key
+        self.existing_task = deepcopy(existing_task)
+        super().__init__(
+            f"Idempotency key {idempotency_key!r} is already owned by "
+            f"task {existing_task.get('task_id')}"
+        )
+
+
 class TaskRepository:
     """Synchronous SQLite ledger for background task state and ordered events."""
 
@@ -35,7 +64,7 @@ class TaskRepository:
         except (TypeError, json.JSONDecodeError):
             return deepcopy(fallback)
 
-    def save_task(
+    def _save_task(
         self,
         task: Dict[str, Any],
         *,
@@ -43,6 +72,9 @@ class TaskRepository:
     ) -> None:
         snapshot = deepcopy(task)
         snapshot.pop("log", None)
+        snapshot["idempotency_key"] = (
+            str(snapshot.get("idempotency_key") or "").strip() or None
+        )
         # This is an in-process degradation marker, not a successful ledger
         # field.  Do not persist it after a later write recovers.
         snapshot.pop("persistence_failure", None)
@@ -134,7 +166,120 @@ class TaskRepository:
                         self._json(event.get("metadata") or {}),
                     ),
                 )
+            if str(snapshot.get("status") or "").lower() in {
+                "completed",
+                "complete",
+                "success",
+                "failed",
+                "partial_failed",
+                "cancelled",
+                "canceled",
+                "interrupted",
+            }:
+                connection.execute(
+                    "DELETE FROM translation_project_locks WHERE task_id = ?",
+                    (str(snapshot["task_id"]),),
+                )
             connection.commit()
+
+    def save_task(
+        self,
+        task: Dict[str, Any],
+        *,
+        event: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Persist a task and surface a concurrent idempotency winner."""
+        idempotency_key = str(task.get("idempotency_key") or "").strip() or None
+        try:
+            self._save_task(task, event=event)
+        except sqlite3.IntegrityError as exc:
+            error_text = str(exc).lower()
+            if idempotency_key and "idempotency" in error_text:
+                existing = self.find_by_idempotency_key(idempotency_key)
+                if existing is not None:
+                    raise TaskIdempotencyConflictError(
+                        idempotency_key,
+                        existing,
+                    ) from exc
+            raise
+
+    def acquire_project_lock(
+        self,
+        *,
+        task_id: str,
+        project_id: str,
+    ) -> bool:
+        """Atomically claim a project for an active translation task."""
+        now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        kind_placeholders, normalized_kinds = self._in_clause(
+            TRANSLATION_LOCK_TASK_KINDS
+        )
+        status_placeholders, normalized_statuses = self._in_clause(
+            TRANSLATION_LOCK_ACTIVE_STATUSES
+        )
+        with self._lock, self._connect() as connection:
+            try:
+                connection.execute("BEGIN IMMEDIATE")
+                inserted = connection.execute(
+                    f"""
+                    INSERT INTO translation_project_locks (
+                        project_id, task_id, acquired_at, updated_at
+                    )
+                    SELECT ?, ?, ?, ?
+                    WHERE EXISTS (
+                        SELECT 1
+                        FROM background_tasks
+                        WHERE task_id = ?
+                          AND lower(kind) IN ({kind_placeholders})
+                          AND lower(status) IN ({status_placeholders})
+                    )
+                    ON CONFLICT(project_id) DO UPDATE SET
+                        updated_at = excluded.updated_at
+                    WHERE translation_project_locks.task_id = excluded.task_id
+                    """,
+                    (
+                        project_id,
+                        task_id,
+                        now,
+                        now,
+                        task_id,
+                        *normalized_kinds,
+                        *normalized_statuses,
+                    ),
+                )
+                if inserted.rowcount != 1:
+                    task = connection.execute(
+                        "SELECT task_id FROM background_tasks WHERE task_id = ?",
+                        (task_id,),
+                    ).fetchone()
+                    if task is None:
+                        raise ValueError(f"Task {task_id} does not exist")
+                connection.commit()
+                return inserted.rowcount == 1
+            except sqlite3.IntegrityError:
+                connection.rollback()
+                return False
+
+    def get_project_lock(self, project_id: str) -> Optional[Dict[str, Any]]:
+        with self._lock, self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT project_id, task_id, acquired_at, updated_at
+                FROM translation_project_locks
+                WHERE project_id = ?
+                """,
+                (project_id,),
+            ).fetchone()
+        return dict(row) if row else None
+
+    def release_project_lock(self, *, task_id: str) -> bool:
+        with self._lock, self._connect() as connection:
+            cursor = connection.execute(
+                "DELETE FROM translation_project_locks WHERE task_id = ?",
+                (task_id,),
+            )
+            connection.commit()
+            return cursor.rowcount > 0
 
     def _row_to_task(self, row: sqlite3.Row, *, include_events: bool = True) -> Dict[str, Any]:
         task = self._decode(row["payload"], {})
@@ -213,16 +358,20 @@ class TaskRepository:
         return [self._row_to_task(row, include_events=include_events) for row in rows]
 
     def find_by_idempotency_key(self, idempotency_key: str) -> Optional[Dict[str, Any]]:
+        normalized_key = str(idempotency_key or "").strip()
+        if not normalized_key:
+            return None
         with self._lock, self._connect() as connection:
             row = connection.execute(
                 """
                 SELECT *
                 FROM background_tasks
-                WHERE idempotency_key = ?
+                WHERE idempotency_key IS NOT NULL
+                  AND TRIM(idempotency_key) = ?
                 ORDER BY updated_at DESC, created_at DESC
                 LIMIT 1
                 """,
-                (idempotency_key,),
+                (normalized_key,),
             ).fetchone()
         return self._row_to_task(row) if row else None
 
@@ -245,6 +394,40 @@ class TaskRepository:
                 LIMIT 1
                 """,
                 (dedupe_key, *normalized),
+            ).fetchone()
+        return self._row_to_task(row) if row else None
+
+    def find_latest_project_task(
+        self,
+        project_id: str,
+        *,
+        kinds: Iterable[str],
+        statuses: Optional[Iterable[str]] = None,
+    ) -> Optional[Dict[str, Any]]:
+        kind_placeholders, normalized_kinds = self._in_clause(kinds)
+        if not normalized_kinds:
+            return None
+        clauses = [
+            "project_id = ?",
+            f"kind IN ({kind_placeholders})",
+            "archived_at IS NULL",
+        ]
+        parameters: list[Any] = [project_id, *normalized_kinds]
+        if statuses is not None:
+            status_placeholders, normalized_statuses = self._in_clause(statuses)
+            if not normalized_statuses:
+                return None
+            clauses.append(f"status IN ({status_placeholders})")
+            parameters.extend(normalized_statuses)
+        with self._lock, self._connect() as connection:
+            row = connection.execute(
+                f"""
+                SELECT * FROM background_tasks
+                WHERE {' AND '.join(clauses)}
+                ORDER BY updated_at DESC, created_at DESC
+                LIMIT 1
+                """,
+                parameters,
             ).fetchone()
         return self._row_to_task(row) if row else None
 
@@ -305,7 +488,7 @@ class TaskRepository:
                         CASE WHEN status IN (
                             'pending', 'starting', 'queued', 'running',
                             'processing', 'in_progress', 'awaiting_approval',
-                            'waiting_approval'
+                            'waiting_approval', 'cancelling'
                         ) THEN 1 ELSE 0 END
                     ), 0) AS active_count,
                     COALESCE(SUM(

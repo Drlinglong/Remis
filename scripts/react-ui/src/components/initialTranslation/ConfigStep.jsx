@@ -44,10 +44,12 @@ export default function ConfigStep({
   availableGlossaries,
   availableModels,
   checkpointHintInfo,
+  checkpointActionPending,
   config,
   embeddedWorkshopModels,
   form,
   onSubmit,
+  onClearCheckpoint,
   onOpenReferenceSettings,
   selectedProject,
   selectedProjectId,
@@ -392,7 +394,7 @@ export default function ConfigStep({
                 </Box>
               </Group>
 
-              {showResume && checkpointHintInfo && !form.values.use_resume && (
+              {showResume && checkpointHintInfo?.resumable && !form.values.use_resume && (
                 <Alert color="yellow" variant="light" radius="md" title={t('translation_page.resume_hint.title', { defaultValue: '检测到可用断点' })}>
                   <Stack gap={6}>
                     <Text size="sm">
@@ -412,8 +414,10 @@ export default function ConfigStep({
 
               {showResume && (
                 <ResumeSettingsCard
+                  checkpointActionPending={checkpointActionPending}
                   checkpointHintInfo={checkpointHintInfo}
                   form={form}
+                  onClearCheckpoint={onClearCheckpoint}
                   t={t}
                 />
               )}

@@ -1,6 +1,7 @@
 """Progress callback factory for the V2 translation workflow."""
 
 import time
+import uuid
 from typing import Optional
 
 from scripts.shared import task_state
@@ -10,6 +11,8 @@ def build_translation_progress_callback(
     task_id: str,
     *,
     use_resume: bool,
+    resume_supported: bool = True,
+    run_id: Optional[str] = None,
 ):
     """Build a callback that persists throttled workflow progress."""
     last_update_time = [0.0]
@@ -64,7 +67,7 @@ def build_translation_progress_callback(
             fields={
                 "checkpoint": {
                     "available": bool(current > 0 and not is_final),
-                    "resume_supported": True,
+                    "resume_supported": bool(resume_supported),
                     "stage": stage,
                     "cursor": current_file or str(current),
                     "updated_at": task_state.utc_now_iso(),
@@ -79,4 +82,8 @@ def build_translation_progress_callback(
             },
         )
 
+    # The workflow receives this callback from the task runner, so expose the
+    # immutable recovery identity without changing the existing callback shape.
+    progress_callback.task_id = task_id
+    progress_callback.run_id = run_id or str(uuid.uuid4())
     return progress_callback

@@ -20,7 +20,7 @@ VICTORIA3_FORMAT_PROMPT = """Output Logic:
 2. If an input line is empty/placeholder (e.g. "TODO", "..."), translate it as: "WARNING: Source localization entry is incomplete".
 3. Do NOT translate internal keys (underscored_words) or special tokens ([[_NL_]], [[_QT_]]).
 4. Translate ALL content inside formatting tags (e.g. #bold Text#! -> #bold 文本#!). Do NOT skip long descriptions.
-5. Preserve every formatting opener and matching #! together with the same protected variables, functions, concepts, and icons that it originally encloses. You may move the complete formatted span for target-language grammar, but NEVER move a formatting boundary across a protected token or rebind it to different content. Do not add any formatting marker that is absent from the source.
+5. Preserve every formatting opener character-for-character, including case (for example #BOLD is not #bold), parameters, order, and its matching #!. Keep the same protected variables, functions, concepts, and icons that it originally encloses. You may move the complete formatted span for target-language grammar, but NEVER move a formatting boundary across a protected token or rebind it to different content. Do not add any formatting marker that is absent from the source.
 6. Keep the translation on a single line. Do not split the output into multiple lines.
 7. Treat every numbered input item as independent. NEVER resolve, expand, replace, or hardcode a protected variable in one item by using the source text, localization key, semantic hint, or translated value of another item. Preserve protected variables for runtime evaluation.
 8. Preserve each protected concept/function token in its original syntactic form and with its original modifiers. For example, do not change [concept_key] into [Concept('concept_key', 'Label')] or add a modifier such as |l unless it already exists in the source.
@@ -29,6 +29,7 @@ Syntax Rules (Examples):
 
 - **Script Variables**: "Gain $MONEY|+$" -> "获得 $MONEY|+$" (Keep exactly as is - DO NOT TRANSLATE)
 - **Formatting Tags**: "#bold Good#! Job" -> "#bold 干得好#! 工作" (ALWAYS translate content inside tags)
+- **Exact Tag Identity**: "#BOLD Important#!" -> "#BOLD 重要#!"; NEVER turn "#blue" into "#b lue" or "#italic" into "#b".
 - **Formatting Scope**: "#v $COUNTRY_ADJ$#! [concept_flagship]" -> "#v $COUNTRY_ADJ$#! [concept_flagship]" (Keep the formatted span bound to the same protected token)
 - **Complex Formatting**: "#v #b Data#! #!" -> "#v #b 数据#! #!" (Translate content even if nested)
 - **Functions**: "[GetDate]" -> "[GetDate]" (Do not translate functions)
@@ -52,13 +53,14 @@ STELLARIS_FORMAT_PROMPT = """Output Logic:
 1. Return a single JSON array of strings matching input length exactly ({chunk_size} items).
 2. If an input line is empty/placeholder (e.g. "TODO", "..."), translate it as: "WARNING: Source localization entry is incomplete".
 3. Do NOT translate internal keys (underscored_words) or special tokens ([[_NL_]], [[_QT_]]).
-4. Translate ALL content inside formatting tags (e.g. §RText§! -> §R文本§!). Do NOT skip long descriptions.
+4. Translate ALL content inside formatting tags (e.g. §RText§! -> §R文本§!). Preserve each § opener character-for-character, including case, order, parameters, and its matching §!. Do NOT skip long descriptions.
 5. Keep the translation on a single line. Do not split the output into multiple lines.
 
 Syntax Rules (Examples):
 
 - **Script Variables**: "Gain $ENERGY|Y$" -> "获得 $ENERGY|Y$" (Keep exactly as is - DO NOT TRANSLATE)
 - **Formatting Tags**: "§RHigh§! Voltage" -> "§R高§! 电压" (ALWAYS translate content inside tags)
+- **Exact Tag Identity**: "§YImportant§!" -> "§Y重要§!"; NEVER change §Y to §R or invent a new format marker.
 - **Icons**: "Cost: £minerals£" -> "花费: £minerals£" (Keep exactly as is)
 - **Scopes**: "[Root.GetName]" -> "[Root.GetName]" (Do not translate scopes)
 - **Escapes**: "\\\\[This.GetDate]" -> "\\\\[This.GetDate]" (Keep backslash escapes)
@@ -81,13 +83,14 @@ EU4_FORMAT_PROMPT = """Output Logic:
 1. Return a single JSON array of strings matching input length exactly ({chunk_size} items).
 2. If an input line is empty/placeholder (e.g. "TODO", "..."), translate it as: "WARNING: Source localization entry is incomplete".
 3. Do NOT translate internal keys (underscored_words) or special tokens ([[_NL_]], [[_QT_]]).
-4. Translate ALL content inside formatting tags (e.g. §RText§! -> §R文本§!). Do NOT skip long descriptions.
+4. Translate ALL content inside formatting tags (e.g. §RText§! -> §R文本§!). Preserve each § opener character-for-character, including case, order, parameters, and its matching §!. Do NOT skip long descriptions.
 5. Keep the translation on a single line. Do not split the output into multiple lines.
 
 Syntax Rules (Examples):
 
 - **Script Variables**: "$YEAR$" -> "$YEAR$" (Keep exactly as is - DO NOT TRANSLATE)
 - **Formatting Tags**: "§RRed§! Text" -> "§R红色§! 文本" (ALWAYS translate content inside tags)
+- **Exact Tag Identity**: "§YImportant§!" -> "§Y重要§!"; NEVER change §Y to §R or invent a new format marker.
 - **Dynamic Scopes**: "[Root.GetAdjective]" -> "[Root.GetAdjective]" (Do not translate scopes)
 - **Complex Vars**: "§=Y3$VAL$§!" -> "§=Y3$VAL$§!" (Keep wrapper and variable as is)
 - **Icons**: "£adm£" -> "£adm£" (Keep icons exactly as is)
@@ -141,18 +144,20 @@ CK3_FORMAT_PROMPT = """Output Logic:
 1. Return a single JSON array of strings matching input length exactly ({chunk_size} items).
 2. If an input line is empty/placeholder (e.g. "TODO", "..."), translate it as: "WARNING: Source localization entry is incomplete".
 3. Do NOT translate internal keys (underscored_words) or special tokens ([[_NL_]], [[_QT_]]).
-4. Translate ALL content inside formatting tags (e.g. #P Text#! -> #P 文本#!). Do NOT skip long descriptions.
+4. Translate ALL content inside formatting tags (e.g. #P Text#! -> #P 文本#!). Preserve each # opener character-for-character, including case, parameters, order, and its matching #!. Do NOT skip long descriptions.
 5. Keep the translation on a single line. Do not split the output into multiple lines.
 
 Syntax Rules (Examples):
 
 - **Script Variables**: "$VALUE|=+0$" -> "$VALUE|=+0$" (Keep exactly as is - DO NOT TRANSLATE)
 - **Formatting Tags**: "#P Good#! King" -> "#P 善良的#! 国王" (ALWAYS translate content inside tags)
+- **Exact Tag Identity**: "#BOLD Important#!" -> "#BOLD 重要#!"; NEVER change the Source opener to #bold, #b, or another tag.
 - **Scopes**: "[ROOT.Char.GetLadyLord]" -> "[ROOT.Char.GetLadyLord]" (Do not translate scopes)
 - **Functions**: "[GetTrait('brave').GetName(C.Self)]" -> "[GetTrait('brave').GetName(C.Self)]" (Keep function calls exactly as is)
 - **Links**: "[faith|E]" -> "[faith|E]" (Keep generic links as is)
 - **Custom Links**: "[Concept('faith', 'religion')|E]" -> "[Concept('faith', '宗教')|E]" (Translating 2nd arg is allowed here)
 - **Icons**: "@gold_icon!" -> "@gold_icon!" (Keep icons exactly as is)
+- **Exact formatting identity**: preserve the raw # opener and #! closer character-for-character (e.g. #BOLD Important#! -> #BOLD 重要#!); translate only visible text.
 
 Translate the following list:
 --- INPUT LIST ---
@@ -183,6 +188,7 @@ Syntax Rules (Examples):
 - **Scopes**: "[Location.GetTerrain]" -> "[Location.GetTerrain]" (Do not translate scopes)
 - **Functions**: "[GetModifier('mod_key').GetName]" -> "[GetModifier('mod_key').GetName]" (Keep keys as is unless clearly UI text)
 - **Icons**: "@gold_icon!" -> "@gold_icon!" (Keep icons exactly as is)
+- **Exact formatting identity**: preserve the raw # opener and #! closer character-for-character (e.g. #BOLD Important#! -> #BOLD 重要#!); translate only visible text.
 
 Translate the following list:
 --- INPUT LIST ---

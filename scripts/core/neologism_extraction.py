@@ -10,9 +10,9 @@ import json
 import logging
 import re
 from enum import Enum
-from typing import Any, Dict, Iterable, List, Literal, Optional, Sequence
+from typing import Annotated, Any, Dict, Iterable, List, Literal, Optional, Sequence
 
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, TypeAdapter, ValidationError, field_validator
 
 from scripts.core.context_local_units import (
     ContextLocalUnitBuilder,
@@ -54,7 +54,9 @@ class SourceItem(BaseModel):
     item_key: Optional[str] = Field(default=None, max_length=300)
     source_order: Optional[int] = Field(default=None, ge=0)
     duplicate_key_ordinal: int = Field(default=0, ge=0)
-    source_text: str = Field(min_length=1, max_length=20000)
+    source_text: Annotated[
+        str, StringConstraints(strip_whitespace=False)
+    ] = Field(min_length=1, max_length=20000)
     provenance: Literal["text_inferred"] = "text_inferred"
 
     @field_validator("relative_path")

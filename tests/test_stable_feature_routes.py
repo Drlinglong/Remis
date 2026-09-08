@@ -1,11 +1,9 @@
-from fastapi.testclient import TestClient
-
 from scripts.web_server import app
 
 
-def test_stable_app_does_not_register_project_archive_routes():
-    client = TestClient(app)
+def test_stable_app_registers_governed_project_archive_routes():
+    paths = app.openapi()["paths"]
 
-    assert client.get("/api/context/releases/project-1/latest").status_code == 404
-    assert client.get("/api/context/tree-v2/projects/project-1/latest").status_code == 404
-    assert client.get("/api/agent/context/releases/project-1/latest").status_code == 404
+    assert "/api/context/releases/{project_id}/latest" in paths
+    assert "/api/context/tree-v2/projects/{project_id}/latest" in paths
+    assert "/api/agent/context/releases/{project_id}/latest" in paths

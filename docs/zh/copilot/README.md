@@ -1,6 +1,6 @@
 # Remis Copilot 文档
 
-> **Status:** 3.1.1 隐藏工程预览；公开版本仍需完成发布门禁
+> **Status:** 3.2.0 stable / Agent Preview；Preview 使用隔离的数据目录和端口
 > **Related:** [Issue #132](https://github.com/Drlinglong/Remis/issues/132)
 
 本目录存放 **Remis Agent / Copilot** 相关说明。两种职责通过同一个聊天入口交给用户：

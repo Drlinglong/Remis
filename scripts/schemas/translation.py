@@ -11,6 +11,11 @@ class TranslationTaskResponse(BaseModel):
     warning: Optional[Dict[str, Any]] = None
 
 
+class ResumeTranslationTaskRequest(BaseModel):
+    idempotency_key: Optional[str] = None
+    expected_checkpoint_revision: Optional[int] = Field(default=None, ge=0)
+
+
 class SourceModResponse(BaseModel):
     name: str
     path: str
@@ -74,23 +79,27 @@ class EmbeddedWorkshopConfig(BaseModel):
 class InitialTranslationRequest(BaseModel):
     project_id: str
     idempotency_key: Optional[str] = None
+    resume_from_task_id: Optional[str] = None
+    expected_checkpoint_revision: Optional[int] = Field(default=None, ge=0)
     source_lang_code: LanguageCode
     target_lang_codes: List[LanguageCode] = [LanguageCode.ZH_CN]
     api_provider: str = "gemini"
-    model: str = "gemini-3.7-flash"
+    model: str = "gemini-3.8-flash"
     batch_size_limit: Optional[int] = None
     source_context_overlap: int = Field(default=0, ge=0, le=100)
     translation_context_mode: Optional[Literal["none", "glossaries", "archive"]] = None
     use_project_context: bool = True
     context_release_id: Optional[str] = None
     context_character_budget: int = Field(default=4000, ge=0, le=20000)
+    stale_choice: Optional[str] = None
+    stale_acknowledgement: Optional[Dict[str, Any]] = None
     concurrency_limit: Optional[int] = None
     rpm_limit: Optional[int] = 40
     mod_context: Optional[str] = ""
     selected_glossary_ids: Optional[List[int]] = []
     use_main_glossary: bool = True
     clean_source: bool = False
-    use_resume: bool = True
+    use_resume: bool = False
     custom_lang_config: Optional[CustomLangConfig] = None
     embedded_workshop: Optional[EmbeddedWorkshopConfig] = None
     reference_reuse: Optional[ReferenceReuseConfig] = None
@@ -126,7 +135,7 @@ class TranslationRequestV2(BaseModel):
     use_main_glossary: bool = True
     clean_source: bool = False
     is_existing_source: bool = False
-    use_resume: bool = True
+    use_resume: bool = False
     custom_lang_config: Optional[CustomLangConfig] = None
     embedded_workshop: Optional[EmbeddedWorkshopConfig] = None
     reference_reuse: Optional[ReferenceReuseConfig] = None
@@ -152,13 +161,15 @@ class IncrementalUpdateConfig(BaseModel):
     project_id: str
     target_lang_codes: List[LanguageCode] = [LanguageCode.ZH_CN]
     api_provider: str = "gemini"
-    model: str = "gemini-3.7-flash"
+    model: str = "gemini-3.8-flash"
     mod_context: Optional[str] = ""
     source_context_overlap: int = Field(default=0, ge=0, le=100)
     use_project_context: bool = True
     translation_context_mode: Optional[Literal["none", "glossaries", "archive"]] = None
     context_release_id: Optional[str] = None
     context_character_budget: int = Field(default=4000, ge=0, le=20000)
+    stale_choice: Optional[str] = None
+    stale_acknowledgement: Optional[Dict[str, Any]] = None
     dry_run: bool = False
     custom_source_path: Optional[str] = None
     use_resume: bool = True

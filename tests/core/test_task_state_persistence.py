@@ -1,5 +1,7 @@
 import pytest
 
+from scripts.core.db_migrations import migrate_main_database
+from scripts.core.repositories.task_repository import TaskRepository
 from scripts.routers import tasks as tasks_router
 from scripts.shared import task_state
 
@@ -112,6 +114,99 @@ def test_unexpected_repository_bug_is_not_silently_downgraded():
         task_state.configure_repository(BuggyTaskRepository())
         with pytest.raises(RuntimeError, match="programming defect"):
             task_state.create_task("unexpected-defect", status="running")
+    finally:
+        task_state.configure_repository(previous_repository)
+        task_state.tasks.clear()
+        task_state.tasks.update(previous_tasks)
+
+
+@pytest.mark.parametrize(
+    "kind",
+    ["initial_translation", "translation", "incremental_translation"],
+)
+def test_startup_recovers_each_translation_kind_and_releases_project_lock(tmp_path, kind):
+    db_path = tmp_path / "translation-recovery.sqlite"
+    migrate_main_database(str(db_path))
+    repository = TaskRepository(str(db_path))
+    task_id = f"orphan-{kind}"
+    repository.save_task(
+        {
+            "task_id": task_id,
+            "kind": kind,
+            "project_id": f"project-{kind}",
+            "status": "running",
+            "created_at": "2026-08-31T00:00:00Z",
+            "updated_at": "2026-08-31T00:01:00Z",
+            "checkpoint": {"available": True, "resume_supported": True},
+            "blocking": True,
+        }
+    )
+    assert repository.acquire_project_lock(
+        task_id=task_id,
+        project_id=f"project-{kind}",
+    ) is True
+
+    previous_repository = task_state.get_repository()
+    previous_tasks = dict(task_state.tasks)
+    try:
+        task_state.tasks.clear()
+        task_state.configure_repository(repository, hydrate=True, replace=True)
+
+        recovered = task_state.get_task(task_id)
+        assert recovered["status"] == "interrupted"
+        assert recovered["attention_reason"]
+        assert repository.get_project_lock(f"project-{kind}") is None
+        assert repository.get_task(task_id)["status"] == "interrupted"
+    finally:
+        task_state.configure_repository(previous_repository)
+        task_state.tasks.clear()
+        task_state.tasks.update(previous_tasks)
+
+
+def test_cancellation_request_survives_in_memory_state_reset(tmp_path):
+    db_path = tmp_path / "translation-cancellation.sqlite"
+    migrate_main_database(str(db_path))
+    repository = TaskRepository(str(db_path))
+    repository.save_task(
+        {
+            "task_id": "persisted-cancellation",
+            "kind": "translation",
+            "status": "running",
+            "created_at": "2026-08-31T00:00:00Z",
+            "updated_at": "2026-08-31T00:01:00Z",
+        }
+    )
+
+    previous_repository = task_state.get_repository()
+    previous_tasks = dict(task_state.tasks)
+    try:
+        task_state.tasks.clear()
+        task_state.configure_repository(repository)
+        task_state.request_task_cancellation("persisted-cancellation")
+        task_state.tasks.clear()
+        task_state._CANCELLATION_EVENTS.clear()
+
+        assert task_state.is_task_cancellation_requested("persisted-cancellation") is True
+    finally:
+        task_state.configure_repository(previous_repository)
+        task_state.tasks.clear()
+        task_state.tasks.update(previous_tasks)
+
+
+def test_translation_task_cannot_leave_terminal_state():
+    previous_repository = task_state.get_repository()
+    previous_tasks = dict(task_state.tasks)
+    try:
+        task_state.configure_repository(None)
+        task_state.tasks.clear()
+        task_state.create_task(
+            "terminal-translation",
+            status="completed",
+            fields={"kind": "translation"},
+        )
+
+        with pytest.raises(ValueError, match="terminal"):
+            task_state.update_task("terminal-translation", status="cancelled")
     finally:
         task_state.configure_repository(previous_repository)
         task_state.tasks.clear()

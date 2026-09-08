@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { Alert, Badge, Button, Group, Stack, Text, Title } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 
@@ -9,9 +9,22 @@ import { useContextWorkbenchSelection } from './useContextWorkbenchSelection';
 import PublishedContextEntitySummary from './PublishedContextEntitySummary';
 import PublishedContextEventDetail from './PublishedContextEventDetail';
 import PublishedContextMap from './PublishedContextMap';
+import PublishedContextProjectSummary from './PublishedContextProjectSummary';
 import styles from './PublishedContextWorkbench.module.css';
 
 const text = (t, key, fallback, options = {}) => t(key, { defaultValue: fallback, ...options });
+const isStackedLayout = () => (
+    typeof window !== 'undefined'
+    && window.matchMedia?.('(max-width: 52em)').matches
+);
+
+const focusAndReveal = (element) => {
+    if (!element) return;
+    element.focus({ preventScroll: true });
+    if (isStackedLayout()) {
+        element.scrollIntoView({ block: 'start', inline: 'nearest', behavior: 'auto' });
+    }
+};
 
 export const ContextTreeV2ArchiveSummary = ({ tree, mode = 'published' }) => {
     const { t } = useTranslation();
@@ -26,11 +39,37 @@ export const ContextTreeV2ArchiveSummary = ({ tree, mode = 'published' }) => {
         mode,
     });
     const normalizedTree = archiveState.tree || normalizeArchiveTree(tree);
+    const summary = normalizedTree.universalTranslationContext?.text
+        ? `Universal translation context\n${normalizedTree.universalTranslationContext.text}`
+        : normalizedTree.projectSummary;
     const selection = useContextWorkbenchSelection({
         groups: normalizedTree.groups,
         fragments: normalizedTree.fragments,
         identity: tree?.release_id || tree?.releaseId,
     });
+    const detailFocusRef = useRef(null);
+    const returnFocusIdRef = useRef(null);
+    const detailFocusPendingRef = useRef(false);
+    const detailState = selection.selectedFragmentId || selection.selectedGroupId ? 'selected' : 'empty';
+
+    useEffect(() => {
+        if (!detailFocusPendingRef.current || !selection.selectedGroupId) return;
+        detailFocusPendingRef.current = false;
+        focusAndReveal(detailFocusRef.current);
+    }, [selection.selectedGroupId]);
+
+    useEffect(() => {
+        if (selection.selectedFragmentId || selection.selectedGroupId || !returnFocusIdRef.current) return;
+        const returnTarget = document.getElementById(returnFocusIdRef.current);
+        returnFocusIdRef.current = null;
+        focusAndReveal(returnTarget);
+    }, [selection.selectedFragmentId, selection.selectedGroupId]);
+
+    const viewAllGroup = (groupId, triggerId) => {
+        returnFocusIdRef.current = triggerId;
+        detailFocusPendingRef.current = true;
+        selection.selectGroup(groupId);
+    };
 
     const deleteGroup = (groupId) => {
         archiveState.deleteGroup(groupId);
@@ -43,9 +82,7 @@ export const ContextTreeV2ArchiveSummary = ({ tree, mode = 'published' }) => {
                 <div className={styles.titleBlock}>
                     <Text className={styles.eyebrow}>{text(t, 'mod_archive.tree_v2.eyebrow', 'CONTEXT ARCHIVE')}</Text>
                     <Title order={1} className={styles.title}>{normalizedTree.title}</Title>
-                    {normalizedTree.projectSummary && (
-                        <Text className={styles.projectSummary} size="sm">{normalizedTree.projectSummary}</Text>
-                    )}
+                    <PublishedContextProjectSummary summary={summary} t={t} />
                 </div>
                 <Group className={styles.pageActions} gap="xs" wrap="wrap">
                     <Badge variant={mode === 'published' ? 'light' : 'outline'}>
@@ -69,7 +106,11 @@ export const ContextTreeV2ArchiveSummary = ({ tree, mode = 'published' }) => {
                     {archiveState.error}
                 </Alert>
             )}
-            <div className={styles.workbench} data-testid="published-context-workbench">
+            <div
+                className={styles.workbench}
+                data-detail-state={detailState}
+                data-testid="published-context-workbench"
+            >
                 <PublishedContextMap
                     tree={normalizedTree}
                     selectedFragmentId={selection.selectedFragmentId}
@@ -82,9 +123,11 @@ export const ContextTreeV2ArchiveSummary = ({ tree, mode = 'published' }) => {
                     onRenameGroup={archiveState.renameGroup}
                     onDeleteGroup={deleteGroup}
                     onMoveFragment={archiveState.moveFragment}
+                    onViewAllGroup={viewAllGroup}
                     t={t}
                 />
                 <PublishedContextEventDetail
+                    focusTargetRef={detailFocusRef}
                     tree={normalizedTree}
                     selectedFragmentId={selection.selectedFragmentId}
                     selectedGroupId={selection.selectedGroupId}
