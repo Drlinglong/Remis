@@ -11,6 +11,7 @@ from scripts.core.context_tree_v2_projection import (
     apply_draft_overrides,
     validate_tree,
 )
+from scripts.core.services.context_publication_policy import evaluate_context_publication
 from scripts.core.repositories.context_tree_v2_reader import ContextTreeV2Reader
 from scripts.core.repositories.context_tree_v2_storage import (
     ContextTreeV2ConflictError,
@@ -427,13 +428,19 @@ class ContextTreeV2Writer(TreeV2StorageSupport):
                 ),
                 ContextTreeV2Reader(self.db_path)._overrides(connection, draft_id),
             )
-            issues = list(validate_tree(payload))
-            if payload.get("unresolved_references"):
+            validation_issues = list(validate_tree(payload))
+            issues = list(validation_issues)
+            unresolved_references = payload.get("unresolved_references") or []
+            if unresolved_references:
                 issues.append({
                     "code": "unresolved_reference",
                     "message": "Unresolved references must be repaired before publication",
                 })
-            if issues:
+            publication = evaluate_context_publication(
+                unresolved_count=len(unresolved_references),
+                validation_issue_count=len(validation_issues),
+            )
+            if not publication.publishable:
                 connection.rollback()
                 raise ContextTreeV2ValidationError(
                     "Context tree v2 draft is not publishable", issues=issues,

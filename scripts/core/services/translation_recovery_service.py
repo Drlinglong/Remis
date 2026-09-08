@@ -20,7 +20,12 @@ from scripts.core.services.translation_task_lifecycle import (
 
 def canonical_configuration(payload: dict[str, Any]) -> dict[str, Any]:
     """Return the immutable, JSON-safe provider/workflow snapshot for one run."""
-    excluded = {"idempotency_key", "resume_from_task_id", "use_resume"}
+    excluded = {
+        "idempotency_key",
+        "resume_from_task_id",
+        "use_resume",
+        "expected_checkpoint_revision",
+    }
     return {
         key: value
         for key, value in json.loads(json.dumps(payload, default=str)).items()
@@ -123,8 +128,14 @@ class TranslationRecoveryService:
         task.setdefault("progress", {})["stage"] = "Interrupted"
 
     @staticmethod
-    def _checkpoint_target_codes(recovery: dict[str, Any]) -> list[str]:
+    def _checkpoint_target_codes(
+        recovery: dict[str, Any],
+        *,
+        include_unlisted: bool = False,
+    ) -> list[str]:
         target_codes = {str(code) for code in recovery.get("target_lang_codes", [])}
+        if target_codes and not include_unlisted:
+            return sorted(target_codes)
         output_dir_value = recovery.get("output_dir")
         output_dir = Path(str(output_dir_value)) if output_dir_value else None
         if output_dir is not None and output_dir.is_dir():
@@ -137,7 +148,11 @@ class TranslationRecoveryService:
         return sorted(target_codes)
 
     @staticmethod
-    def _checkpoint_managers(task: dict[str, Any]) -> list[tuple[str, CheckpointManager]]:
+    def _checkpoint_managers(
+        task: dict[str, Any],
+        *,
+        include_unlisted: bool = False,
+    ) -> list[tuple[str, CheckpointManager]]:
         recovery = task.get("recovery") or {}
         return [
             (
@@ -153,7 +168,10 @@ class TranslationRecoveryService:
                     source_snapshot_hash=recovery["source_snapshot_hash"],
                 ),
             )
-            for target_code in TranslationRecoveryService._checkpoint_target_codes(recovery)
+            for target_code in TranslationRecoveryService._checkpoint_target_codes(
+                recovery,
+                include_unlisted=include_unlisted,
+            )
         ]
 
     @staticmethod
@@ -191,6 +209,20 @@ class TranslationRecoveryService:
                 actions.insert(-1, "clear_checkpoint")
             return actions
         return ["view_task"]
+
+    @staticmethod
+    def _checkpoint_revision(target_infos: list[dict[str, Any]]) -> int:
+        existing = [
+            (str(item["target_lang_code"]), int(item.get("revision") or 0))
+            for item in target_infos
+            if item.get("exists")
+        ]
+        if not existing:
+            return 0
+        if len(existing) == 1:
+            return existing[0][1]
+        encoded = json.dumps(sorted(existing), separators=(",", ":")).encode("utf-8")
+        return int.from_bytes(hashlib.sha256(encoded).digest()[:8], "big")
 
     def _inspect_task(self, task: dict[str, Any]) -> dict[str, Any]:
         if not task.get("recovery"):
@@ -241,6 +273,7 @@ class TranslationRecoveryService:
                 "completed_batches": sum(
                     item.get("completed_batch_count", 0) for item in existing
                 ),
+                "revision": self._checkpoint_revision(target_infos),
                 "targets": target_infos,
             },
             "allowed_actions": self._actions_for_task(
@@ -256,16 +289,38 @@ class TranslationRecoveryService:
             return {"task_id": None, "status": "none", "checkpoint": {}, "allowed_actions": []}
         return self._inspect_task(task)
 
-    def require_resumable(self, task_id: str) -> dict[str, Any]:
+    def require_resumable_identity(
+        self,
+        task_id: str,
+        *,
+        expected_checkpoint_revision: int | None = None,
+    ) -> dict[str, Any]:
         task = self.repository.get_task(task_id)
         if task is None:
             raise ValueError("Recovery task not found")
         project_id = str(task.get("project_id") or "")
         projection = self.inspect(project_id)
+        if expected_checkpoint_revision is not None:
+            actual_revision = (projection.get("checkpoint") or {}).get("revision", 0)
+            if actual_revision != expected_checkpoint_revision:
+                raise ValueError("The checkpoint revision changed; refresh recovery before resuming")
         if projection.get("task_id") != task_id or "resume_task" not in projection["allowed_actions"]:
             raise ValueError("Task does not have a compatible checkpoint")
+        return task
+
+    def require_resumable(
+        self,
+        task_id: str,
+        *,
+        expected_checkpoint_revision: int | None = None,
+        source_snapshot_hash: str | None = None,
+    ) -> dict[str, Any]:
+        task = self.require_resumable_identity(
+            task_id,
+            expected_checkpoint_revision=expected_checkpoint_revision,
+        )
         recovery = deepcopy(task.get("recovery") or {})
-        current_hash = source_tree_hash(recovery["source_root"])
+        current_hash = source_snapshot_hash or source_tree_hash(recovery["source_root"])
         if current_hash != recovery.get("source_snapshot_hash"):
             raise ValueError("Source snapshot changed; start over is required")
         return task
@@ -296,7 +351,10 @@ class TranslationRecoveryService:
         projection = self._inspect_task(task)
         if "clear_checkpoint" not in projection.get("allowed_actions", []):
             return projection
-        for _target_code, manager in self._checkpoint_managers(task):
+        for _target_code, manager in self._checkpoint_managers(
+            task,
+            include_unlisted=True,
+        ):
             manager.clear_checkpoint()
         task["checkpoint"] = {
             "available": False,
@@ -330,7 +388,10 @@ class TranslationRecoveryService:
             or lock.get("task_id") != replacement_task_id
         ):
             raise ValueError("Replacement task does not own the project lock")
-        for _target_code, manager in self._checkpoint_managers(task):
+        for _target_code, manager in self._checkpoint_managers(
+            task,
+            include_unlisted=True,
+        ):
             manager.clear_checkpoint()
         task["checkpoint"] = {
             "available": False,

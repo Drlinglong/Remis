@@ -95,4 +95,27 @@ describe('TranslationProvider workflow handoff', () => {
     expect(sessionStorage.getItem('trans_is_processing')).toBe('false');
     expect(sessionStorage.getItem('trans_active_step')).toBe('3');
   });
+
+  it.each(['cancelled', 'canceled', 'interrupted'])(
+    'stops processing when the backend reports %s',
+    async (status) => {
+      sessionStorage.setItem('trans_task_id', JSON.stringify('task-terminal'));
+      sessionStorage.setItem('trans_is_processing', JSON.stringify(true));
+      sessionStorage.setItem('trans_active_step', JSON.stringify(1));
+
+      renderProvider();
+      await waitFor(() => expect(MockWebSocket.instances).toHaveLength(1));
+
+      act(() => {
+        MockWebSocket.instances[0].onmessage({
+          data: JSON.stringify({ status }),
+        });
+      });
+
+      expect(screen.getByText(status)).toBeInTheDocument();
+      expect(screen.getByText('false')).toBeInTheDocument();
+      expect(screen.getByText('1')).toBeInTheDocument();
+      expect(sessionStorage.getItem('trans_is_processing')).toBe('false');
+    },
+  );
 });

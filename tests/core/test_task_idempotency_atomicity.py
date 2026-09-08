@@ -34,7 +34,7 @@ def test_idempotency_migration_reconciles_legacy_duplicates_and_blank_values(tmp
         )
         connection.execute(
             "DELETE FROM schema_migrations WHERE version = ?",
-            (MAIN_DB_TARGET_VERSION,),
+            (24,),
         )
         connection.executemany(
             """

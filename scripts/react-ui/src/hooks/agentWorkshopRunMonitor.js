@@ -1,10 +1,4 @@
-const TERMINAL_RUN_STATUSES = new Set([
-  'completed',
-  'partial_failed',
-  'failed',
-  'cancelled',
-  'interrupted',
-]);
+import { TERMINAL_TASK_STATUSES } from '../utils/taskStatus';
 
 const defaultWaitForNext = (delayMs) =>
   new Promise((resolve) => setTimeout(resolve, delayMs));
@@ -29,7 +23,7 @@ export const pollAgentWorkshopRun = async ({
     }
 
     onTask(task);
-    if (TERMINAL_RUN_STATUSES.has(task.status)) return task;
+    if (TERMINAL_TASK_STATUSES.has(task.status)) return task;
   }
 
   return null;

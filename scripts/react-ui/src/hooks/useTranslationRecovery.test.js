@@ -21,6 +21,7 @@ const recovery = {
     available: true,
     resumable: true,
     checkpoint_id: 'checkpoint-1',
+    revision: 7,
   },
   allowed_actions: ['resume_task', 'start_over_task', 'clear_checkpoint'],
 };
@@ -72,7 +73,7 @@ describe('translation recovery contract', () => {
     });
     expect(apiClient.post).toHaveBeenCalledWith(
       '/api/tasks/task-interrupted/resume',
-      { idempotency_key: 'resume-1' },
+      { idempotency_key: 'resume-1', expected_checkpoint_revision: 7 },
     );
     expect(result.current.recovery.task_id).toBe('task-resumed');
     expect(result.current.canResume).toBe(false);

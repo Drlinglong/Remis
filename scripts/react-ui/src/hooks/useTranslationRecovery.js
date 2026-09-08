@@ -141,10 +141,15 @@ export function useTranslationRecovery(projectId, {
     }
   }, [apiClient, state.recovery]);
 
-  const resume = useCallback((payload) => performAction(
+  const resume = useCallback((payload = {}) => performAction(
     TRANSLATION_RECOVERY_ACTIONS.RESUME,
-    payload,
-  ), [performAction]);
+    {
+      ...(state.recovery?.checkpoint?.revision != null
+        ? { expected_checkpoint_revision: state.recovery.checkpoint.revision }
+        : {}),
+      ...payload,
+    },
+  ), [performAction, state.recovery]);
 
   const startOver = useCallback((payload) => performAction(
     TRANSLATION_RECOVERY_ACTIONS.START_OVER,

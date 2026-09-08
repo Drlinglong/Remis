@@ -610,7 +610,7 @@ async def cancel_task(task_id: str):
     updated = task_state.request_task_cancellation(task_id)
     if job is not None:
         agent_registry.update_snapshot(task_id, updated)
-    return {"task_id": task_id, "status": "cancelling"}
+    return {"task_id": task_id, "status": _status(updated.get("status"))}
 
 
 @router.post("/{task_id}/restore")

@@ -175,6 +175,136 @@ def test_migration_upgrades_managed_database_with_asset_tables(tmp_path):
     assert applied == ("add_steam_workshop_assets",)
 
 
+def _create_v24_asset_database(db_path, *, sequence=1):
+    with sqlite3.connect(db_path) as connection:
+        connection.executescript(
+            """
+            CREATE TABLE schema_migrations (
+                version INTEGER PRIMARY KEY,
+                name TEXT NOT NULL,
+                applied_at TEXT NOT NULL
+            );
+            CREATE TABLE steam_workshop_workspaces (
+                workspace_id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                game_id TEXT,
+                project_id TEXT,
+                workshop_item_id TEXT,
+                current_cover_version_id TEXT,
+                current_description_version_id TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+            CREATE TABLE steam_workshop_asset_versions (
+                version_id TEXT PRIMARY KEY,
+                workspace_id TEXT NOT NULL,
+                sequence INTEGER NOT NULL,
+                asset_type TEXT NOT NULL CHECK(asset_type IN ('cover', 'description')),
+                status TEXT NOT NULL DEFAULT 'candidate'
+                    CHECK(status IN ('candidate', 'selected')),
+                parent_version_id TEXT,
+                sha256 TEXT NOT NULL,
+                metadata_json JSON NOT NULL DEFAULT '{}',
+                source TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                description_bbcode TEXT,
+                description_language TEXT,
+                source_description TEXT,
+                source_description_sha256 TEXT,
+                cover_file_ref TEXT,
+                cover_mime_type TEXT,
+                cover_width INTEGER,
+                cover_height INTEGER,
+                cover_canvas_json JSON,
+                UNIQUE(workspace_id, asset_type, sequence)
+            );
+            """
+        )
+        connection.executemany(
+            "INSERT INTO schema_migrations VALUES (?, ?, 'now')",
+            [(version, f"migration-{version}") for version in range(1, 25)],
+        )
+        connection.execute(
+            """
+            INSERT INTO steam_workshop_workspaces
+                (workspace_id, name, created_at, updated_at)
+            VALUES ('workspace-1', 'Workspace', 'now', 'now')
+            """
+        )
+        connection.execute(
+            """
+            INSERT INTO steam_workshop_asset_versions (
+                version_id, workspace_id, sequence, asset_type, status,
+                sha256, metadata_json, source, created_at
+            ) VALUES ('version-1', 'workspace-1', ?, 'cover', 'candidate',
+                      'sha', '{}', 'manual', 'now')
+            """,
+            (sequence,),
+        )
+
+
+def test_fresh_database_rejects_non_positive_asset_sequence(tmp_path):
+    db_path = tmp_path / "fresh.sqlite"
+    migrate_main_database(str(db_path))
+    with sqlite3.connect(db_path) as connection:
+        connection.execute(
+            """
+            INSERT INTO steam_workshop_workspaces
+                (workspace_id, name, created_at, updated_at)
+            VALUES ('workspace-1', 'Workspace', 'now', 'now')
+            """
+        )
+        with pytest.raises(sqlite3.IntegrityError, match="CHECK constraint failed"):
+            connection.execute(
+                """
+                INSERT INTO steam_workshop_asset_versions (
+                    version_id, workspace_id, sequence, asset_type, status,
+                    sha256, metadata_json, source, created_at
+                ) VALUES ('invalid', 'workspace-1', 0, 'cover', 'candidate',
+                          'sha', '{}', 'manual', 'now')
+                """
+            )
+
+
+def test_v25_migration_preserves_rows_and_adds_positive_sequence_check(tmp_path):
+    db_path = tmp_path / "v24.sqlite"
+    _create_v24_asset_database(db_path)
+
+    assert migrate_main_database(str(db_path)) == MAIN_DB_TARGET_VERSION
+    assert migrate_main_database(str(db_path)) == MAIN_DB_TARGET_VERSION
+
+    with sqlite3.connect(db_path) as connection:
+        assert connection.execute(
+            "SELECT version_id, sequence FROM steam_workshop_asset_versions"
+        ).fetchall() == [("version-1", 1)]
+        assert connection.execute(
+            "SELECT name FROM schema_migrations WHERE version = 25"
+        ).fetchone() == ("enforce_steam_workshop_sequence",)
+        with pytest.raises(sqlite3.IntegrityError, match="CHECK constraint failed"):
+            connection.execute(
+                """
+                INSERT INTO steam_workshop_asset_versions (
+                    version_id, workspace_id, sequence, asset_type, status,
+                    sha256, metadata_json, source, created_at
+                ) VALUES ('invalid', 'workspace-1', 0, 'cover', 'candidate',
+                          'sha', '{}', 'manual', 'now')
+                """
+            )
+
+
+def test_v25_migration_fails_explicitly_for_invalid_legacy_sequence(tmp_path):
+    db_path = tmp_path / "invalid-v24.sqlite"
+    _create_v24_asset_database(db_path, sequence=0)
+
+    with pytest.raises(RuntimeError, match="sequence 0"):
+        migrate_main_database(str(db_path))
+
+    with sqlite3.connect(db_path) as connection:
+        assert connection.execute(
+            "SELECT COUNT(*) FROM schema_migrations WHERE version = 25"
+        ).fetchone() == (0,)
+
+
 def test_workspace_crud_supports_optional_bindings(workshop_client):
     client, _service, _db_path = workshop_client
     unbound = _workspace(client)

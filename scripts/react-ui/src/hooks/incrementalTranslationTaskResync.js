@@ -1,12 +1,8 @@
-export const INCREMENTAL_TERMINAL_STATUSES = new Set([
-  'completed',
-  'partial_failed',
-  'failed',
-  'cancelled',
-  'interrupted',
-]);
+import { TERMINAL_TASK_STATUSES } from '../utils/taskStatus';
 
-export const isIncrementalTaskTerminal = (status) => INCREMENTAL_TERMINAL_STATUSES.has(status);
+export const INCREMENTAL_TERMINAL_STATUSES = TERMINAL_TASK_STATUSES;
+
+export const isIncrementalTaskTerminal = (status) => TERMINAL_TASK_STATUSES.has(status);
 
 export const shouldResyncIncrementalTask = ({
   currentTaskId,

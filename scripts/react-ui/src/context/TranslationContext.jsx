@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import api from '../utils/api';
 import { usePersistentState } from '../hooks/usePersistentState';
 import { TranslationContext } from './TranslationContextCore';
+import { isTerminalTaskStatus } from '../utils/taskStatus';
 
 export const TranslationProvider = ({ children }) => {
     const [activeStep, setActiveStep] = usePersistentState('trans_active_step', 0);
@@ -22,7 +23,7 @@ export const TranslationProvider = ({ children }) => {
 
     const applyTaskUpdate = useCallback((data) => {
         setTaskStatus(data);
-        if (data?.status === 'completed' || data?.status === 'partial_failed' || data?.status === 'failed') {
+        if (isTerminalTaskStatus(data?.status)) {
             setIsProcessing(false);
             if (data.status === 'completed' || data.status === 'partial_failed') {
                 setActiveStep(3);

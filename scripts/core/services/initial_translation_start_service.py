@@ -30,6 +30,19 @@ def claim_project_translation_lock(*, task_id: str, project_id: str) -> None:
     raise ProjectTranslationLockError(owner.get("task_id"))
 
 
+def archive_recovered_task(*, previous_task_id: str | None, replacement_task_id: str) -> None:
+    """Hide the superseded terminal task after its replacement owns the lock."""
+    if not previous_task_id:
+        return
+    if task_state.get_task(previous_task_id) is None:
+        return
+    task_state.update_task(
+        previous_task_id,
+        fields={"archived_at": task_state.utc_now_iso()},
+        append_log=f"Archived after recovery task {replacement_task_id} started.",
+    )
+
+
 def create_initial_translation_task(
     *,
     task_id: str,
@@ -41,6 +54,11 @@ def create_initial_translation_task(
     resume_supported: bool,
 ) -> None:
     """Create the durable run record, then atomically claim project ownership."""
+    workflow_context = {}
+    if context_resolution.warning:
+        workflow_context["context_resolution"] = context_resolution.warning
+    if request.resume_from_task_id:
+        workflow_context["resume_from_task_id"] = request.resume_from_task_id
     task_state.create_task(
         task_id,
         status="pending",
@@ -52,11 +70,14 @@ def create_initial_translation_task(
                 "name": project["name"],
                 "game_id": project.get("game_id"),
             },
-            "title": f"Translate {project['name']}",
+            "title": (
+                f"Resume translation for {project['name']}"
+                if request.resume_from_task_id
+                else f"Translate {project['name']}"
+            ),
             "source_route": "/translation",
             "created_by": {"type": "user"},
             "blocking": True,
-            "parent_task_id": request.resume_from_task_id,
             "idempotency_key": request.idempotency_key,
             "recovery": recovery,
             "checkpoint": {
@@ -69,11 +90,7 @@ def create_initial_translation_task(
                 },
             },
             "translation_context_mode": request.translation_context_mode,
-            **(
-                {"workflow_context": {"context_resolution": context_resolution.warning}}
-                if context_resolution.warning
-                else {}
-            ),
+            **({"workflow_context": workflow_context} if workflow_context else {}),
             **provider_fields,
         },
         dedupe_key=f"project_translation_write:{request.project_id}",
@@ -82,4 +99,8 @@ def create_initial_translation_task(
     claim_project_translation_lock(
         task_id=task_id,
         project_id=request.project_id,
+    )
+    archive_recovered_task(
+        previous_task_id=request.resume_from_task_id,
+        replacement_task_id=task_id,
     )

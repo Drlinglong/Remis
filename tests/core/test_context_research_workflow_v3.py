@@ -197,7 +197,7 @@ async def test_workflow_v3_projects_three_axes_and_global_chain_deterministicall
             "routed_unit_count": 3,
             "complete": True,
             "uncovered_source_item_count": 0,
-            "uncovered_source_items_block_publication": False,
+            "uncovered_source_items_block_publication": True,
         },
     }
     assert backend.last_debug_snapshot["model_calls"]["catalog"] == 1
@@ -207,6 +207,31 @@ async def test_workflow_v3_projects_three_axes_and_global_chain_deterministicall
     assert replayed.event_chains == draft.event_chains
     assert replayed.entities == draft.entities
     assert replayed.diagnostics["replayed_from_debug_snapshot"] is True
+
+
+@pytest.mark.asyncio
+async def test_workflow_v3_marks_unresolved_draft_not_publishable():
+    result = _result()
+    result.catalog = result.catalog.model_copy(update={
+        "catalog": result.catalog.catalog.model_copy(update={
+            "unresolved_fragment_ids": ["fragment_c0_1"],
+        }),
+    })
+    request = ContextAnalysisRequest(
+        project_id="project-1",
+        source_items=_items(),
+        chunks=(_chunk(),),
+        description_language="zh-CN",
+    )
+
+    draft = await ContextResearchWorkflowV3(FakeWorkflow(result)).analyze(
+        request,
+        AgentExecutionContext(provider_selection_id="local", model_id="model-a"),
+    )
+
+    assert draft.unresolved
+    assert draft.diagnostics["run"]["status"] == "incomplete"
+    assert draft.diagnostics["run"]["publishable"] is False
 
 
 def test_v3_catalog_uses_requested_description_language_for_context_and_repair():

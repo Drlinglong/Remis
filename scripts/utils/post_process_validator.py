@@ -18,10 +18,10 @@ import logging
 import importlib.util
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional, Any, Callable
-from dataclasses import dataclass
-from enum import Enum
 
 from scripts.utils.game_format_contract import compare_format_structure
+from scripts.utils.validation_results import ValidationLevel, ValidationResult
+from scripts.utils.validation_runtime_diagnostics import validation_runtime_error
 
 # 导入国际化支持
 try:
@@ -32,28 +32,6 @@ except ImportError:
     i18n = None
     punctuation_handler = None
     LANGUAGES = {}
-
-
-class ValidationLevel(Enum):
-    """验证级别枚举"""
-    INFO = "info"
-    WARNING = "warning"
-    ERROR = "error"
-
-
-@dataclass
-class ValidationResult:
-    """验证结果数据类"""
-    is_valid: bool
-    level: ValidationLevel
-    message: str
-    code: Optional[str] = None
-    details: Optional[str] = None
-    details_code: Optional[str] = None
-    details_params: Optional[Dict[str, Any]] = None
-    line_number: Optional[int] = None
-    text_sample: Optional[str] = None
-    key: Optional[str] = None  # Added key field
 
 
 class BaseGameValidator:
@@ -531,8 +509,14 @@ class BaseGameValidator:
         现在可以接受并传递 **kwargs 和 source_text 给工人方法。
         """
         all_results = []
-        if not self.rules and not self.config: # 如果规则加载失败，则直接返回
-            return all_results
+        if not self.rules and not self.config:
+            return [validation_runtime_error(
+                code="validation_rules_unavailable",
+                message="Validation rules are unavailable",
+                details="The validator configuration could not be loaded; validation is blocked.",
+                text=text,
+                line_number=line_number,
+            )]
 
         for rule in self.rules:
             check_function_name = rule.get("check_function")
@@ -543,9 +527,25 @@ class BaseGameValidator:
                     results = checker(text, rule, line_number, source_text=source_text, target_lang=target_lang, **kwargs)
                     all_results.extend(results)
                 except Exception as e:
-                    self.logger.error(self._get_i18n_message("validator_error_executing_rule", rule_name=rule.get('name', 'N/A'), e=e))
+                    rule_name = rule.get("name", "N/A")
+                    self.logger.exception(self._get_i18n_message("validator_error_executing_rule", rule_name=rule_name, e=e))
+                    all_results.append(validation_runtime_error(
+                        code="validation_rule_execution_failed",
+                        message="Validation rule execution failed",
+                        details=f"Rule '{rule_name}' failed: {type(e).__name__}.",
+                        text=text,
+                        line_number=line_number,
+                    ))
             else:
-                self.logger.warning(self._get_i18n_message("validator_warning_unknown_check_function", rule_name=rule.get('name', 'N/A'), check_function_name=check_function_name))
+                rule_name = rule.get("name", "N/A")
+                self.logger.warning(self._get_i18n_message("validator_warning_unknown_check_function", rule_name=rule_name, check_function_name=check_function_name))
+                all_results.append(validation_runtime_error(
+                    code="validation_rule_unavailable",
+                    message="Validation rule is unavailable",
+                    details=f"Rule '{rule_name}' references unknown checker '{check_function_name}'.",
+                    text=text,
+                    line_number=line_number,
+                ))
 
         # --- 内置基础检查 ---
         # 传递 target_lang 给标点符号检查

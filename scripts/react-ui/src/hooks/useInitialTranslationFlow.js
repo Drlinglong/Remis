@@ -144,9 +144,6 @@ export function useInitialTranslationFlow({
     if (!resumeEnabled) {
       return startTranslation({ ...values, use_resume: false });
     }
-    if (!values.use_resume) {
-      return startTranslation(values);
-    }
 
     if (!selectedProjectId) {
       return;

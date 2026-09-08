@@ -152,4 +152,24 @@ describe('TaskCenterDrawer', () => {
       expect(refreshTasksMock).toHaveBeenCalledWith({ quiet: true });
     });
   });
+
+  it('offers governed cancellation for an active translation task', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    api.post.mockResolvedValue({ data: { status: 'cancelling' } });
+    refreshTasksMock.mockResolvedValue(undefined);
+    taskCenterState.tasks = [{
+      task_id: 'translation-running',
+      title: 'Running translation',
+      status: 'running',
+      allowed_actions: ['view_task', 'cancel_task'],
+    }];
+
+    render(<MantineProvider><TaskCenterDrawer /></MantineProvider>);
+    fireEvent.click(screen.getByRole('button', { name: 'task_detail.cancel_task' }));
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith('/api/tasks/translation-running/cancel');
+      expect(refreshTasksMock).toHaveBeenCalledWith({ quiet: true });
+    });
+  });
 });

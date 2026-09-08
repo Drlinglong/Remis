@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef } from 'react';
 
 import api from '../utils/api';
+import { TERMINAL_TASK_STATUSES } from '../utils/taskStatus';
 
 const BACKEND_PORT = import.meta.env.VITE_BACKEND_PORT || '1453';
 const POLL_INTERVAL_MS = 1000;
 const ACTIVE_STATUSES = new Set(['pending', 'starting', 'running', 'processing']);
-const TERMINAL_STATUSES = new Set(['completed', 'failed', 'cancelled', 'canceled']);
 
 const isObjectRecord = (value) => value && typeof value === 'object' && !Array.isArray(value);
 const firstDefined = (...values) => values.find(value => value !== undefined && value !== null);
@@ -135,7 +135,7 @@ export function useNeologismMiningTaskMonitor({
         if (!status) return null;
 
         onStatusRef.current?.(status, source);
-        if (TERMINAL_STATUSES.has(status.status)) {
+        if (TERMINAL_TASK_STATUSES.has(status.status)) {
             notifyTerminal(status, source, generation, currentProjectId);
         } else if (!ACTIVE_STATUSES.has(status.status)) {
             stopMonitoring();

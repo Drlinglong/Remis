@@ -188,10 +188,10 @@ describe('useInitialTranslationFlow reference gate', () => {
     expect(setIsProcessing).toHaveBeenLastCalledWith(false);
   });
 
-  it('uses the backend recovery task action instead of legacy checkpoint endpoints', async () => {
+  it('prompts for the backend recovery action even when resume was not enabled manually', async () => {
     api.get.mockResolvedValue({ data: {
       task_id: 'task-interrupted',
-      checkpoint: { available: true, resumable: true },
+      checkpoint: { available: true, resumable: true, revision: 7 },
       allowed_actions: ['resume_task', 'start_over_task'],
     } });
     api.post.mockResolvedValueOnce({ data: { task_id: 'task-resumed', status: 'queued' } });
@@ -211,9 +211,11 @@ describe('useInitialTranslationFlow reference gate', () => {
     await act(() => result.current.handleStartClick({
       ...values,
       reference_reuse_enabled: false,
-      use_resume: true,
+      use_resume: false,
     }));
     expect(api.get).toHaveBeenCalledWith('/api/projects/project-stable-id/translation-recovery');
+    expect(result.current.resumeModalOpen).toBe(true);
+    expect(api.post).not.toHaveBeenCalledWith('/api/translate/start', expect.anything());
 
     await act(() => result.current.handleStartOver());
     expect(api.post).toHaveBeenCalledWith('/api/tasks/task-interrupted/start-over', {});
@@ -224,7 +226,7 @@ describe('useInitialTranslationFlow reference gate', () => {
   it('resumes the backend task instead of starting a new translation task', async () => {
     api.get.mockResolvedValue({ data: {
       task_id: 'task-interrupted',
-      checkpoint: { available: true, resumable: true },
+      checkpoint: { available: true, resumable: true, revision: 7 },
       allowed_actions: ['resume_task'],
     } });
     api.post.mockResolvedValueOnce({ data: { task_id: 'task-resumed', status: 'queued' } });
@@ -245,11 +247,13 @@ describe('useInitialTranslationFlow reference gate', () => {
     await act(() => result.current.handleStartClick({
       ...values,
       reference_reuse_enabled: false,
-      use_resume: true,
+      use_resume: false,
     }));
     await act(() => result.current.handleResume());
 
-    expect(api.post).toHaveBeenCalledWith('/api/tasks/task-interrupted/resume', {});
+    expect(api.post).toHaveBeenCalledWith('/api/tasks/task-interrupted/resume', {
+      expected_checkpoint_revision: 7,
+    });
     expect(api.post).not.toHaveBeenCalledWith('/api/translate/start', expect.anything());
     expect(setTaskId).toHaveBeenLastCalledWith('task-resumed');
   });

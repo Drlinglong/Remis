@@ -94,7 +94,7 @@ class TranslationTaskLifecycle:
         if task is None:
             raise ValueError(f"Task {task_id} does not exist")
         if str(task.get("status") or "").lower() in TERMINAL_STATUSES:
-            raise ValueError(f"Task {task_id} is terminal and cannot be cancelled")
+            return task
         task["cancellation_requested_at"] = _utc_now_iso()
         self.repository.save_task(task)
         return self.transition(

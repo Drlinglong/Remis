@@ -39,6 +39,7 @@ import api from '../utils/api';
 import { useDeployActions } from '../hooks/useDeployActions';
 import { DeployModals } from './deploy/DeployModals';
 import BusyHeartbeat from './shared/BusyHeartbeat';
+import { isTerminalTaskStatus } from '../utils/taskStatus';
 
 const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
     const { t } = useTranslation();
@@ -90,10 +91,12 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
         workshop_progress: null
     };
 
-    const isCompleted = task?.status === 'completed';
-    const isPartiallyFailed = task?.status === 'partial_failed';
+    const normalizedStatus = String(task?.status || '').toLowerCase();
+    const isCompleted = normalizedStatus === 'completed';
+    const isPartiallyFailed = normalizedStatus === 'partial_failed';
     const isDoneWithOutput = isCompleted || isPartiallyFailed;
-    const isFailed = task?.status === 'failed';
+    const isFailed = normalizedStatus === 'failed';
+    const isTerminalWithoutOutput = isTerminalTaskStatus(normalizedStatus) && !isDoneWithOutput;
 
     // Calculate remaining
     const remainingFiles = Math.max(0, progress.total - progress.current);
@@ -140,7 +143,10 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
         };
         return t(map[stage] || stage);
     };
-    const progressTitle = isFailed ? t('stage_failed') : getLocalizedStage(progress.stage);
+    const terminalStatus = normalizedStatus === 'canceled' ? 'cancelled' : normalizedStatus;
+    const progressTitle = isTerminalWithoutOutput
+        ? t(`task_center.status.${terminalStatus}`, { defaultValue: terminalStatus })
+        : getLocalizedStage(progress.stage);
     const progressModelText = t('progress_translating_model', {
         model: translationDetails?.model || 'AI',
         total_files: progress.total,
@@ -377,13 +383,13 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
             >
                 <Stack align="center" gap="md">
                     <ThemeIcon size={60} radius="xl" color={isFailed ? "red" : "blue"} variant="light">
-                        {isFailed ? <IconAlertCircle size={40} /> : <IconTerminal2 size={40} />}
+                        {isTerminalWithoutOutput ? <IconAlertCircle size={40} /> : <IconTerminal2 size={40} />}
                     </ThemeIcon>
 
-                    {isFailed ? (
+                    {isTerminalWithoutOutput ? (
                         <>
                             <Title order={3}>{progressTitle}</Title>
-                            <Text size="md" fw={500}>{progressStatusText}</Text>
+                            <Text size="md" fw={500}>{task?.message || progressStatusText}</Text>
                         </>
                     ) : (
                         <BusyHeartbeat
@@ -400,7 +406,7 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
                             value={progress.percent}
                             size="xl"
                             radius="xl"
-                            animated={!isFailed}
+                            animated={!isTerminalWithoutOutput}
                             color={isFailed ? "red" : "blue"}
                         />
                         <Text

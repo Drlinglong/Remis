@@ -7,6 +7,9 @@ from fastapi import HTTPException
 
 from scripts.core.db_migrations import migrate_main_database
 from scripts.core.repositories.task_repository import TaskRepository
+from scripts.core.services.initial_translation_postprocess_service import (
+    build_format_validation_summary,
+)
 from scripts.routers import tasks as tasks_router
 from scripts.shared import task_state
 
@@ -28,6 +31,20 @@ class ProjectManagerStub:
 
     async def get_projects(self):
         return self.projects
+
+
+def test_clean_format_validation_summary_is_not_classified_as_an_error():
+    message = build_format_validation_summary(0, 0)
+
+    assert message == "Final file format validation completed. Found 0 format issues."
+    assert task_state._event_level(None, message) == "info"
+
+
+def test_warning_only_format_validation_summary_is_not_classified_as_an_error():
+    message = build_format_validation_summary(0, 3)
+
+    assert message.endswith("Found 3 format issue(s): 3 warning(s).")
+    assert task_state._event_level(None, message) == "warning"
 
 
 @pytest.fixture(autouse=True)
@@ -561,7 +578,7 @@ async def test_cancel_translation_keeps_lock_until_worker_acknowledges():
     task_state.create_task(
         "task-cancel",
         status="running",
-        fields={"kind": "initial_translation", "blocking": True},
+        fields={"kind": "initial_translation", "blocking": True, "finished_at": None},
         dedupe_key="project_translation_write:project-cancel",
     )
 
@@ -582,6 +599,7 @@ async def test_cancel_translation_keeps_lock_until_worker_acknowledges():
 
     task_state.update_task("task-cancel", status="cancelled")
 
+    assert task_state.get_task("task-cancel")["finished_at"] is not None
     assert task_state.find_active_task_by_dedupe_key(
         "project_translation_write:project-cancel"
     ) is None

@@ -31,6 +31,7 @@ from scripts.core.services.context_research_tree_v2_adapter import (
 from scripts.core.services.context_research_universal_context import (
     build_universal_translation_context,
 )
+from scripts.core.services.context_publication_policy import evaluate_context_publication
 from scripts.core.services.context_tree_v2_contract import UnitRoute
 from scripts.core.services.context_tree_v2_workflow_service import (
     ContextTreeV2WorkflowResult,
@@ -208,6 +209,10 @@ class ContextResearchWorkflowV3(ContextResearchTreeV2Adapter):
             source_id for source_id in cls._request_source_ids(request)
             if source_id not in covered
         ]
+        publication = evaluate_context_publication(
+            unresolved_count=len(unresolved),
+            uncovered_source_item_count=len(uncovered_source_item_ids),
+        )
         diagnostics = {
             "adapter": "context-workflow-v3",
             "workflow_version": "context-workflow-v3",
@@ -227,14 +232,14 @@ class ContextResearchWorkflowV3(ContextResearchTreeV2Adapter):
             "entity_normalization": entity_diagnostics,
             "uncovered_source_item_ids": uncovered_source_item_ids,
             "run": {
-                "status": "complete",
-                "publishable": True,
+                "status": publication.status,
+                "publishable": publication.publishable,
                 "coverage": {
                     "owned_unit_count": len(units),
                     "routed_unit_count": len(routes),
-                    "complete": True,
+                    "complete": publication.coverage_complete,
                     "uncovered_source_item_count": len(uncovered_source_item_ids),
-                    "uncovered_source_items_block_publication": False,
+                    "uncovered_source_items_block_publication": True,
                 },
             },
         }

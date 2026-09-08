@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { useTaskCenter } from '../../context/TaskCenterContextCore';
 import api from '../../utils/api';
 import { taskDetailRoute } from '../../utils/taskRoutes';
+import { TaskCancellationButton } from './TaskCancellationButton';
 import { TaskSummaryCard } from './TaskSummaryCard';
 
 function taskActivityTimestamp(task) {
@@ -113,13 +114,19 @@ export function TaskCenterDrawer() {
           ) : visibleTasks.length > 0 ? (
             <Stack gap="sm" pr="xs">
               {visibleTasks.map((task) => (
-                <TaskSummaryCard
-                  key={task.task_id}
-                  task={task}
-                  handling={handlingTaskId === task.task_id}
-                  onHandle={markHandled}
-                  onOpen={openTask}
-                />
+                <Stack key={task.task_id} gap={6}>
+                  <TaskSummaryCard
+                    task={task}
+                    handling={handlingTaskId === task.task_id}
+                    onHandle={markHandled}
+                    onOpen={openTask}
+                  />
+                  <TaskCancellationButton
+                    task={task}
+                    onError={setHandleError}
+                    onRefresh={() => refreshTasks({ quiet: true })}
+                  />
+                </Stack>
               ))}
             </Stack>
           ) : (

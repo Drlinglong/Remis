@@ -125,6 +125,7 @@ def test_initialize_database_builds_schema_and_imports_seed(tmp_path, monkeypatc
         (22, "extend_context_tree_v2_results"),
         (23, "add_translation_task_lifecycle"),
         (24, "add_task_idempotency_uniqueness"),
+        (25, "enforce_steam_workshop_sequence"),
     ]
 
     cursor.execute("PRAGMA index_list(background_tasks)")
@@ -427,6 +428,7 @@ def test_run_projects_db_migrations_upgrades_legacy_schema(tmp_path):
         (22,),
         (23,),
         (24,),
+        (25,),
     ]
 
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='project_watches'")

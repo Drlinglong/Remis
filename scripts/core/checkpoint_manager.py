@@ -19,7 +19,6 @@ class CheckpointManager:
     CHECKPOINT_FILENAME = ".remis_checkpoint.json"
     SCHEMA_VERSION = 3
     SUPPORTED_SCHEMA_VERSIONS = {2, 3}
-
     def __init__(
         self,
         output_dir: str,
@@ -53,6 +52,7 @@ class CheckpointManager:
         }
         self.metadata: Dict[str, Any] = dict(self.current_config)
         self.progress: Dict[str, int] = {}
+        self.revision = 0
         self._batch_progress_base = 0
         self.read_enabled = True
         self.compatibility = "missing"
@@ -104,11 +104,13 @@ class CheckpointManager:
         self.completed_files = {
             self._normalize_file_identity(item) for item in data.get("completed_files", [])
         }
+        self.revision = max(1, int(data.get("revision") or 0))
         self.metadata = dict(data.get("metadata") or {})
         self.compatibility = "compatible"
         self._validate_legacy_config()
 
     def _load_versioned(self, data: Dict[str, Any]) -> None:
+        self.revision = max(1, int(data.get("revision") or 0))
         stored_identity = data.get("identity")
         if not isinstance(stored_identity, dict):
             self.compatibility = "corrupt"
@@ -249,9 +251,12 @@ class CheckpointManager:
     def save_checkpoint(self) -> None:
         with self._lock:
             os.makedirs(self.output_dir, exist_ok=True)
+            existing_revision = self._read_revision_from_disk()
+            next_revision = max(self.revision, existing_revision) + 1
             metadata = dict(self.metadata or self.current_config)
             metadata["completed_count"] = len(self.completed_files)
             data = {
+                "revision": next_revision,
                 "metadata": metadata,
                 "completed_files": sorted(self.completed_files),
                 "batch_results": self.batch_results,
@@ -270,6 +275,7 @@ class CheckpointManager:
                     json.dump(data, temp_file, ensure_ascii=False, indent=2)
                     temp_path = temp_file.name
                 os.replace(temp_path, self.checkpoint_path)
+                self.revision = next_revision
                 self.metadata = metadata
                 self.compatibility = "compatible"
                 self.compatibility_reason = None
@@ -441,6 +447,16 @@ class CheckpointManager:
             self.compatibility = "missing"
             self.compatibility_reason = None
 
+    def _read_revision_from_disk(self) -> int:
+        if not os.path.exists(self.checkpoint_path):
+            return 0
+        try:
+            with open(self.checkpoint_path, "r", encoding="utf-8") as checkpoint_file:
+                data = json.load(checkpoint_file)
+            return max(1, int(data.get("revision") or 0)) if isinstance(data, dict) else 0
+        except (OSError, TypeError, ValueError, json.JSONDecodeError):
+            return 0
+
     def clear_checkpoint(self) -> None:
         with self._lock:
             try:
@@ -455,6 +471,7 @@ class CheckpointManager:
             self._batch_progress_base = 0
             self.compatibility = "missing"
             self.compatibility_reason = None
+            self.revision = 0
 
     def get_checkpoint_info(self) -> Dict[str, Any]:
         with self._lock:
@@ -472,6 +489,7 @@ class CheckpointManager:
                 "last_saved_at": self.metadata.get("last_saved_at"),
                 "last_completed_file": self.metadata.get("last_completed_file"),
                 "identity": dict(self.identity),
+                "revision": self.revision if os.path.exists(self.checkpoint_path) else 0,
                 "progress": dict(self.progress),
                 "compatibility": self.compatibility,
                 "compatibility_reason": self.compatibility_reason,

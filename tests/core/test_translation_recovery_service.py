@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+from unittest.mock import Mock
 
 import pytest
 
@@ -11,8 +12,15 @@ from scripts.core.services.translation_recovery_service import (
     canonical_configuration,
     source_tree_hash,
 )
+from scripts.core.services import translation_recovery_service
+from scripts.core.services.initial_translation_start_service import (
+    create_initial_translation_task,
+)
 from scripts.core.services.translation_task_runtime import prepare_initial_recovery
+from scripts.core.services import translation_task_runtime
 from scripts.core.services.translation_task_lifecycle import TranslationTaskLifecycle
+from scripts.routers import translation_recovery
+from scripts.schemas.translation import ResumeTranslationTaskRequest
 from scripts.shared import task_state
 
 
@@ -240,8 +248,10 @@ def test_explicit_project_clear_removes_checkpoint_slot(tmp_path):
     stale_target_checkpoint.mark_file_completed(str(source_file))
     service = TranslationRecoveryService(repository)
 
-    assert "clear_checkpoint" in service.inspect("project-1")["allowed_actions"]
-    assert len(service.inspect("project-1")["checkpoint"]["targets"]) == 2
+    inspection = service.inspect("project-1")
+    assert "clear_checkpoint" in inspection["allowed_actions"]
+    assert inspection["checkpoint"]["resumable"] is True
+    assert [target["target_lang_code"] for target in inspection["checkpoint"]["targets"]] == ["zh-CN"]
     projection = service.clear_project_checkpoint("project-1")
 
     assert checkpoint.get_checkpoint_info()["exists"] is False
@@ -251,6 +261,45 @@ def test_explicit_project_clear_removes_checkpoint_slot(tmp_path):
     assert repository.get_task("task-interrupted")["checkpoint"]["metadata"] == {
         "cleared_by_user": True,
     }
+
+
+def test_resume_rejects_stale_checkpoint_revision(tmp_path):
+    repository = _repository(tmp_path)
+    source_root = tmp_path / "source"
+    source_root.mkdir()
+    source_file = source_root / "localization.yml"
+    source_file.write_text('l_english:\n key:0 "Value"\n', encoding="utf-8")
+    recovery = build_recovery_descriptor(
+        task_id="task-revision",
+        project_id="project-revision",
+        source_root=str(source_root),
+        output_dir=str(tmp_path / "output"),
+        target_lang_codes=["zh-CN"],
+        configuration={"project_id": "project-revision"},
+        snapshot_hash=source_tree_hash(str(source_root)),
+    )
+    repository.save_task({
+        "task_id": "task-revision",
+        "kind": "initial_translation",
+        "project_id": "project-revision",
+        "status": "interrupted",
+        "created_at": "2026-08-31T00:00:00Z",
+        "updated_at": "2026-08-31T00:01:00Z",
+        "recovery": recovery,
+    })
+    _checkpoint(recovery).mark_file_completed(str(source_file))
+    service = TranslationRecoveryService(repository)
+    revision = service.inspect("project-revision")["checkpoint"]["revision"]
+
+    assert service.require_resumable(
+        "task-revision",
+        expected_checkpoint_revision=revision,
+    )["task_id"] == "task-revision"
+    with pytest.raises(ValueError, match="checkpoint revision changed"):
+        service.require_resumable(
+            "task-revision",
+            expected_checkpoint_revision=revision + 1,
+        )
 
 
 def test_explicit_project_clear_rejects_active_writer(tmp_path):
@@ -407,6 +456,142 @@ def test_continuation_preserves_checkpoint_owner_and_rejects_config_drift(tmp_pa
             raise AssertionError("Configuration drift must block checkpoint continuation")
     finally:
         task_state.configure_repository(previous_repository, hydrate=False)
+
+
+def test_continuation_uses_one_validated_source_hash(tmp_path, monkeypatch):
+    repository = _repository(tmp_path)
+    source_root = tmp_path / "source"
+    source_root.mkdir()
+    source_file = source_root / "localization.yml"
+    source_file.write_text("l_english:\n key:0 \"Value\"\n", encoding="utf-8")
+    request_payload = {
+        "project_id": "project-hash",
+        "source_lang_code": "en",
+        "target_lang_codes": ["zh-CN"],
+        "api_provider": "gemini",
+        "model": "model-1",
+        "use_resume": True,
+    }
+    parent_recovery = build_recovery_descriptor(
+        task_id="task-hash-original",
+        project_id="project-hash",
+        source_root=str(source_root),
+        output_dir=str(tmp_path / "output"),
+        target_lang_codes=["zh-CN"],
+        configuration=canonical_configuration(request_payload),
+        snapshot_hash="source-before",
+    )
+    repository.save_task({
+        "task_id": "task-hash-original",
+        "kind": "initial_translation",
+        "project_id": "project-hash",
+        "status": "interrupted",
+        "created_at": "2026-08-31T00:00:00Z",
+        "updated_at": "2026-08-31T00:01:00Z",
+        "recovery": parent_recovery,
+    })
+    _checkpoint(parent_recovery).mark_file_completed(str(source_file))
+    source_hash = Mock(side_effect=["source-before", "source-after"])
+    monkeypatch.setattr(
+        translation_task_runtime,
+        "source_tree_hash",
+        source_hash,
+    )
+    monkeypatch.setattr(translation_recovery_service, "source_tree_hash", source_hash)
+    request = SimpleNamespace(
+        project_id="project-hash",
+        resume_from_task_id="task-hash-original",
+        model_dump=lambda mode=None: {
+            **request_payload,
+            "resume_from_task_id": "task-hash-original",
+        },
+    )
+
+    previous_repository = task_state.get_repository()
+    try:
+        task_state.configure_repository(repository, hydrate=False)
+        _, continuation = prepare_initial_recovery(
+            request=request,
+            project={"source_path": str(source_root)},
+            task_id="task-hash-continuation",
+            target_languages=[{"code": "zh-CN", "folder_prefix": "zh-CN-"}],
+        )
+    finally:
+        task_state.configure_repository(previous_repository, hydrate=False)
+
+    assert source_hash.call_count == 1
+    assert continuation["source_snapshot_hash"] == "source-before"
+
+
+def test_continuation_is_top_level_and_archives_superseded_task_after_lock(tmp_path):
+    repository = _repository(tmp_path)
+    repository.save_task({
+        "task_id": "task-original",
+        "kind": "initial_translation",
+        "project_id": "project-1",
+        "status": "interrupted",
+        "created_at": "2026-08-31T00:00:00Z",
+        "updated_at": "2026-08-31T00:01:00Z",
+    })
+    previous_repository = task_state.get_repository()
+    try:
+        task_state.configure_repository(repository, hydrate=False)
+        create_initial_translation_task(
+            task_id="task-continuation",
+            project={"name": "Visible project", "game_id": "victoria3"},
+            request=SimpleNamespace(
+                project_id="project-1",
+                resume_from_task_id="task-original",
+                idempotency_key="resume-once",
+                translation_context_mode="project",
+            ),
+            context_resolution=SimpleNamespace(user_message="Queued", warning=None),
+            provider_fields={},
+            recovery={
+                "run_id": "task-continuation",
+                "resumed_from_task_id": "task-original",
+            },
+            resume_supported=True,
+        )
+
+        continuation = repository.get_task("task-continuation")
+        original = repository.get_task("task-original")
+        visible = repository.query_task_page(include_archived=False, include_children=False)
+
+        assert continuation["parent_task_id"] is None
+        assert continuation["workflow_context"]["resume_from_task_id"] == "task-original"
+        assert continuation["title"] == "Resume translation for Visible project"
+        assert original["archived_at"] is not None
+        assert [task["task_id"] for task in visible["tasks"]] == ["task-continuation"]
+        assert (
+            TranslationRecoveryService(repository).latest_recovery_task("project-1")["task_id"]
+            == "task-continuation"
+        )
+    finally:
+        task_state.configure_repository(previous_repository, hydrate=False)
+
+
+async def test_resume_idempotency_uses_recovery_lineage_for_top_level_task(monkeypatch):
+    monkeypatch.setattr(translation_recovery, "checkpoint_resume_enabled", lambda: True)
+    monkeypatch.setattr(
+        task_state,
+        "find_task_by_idempotency_key",
+        lambda _key: {
+            "task_id": "task-continuation",
+            "status": "running",
+            "parent_task_id": None,
+            "recovery": {"resumed_from_task_id": "task-original"},
+        },
+    )
+
+    result = await translation_recovery.resume_translation_task(
+        "task-original",
+        ResumeTranslationTaskRequest(idempotency_key="resume-once"),
+        SimpleNamespace(),
+    )
+
+    assert result["task_id"] == "task-continuation"
+    assert result["status"] == "running"
 
 
 def test_continuation_rejects_provider_runtime_drift(tmp_path):

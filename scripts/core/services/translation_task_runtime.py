@@ -47,6 +47,7 @@ def prepare_initial_recovery(
     if not os.path.isdir(source_path):
         raise ValueError(f"Project source path not found: {source_path}")
     mod_name = os.path.basename(os.path.normpath(source_path))
+    source_snapshot_hash = source_tree_hash(source_path)
     configuration = canonical_configuration(request.model_dump(mode="json"))
     if provider_runtime is not None and hasattr(provider_runtime, "safe_metadata"):
         runtime_fingerprint = provider_runtime.safe_metadata().get("config_fingerprint")
@@ -59,7 +60,11 @@ def prepare_initial_recovery(
         if repository is None:
             raise ValueError("Task persistence is unavailable for checkpoint resume")
         parent = TranslationRecoveryService(repository).require_resumable(
-            request.resume_from_task_id
+            request.resume_from_task_id,
+            expected_checkpoint_revision=getattr(
+                request, "expected_checkpoint_revision", None
+            ),
+            source_snapshot_hash=source_snapshot_hash,
         )
         parent_recovery = parent.get("recovery") or {}
         if parent_recovery.get("configuration_snapshot") != configuration:
@@ -73,7 +78,7 @@ def prepare_initial_recovery(
         output_dir=get_checkpoint_output_dir(mod_name, target_languages),
         target_lang_codes=[language["code"] for language in target_languages],
         configuration=configuration,
-        snapshot_hash=source_tree_hash(source_path),
+        snapshot_hash=source_snapshot_hash,
         resumed_from_task_id=request.resume_from_task_id,
         checkpoint_owner_task_id=owner_task_id,
         checkpoint_owner_run_id=owner_run_id,

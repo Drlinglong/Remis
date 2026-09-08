@@ -43,6 +43,10 @@ from scripts.core.services.translation_workflow_outcome import (
     record_context_metadata as _record_context_metadata,
     workflow_outcome_values as _workflow_outcome_values,
 )
+from scripts.core.services.translation_upload_service import (
+    TranslationArchiveUploadError,
+    install_translation_archive,
+)
 from scripts.workflows import initial_translate
 from scripts.utils import i18n
 from scripts.core.services.translation_context_service import context_workflow_kwargs
@@ -539,6 +543,14 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
     "/api/translate",
     response_model=TranslationTaskResponse,
     response_model_exclude_none=True,
+    deprecated=True,
+    summary="Legacy ZIP upload translation",
+    description=(
+        "Archived compatibility endpoint for ZIP-based uploads. The current Remis "
+        "desktop workflow selects a managed project folder and uses "
+        "POST /api/translate/start. This endpoint is retained as a possible basis "
+        "for a future cloud upload workflow and is not part of the current product flow."
+    ),
 )
 async def start_translation(
     background_tasks: BackgroundTasks,
@@ -549,44 +561,47 @@ async def start_translation(
     api_provider: str = Form(...),
     mod_context: str = Form("")
 ):
+    """Run the archived ZIP-upload flow; desktop clients use start_translation_project."""
+    raise HTTPException(
+        status_code=410,
+        detail=(
+            "ZIP upload is archived and unavailable in the current desktop product. "
+            "Create a project from a local folder instead."
+        ),
+    )
+
+
+async def _archived_start_translation(
+    background_tasks: BackgroundTasks,
+    file: UploadFile,
+    game_profile_id: str,
+    source_lang_code: str,
+    target_lang_codes: str,
+    api_provider: str,
+    mod_context: str,
+):
+    """Preserve the inactive ZIP workflow for possible future cloud adaptation."""
     provider_runtime = resolve_runtime_or_400(api_provider)
+    try:
+        installed = install_translation_archive(file.file, file.filename, SOURCE_DIR)
+    except TranslationArchiveUploadError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"File processing failed: {e}")
+
     task_id = str(uuid.uuid4())
+    mod_name = installed.mod_name
+    source_path = installed.source_path
     task_state.create_task(
         task_id,
-        status="pending",
+        status="starting",
         fields={
             "kind": "initial_translation", "title": "Uploaded Mod translation",
             "source_route": "/translation",
             **provider_task_fields(provider_runtime),
         },
+        log_message=f"Mod '{mod_name}' uploaded and extracted.",
     )
-    try:
-        mod_name = file.filename.replace(".zip", "")
-        source_path = os.path.join(SOURCE_DIR, mod_name)
-        if os.path.exists(source_path):
-            shutil.rmtree(source_path)
-        temp_archive_path = os.path.join(SOURCE_DIR, file.filename)
-        with open(temp_archive_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        import zipfile
-        with zipfile.ZipFile(temp_archive_path, "r") as zip_ref:
-            zip_ref.extractall(source_path)
-        extracted_items = os.listdir(source_path)
-        if len(extracted_items) == 1:
-            potential_inner_folder = os.path.join(source_path, extracted_items[0])
-            if os.path.isdir(potential_inner_folder):
-                for item_name in os.listdir(potential_inner_folder):
-                    shutil.move(os.path.join(potential_inner_folder, item_name), os.path.join(source_path, item_name))
-                os.rmdir(potential_inner_folder)
-        os.remove(temp_archive_path)
-        task_state.update_task(
-            task_id,
-            status="starting",
-            append_log=f"Mod '{mod_name}' uploaded and extracted.",
-            push=True,
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"File processing failed: {e}")
 
     try:
         # Normalize languages using strict schema

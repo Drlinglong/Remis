@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import translationService from '../services/translationService';
+import { TERMINAL_TASK_STATUSES } from '../utils/taskStatus';
 
 const ACTIVE_STATUSES = new Set([
   'queued', 'pending', 'running', 'discovering', 'scanning', 'indexing', 'activating',
-]);
-const TERMINAL_STATUSES = new Set([
-  'completed', 'success', 'failed', 'partial_failed', 'cancelled', 'canceled', 'interrupted',
 ]);
 
 const unwrap = (payload) => {
@@ -31,7 +29,7 @@ const taskIdFrom = (payload) => {
 };
 
 const isActiveTask = (task) => Boolean(
-  task?.task_id && !TERMINAL_STATUSES.has(task.status) && task.status !== 'not_found',
+  task?.task_id && !TERMINAL_TASK_STATUSES.has(task.status) && task.status !== 'not_found',
 );
 
 const candidatePath = (candidate) => candidate.localization_path || candidate.root_path || '';

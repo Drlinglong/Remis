@@ -114,7 +114,6 @@ def _ensure_task(task_id: str) -> Dict[str, Any]:
     task.setdefault("log", [])
     return task
 
-
 def _append_log(task: Dict[str, Any], message: Optional[str]) -> None:
     if not message:
         return
@@ -258,7 +257,7 @@ def _event_level(status: Optional[str], message: Optional[str]) -> str:
         return "error"
     if normalized in {"completed", "complete", "success"}:
         return "success"
-    if normalized in {"awaiting_approval"}:
+    if normalized in {"awaiting_approval"} or "warning" in lowered_message:
         return "warning"
     return "info"
 
@@ -535,7 +534,7 @@ def update_task(
         if normalized_status in ACTIVE_TASK_STATUSES and normalized_status not in {"pending", "queued"}:
             task.setdefault("started_at", now)
         if normalized_status in TERMINAL_TASK_STATUSES:
-            task.setdefault("finished_at", now)
+            task["finished_at"] = task.get("finished_at") or now
             _CANCELLATION_EVENTS.pop(task_id, None)
             if _is_translation_task(task):
                 task["blocking"] = False
@@ -586,6 +585,8 @@ def request_task_cancellation(task_id: str) -> Dict[str, Any]:
                 updated = None
             if updated is not None:
                 tasks[task_id] = updated
+                if str(updated.get("status") or "").lower() in TRANSLATION_TERMINAL_STATUSES:
+                    _CANCELLATION_EVENTS.pop(task_id, None)
                 snapshot = deepcopy(updated)
                 _notify_task_update_listeners(task_id, snapshot)
                 push_task_update(task_id)

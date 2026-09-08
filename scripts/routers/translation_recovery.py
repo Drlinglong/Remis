@@ -50,7 +50,8 @@ async def resume_translation_task(
     if payload.idempotency_key:
         existing = task_state.find_task_by_idempotency_key(payload.idempotency_key)
         if existing is not None:
-            if existing.get("parent_task_id") != task_id:
+            recovery = existing.get("recovery") or {}
+            if recovery.get("resumed_from_task_id") != task_id:
                 raise HTTPException(status_code=409, detail="Idempotency key belongs to another task")
             return {
                 "task_id": existing["task_id"],
@@ -61,7 +62,11 @@ async def resume_translation_task(
     if repository is None:
         raise HTTPException(status_code=503, detail="Task persistence is unavailable")
     try:
-        original = TranslationRecoveryService(repository).require_resumable(task_id)
+        recovery_service = TranslationRecoveryService(repository)
+        original = recovery_service.require_resumable_identity(
+            task_id,
+            expected_checkpoint_revision=payload.expected_checkpoint_revision,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     recovery = original["recovery"]
@@ -70,6 +75,7 @@ async def resume_translation_task(
         idempotency_key=payload.idempotency_key,
         resume_from_task_id=task_id,
         use_resume=True,
+        expected_checkpoint_revision=payload.expected_checkpoint_revision,
     )
     request = InitialTranslationRequest.model_validate(configuration)
     return await start_translation_project(request, background_tasks)

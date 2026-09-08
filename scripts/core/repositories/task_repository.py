@@ -26,7 +26,6 @@ TRANSLATION_LOCK_ACTIVE_STATUSES = (
     "waiting_approval",
 )
 
-
 class TaskIdempotencyConflictError(sqlite3.IntegrityError):
     """Raised when another connection already owns a task idempotency key."""
 
@@ -408,7 +407,11 @@ class TaskRepository:
         kind_placeholders, normalized_kinds = self._in_clause(kinds)
         if not normalized_kinds:
             return None
-        clauses = ["project_id = ?", f"kind IN ({kind_placeholders})"]
+        clauses = [
+            "project_id = ?",
+            f"kind IN ({kind_placeholders})",
+            "archived_at IS NULL",
+        ]
         parameters: list[Any] = [project_id, *normalized_kinds]
         if statuses is not None:
             status_placeholders, normalized_statuses = self._in_clause(statuses)
