@@ -111,8 +111,9 @@ Remis treats localization as a stateful AI engineering problem, not a single mod
 |---|---|
 | **LLM orchestration** | Provider abstraction across hosted APIs and local OpenAI-compatible runtimes, with configurable batching, concurrency, RPM limits, retries, and resumable execution |
 | **Context engineering** | Project metadata, mod description, global and game glossaries, translation memory, parent context, validator diagnostics, and task state are assembled at the point of use |
+| **Project Archive** | Source localization becomes traceable project, entity, and event knowledge; immutable Context Releases preserve provenance, draft ancestry, staleness, and the exact version selected for reuse |
 | **Structured generation** | Typed Pydantic/PydanticAI contracts, schema validation, native function calling, constrained tool selection, provider response parsing, and explicit failure propagation |
-| **Agentic AI workflows** | A localhost Agent API for Codex, task-backed Agent Workshop repairs, and an in-development Copilot architecture with model-selected read tools, typed workflow planning, approval-gated execution, persistent sessions, and task handoff |
+| **Agentic AI workflows** | A localhost Agent API for Codex, task-backed Agent Workshop repairs, and a shipped Copilot with model-selected read tools, typed workflow planning, approval-gated execution, persistent sessions, and task handoff |
 | **Reliability layer** | Deterministic Paradox-format validators, repair loops, checkpoint recovery, incremental reuse, persisted Task Center history, WebSocket and REST task recovery, and human review |
 | **LLMOps, evaluation & observability** | Frozen translation and repair fixtures exercise production prompts, glossary injection, parsers, validators, latency, structured-output failures, and over-editing behavior |
 | **Desktop product engineering** | Tauri 2 + React 19 + FastAPI + SQLite, packaged as a real Windows application rather than a notebook or hosted demo |
@@ -164,10 +165,17 @@ knowledge base.
 
 That boundary matters more than bolting a vector database onto the product. Remis is designed so retrieval improves grounding while deterministic validators and human approval remain authoritative.
 
+The **Project Archive** is the project-context implementation of that idea. It
+turns source localization into terminology, entity, and event knowledge;
+attaches paths, citations, coverage, and provenance; publishes immutable
+Context Releases; and detects when the selected release is stale before
+translation reuses it. See the [Project Archive guide](docs/en/user-guides/project-archive.md).
+
 | Knowledge layer | Status |
 |---|---|
 | Model-selected help packs and source-aware answers | **Available in 3.2.0 stable and Agent Preview** |
 | Route context, session memory, and bounded project read tools | **Available in 3.2.0 stable and Agent Preview** |
+| Traceable, versioned Project Archive Context Releases | **Available in 3.2.0 stable and Agent Preview** |
 | Curated Micro-RAG corpus contract and indexing boundaries | **Architecture complete** |
 | Vector retrieval and retrieval evaluation over the user corpus | **Next adapter** |
 | Autonomous write access to arbitrary user files | **Explicitly out of scope** |
