@@ -69,6 +69,62 @@ function ProductLayers() {
   )
 }
 
+const projectArchiveCopy = {
+  en: {
+    eyebrow: 'PROJECT ARCHIVE · CONTEXT ENGINEERING',
+    title: 'Turn a mod into a versioned context system.',
+    body: 'The Project Archive does more than save summaries. It structures terminology, people, places, organizations, and event chains into immutable Context Releases with source evidence, draft inheritance, stale detection, and human review.',
+    action: 'Read the Project Archive guide',
+    href: links.archiveGuideEn,
+    stages: [
+      ['STRUCTURE', 'Extract project, entity, and event knowledge from source localization.'],
+      ['TRACE', 'Keep source paths, citations, coverage, and provenance attached to published results.'],
+      ['VERSION', 'Publish immutable releases, branch editable drafts, and preserve parentage instead of overwriting history.'],
+      ['REUSE', 'Use a readiness-checked release in translation, and expose bounded published context to Agent reads.'],
+    ],
+  },
+  zh: {
+    eyebrow: '项目档案馆 · CONTEXT ENGINEERING',
+    title: '把一个 Mod 变成有版本的上下文系统。',
+    body: '项目档案馆不只是保存摘要。它把术语、人物、地点、组织与事件链整理成不可变的 Context Release，并把来源证据、草稿继承、过期检测和人工审阅一起纳入系统。',
+    action: '阅读项目档案馆指南',
+    href: links.archiveGuideZh,
+    stages: [
+      ['结构化', '从本地化源文件中提取项目、实体与事件知识。'],
+      ['可追溯', '让来源路径、引用、覆盖率与 provenance 始终跟随发布结果。'],
+      ['版本化', '发布不可变版本，从版本继承可编辑草稿，不用覆盖历史。'],
+      ['可复用', '翻译使用经过就绪检查的版本，Agent 则读取受限的已发布上下文。'],
+    ],
+  },
+}
+
+function ProjectArchiveSection() {
+  const { locale } = useI18n()
+  const copy = projectArchiveCopy[locale === 'zh' ? 'zh' : 'en']
+
+  return (
+    <section className="section section--signal">
+      <div className="container benchmark-grid">
+        <div>
+          <p className="eyebrow">{copy.eyebrow}</p>
+          <MeasuredText as="h2" className="section-title">{copy.title}</MeasuredText>
+          <p>{copy.body}</p>
+          <TextLink href={copy.href} external>{copy.action}</TextLink>
+        </div>
+        <div className="metric-ledger" aria-label={copy.eyebrow}>
+          {copy.stages.map(([stage, detail], index) => (
+            <div key={stage}>
+              <span>0{index + 1}</span>
+              <code>{stage}</code>
+              <p>{detail}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
 export function HomePage() {
   const { t } = useI18n()
   return (
@@ -150,6 +206,8 @@ export function HomePage() {
           <TextLink href={sitePath('roadmap/')}>See what is shipped, in development, and planned</TextLink>
         </div>
       </section>
+
+      <ProjectArchiveSection />
 
       <section className="section section--boundary">
         <div className="container inference-boundary">

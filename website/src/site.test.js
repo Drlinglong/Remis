@@ -47,12 +47,14 @@ describe('Codex product entry', () => {
     expect(links.agentSkill).toBe(
       'https://github.com/Drlinglong/Remis/tree/main/.agents/skills/remis-agent',
     )
+    expect(links.archiveGuideEn).toContain('/docs/en/user-guides/project-archive.md')
+    expect(links.archiveGuideZh).toContain('/docs/zh/user-guides/mod-archive.md')
   })
 })
 
 describe('public evidence and navigation', () => {
   it('publishes the current release evidence snapshot', () => {
-    expect(proofPoints.find((point) => point.label === 'Public releases')?.value).toBe('38')
+    expect(proofPoints.find((point) => point.label === 'Public releases')?.value).toBe('41')
     expect(proofPoints.find((point) => point.label === 'Installer downloads')?.value).toBe('600+')
   })
 
@@ -68,14 +70,20 @@ describe('roadmap content', () => {
   it('labels every future-facing claim with a delivery status', () => {
     expect(roadmapPhases.every((phase) => phase.status && phase.version)).toBe(true)
   })
+
+  it('marks the 3.2.0 Agent layers as shipped', () => {
+    const versionPhases = roadmapPhases.filter((phase) => phase.version === 'v3.2.0')
+    expect(versionPhases).toHaveLength(2)
+    expect(versionPhases.every((phase) => phase.status === 'Shipped')).toBe(true)
+  })
 })
 
 describe('product positioning content', () => {
   it('labels every product layer with a delivery status', () => {
     expect(productLayers.map((layer) => layer.status)).toEqual([
       'Shipped',
-      'In development',
-      'In development',
+      'Shipped',
+      'Shipped',
     ])
   })
 

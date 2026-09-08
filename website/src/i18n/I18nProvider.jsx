@@ -26,7 +26,7 @@ const pageMetadata = {
   },
   roadmap: {
     title: 'Roadmap · Remis',
-    description: 'The Remis roadmap, from the shipped desktop workflow to Micro-RAG onboarding, a schema-bound Copilot, and read-only Translation QA.',
+    description: 'What exists. What is moving. What is still a bet.',
   },
   notFound: {
     title: 'Page not found · Remis',

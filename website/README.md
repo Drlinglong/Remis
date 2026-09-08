@@ -5,10 +5,13 @@ React/Vite source for the Remis GitHub Pages site.
 The public positioning is a mature open-source desktop AI product, not a commercial
 SaaS. The homepage uses `The operating system for AI localization.` as the category
 statement, then distinguishes local project control from cloud-or-local model
-inference. Future RAG and agent claims must retain visible delivery status.
-The in-app Copilot remains an in-development roadmap item and is not presented
-as shipped in v3.1.0. The standalone Aventine page presents the first
-reproducible translation-recipe tournament and judge-calibration results.
+inference. Agent and context claims retain visible delivery status and explicit
+trust boundaries. Remis 3.2.0 ships the in-app Copilot, the localhost Agent API,
+and the Project Archive. The archive is presented as a context-engineering system:
+structured source knowledge, traceable evidence, immutable Context Releases,
+draft inheritance, stale detection, and controlled reuse. The standalone Aventine
+page presents the first reproducible translation-recipe tournament and
+judge-calibration results.
 
 ## Local development
 
@@ -31,6 +34,7 @@ npm run preview
 The site is a true multi-page Vite build. Each public route has its own HTML entry:
 
 - `/Remis/`
+- `/Remis/codex/`
 - `/Remis/engineering/`
 - `/Remis/aventine/` (redirects to the standalone Aventine benchmark site)
 - `/Remis/guide/`
