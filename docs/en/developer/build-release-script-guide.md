@@ -1,16 +1,20 @@
-# Release Build Script Guide (`build_release.bat`)
+# Release Build Guide (Tauri EXE and legacy portable ZIP)
 
 ## Overview
 
-`build_release.bat` is a script used to automate the building of the Project Remis portable release package. It is responsible for cleaning up old build files, creating a new directory structure, embedding the Python environment, copying project source code, downloading and packaging all dependencies, and finally generating a distributable ZIP archive.
+The formal release path for the 3.2.0 Windows application is the Tauri NSIS
+installer built by `scripts/build_pipeline.py`. The older
+`archive/build_release_scripts/build_release.bat` remains only for the
+historical portable ZIP format and must not be used to produce the current EXE
+release.
 
 ## Features
 
-*   **Automated Build**: One-click completion of the portable release package build process.
-*   **Environment Isolation**: Packages the Python runtime environment and all dependencies into the release package, eliminating the need for users to manually install Python or configure the environment.
-*   **Dependency Management**: Automatically downloads all Python dependencies defined in `requirements.txt` and places them in the `packages` directory.
-*   **Structured Output**: Generates a release package that conforms to the Project Remis portable directory structure.
-*   **Optional Compression**: If 7-Zip is installed on the system, the script will automatically compress the generated release directory into a ZIP file.
+*   **Automated Build**: The current pipeline freezes the backend, builds the React frontend, and creates the Tauri Windows installer.
+*   **Channel Isolation**: Stable and Agent Preview builds use separate application identities, ports, and data directories.
+*   **Dependency Management**: CI installs the locked frontend and website dependency trees before running audits, tests, lint, and production builds.
+*   **Structured Output**: Produces a versioned Windows NSIS installer in the release archive.
+*   **Legacy Portable ZIP**: The archived batch script can still create the older ZIP format when that format is specifically required.
 
 ## Release Notes Standard
 
@@ -71,7 +75,7 @@ The canonical and complete convention is maintained in
 
 ## Usage
 
-## Database policy for the 3.1.0 desktop installer
+## Tauri installer data policy for the 3.2.0 desktop release
 
 The current Tauri installer is built by `scripts/build_pipeline.py`. First-run
 database setup has three layers:
@@ -106,13 +110,35 @@ python scripts\db\generate_skeleton.py --from-development
 That command overwrites checked-in release assets and therefore requires a
 database diff and test review before commit. Normal release builds never run it.
 
-### Prerequisites
+### Building the current stable EXE
+
+Run these commands from the repository root after the release candidate has
+passed review:
+
+```powershell
+python -m pytest -q tests/test_release_metadata.py
+python scripts/build_pipeline.py --channel stable
+```
+
+The pipeline uses the `local_factory` Conda environment, freezes and health-
+checks the Python sidecar, builds the frontend, and then runs the Tauri build.
+The stable NSIS installer is copied to
+`archive/release/stable/remis-mod-factory_3.2.0_x64-setup.exe`. Use
+`--channel agent-preview` only when intentionally producing the isolated
+`3.2.0-agent-preview.1` preview installer.
+
+### Legacy portable ZIP (`build_release.bat`)
+
+The following prerequisites and steps apply only to the historical portable
+ZIP script. They are not part of the current Tauri EXE release process.
+
+#### Prerequisites
 
 1.  **Conda Environment**: The script assumes it is run within an activated Conda/Python environment. Please ensure Conda is installed on your system and that the `CONDA_ROOT` and `ENV_NAME` variables are correctly configured in the script.
 2.  **7-Zip (Optional)**: If you want the script to automatically generate a ZIP archive, please ensure 7-Zip is installed on your system and its executable (`7z.exe`) is in the system PATH or a default path the script can find.
 3.  **Python Embeddable Package**: Ensure that the `python-3.10.11-embed-amd64.zip` file exists in the `archive/build_release_scripts/` directory.
 
-### Running the Script
+#### Running the Legacy Script
 
 1.  **Activate Conda Environment**:
     Open a command-line tool (e.g., Anaconda Prompt) and activate the Conda environment you are using for building:
@@ -121,8 +147,8 @@ database diff and test review before commit. Normal release builds never run it.
     ```
     (Please replace `your_env_name` with the environment name defined in the script's `ENV_NAME` variable)
 
-2.  **Execute the Build Script**:
-    Navigate to the `archive/build_release_scripts/` directory, then run `build_release.bat`:
+2.  **Execute the Legacy Script**:
+    Navigate to the `archive/build_release_scripts/` directory, then run `build_release.bat` only when a portable ZIP is explicitly required:
     ```bash
     cd J:\V3_Mod_Localization_Factory\archive\build_release_scripts\
     build_release.bat
@@ -131,7 +157,7 @@ database diff and test review before commit. Normal release builds never run it.
 3.  **Wait for Completion**:
     The script will automatically execute all build steps. Detailed log information will be output during the process. Please wait patiently until the script displays `[SUCCESS] Build process completed!`.
 
-## Script Configuration
+#### Legacy Script Configuration
 
 You can modify the following variables at the beginning of the `build_release.bat` script:
 
@@ -140,7 +166,7 @@ You can modify the following variables at the beginning of the `build_release.ba
 *   `PROJECT_NAME`: Project name (defaults to `Project_Remis`).
 *   `VERSION`: Release version number (defaults to `1.1.0`).
 
-## Build Process Overview
+#### Legacy Portable ZIP Process
 
 1.  **Initialization**: Determine the project root directory, release directory name, and path.
 2.  **Cleanup**: Delete the previously generated release directory (if it exists).
@@ -154,7 +180,7 @@ You can modify the following variables at the beginning of the `build_release.ba
 10. **Copy Run Script**: Copy `run.bat` to the release directory.
 11. **Final Packaging (Optional)**: If 7-Zip is detected, the entire release directory will be compressed into a ZIP file.
 
-## Troubleshooting
+#### Legacy ZIP Troubleshooting
 
 *   **`tar` command not found**: Ensure `tar` is installed on your system, or manually extract `python-3.10.11-embed-amd64.zip`.
 *   **`python.exe` not found**: Check if `python-3.10.11-embed-amd64.zip` is corrupted or if the path is correct.
