@@ -309,6 +309,8 @@ async def create_translation_plan(
     concurrency_limit: int | None = None,
     rpm_limit: int | None = 40,
     use_resume: bool = False,
+    resume_from_task_id: str | None = None,
+    expected_checkpoint_revision: int | None = None,
     use_main_glossary: bool = True,
     translation_context_mode: str | None = None,
     context_release_id: str | None = None,
@@ -370,6 +372,10 @@ async def create_translation_plan(
             "rpm_limit": rpm_limit,
         },
     }
+    if resume_from_task_id:
+        args["resume_from_task_id"] = resume_from_task_id
+    if expected_checkpoint_revision is not None:
+        args["expected_checkpoint_revision"] = expected_checkpoint_revision
     plan_id = str(uuid.uuid4())
     payload = {
         "plan_id": plan_id,

@@ -7,6 +7,7 @@ from typing import Any, Awaitable, Callable
 
 from scripts.schemas.agent import AgentJobPlanRequest, AgentPlanResponse
 from scripts.core.services.translation_context_readiness_service import TranslationContextModeResolution
+from scripts.core.services.translation_recovery_service import TranslationRecoveryService
 
 
 @dataclass(frozen=True)
@@ -15,6 +16,26 @@ class AgentTranslationPlanError(RuntimeError):
     code: str
     message: str
     details: dict[str, Any] = field(default_factory=dict)
+
+
+def resolve_agent_retry_checkpoint(
+    repository: Any, *, task_id: str, project_id: str,
+) -> dict[str, Any]:
+    """Return the persisted checkpoint lineage required by an Agent retry."""
+
+    if repository is None:
+        raise ValueError("Task persistence is unavailable for checkpoint retry")
+    recovery_service = TranslationRecoveryService(repository)
+    recovery_service.require_resumable_identity(task_id)
+    checkpoint = recovery_service.inspect(project_id).get("checkpoint") or {}
+    checkpoint_revision = checkpoint.get("revision")
+    if checkpoint_revision is None:
+        raise ValueError("Checkpoint revision is unavailable; refresh recovery before retrying")
+    return {
+        "use_resume": True,
+        "resume_from_task_id": task_id,
+        "expected_checkpoint_revision": int(checkpoint_revision),
+    }
 
 
 async def _resolve_agent_context(request, execution_args, plan, readiness_service):

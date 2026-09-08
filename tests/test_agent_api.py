@@ -8,6 +8,7 @@ from fastapi import BackgroundTasks, HTTPException
 from fastapi.testclient import TestClient
 
 from scripts.core.agent_service import AgentRegistry
+from scripts.core.services import agent_translation_plan_service
 from scripts.routers import agent as agent_router
 from scripts.schemas.agent import (
     AgentJobPlanRequest,
@@ -230,6 +231,69 @@ async def test_real_translation_plan_requires_explicit_approval(
 
     assert exc_info.value.status_code == 409
     assert exc_info.value.detail["code"] == "approval_required"
+
+
+@pytest.mark.asyncio
+async def test_agent_retry_plan_carries_checkpoint_lineage(monkeypatch, isolated_registry):
+    isolated_registry.record_job(
+        job_id="task-previous",
+        project_id="project-1",
+        plan_id="plan-previous",
+        kind="translation",
+        execution_args={"target_lang_codes": ["zh-CN"], "api_provider": "lm_studio", "model": "local-model"},
+    )
+
+    captured = {}
+
+    async def fake_create_translation_plan(**kwargs):
+        captured.update(kwargs)
+        return {"execution_args": kwargs}
+
+    monkeypatch.setattr(agent_router.task_state, "get_repository", lambda: object())
+    monkeypatch.setattr(
+        agent_router.translation_plan,
+        "resolve_agent_retry_checkpoint",
+        lambda repository, **_kwargs: {
+            "use_resume": True,
+            "resume_from_task_id": "task-previous",
+            "expected_checkpoint_revision": 9,
+        },
+    )
+    monkeypatch.setattr(agent_router, "create_translation_plan", fake_create_translation_plan)
+
+    result = await agent_router.retry_agent_job("task-previous")
+
+    assert result.status == "awaiting_approval"
+    assert captured["use_resume"] is True
+    assert captured["resume_from_task_id"] == "task-previous"
+    assert captured["expected_checkpoint_revision"] == 9
+
+
+def test_agent_retry_checkpoint_is_resolved_from_persisted_recovery(monkeypatch):
+    class FakeRecoveryService:
+        def __init__(self, repository):
+            assert repository == "repository"
+
+        def require_resumable_identity(self, task_id):
+            assert task_id == "task-previous"
+
+        def inspect(self, project_id):
+            assert project_id == "project-1"
+            return {"checkpoint": {"revision": 9}}
+
+    monkeypatch.setattr(
+        agent_translation_plan_service,
+        "TranslationRecoveryService",
+        FakeRecoveryService,
+    )
+
+    assert agent_translation_plan_service.resolve_agent_retry_checkpoint(
+        "repository", task_id="task-previous", project_id="project-1",
+    ) == {
+        "use_resume": True,
+        "resume_from_task_id": "task-previous",
+        "expected_checkpoint_revision": 9,
+    }
 
 
 @pytest.mark.asyncio

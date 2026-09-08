@@ -1,8 +1,8 @@
+import asyncio
 import os
 import subprocess
 import platform
 import logging
-import threading
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/system", tags=["System"])
 reference_library_service = ReferenceLibraryService()
-_database_maintenance_lock = threading.Lock()
+_database_maintenance_lock = asyncio.Lock()
 
 
 def _normalized_abs_path(path: str) -> str:
@@ -249,7 +249,7 @@ async def reset_project_database():
         from scripts.core import db_initializer
         from scripts.core.repositories.task_repository import TaskRepository
 
-        with _database_maintenance_lock:
+        async with _database_maintenance_lock:
             await _close_database_handles()
             _remove_sqlite_family(REMIS_DB_PATH)
             db_initializer.reset_database_without_file_changes(
@@ -283,7 +283,7 @@ async def reset_demo_state():
         from scripts.app_settings import get_backend_port
         from scripts.core.services.demo_reset_service import reset_all_demo_state
 
-        with _database_maintenance_lock:
+        async with _database_maintenance_lock:
             await _close_database_handles()
             result = reset_all_demo_state(
                 project_root=PROJECT_ROOT,

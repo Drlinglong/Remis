@@ -258,7 +258,7 @@ def _unpack_prepared_run(prepared: PreparedTranslationRun, recovery_identity: di
         prepared.total_batches,
         prepared.version_id,
         prepared.source_root,
-        recovery_identity.get("source_snapshot_hash") or prepared.source_snapshot_hash,
+        prepared.source_snapshot_hash,
         prepared.effective_chunk_size,
     )
 

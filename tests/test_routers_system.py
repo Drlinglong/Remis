@@ -1,3 +1,4 @@
+import asyncio
 import os
 
 import pytest
@@ -251,6 +252,60 @@ def test_reset_demo_state_restores_all_scopes_and_reports_backup(monkeypatch):
         "app_data_dir": system_router.APP_DATA_DIR,
         "backend_port": 1453,
     }]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "route_name",
+    ["reset_project_database", "reset_demo_state"],
+)
+async def test_overlapping_database_resets_do_not_block_event_loop(monkeypatch, route_name):
+    monkeypatch.setattr(system_router, "_database_maintenance_lock", asyncio.Lock())
+    first_close_started = asyncio.Event()
+    allow_first_close = asyncio.Event()
+    close_calls = 0
+
+    async def _close_handles():
+        nonlocal close_calls
+        close_calls += 1
+        if close_calls == 1:
+            first_close_started.set()
+            await allow_first_close.wait()
+
+    monkeypatch.setattr(system_router, "_close_database_handles", _close_handles)
+    monkeypatch.setattr(system_router, "_remove_sqlite_family", lambda _path: None)
+    monkeypatch.setattr(
+        db_initializer,
+        "reset_database_without_file_changes",
+        lambda **_kwargs: None,
+    )
+    from scripts.core.services import demo_reset_service
+
+    monkeypatch.setattr(
+        demo_reset_service,
+        "reset_all_demo_state",
+        lambda **_kwargs: {
+            "backup_root": "C:/backup",
+            "scopes": [],
+            "moved_paths": [],
+            "archived_task_count": 0,
+        },
+    )
+    monkeypatch.setattr(task_state, "configure_repository", lambda *_args, **_kwargs: None)
+
+    reset_route = getattr(system_router, route_name)
+    first = asyncio.create_task(reset_route())
+    await asyncio.wait_for(first_close_started.wait(), timeout=1)
+    second = asyncio.create_task(reset_route())
+    await asyncio.sleep(0)
+    assert not second.done()
+
+    allow_first_close.set()
+    first_result, second_result = await asyncio.wait_for(
+        asyncio.gather(first, second), timeout=1
+    )
+    assert first_result["status"] == "success"
+    assert second_result["status"] == "success"
 
 
 def test_open_database_folder_opens_main_database_parent(monkeypatch, tmp_path):

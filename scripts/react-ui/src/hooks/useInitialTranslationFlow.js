@@ -213,6 +213,7 @@ export function useInitialTranslationFlow({
   return {
     checkpointInfo: recoveryController.recovery,
     checkpointActionPending: recoveryController.pendingAction,
+    canStartOver: recoveryController.canStartOver,
     handleClearCheckpoint,
     handleResume,
     handleStartClick,

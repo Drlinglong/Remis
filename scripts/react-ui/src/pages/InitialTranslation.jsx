@@ -332,6 +332,7 @@ const InitialTranslation = () => {
   const {
     checkpointInfo: recoveryInfo,
     checkpointActionPending,
+    canStartOver,
     handleClearCheckpoint,
     handleResume,
     handleStartClick,
@@ -488,6 +489,7 @@ const InitialTranslation = () => {
           onClose={() => setResumeModalOpen(false)}
           onResume={handleResume}
           onStartOver={handleStartOver}
+          canStartOver={canStartOver}
           opened={resumeModalOpen}
           t={t}
         />

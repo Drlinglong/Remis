@@ -85,9 +85,9 @@ governed workflows with separate ports and data directories.
 
 ### Validation evidence
 
-- Backend: `python -m pytest -q` — 1735 passed, 3 skipped (1738 collected); the
+- Backend: `python -m pytest -q` — 1741 passed, 3 skipped (1744 collected); the
   suite emitted 357 existing deprecation warnings.
-- Desktop frontend: `npm test -- --run` — 231 files and 934 tests passed; lint has
+- Desktop frontend: `npm test -- --run` — 232 files and 936 tests passed; lint has
   0 errors and 13 existing maintainability/Fast Refresh warnings; production
   build passed.
 - Product website: 9 files and 63 tests passed; lint and production build passed.
@@ -178,9 +178,9 @@ governed workflows with separate ports and data directories.
 
 ### 验证证据
 
-- 后端：`python -m pytest -q` —— 1738 项收集，1735 passed、3 skipped；测试套件产生 357 条
+- 后端：`python -m pytest -q` —— 1744 项收集，1741 passed、3 skipped；测试套件产生 357 条
   既有 deprecation warnings。
-- 桌面前端：`npm test -- --run` —— 231 个测试文件、934 个测试全部通过；lint 为 0 errors，
+- 桌面前端：`npm test -- --run` —— 232 个测试文件、936 个测试全部通过；lint 为 0 errors，
   保留 13 个既有的可维护性／Fast Refresh warnings；生产 build 通过。
 - 产品官网：9 个测试文件、63 个测试通过；lint 与生产 build 通过。桌面端和官网更新锁文件后，
   依赖审计均为 0 个已知漏洞；Rust 格式检查和 locked 编译通过。

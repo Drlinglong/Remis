@@ -30,10 +30,7 @@ from scripts.core.services.agent_validation_policy import (
     validation_allowed_actions,
 )
 from scripts.core.services.agent_validation_projection_service import AgentValidationProjectionService
-from scripts.core.services.agent_translation_plan_service import (
-    AgentTranslationPlanError,
-    build_agent_translation_plan,
-)
+from scripts.core.services import agent_translation_plan_service as translation_plan
 from scripts.core.services.agent_provider_catalog_service import agent_key_resolver, agent_provider_catalog, agent_provider_setup
 from scripts.core.services.translation_context_readiness_service import (
     TranslationContextReadinessService,
@@ -565,7 +562,7 @@ async def get_agent_project_status(project_id: str):
 @router.post("/jobs/plan", response_model=AgentPlanResponse)
 async def plan_agent_job(request: AgentJobPlanRequest):
     try:
-        return await build_agent_translation_plan(
+        return await translation_plan.build_agent_translation_plan(
             request,
             api_providers=agent_provider_catalog(API_PROVIDERS),
             key_resolver=lambda pid, env: agent_key_resolver(pid, env, API_PROVIDERS, get_api_key),
@@ -574,7 +571,7 @@ async def plan_agent_job(request: AgentJobPlanRequest):
             registry=agent_registry,
             local_provider_ids=LOCAL_PROVIDER_IDS,
         )
-    except AgentTranslationPlanError as exc:
+    except translation_plan.AgentTranslationPlanError as exc:
         raise _error(
             exc.status_code,
             exc.code,
@@ -746,6 +743,9 @@ async def retry_agent_job(job_id: str):
         raise _error(404, "job_not_found", "Agent job not found")
     args = metadata.get("execution_args") or {}
     try:
+        retry_checkpoint = translation_plan.resolve_agent_retry_checkpoint(
+            task_state.get_repository(), task_id=job_id, project_id=metadata["project_id"],
+        )
         plan = await create_translation_plan(
             project_id=metadata["project_id"],
             target_lang_codes=args.get("target_lang_codes", []),
@@ -754,7 +754,7 @@ async def retry_agent_job(job_id: str):
             batch_size_limit=args.get("batch_size_limit"),
             concurrency_limit=args.get("concurrency_limit"),
             rpm_limit=args.get("rpm_limit", 40),
-            use_resume=True,
+            **retry_checkpoint,
             use_main_glossary=args.get("use_main_glossary", True),
             translation_context_mode=args.get("translation_context_mode"),
             context_release_id=args.get("context_release_id"), stale_choice=args.get("stale_choice"),
