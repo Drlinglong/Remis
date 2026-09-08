@@ -102,27 +102,6 @@ class OwnedShardCorpusView:
     def limits(self) -> Any:
         return self._bound.limits
 
-    def _check_units(self, local_unit_ids: Sequence[str]) -> tuple[str, ...]:
-        raw_requested = tuple(dict.fromkeys(str(item).strip() for item in local_unit_ids if str(item).strip()))
-        if not raw_requested:
-            if _model_facing:
-                return {
-                    "units": [], "count": 0, "read_only": True,
-                    "id_rejections": [{
-                        "kind": "unit", "value": "", "code": "empty_request",
-                        "message": "provide at least one local-unit ID",
-                    }],
-                }
-            raise ValueError("at least one local_unit_id is required")
-        requested, rejections = self._bound.id_registry.resolve_many(
-            "unit", raw_requested,
-            allowed_canonical_ids=self.lease.allowed_local_unit_ids,
-        )
-        unknown = [item.value for item in rejections]
-        if unknown:
-            raise ValueError(f"local unit(s) outside shard lease: {unknown}")
-        return requested
-
     def _unit_ownership(self, unit_id: str) -> dict[str, Any]:
         role = self.lease.role_for_unit(unit_id)
         return {
