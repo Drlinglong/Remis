@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Optional, Any, Callable
 
 from scripts.utils.game_format_contract import compare_format_structure
+from scripts.utils.concept_identity import variable_identities
 from scripts.utils.validation_results import ValidationLevel, ValidationResult
 from scripts.utils.validation_runtime_diagnostics import validation_runtime_error
 
@@ -349,8 +350,8 @@ class BaseGameValidator:
         for pattern in patterns:
             try:
                 # 寻找原文和译文中的所有匹配项
-                source_vars = re.findall(pattern, source_text)
-                target_vars = re.findall(pattern, text)
+                source_vars = variable_identities(source_text, pattern, contract_id)
+                target_vars = variable_identities(text, pattern, contract_id)
                 
                 if not source_vars and not target_vars:
                     continue

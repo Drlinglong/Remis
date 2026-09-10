@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from difflib import SequenceMatcher
 import re
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
+from scripts.utils.concept_identity import concept_identity
 
 
 GAME_ALIASES = {
@@ -357,16 +358,7 @@ def _read_section_opener(text: str, start: int) -> Optional[int]:
 
 def _canonical_runtime(game_id: str, raw: str) -> str:
     """Return comparison identity while preserving ``raw`` on the token."""
-    if normalize_game_id(game_id) == "ck3":
-        concept = re.fullmatch(
-            r"\[Concept\('([^']*)',\s*'[^']*'\)(\|[^\]]+)?\]",
-            raw,
-        )
-        if concept:
-            # CK3's second Concept argument is player-visible text and may be
-            # translated; the key and display modifier remain protected.
-            return f"CK3_CONCEPT:{concept.group(1)}:{concept.group(2) or ''}"
-    return raw
+    return concept_identity(normalize_game_id(game_id), raw)
 
 
 def _scan_format_tokens(

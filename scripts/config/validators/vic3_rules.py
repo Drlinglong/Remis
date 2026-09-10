@@ -8,7 +8,7 @@ RULES = {
     {
       "name": "non_ascii_in_simple_concept_link_key",
       "check_function": "banned_chars",
-      "pattern": r"\[([^\]]+)\]",
+      "pattern": r"\[(?!Concept\s*\()([^\]]+)\]",
       "level": "error",
       "message_key": "validation_vic3_simple_concept_link_key_non_ascii",
       "params": {
@@ -18,7 +18,7 @@ RULES = {
     {
       "name": "non_ascii_in_concept_function_key",
       "check_function": "banned_chars",
-      "pattern": r"\[Concept\('([^']*)',.*\)\]",
+      "pattern": r"\[Concept\(\s*'([^']*)'\s*,",
       "level": "error",
       "message_key": "validation_vic3_concept_function_key_non_ascii",
       "params": {
