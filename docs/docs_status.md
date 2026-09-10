@@ -18,6 +18,14 @@
 
 ### 路径默认值
 
+套壳项目维护的现行用户指南为 [中文](zh/user-guides/shell-languages.md) /
+[English](en/user-guides/shell-languages.md)，`last_verified: 2026-09-11`。
+规则是强烈建议独立项目、非阻塞提示；不增加创建项目的必填配置，也不强制单语言。
+
+[3.2.1 更新日志](zh/developer/release-v3.2.1.md)：`status: draft`，
+`audience: developer`，`copilot_scope: excluded`，`last_verified: 2026-09-11`。
+记录待发布改动、验证与已知限制，不表示已发布。
+
 | 路径 | status | audience | copilot_scope | canonical_for |
 |---|---|---|---|---|
 | `docs/zh/user-guides/**` | `current` | `user` | `user-help` | 用户何时使用、如何操作、失败后怎么办 |

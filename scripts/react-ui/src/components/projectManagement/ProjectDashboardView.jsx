@@ -10,6 +10,7 @@ import {
   IconVocabulary,
 } from '@tabler/icons-react';
 
+import ShellLanguageNotice from '../shared/ShellLanguageNotice';
 import { FEATURES } from '../../config/features';
 import ProjectGlossaryPanel from '../project/ProjectGlossaryPanel';
 import ProjectHeader from '../project/ProjectHeader';
@@ -96,6 +97,10 @@ export function ProjectDashboardView({
         <div className={styles.headerLoading} data-remis-surface="surface" role="status">
           <Text>{t('project_management.loading_details', 'Loading project details…')}</Text>
         </div>
+      )}
+
+      {projectDetails?.archived_languages?.includes('custom') && (
+        <ShellLanguageNotice t={t} compact />
       )}
 
       <Tabs

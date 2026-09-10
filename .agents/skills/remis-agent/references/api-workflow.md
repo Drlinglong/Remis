@@ -220,3 +220,62 @@ $export = Invoke-RestMethod -Method Post `
 The API restricts outputs to Remis-managed output folders and detected game mod
 directories. Treat a rejected path as a safety boundary, not an instruction to
 write it directly.
+
+## Italian content using an English shell
+
+Pass this configuration to `POST /api/agent/jobs/plan` alongside the project,
+provider/model and explicit context mode. `name` is the language shown to the
+translation model; `key` is the supported game language used in output files.
+`folder_prefix` must be a safe, distinct output prefix ending in a hyphen.
+
+```json
+{
+  "target_lang_codes": ["custom"],
+  "custom_lang_config": {
+    "name": "Italian",
+    "code": "custom",
+    "key": "l_english",
+    "folder_prefix": "it-"
+  }
+}
+```
+
+Read the returned `translation` object before starting. The server binds this
+configuration to the plan and retains it in the persisted job and retry plan.
+Do not mix custom and standard targets or replace the actual target with `en`.
+Existing project summaries include `source_path` for authorized local inspection.
+
+## Local Steam Workshop publishing candidates
+
+After explicitly approved, targeted file corrections, synchronize reviewed keys
+with `POST /jobs/{job_id}/baseline/sync`: `approved: true`, `file_name` relative
+to that completed job's output, `keys` (1–100 exact parser keys), and
+`expected_sha256` of the reviewed file. This reads current file values and uses
+the job's target identity (including `custom`), rather than guessing from the
+shell filename. It never changes the output file and does not refresh validation.
+Unknown keys, paths outside the registered output, and stale hashes are rejected.
+
+Base: `/api/agent/steam-workshop`. Supply a Workshop ID explicitly; source metadata
+may provide it, but projects are not required to have one. No route publishes to
+Steam. Existing product workspaces and versions are shared with the desktop UI.
+
+- `GET /items/{workshop_item_id}/description`: current source description and hash.
+- `GET /workspaces?project_id=...`: find existing publishing workspaces.
+- `POST /workspaces`: `name`, optional `game_id`, `project_id`, `workshop_item_id`.
+- `GET /workspaces/{workspace_id}` and `/versions`: inspect persisted assets.
+- `POST /workspaces/{workspace_id}/generate-description`: `workshop_item_id`
+  (or use the workspace's ID), `user_template`, `target_language_name: "Italian"`,
+  `language: "it"`, `provider`, `model`, and `approved: true`. Requires user
+  authorization for model cost; returns the saved version and task ID.
+- `POST /workspaces/{workspace_id}/versions/description`: `bbcode`, `language`,
+  optional `source`, `metadata`, `parent_version_id` and source-description fields.
+- `POST /workspaces/{workspace_id}/versions/cover`: `png_base64`, editable `canvas`,
+  optional `source`, `metadata`, `parent_version_id`. Generate imagery separately
+  and save the actual PNG through this endpoint.
+- `GET /versions/{version_id}`: saved version; `/content`: cover PNG.
+- `POST /workspaces/{workspace_id}/selections/{asset_type}`: `version_id`, where
+  asset_type is `description` or `cover`. Selection stays local.
+
+Generation is synchronous and may take time. If the connection is lost, inspect
+workspace versions before retrying to avoid duplicate model charges. Errors use
+the Agent `detail.code`, `detail.message`, `detail.retryable` envelope.

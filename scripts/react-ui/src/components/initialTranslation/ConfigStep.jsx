@@ -24,6 +24,7 @@ import {
   IconSettings,
 } from '@tabler/icons-react';
 
+import ShellLanguageSettingsCard from './ShellLanguageSettingsCard';
 import EmbeddedWorkshopSettingsCard from './EmbeddedWorkshopSettingsCard';
 import ReferenceLibraryAvailabilityNotice from './ReferenceLibraryAvailabilityNotice';
 import ReferenceReuseSettingsCard from '../shared/ReferenceReuseSettingsCard';
@@ -465,59 +466,12 @@ export default function ConfigStep({
                 t={t}
               />
 
-              <Card withBorder p="md" radius="md" bg="var(--mantine-color-body)">
-                <Stack gap="xs">
-                  <Switch
-                    label={t('form_label_disguise_mode')}
-                    description={t('form_desc_disguise_mode')}
-                    {...form.getInputProps('english_disguise', {
-                      type: 'checkbox',
-                      onChange: (event) => {
-                        form.setFieldValue('english_disguise', event.currentTarget.checked);
-                        if (event.currentTarget.checked) {
-                          form.setFieldValue('target_lang_codes', []);
-                        } else {
-                          form.setFieldValue('custom_name', '');
-                          form.setFieldValue('custom_key', '');
-                          form.setFieldValue('custom_prefix', '');
-                          form.setFieldValue('disguise_target_key', '');
-                        }
-                      },
-                    })}
-                  />
-
-                  {form.values.english_disguise && (
-                    <>
-                      <Text size="sm" fw={500} mt="xs">{t('form_title_custom_config')}</Text>
-                      <TextInput
-                        label={t('form_label_custom_name')}
-                        placeholder={t('form_placeholder_custom_name')}
-                        description={t('form_desc_custom_name')}
-                        {...form.getInputProps('custom_name')}
-                      />
-                      <Group grow>
-                        <Box style={{ flex: 1 }}>
-                          {renderNativeSelect({
-                            label: t('form_label_disguise_target'),
-                            value: form.values.disguise_target_key,
-                            options: disguiseOptions,
-                            onChange: (event) => {
-                              const value = event.currentTarget.value;
-                              form.setFieldValue('disguise_target_key', value);
-                              form.setFieldValue('custom_key', value);
-                            },
-                          })}
-                        </Box>
-                        <TextInput
-                          label={t('form_label_folder_prefix')}
-                          placeholder={t('form_placeholder_folder_prefix')}
-                          {...form.getInputProps('custom_prefix')}
-                        />
-                      </Group>
-                    </>
-                  )}
-                </Stack>
-              </Card>
+              <ShellLanguageSettingsCard
+                form={form}
+                disguiseOptions={disguiseOptions}
+                renderNativeSelect={renderNativeSelect}
+                t={t}
+              />
             </Stack>
           </CollapsibleSettingsCard>
         </Grid.Col>

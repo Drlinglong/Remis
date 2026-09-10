@@ -1,4 +1,8 @@
 {
+  "shell_language_notice.recommendation": "We recommend a separate project for this shell language to avoid mixing translation baselines. You can still continue with this project.",
+  "shell_language_notice.learn_more": "Why separate projects?",
+  "shell_language_notice.detected": "This project contains shell translations · Separate maintenance recommended · Learn more",
+  "shell_language_notice.explanation": "A shell packages the actual translation language as a language supported by the game. Custom languages in one project share the custom archive identifier; changing the language name does not create a separate baseline. We recommend maintaining one actual shell language per project and creating another project when switching languages. Officially supported languages can coexist in one project. This notice does not restrict your choices.",
   "context_report": {
     "title": "Project archive smoke report", "subtitle": "Deterministic integrity, coverage, boundary, repair, and model-usage evidence.", "gates_passed": "Integrity gates passed", "gates_failed": "Integrity gates failed",
     "raw_keys": "Raw keys", "source_items": "Source items", "local_units": "Local units", "chunks": "Chunks", "delivery_coverage": "Delivery coverage", "supporting_context": "Supporting context",
@@ -777,6 +781,7 @@
   "project_management.manage_paths.current_dirs": "Current Translation Directories",
   "project_management.manage_paths.no_dirs": "No translation directories configured",
   "project_management.source_dir": "Source Directory",
+  "project_management.source_directory_note": "The folder name may stay the same after an incremental update. Check the current files and update history to identify the version.",
   "project_management.translation_dir": "Translation Directory",
   "project_management.manage_paths.add_new": "Add New Directory",
   "project_management.manage_paths.placeholder": "Enter or browse directory path",

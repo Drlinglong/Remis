@@ -75,6 +75,7 @@ def _mark_checkpoint_completed(
         )
     else:
         checkpoint_manager.mark_file_completed(identity)
+    run_state.completed_files += 1
 
 
 def build_file_task_iterator(

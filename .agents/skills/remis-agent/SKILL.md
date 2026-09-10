@@ -6,8 +6,18 @@ description: Operate Remis through its localhost Agent API to inspect or import 
 # Remis Agent Operator
 
 Treat Remis as the execution plane. Use Codex to understand intent, inspect the
-workspace, explain progress, and request approvals; use the Remis API for all
-localization state changes.
+workspace, explain progress, and apply the user's authorization. Use Remis APIs
+for bulk translation and managed workflow state changes. Reading source files,
+translations and Mod metadata directly is allowed for inspection, comparison,
+quality discussion and sampling; never read provider credential files.
+
+For explicitly approved corrections to a few identified entries, prefer the
+Remis proofreading save workflow so the translation archive stays synchronized.
+Direct targeted edits are also allowed when authorized: preserve keys, semantic
+tokens, encoding and layout, verify the exact diff, and reconcile the reusable
+baseline. If synchronization is unavailable, report that the file is corrected
+but the baseline is not yet synchronized. Never expand this permission into
+bulk file translation or direct database writes.
 
 ## Establish the local boundary
 
@@ -15,6 +25,9 @@ localization state changes.
 2. Start the installed application, or run
    `scripts\developer_tools\windows\run-dev.bat` from the root of a development
    checkout. Respect the Python/Conda environment chosen by that launcher.
+   For API-only work use `run-dev.bat --backend-only`; it reuses a healthy
+   matching backend and starts no frontend or visible console. Do not repeatedly
+   launch the full desktop environment to recover only the backend.
 3. Verify `GET http://127.0.0.1:1453/api/health`.
 4. Before every workflow, call
    `GET http://127.0.0.1:1453/api/agent/preflight`. Report whether the installed
@@ -73,7 +86,7 @@ response fields, status handling, and error semantics.
 
 ## Respect approval gates
 
-Stop and ask before:
+The following actions need explicit user authorization:
 
 - starting a job that can spend model credits;
 - running model-backed repair;
@@ -81,8 +94,34 @@ Stop and ask before:
 - overwriting an existing localization folder.
 - removing a published Mod Archive and its resumable analysis checkpoints.
 
-Approval is specific to the displayed plan or preview. Do not reuse a past
-approval for a changed path, provider, model, target language, or overwrite.
+Show the concrete plan or preview before execution. Existing explicit approval
+in the conversation remains valid within its scope; do not repeatedly ask for
+the same action. Ask only when authorization is missing or an action changes
+the approved provider, model, language, destination or overwrite scope.
+
+## Shell languages and Steam Workshop assets
+
+For an unsupported game language, use `custom_lang_config` in the Agent plan.
+Keep the actual translation language distinct from the game's loading language:
+Italian content may use `l_english` as its shell. Read `shell_languages` from
+capabilities and the returned plan's `translation` details; preserve this
+configuration when retrying or resuming. A shell does not make Italian an
+officially supported game language.
+
+Strongly recommend a separate project for each actual shell language. Custom
+languages share the `custom` archive identity within a project; changing the
+free-text language name does not isolate a baseline. This is advice, not a
+project-creation requirement or a ban on mixing languages. Officially supported
+languages can coexist in one project. When the user chooses a separate project,
+import a fresh source copy through Remis and do not inherit translation-directory
+associations from the multilingual project.
+
+Use `/api/agent/steam-workshop` for local publishing assets. The Workshop item ID
+is explicit input, not mandatory project metadata. It may be read from source
+metadata when available; otherwise ask the user. Fetch the source description,
+generate the approved localized candidate, and save/select description and cover
+versions through Remis. These operations save local candidates, not publish to
+Steam. See the API reference for endpoints and payloads.
 
 ## Report progress without guessing
 
@@ -108,8 +147,8 @@ invent percentages, translated entry counts, validation results, or exports.
 - Treat `404` as stale or unknown state; re-list projects or inspect registry
   recovery information before retrying.
 - Keep ambiguous translations for human review.
-- Never bypass path validation, write directly into a game directory, or edit
-  generated localization files behind Remis.
+- Never bypass path validation or deploy directly into a game directory.
+  Follow the targeted-correction boundary above for approved small edits.
 - If pause or cancel is not listed by the capabilities endpoint, say it is not
   safely supported in this build.
 

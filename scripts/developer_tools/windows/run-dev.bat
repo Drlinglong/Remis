@@ -5,6 +5,7 @@ set "SCRIPT_DIR=%~dp0"
 for %%I in ("%SCRIPT_DIR%..\..\..") do set "PROJECT_ROOT=%%~fI"
 set "BACKEND_LAUNCHER=%PROJECT_ROOT%\scripts\react-ui\run-backend.bat"
 set "FRONTEND_LAUNCHER=%PROJECT_ROOT%\scripts\react-ui\run-frontend.bat"
+if /i "%~1"=="--backend-only" goto backend_only
 
 ECHO =================================================================
 ECHO == Remis Project - One-Click Development Environment Launcher  ==
@@ -66,3 +67,8 @@ start "Remis Frontend" /D "%PROJECT_ROOT%" "%FRONTEND_LAUNCHER%"
 ECHO.
 ECHO This launcher window will now close.
 timeout /t 3 > nul
+exit /b 0
+
+:backend_only
+powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%start-backend-only.ps1" -ProjectRoot "%PROJECT_ROOT%"
+exit /b %ERRORLEVEL%

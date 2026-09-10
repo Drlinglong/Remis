@@ -131,7 +131,10 @@ except Exception as e:
 
 
 # Declare Routers and Managers (Lazy Load in main block)
+from scripts.core.services.backend_lifespan import backend_lifespan
+
 app = FastAPI(
+    lifespan=backend_lifespan,
     title="P社Mod本地化工厂 API",
     description="为P社Mod本地化工厂提供Web UI的后端API。",
     version="2.0.17",
@@ -158,7 +161,7 @@ def setup_app_routers():
         tasks,
         model_arena,
         archive_ab_review,
-        steam_workshop,
+        steam_workshop, agent_steam_workshop, agent_baseline,
     )
     from scripts.core.feature_policy import mod_archive_enabled
     
@@ -188,6 +191,8 @@ def setup_app_routers():
     app.include_router(model_arena.router)
     app.include_router(archive_ab_review.router)
     app.include_router(steam_workshop.router)
+    app.include_router(agent_steam_workshop.router)
+    app.include_router(agent_baseline.router)
     if copilot_router_enabled():
         from scripts.routers import copilot
 

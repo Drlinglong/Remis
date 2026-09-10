@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable
 
 from scripts.schemas.agent import AgentJobPlanRequest, AgentPlanResponse
+from scripts.schemas.agent_language import language_plan_details
 from scripts.core.services.translation_context_readiness_service import TranslationContextModeResolution
 from scripts.core.services.translation_recovery_service import TranslationRecoveryService
 
@@ -113,6 +114,7 @@ async def build_agent_translation_plan(
             stale_choice=request.stale_choice,
             stale_acknowledgement=request.stale_acknowledgement,
             embedded_workshop_enabled=request.embedded_workshop_enabled,
+            custom_lang_config=request.custom_lang_config,
         )
     except ValueError as exc:
         message = str(exc)
@@ -182,5 +184,6 @@ async def build_agent_translation_plan(
         summary=summary,
         allowed_actions=["start_dry_run"] if request.dry_run else ["approve_start"],
         context_readiness=context_readiness,
+        translation=language_plan_details(execution_args),
         expires_at=record["expires_at"],
     )

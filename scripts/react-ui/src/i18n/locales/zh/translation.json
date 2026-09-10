@@ -1,4 +1,8 @@
 {
+  "shell_language_notice.recommendation": "建议为这种套壳语言使用独立项目，避免与其他翻译成果混用基线。你仍可继续使用当前项目。",
+  "shell_language_notice.learn_more": "了解原因",
+  "shell_language_notice.detected": "此项目包含套壳翻译 · 建议独立维护 · 了解原因",
+  "shell_language_notice.explanation": "套壳把实际翻译语言包装成游戏支持的语言。同一项目内，自定义语言共用 custom 归档标识；改填语言名称不会建立独立基线。建议每个套壳项目固定维护一种实际语言，切换语言时另建项目。游戏官方支持的多种语言可以在同一项目中共存。本提示不会限制你的选择。",
   "context_report": {
     "title": "项目档案冒烟报告", "subtitle": "展示确定性的完整性、覆盖率、分块边界、修复和模型用量证据。", "gates_passed": "完整性门禁通过", "gates_failed": "完整性门禁失败",
     "raw_keys": "原始 Key", "source_items": "源文本条目", "local_units": "局部文本单元", "chunks": "分块", "delivery_coverage": "投递覆盖率", "supporting_context": "辅助语境",
@@ -961,6 +965,7 @@
   "project_management.manage_paths.current_dirs": "当前翻译目录",
   "project_management.manage_paths.no_dirs": "未配置翻译目录",
   "project_management.source_dir": "源文件目录",
+  "project_management.source_directory_note": "增量更新后，目录名称可能保持不变。请根据当前文件内容和更新记录确认版本，而不是目录名称。",
   "project_management.translation_dir": "翻译输出目录",
   "project_management.manage_paths.add_new": "添加新目录",
   "project_management.manage_paths.placeholder": "输入或浏览目录路径",

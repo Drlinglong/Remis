@@ -262,6 +262,7 @@ _normalize_status = validation_projection.normalize_status
 
 
 async def _build_job_response(job_id: str) -> AgentJobResponse:
+    from scripts.core.services.agent_progress_service import project_agent_progress
     metadata = agent_registry.get_job(job_id)
     live_task = task_state.get_task(job_id)
     recovered = False
@@ -288,7 +289,6 @@ async def _build_job_response(job_id: str) -> AgentJobResponse:
         project_payload=_validation_payload,
     )
     validation = validation_payload["summary"]
-    progress = live_task.get("progress") or {}
     result = live_task.get("result") or {}
     agent_managed = metadata is not None
     checkpoint = live_task.get("checkpoint") or {}
@@ -303,15 +303,7 @@ async def _build_job_response(job_id: str) -> AgentJobResponse:
         parent_task_id=live_task.get("parent_task_id"),
         status=status,
         kind=kind,
-        progress={
-            "completed_files": int(progress.get("current") or 0),
-            "total_files": int(progress.get("total") or 0),
-            "percent": int(progress.get("percent") or 0),
-            "current_file": str(progress.get("current_file") or ""),
-            "stage": str(progress.get("stage") or ""),
-            "successful_batches": int(progress.get("successful_batches") or 0),
-            "failed_batches": int(progress.get("failed_batches") or 0),
-        },
+        progress=project_agent_progress(live_task, kind),
         validation=validation,
         allowed_actions=_job_allowed_actions(
             status,
@@ -372,6 +364,7 @@ async def _project_summary(project: Dict[str, Any]) -> AgentProjectSummary:
         name=str(project.get("name") or ""),
         game_id=str(project.get("game_id") or ""),
         source_language=str(project.get("source_language") or "en"),
+        source_path=project.get("source_path"),
         status=str(project.get("status") or "active"),
         file_count=len(files),
         file_status_counts=status_counts,
@@ -382,58 +375,16 @@ async def _project_summary(project: Dict[str, Any]) -> AgentProjectSummary:
 
 @router.get("/capabilities")
 async def get_capabilities():
-    """Discover safe Agent operations without exposing provider secrets."""
-    return {
-        "api_version": AGENT_API_VERSION,
-        "remis_version": PROJECT_INFO["version"],
-        "service": "remis-agent-api",
-        "transport": {
-            "base_url": "/api/agent",
-            "localhost_only": True,
-            "polling": True,
-            "websocket_status": True,
-        },
-        "games": [_public_game(item) for item in GAME_PROFILES.values()],
-        "languages": [
-            {"code": item["code"], "name": item["name_en"]}
-            for item in LANGUAGES.values()
-        ],
-        "providers": [
-            _public_provider(provider_id, config)
-            for provider_id, config in API_PROVIDERS.items()
-        ],
-        "actions": apply_agent_capability_policy({
-            "read_projects": {"supported": True, "requires_approval": False},
-            "plan_translation": {"supported": True, "requires_approval": False},
-            "run_dry_run": {"supported": True, "requires_approval": False},
-            "start_translation": {"supported": True, "requires_approval": True},
-            "resume_from_checkpoint": {
-                "supported": True,
-                "requires_approval": True,
-            },
-            "pause": {
-                "supported": False,
-                "reason": "The current runner has no safe cooperative pause boundary.",
-            },
-            "cancel": {"supported": True, "requires_approval": True, "endpoint": "/api/tasks/{task_id}/cancel", "task_kinds": ["initial_translation", "translation", "incremental_translation"]},
-            "repair": {"supported": True, "requires_approval": True},
-            "export": {"supported": True, "requires_approval": True},
-            **AGENT_CONTEXT_CAPABILITIES,
-        }),
-        "safety": {
-            "api_keys_returned": False,
-            "direct_database_writes_allowed": False,
-            "direct_localization_file_edits_allowed": False,
-            "custom_export_paths_restricted": True,
-        },
-        "links": {
-            "health": "/api/health",
-            "preflight": "/api/agent/preflight",
-            "openapi": "/openapi.json",
-            "docs": "/docs",
-            "projects": "/api/agent/projects",
-        },
-    }
+    from scripts.core.services.agent_capabilities_service import build_capabilities
+
+    return build_capabilities(
+        api_version=AGENT_API_VERSION, version=PROJECT_INFO["version"],
+        games=[_public_game(item) for item in GAME_PROFILES.values()],
+        languages=[{"code": item["code"], "name": item["name_en"]} for item in LANGUAGES.values()],
+        providers=[_public_provider(pid, config) for pid, config in API_PROVIDERS.items()],
+        shells=[{"code": item["code"], "key": item["key"]} for item in LANGUAGES.values()],
+        policy=apply_agent_capability_policy, context_capabilities=AGENT_CONTEXT_CAPABILITIES,
+    )
 
 
 @router.get("/preflight")
@@ -749,6 +700,7 @@ async def retry_agent_job(job_id: str):
         plan = await create_translation_plan(
             project_id=metadata["project_id"],
             target_lang_codes=args.get("target_lang_codes", []),
+            custom_lang_config=args.get("custom_lang_config"),
             api_provider=args.get("api_provider", "lm_studio"),
             model=args.get("model", "local-model"),
             batch_size_limit=args.get("batch_size_limit"),
@@ -782,6 +734,7 @@ async def retry_agent_job(job_id: str):
             "resumes_checkpoint": True,
         },
         summary=record["summary"],
+        translation=translation_plan.language_plan_details(plan["execution_args"]),
         allowed_actions=["approve_start"],
         expires_at=record["expires_at"],
     )

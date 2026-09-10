@@ -160,6 +160,8 @@ def test_emit_progress_keeps_callback_payload_contract():
             "workshop_progress": {"detected_count": 4, "processed_count": 2, "reflection_round": 1},
             "log_message": "validation complete",
             "event_level": None,
+            "completed_files": 0,
+            "total_files": 0,
         }
     ]
 

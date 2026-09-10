@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from scripts.schemas.common import LanguageCode
+from scripts.schemas.agent_language import AgentCustomLangConfig, validate_shell_targets
 
 
 class AgentJobPlanRequest(BaseModel):
@@ -25,6 +26,14 @@ class AgentJobPlanRequest(BaseModel):
     stale_acknowledgement: Optional[Dict[str, Any]] = None
     embedded_workshop_enabled: bool = True
     dry_run: bool = False
+    custom_lang_config: Optional[AgentCustomLangConfig] = None
+
+    @model_validator(mode="after")
+    def validate_shell(self):
+        validate_shell_targets(
+            [code.value for code in self.target_lang_codes], self.custom_lang_config,
+        )
+        return self
 
     @field_validator("target_lang_codes", mode="before")
     @classmethod
@@ -93,8 +102,11 @@ class AgentExportRequest(BaseModel):
 
 
 class AgentProgress(BaseModel):
-    completed_files: int = 0
-    total_files: int = 0
+    completed_files: Optional[int] = None
+    total_files: Optional[int] = None
+    file_count_scope: str = "unavailable"
+    current_batch: int = 0
+    total_batches: int = 0
     percent: int = 0
     current_file: str = ""
     stage: str = ""
@@ -157,6 +169,7 @@ class AgentPlanResponse(BaseModel):
     summary: str
     allowed_actions: List[str] = Field(default_factory=list)
     context_readiness: Dict[str, Any] = Field(default_factory=dict)
+    translation: Dict[str, Any] = Field(default_factory=dict)
     expires_at: str
 
 
@@ -172,6 +185,7 @@ class AgentProjectPlanResponse(BaseModel):
 
 
 class AgentProjectSummary(BaseModel):
+    source_path: Optional[str] = None
     project_id: str
     name: str
     game_id: str

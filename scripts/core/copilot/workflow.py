@@ -317,13 +317,16 @@ async def create_translation_plan(
     stale_choice: str | None = None,
     stale_acknowledgement: dict[str, Any] | None = None,
     embedded_workshop_enabled: bool = True,
+    custom_lang_config=None,
 ) -> dict[str, Any]:
+    from scripts.schemas.agent_language import validate_shell_targets
     project = await project_manager.get_project(project_id)
     if not project:
         raise ValueError("Project not found")
     files = await project_manager.get_project_files(project_id)
     source_language = str(project.get("source_language") or "en")
     targets = [str(code).strip() for code in target_lang_codes if str(code).strip()]
+    custom_lang_config = validate_shell_targets(targets, custom_lang_config)
     if not targets:
         raise ValueError("At least one target language is required")
     if source_language in targets:
@@ -349,6 +352,7 @@ async def create_translation_plan(
         "project_id": project_id,
         "source_lang_code": source_language,
         "target_lang_codes": targets,
+        "custom_lang_config": custom_lang_config,
         "api_provider": api_provider,
         "model": model.strip(),
         "batch_size_limit": batch_size_limit,

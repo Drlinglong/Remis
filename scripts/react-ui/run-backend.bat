@@ -44,9 +44,9 @@ set "VITE_BACKEND_PORT=%REMIS_BACKEND_PORT%"
 echo [INFO] Using backend port %REMIS_BACKEND_PORT%.
 
 echo Starting Python server...
-"%PYTHON_EXE%" -m uvicorn scripts.web_server:app --host 127.0.0.1 --port %REMIS_BACKEND_PORT% --reload
+"%PYTHON_EXE%" -m uvicorn scripts.web_server:app --host 127.0.0.1 --port %REMIS_BACKEND_PORT% --reload --reload-dir scripts
 if errorlevel 1 (
     echo [ERROR] Backend server exited with code %ERRORLEVEL%.
 )
 
-pause
+if not "%REMIS_NONINTERACTIVE%"=="1" pause
