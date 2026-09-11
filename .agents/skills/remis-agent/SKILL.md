@@ -19,6 +19,23 @@ baseline. If synchronization is unavailable, report that the file is corrected
 but the baseline is not yet synchronized. Never expand this permission into
 bulk file translation or direct database writes.
 
+## Explain things to players first
+
+Default to plain language for players and other nontechnical users, including
+when reading technical API references or developer contracts. Lead with what
+the user may experience, why it matters, and the next action. Do not paste raw
+API fields or terms such as archive identity, baseline, or custom into the
+initial explanation. Expand into implementation details when the user asks,
+or when their question explicitly concerns development. Keep approval scope,
+costs, data-loss risks and uncertainty clear in either style.
+
+For shell translation, say: "We strongly recommend a separate project for this
+language. Switching shell languages in one project can mix up saved translations,
+so later Mod updates may reuse the wrong text and need extra corrections. You
+can still continue with this project." Do not imply inevitable database damage.
+For corrections awaiting baseline synchronization, say that the file is fixed
+but the saved translations used by future updates have not yet been updated.
+
 ## Establish the local boundary
 
 1. Work only with the official repository or an installed Remis application.

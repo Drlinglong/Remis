@@ -1,4 +1,9 @@
 {
+  "shell_language_notice.recommendation": "게임에서 지원하지 않는 언어로 번역할 때는 새 프로젝트를 만들어 해당 언어만 관리하는 것을 강력히 권장합니다.",
+  "shell_language_notice.learn_more": "별도 프로젝트가 필요한 이유",
+  "shell_language_notice.detected": "게임 미지원 언어로 번역 중 · 별도 프로젝트 권장 · 자세히 보기",
+  "shell_language_notice.explanation": "한 프로젝트에서 게임이 지원하지 않는 번역 언어를 바꾸면 저장된 번역이 뒤섞일 수 있습니다. 이후 Mod를 업데이트할 때 다른 언어의 번역을 재사용해 확인과 수정에 더 많은 시간이 들 수 있습니다. 언어마다 별도 프로젝트를 만드는 것을 강력히 권장하지만, 현재 프로젝트에서 계속 진행할 수도 있습니다.",
+  "project_management.source_directory_note": "Mod를 업데이트해도 원본 폴더 이름은 그대로일 수 있습니다. 이름이 오래되었다고 해서 안의 파일까지 오래된 것은 아닙니다. 업데이트 기록을 확인하세요.",
   "context_report": {
     "title": "프로젝트 아카이브 점검 보고서", "subtitle": "무결성, 범위, 경계, 복구 및 모델 사용량에 대한 결정론적 근거입니다.", "gates_passed": "무결성 검사 통과", "gates_failed": "무결성 검사 실패", "raw_keys": "원본 키", "source_items": "소스 항목", "local_units": "로컬 유닛", "chunks": "분할 묶음", "delivery_coverage": "전달 범위", "supporting_context": "지원 컨텍스트", "assignment_integrity": "할당 무결성", "missing": "누락", "duplicate": "중복", "unexpected": "예상 밖", "unassigned": "미할당", "multi_linked": "다중 연결", "model_execution": "모델 실행", "calls": "호출 횟수", "reasoning": "추론 프로필", "tokens": "토큰 수", "cost": "비용", "repairs": "복구 작업", "no_repairs": "복구가 필요하지 않았습니다.", "final_chains": "최종 전달 체인", "boundary_impact": "분할 경계 영향", "cross_chunk_merges": "분할 간 병합", "membership_added": "소속 추가", "membership_removed": "소속 제거", "boundary_unassigned": "할당되지 않은 경계 유닛", "unassigned_units": "사람의 검토가 필요한 유닛"
   },

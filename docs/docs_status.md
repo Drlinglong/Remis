@@ -22,6 +22,8 @@
 [English](en/user-guides/shell-languages.md)，`last_verified: 2026-09-11`。
 规则是强烈建议独立项目、非阻塞提示；不增加创建项目的必填配置，也不强制单语言。
 
+面向用户的指南和从中生成的 Agent 回答，应先说明实际影响与操作建议，再按用户追问解释技术细节。API 参考和开发契约供 Agent 判断能力，不应原样复制内部术语给普通用户。套壳提示已覆盖现有 11 种界面语言。
+
 [3.2.1 更新日志](zh/developer/release-v3.2.1.md)：`status: draft`，
 `audience: developer`，`copilot_scope: excluded`，`last_verified: 2026-09-11`。
 记录待发布改动、验证与已知限制，不表示已发布。

@@ -2,6 +2,13 @@
 
 Base URL: `http://127.0.0.1:1453/api/agent`
 
+This is a technical reference for operating Remis, not ready-made player-facing
+copy. Explain the practical consequence and next step in plain language first;
+show internal identifiers and storage details when the user asks for them.
+For shell translation, recommend a separate project because saved translations
+can get mixed up and cause incorrect reuse during later Mod updates. Do not
+describe this as inevitable database corruption.
+
 The API returns structured JSON and never returns provider API keys. Agent
 errors are raised through FastAPI's `HTTPException`, so the HTTP response wraps
 the structured error payload in `detail`:
