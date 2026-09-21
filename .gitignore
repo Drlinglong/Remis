@@ -121,6 +121,7 @@ migrate_projects_db.py
 /archive/release/
 /dist_test/
 /test-results/
+/outputs/
 
 # Environment files with secrets
 .env
