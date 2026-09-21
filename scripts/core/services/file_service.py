@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from scripts.utils.i18n_utils import iso_to_paradox
+from scripts.core import surviving_mars_csv
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +69,7 @@ class FileService:
         project_id: str,
         allowed_extensions: Optional[List[str]] = None,
         issues: Optional[List[Dict[str, str]]] = None,
+        game_id: str = "",
     ) -> List[Dict[str, Any]]:
         """Scan one directory without creating, repairing, or persisting anything."""
         if not os.path.isdir(root_path):
@@ -98,6 +100,11 @@ class FileService:
                     continue
 
                 full_path = os.path.join(root, filename)
+                if (
+                    game_id.lower() == "surviving_mars"
+                    and not surviving_mars_csv.is_table_file(full_path)
+                ):
+                    continue
                 try:
                     with open(full_path, "r", encoding="utf-8", errors="ignore") as handle:
                         line_count = sum(1 for _ in handle)
@@ -156,7 +163,7 @@ class FileService:
         normalized_game_id = (game_id or "victoria3").lower()
         allowed_extensions = (
             [".yml", ".yaml", ".csv", ".txt"]
-            if normalized_game_id == "eu4"
+            if normalized_game_id in {"eu4", "surviving_mars"}
             else [".yml", ".yaml"]
         )
         disk_source_language = iso_to_paradox(source_language)
@@ -196,6 +203,7 @@ class FileService:
                     project_id,
                     allowed_extensions,
                     warnings,
+                    normalized_game_id,
                 )
             )
 

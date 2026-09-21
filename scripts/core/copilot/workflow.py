@@ -13,6 +13,7 @@ from typing import Any
 from scripts.shared.services import project_manager
 from scripts.app_settings import APP_DATA_DIR, PROJECT_ROOT
 from scripts.core.services.provider_runtime import provider_selection_exists
+from scripts.core import surviving_mars_csv
 from scripts.core.copilot.provider_readiness import (
     check_provider_readiness,
 )
@@ -148,12 +149,16 @@ def inspect_mod_folder(folder_path: str) -> dict[str, Any]:
             path = Path(current_root, name)
             rel = path.relative_to(root).as_posix()
             lower_name = name.lower()
+            is_surviving_mars_table = (
+                path.suffix.lower() == ".csv"
+                and surviving_mars_csv.is_table_file(path)
+            )
             if lower_name in {"descriptor.mod", "metadata.json"}:
                 metadata_files.append(rel)
             if path.suffix.lower() in LOCALIZATION_SUFFIXES and any(
                 part.lower() in {"localisation", "localization"}
                 for part in path.parts
-            ):
+            ) or is_surviving_mars_table:
                 localization_files += 1
                 if len(sample_paths) < 8:
                     sample_paths.append(rel)

@@ -151,6 +151,11 @@ HELP_SKILLS: dict[str, dict[str, Any]] = {
             "zh/user-guides/error-catalog.md",
         ),
     },
+    "surviving_mars": {
+        "title": "火星求生重制版本地化",
+        "description": "Surviving Mars / Relaunched 的 CSV 本地化、校验和输出路径。",
+        "resources": ("zh/user-guides/surviving-mars.md",),
+    },
 }
 
 

@@ -7,6 +7,7 @@ const fallbackGames = [
   { value: 'vic3', label: 'Victoria 3' },
   { value: 'ck3', label: 'Crusader Kings III' },
   { value: 'eu4', label: 'Europa Universalis IV' },
+  { value: 'surviving_mars', label: 'Surviving Mars / Relaunched' },
 ];
 
 const fallbackLanguages = [

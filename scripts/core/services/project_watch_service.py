@@ -436,7 +436,7 @@ class ProjectWatchService:
 
         for profile in GAME_PROFILES_BY_ID.values():
             source_folder = profile.get("source_localization_folder")
-            if source_folder:
+            if source_folder and str(source_folder).strip() not in {"", "."}:
                 child = root / str(source_folder)
                 if child.exists() and child.is_dir():
                     candidates.append(child)

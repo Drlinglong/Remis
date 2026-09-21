@@ -160,7 +160,7 @@ async def run_incremental_update(
     workshop_issue_exporter = WorkshopIssueExportService()
     run_id = str(uuid.uuid4())
     snapshot_started_at = perf_counter()
-    current_files_data = incremental_snapshot_service.build_snapshot(source_path, source_lang_info, progress_callback)
+    current_files_data = incremental_snapshot_service.build_snapshot(source_path, source_lang_info, progress_callback, game_profile=game_profile)
     snapshot_elapsed_ms = round((perf_counter() - snapshot_started_at) * 1000, 1)
     logger.info(f"Snapshot build completed for {project_name}: {len(current_files_data)} source files detected.")
 

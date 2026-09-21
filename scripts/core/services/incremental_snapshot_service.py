@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 from scripts.core.loc_parser import parse_loc_file_report
+from scripts.core import surviving_mars_csv
 from scripts.utils import read_text_bom
 
 logger = logging.getLogger(__name__)
@@ -43,7 +44,14 @@ class IncrementalSnapshotService:
         source_path: str,
         source_lang_info: Dict[str, Any],
         progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
+        game_profile: Optional[Dict[str, Any]] = None,
     ) -> List[Dict[str, Any]]:
+        if (
+            game_profile
+            and game_profile.get("format_adapter_id") == surviving_mars_csv.FORMAT_ADAPTER_ID
+        ):
+            return self._build_surviving_mars_snapshot(source_path, progress_callback)
+
         filter_lang_string = self._resolve_source_lang_folder(source_lang_info)
         files_data: List[Dict[str, Any]] = []
         issues: List[Dict[str, str]] = []
@@ -111,6 +119,52 @@ class IncrementalSnapshotService:
                     "files_detected": len(files_data),
                 })
                 last_reported_count = len(files_data)
+
+        if issues:
+            raise IncrementalSnapshotError(issues)
+        return files_data
+
+    def _build_surviving_mars_snapshot(
+        self,
+        source_path: str,
+        progress_callback: Optional[Callable[[Dict[str, Any]], None]],
+    ) -> List[Dict[str, Any]]:
+        files_data: List[Dict[str, Any]] = []
+        issues: List[Dict[str, str]] = []
+        for root, _, files in os.walk(source_path):
+            for file_name in files:
+                if not file_name.lower().endswith(".csv"):
+                    continue
+                full_path = Path(os.path.join(root, file_name))
+                if not surviving_mars_csv.is_table_file(full_path):
+                    continue
+                relative_file_path = os.path.relpath(full_path, source_path).replace("\\", "/")
+                try:
+                    document = surviving_mars_csv.parse_file(full_path)
+                    if not document.entries:
+                        continue
+                    files_data.append({
+                        "filename": file_name,
+                        "file_path": relative_file_path,
+                        "full_path": full_path,
+                        "root": root,
+                        "original_lines": document.source_text.splitlines(keepends=True),
+                        "parsed_entries": [entry.as_legacy_tuple() for entry in document.entries],
+                        "canonical_entries": document.entries,
+                        "parse_summary": surviving_mars_csv.parse_summary(document),
+                    })
+                except Exception as exc:
+                    logger.error("Failed to parse %s: %s", full_path, exc)
+                    issues.append({"file_path": relative_file_path, "error": str(exc)})
+
+            if progress_callback:
+                progress_callback({
+                    "stage": "Scanning",
+                    "stage_code": "scanning_source",
+                    "percent": 10,
+                    "message": f"Scanned {len(files_data)} files.",
+                    "files_detected": len(files_data),
+                })
 
         if issues:
             raise IncrementalSnapshotError(issues)

@@ -314,6 +314,7 @@ class SupportedGame(str, Enum):
     CK_3 = "ck3"
     EU_4 = "eu4"
     EU_5 = "eu5"
+    SURVIVING_MARS = "surviving_mars"
 
 GAME_ID_ALIASES = {
     # Victoria 3
@@ -344,7 +345,14 @@ GAME_ID_ALIASES = {
     # Europa Universalis V
     "eu5": SupportedGame.EU_5.value,
     "europa universalis v": SupportedGame.EU_5.value,
-    "6": SupportedGame.EU_5.value
+    "6": SupportedGame.EU_5.value,
+
+    # Surviving Mars / Relaunched
+    "surviving_mars": SupportedGame.SURVIVING_MARS.value,
+    "surviving mars": SupportedGame.SURVIVING_MARS.value,
+    "surviving mars: relaunched": SupportedGame.SURVIVING_MARS.value,
+    "project spark": SupportedGame.SURVIVING_MARS.value,
+    "7": SupportedGame.SURVIVING_MARS.value
 }
 
 # --- 保底格式提示模板 ---------------------------------------------

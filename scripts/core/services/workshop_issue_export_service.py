@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional
 
 from scripts.core.archive_manager import archive_manager
 from scripts.core.loc_parser import parse_loc_file, parse_loc_file_with_lines
+from scripts.core import surviving_mars_csv
 from scripts.utils.i18n_utils import iso_to_paradox
 from scripts.utils.post_process_validator import PostProcessValidator
 from scripts.core.vic3_country_adjective_context import is_country_adj_reference
@@ -184,26 +185,23 @@ class WorkshopIssueExportService:
         if not output_root.exists():
             return self._write_exports(output_root, issues, generated_at)
 
-        for translated_file in output_root.rglob("*.yml"):
-            if not self._matches_target_language(translated_file, target_paradox):
-                continue
-
-            rel_output_path = self._normalize_relpath(translated_file.relative_to(output_root))
-            source_file = self._resolve_source_file(
-                translated_file=translated_file,
-                output_root=output_root,
-                source_root=source_root,
-                source_paradox=source_paradox,
-                target_paradox=target_paradox,
+        output_files = (
+            output_root.rglob("*.csv")
+            if game_id == "surviving_mars"
+            else output_root.rglob("*.yml")
+        )
+        for translated_file in output_files:
+            file_context = self._prepare_output_file_context(
+                translated_file,
+                output_root,
+                source_root,
+                game_id,
+                source_paradox,
+                target_paradox,
             )
-
-            source_entries = self._load_source_entries(source_file)
-
-            try:
-                target_entries = parse_loc_file_with_lines(translated_file)
-            except Exception as exc:
-                logger.error(f"Failed to parse translated output file {translated_file}: {exc}")
+            if file_context is None:
                 continue
+            rel_output_path, source_file, source_entries, target_entries = file_context
 
             for key, value, line_number in target_entries:
                 source_lookup = self._resolve_source_context(
@@ -267,6 +265,55 @@ class WorkshopIssueExportService:
         export_result["issue_count"] = len(issues)
         export_result["issues"] = issues
         return export_result
+
+    def _prepare_output_file_context(
+        self,
+        translated_file: Path,
+        output_root: Path,
+        source_root: Path,
+        game_id: str,
+        source_paradox: str,
+        target_paradox: str,
+    ) -> Optional[tuple[str, Optional[Path], Dict[str, str], List[tuple[str, str, int]]]]:
+        """Resolve one output file into source and target entry views."""
+
+        if game_id == "surviving_mars":
+            if not surviving_mars_csv.is_table_file(translated_file):
+                return None
+            rel_output_path = self._normalize_relpath(translated_file.relative_to(output_root))
+            source_file = source_root / Path(rel_output_path)
+            source_file = source_file if source_file.exists() else None
+            try:
+                target_entries = [
+                    entry.as_legacy_tuple()
+                    for entry in surviving_mars_csv.entries(translated_file, "Translation")
+                ]
+            except Exception as exc:
+                logger.error(f"Failed to parse translated output file {translated_file}: {exc}")
+                return None
+        else:
+            if not self._matches_target_language(translated_file, target_paradox):
+                return None
+            rel_output_path = self._normalize_relpath(translated_file.relative_to(output_root))
+            source_file = self._resolve_source_file(
+                translated_file=translated_file,
+                output_root=output_root,
+                source_root=source_root,
+                source_paradox=source_paradox,
+                target_paradox=target_paradox,
+            )
+            try:
+                target_entries = parse_loc_file_with_lines(translated_file)
+            except Exception as exc:
+                logger.error(f"Failed to parse translated output file {translated_file}: {exc}")
+                return None
+
+        return (
+            rel_output_path,
+            source_file,
+            self._load_source_entries(source_file),
+            target_entries,
+        )
 
     def merge_exports(
         self,
@@ -464,6 +511,11 @@ class WorkshopIssueExportService:
         if not source_file or not source_file.exists():
             return {}
         try:
+            if surviving_mars_csv.is_table_file(source_file):
+                return {
+                    entry.key: entry.value
+                    for entry in surviving_mars_csv.entries(source_file, "Text")
+                }
             return dict(parse_loc_file(source_file))
         except Exception as exc:
             logger.error(f"Failed to parse source file {source_file}: {exc}")

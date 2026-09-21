@@ -34,6 +34,11 @@ GAME_ALIASES = {
     "ck3": "ck3",
     "6": "eu5",
     "eu5": "eu5",
+    "7": "surviving_mars",
+    "surviving_mars": "surviving_mars",
+    "surviving mars": "surviving_mars",
+    "surviving mars: relaunched": "surviving_mars",
+    "project spark": "surviving_mars",
 }
 
 

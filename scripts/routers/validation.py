@@ -39,8 +39,15 @@ def validate_file(payload: ValidateFileRequest):
         file_path = Path(payload.file_path)
         if not file_path.exists():
             raise HTTPException(status_code=404, detail="File not found")
-            
-        entries = parse_loc_file_with_lines(file_path)
+
+        from scripts.core import surviving_mars_csv
+        if surviving_mars_csv.is_table_file(file_path):
+            entries = [
+                entry.as_legacy_tuple()
+                for entry in surviving_mars_csv.entries(file_path, "Translation")
+            ]
+        else:
+            entries = parse_loc_file_with_lines(file_path)
         all_results = []
         
         # Validate each entry

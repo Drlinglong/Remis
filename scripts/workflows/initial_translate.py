@@ -190,7 +190,11 @@ def _prepare_translation_run(
     load_glossaries_for_run(game_profile.get("id", ""), use_glossary, selected_glossary_ids)
     output_dir_path = prepare_output_workspace(mod_name, output_folder_name, game_profile)
     if clean_source:
-        clean_source_directory(mod_name, override_path=override_path)
+        clean_source_directory(
+            mod_name,
+            override_path=override_path,
+            game_profile=game_profile,
+        )
     source_result, total_files = _prepare_source_files(
         mod_name, game_profile, source_lang, override_path, progress_callback
     )

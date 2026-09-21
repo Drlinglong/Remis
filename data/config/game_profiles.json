@@ -163,5 +163,29 @@
         "strip_pl_diacritics": false,
         "prompt_preset": "EU5",
         "official_tags_codex": "scripts/config/validators/eu5_official_tags.json"
+    },
+    "7": {
+        "id": "surviving_mars",
+        "name": "Surviving Mars / Relaunched (火星求生重制版)",
+        "supported_language_keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            "10",
+            "11"
+        ],
+        "source_localization_folder": ".",
+        "official_localization_globs": [],
+        "protected_items": [],
+        "encoding": "utf-8",
+        "strip_pl_diacritics": false,
+        "prompt_preset": "SURVIVING_MARS",
+        "format_adapter_id": "surviving_mars_csv"
     }
 }

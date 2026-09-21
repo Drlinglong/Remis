@@ -57,6 +57,7 @@ class IncrementalBuildService:
         archive_files_data: List[Dict[str, Any]] = []
         archive_results: Dict[str, List[str]] = {}
 
+        is_surviving_mars = game_profile.get("format_adapter_id") == "surviving_mars_csv"
         for record in processing_records:
             fd = record["fd"]
             filename = fd["filename"]
@@ -84,11 +85,15 @@ class IncrementalBuildService:
                 }
 
             try:
-                dest_root = self._build_dest_root(
-                    file_root=fd["root"],
-                    source_path=source_path,
-                    lang_output_dir=lang_output_dir,
-                    target_lang_info=target_lang_info,
+                dest_root = (
+                    lang_output_dir / Path(fd["file_path"]).parent
+                    if is_surviving_mars
+                    else self._build_dest_root(
+                        file_root=fd["root"],
+                        source_path=source_path,
+                        lang_output_dir=lang_output_dir,
+                        target_lang_info=target_lang_info,
+                    )
                 )
                 os.makedirs(dest_root, exist_ok=True)
 

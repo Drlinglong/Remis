@@ -11,6 +11,7 @@ from scripts.core.file_builder import patch_file_content
 from scripts.core.loc_parser import unescape_value
 from scripts.utils.i18n_utils import iso_to_paradox
 from scripts.schemas.common import LanguageCode
+from scripts.core import surviving_mars_csv
 
 logger = logging.getLogger(__name__)
 
@@ -403,24 +404,52 @@ class ProofreadingService:
         _, target_file_path = await self._resolve_target_file_path(project_id, file_id)
         return {"document_revision": _file_revision(target_file_path)}
 
-    async def get_proofread_data(self, project_id: str, file_id: str) -> Dict[str, Any]:
-        project, target_file_path = await self._resolve_target_file_path(project_id, file_id)
-
-        filename = os.path.basename(target_file_path)
-        
-        # 1. Detect Languages
+    def _detect_paradox_language(self, target_file_path: str, filename: str) -> str:
         current_lang = "english"
         lang_match = re.search(r"_l_(\w+)\.yml$", filename, re.IGNORECASE)
         if lang_match:
-            current_lang = lang_match.group(1).lower()
-        else:
-            try:
-                with open(target_file_path, 'r', encoding='utf-8-sig') as f:
-                    first_line = f.readline()
-                    header_match = re.match(r"^\s*l_(\w+):", first_line, re.IGNORECASE)
-                    if header_match:
-                        current_lang = header_match.group(1).lower()
-            except: pass
+            return lang_match.group(1).lower()
+        try:
+            with open(target_file_path, "r", encoding="utf-8-sig") as handle:
+                header_match = re.match(r"^\s*l_(\w+):", handle.readline(), re.IGNORECASE)
+                if header_match:
+                    current_lang = header_match.group(1).lower()
+        except OSError:
+            pass
+        return current_lang
+
+    def _load_archive_translation_map(
+        self,
+        project: Dict[str, Any],
+        template_file_path: str,
+        language: str,
+    ) -> Dict[str, str]:
+        db_entries = self.archive_manager.get_entries(
+            mod_name=project["name"],
+            file_path=template_file_path,
+            language=language,
+        )
+        if not db_entries:
+            db_entries = self.archive_manager.get_entries(
+                mod_name=os.path.basename(project["source_path"]),
+                file_path=template_file_path,
+                language=language,
+            )
+        return {
+            entry["key"]: self._normalize_translation_value(entry["translation"])
+            for entry in db_entries
+            if entry["translation"]
+        }
+
+    async def get_proofread_data(self, project_id: str, file_id: str) -> Dict[str, Any]:
+        project, target_file_path = await self._resolve_target_file_path(project_id, file_id)
+
+        if surviving_mars_csv.is_table_file(target_file_path):
+            from scripts.core.services.surviving_mars_proofreading import get_proofread_data
+            return await get_proofread_data(self, project, target_file_path, file_id)
+
+        filename = os.path.basename(target_file_path)
+        current_lang = self._detect_paradox_language(target_file_path, filename)
 
         current_lang_key = f"l_{current_lang}"
         iso_source = project.get('source_language', 'en')
@@ -444,24 +473,9 @@ class ProofreadingService:
             
             # AI Draft
             lang_code = LanguageCode.from_str(current_lang).value
-            db_entries = self.archive_manager.get_entries(
-                mod_name=project['name'],
-                file_path=template_file_path,
-                language=lang_code
+            db_translation_map = self._load_archive_translation_map(
+                project, template_file_path, lang_code
             )
-            if not db_entries:
-                folder_mod_name = os.path.basename(project['source_path'])
-                db_entries = self.archive_manager.get_entries(
-                    mod_name=folder_mod_name,
-                    file_path=template_file_path,
-                    language=lang_code
-                )
-
-            db_translation_map = {
-                e['key']: self._normalize_translation_value(e['translation'])
-                for e in db_entries
-                if e['translation']
-            }
             
             # Disk State
             disk_translation_map = {}
@@ -564,22 +578,18 @@ class ProofreadingService:
                 raise ProofreadingConflictError(
                     "The proofreading target changed after it was loaded."
                 )
+            if surviving_mars_csv.is_table_file(target_file_path):
+                from scripts.core.services.surviving_mars_proofreading import save_proofread_data
+                return await save_proofread_data(
+                    self,
+                    project,
+                    target_file_path,
+                    file_id,
+                    entries_list,
+                    structure_patches,
+                )
             filename = os.path.basename(target_file_path)
-
-            # 1. Detect Languages
-            current_lang = "english"
-            lang_match = re.search(r"_l_(\w+)\.yml$", filename, re.IGNORECASE)
-            if lang_match:
-                current_lang = lang_match.group(1).lower()
-            else:
-                try:
-                    with open(target_file_path, 'r', encoding='utf-8-sig') as f:
-                        first_line = f.readline()
-                        header_match = re.match(r"^\s*l_(\w+):", first_line, re.IGNORECASE)
-                        if header_match:
-                            current_lang = header_match.group(1).lower()
-                except:
-                    pass
+            current_lang = self._detect_paradox_language(target_file_path, filename)
             
             current_lang_key = f"l_{current_lang}"
             iso_source = project.get('source_language', 'en')

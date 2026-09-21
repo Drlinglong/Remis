@@ -633,7 +633,11 @@ class PostProcessValidator:
             "eu4": EU4Validator(),
             "hoi4": HOI4Validator(),
             "ck3": CK3Validator(),
-            "eu5": EU5Validator()
+            "eu5": EU5Validator(),
+            "surviving_mars": __import__(
+                "scripts.utils.surviving_mars_validator",
+                fromlist=["build_validator"],
+            ).build_validator(),
         }
 
         # 最终的、按数字键（如'1'）索引的验证器字典

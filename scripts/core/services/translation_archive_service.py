@@ -8,6 +8,7 @@ from typing import Dict, Any, List, Optional
 from scripts.core.project_json_manager import ProjectJsonManager
 from scripts.core.archive_manager import archive_manager
 from scripts.core.loc_parser import parse_loc_file_report
+from scripts.core import surviving_mars_csv
 from scripts.schemas.common import LanguageCode
 
 logger = logging.getLogger(__name__)
@@ -72,7 +73,8 @@ class TranslationArchiveService:
         project_id: str,
         project_name: str,
         source_path: str,
-        source_lang_code: str = "en"
+        source_lang_code: str = "en",
+        game_id: str = "",
     ) -> Dict[str, Any]:
         try:
             json_manager = ProjectJsonManager(source_path)
@@ -82,12 +84,15 @@ class TranslationArchiveService:
             logger.error(f"Failed to load project config for {project_id}: {e}")
             return {"status": "error", "message": f"Failed to load project config: {e}"}
 
+        if not game_id and self._contains_surviving_mars_table(source_path):
+            game_id = "surviving_mars"
+
         try:
             paradox_source_lang = LanguageCode.from_str(source_lang_code).to_paradox()
         except ValueError:
             paradox_source_lang = "english"
 
-        source_scan = self._scan_source_files(source_path, paradox_source_lang)
+        source_scan = self._scan_source_files(source_path, paradox_source_lang, game_id=game_id)
         if source_scan.issues:
             return {
                 "status": "error",
@@ -126,6 +131,7 @@ class TranslationArchiveService:
             source_path=source_path,
             translation_dirs=translation_dirs,
             paradox_source_lang=paradox_source_lang,
+            game_id=game_id,
         )
 
         archived_languages = 0
@@ -153,10 +159,14 @@ class TranslationArchiveService:
         self,
         source_path: str,
         paradox_source_lang: str,
+        game_id: str = "",
     ) -> SourceScanResult:
         result = SourceScanResult()
 
         logger.info(f"Scanning source files in {source_path} (source language: {paradox_source_lang})")
+
+        if game_id == surviving_mars_csv.FORMAT_ADAPTER_ID.removesuffix("_csv"):
+            return self._scan_surviving_mars_source_files(source_path)
 
         def record_walk_error(error: OSError) -> None:
             failed_path = str(getattr(error, "filename", None) or source_path)
@@ -244,12 +254,56 @@ class TranslationArchiveService:
 
         return result
 
+    @staticmethod
+    def _contains_surviving_mars_table(source_path: str) -> bool:
+        for root, _, files in os.walk(source_path, onerror=lambda _error: None):
+            if any(
+                name.lower().endswith(".csv")
+                and surviving_mars_csv.is_table_file(Path(root) / name)
+                for name in files
+            ):
+                return True
+        return False
+
+    def _scan_surviving_mars_source_files(self, source_path: str) -> SourceScanResult:
+        result = SourceScanResult()
+        for root, _, files in os.walk(source_path):
+            for file_name in files:
+                if not file_name.lower().endswith(".csv"):
+                    continue
+                full_path = Path(os.path.join(root, file_name))
+                if not surviving_mars_csv.is_table_file(full_path):
+                    continue
+                relative_file_path = self._normalize_relpath(
+                    os.path.relpath(full_path, source_path)
+                )
+                result.scanned_file_count += 1
+                try:
+                    source_entries = surviving_mars_csv.entries(full_path, "Text")
+                except Exception as exc:
+                    result.issues.append(SourceScanIssue(
+                        file_path=relative_file_path,
+                        code="source_read_error",
+                        message="Surviving Mars CSV could not be read or parsed.",
+                        error_type=type(exc).__name__,
+                    ))
+                    continue
+                if source_entries:
+                    result.files.append({
+                        "filename": file_name,
+                        "file_path": relative_file_path,
+                        "key_map": [{"key_part": entry.key} for entry in source_entries],
+                        "texts_to_translate": [entry.value for entry in source_entries],
+                    })
+        return result
+
     def _scan_translation_dirs(
         self,
         source_files_data: List[Dict[str, Any]],
         source_path: str,
         translation_dirs: List[str],
         paradox_source_lang: str,
+        game_id: str = "",
     ) -> tuple[Dict[str, Dict[str, List[str]]], int]:
         source_by_relpath = {fd["file_path"]: fd for fd in source_files_data}
         source_candidates_by_key: Dict[str, List[Dict[str, Any]]] = {}
@@ -272,24 +326,32 @@ class TranslationArchiveService:
 
             for root, _, files in os.walk(trans_dir):
                 for file_name in files:
-                    if not file_name.endswith((".yml", ".yaml", ".txt")):
+                    if game_id == "surviving_mars" and not file_name.lower().endswith(".csv"):
+                        continue
+                    if game_id != "surviving_mars" and not file_name.endswith((".yml", ".yaml", ".txt")):
                         continue
 
                     full_path = Path(os.path.join(root, file_name))
-                    lang_iso = self._detect_translation_language(file_name, root)
+                    lang_iso = self._detect_translation_language(file_name, root, trans_dir)
                     if not lang_iso:
                         continue
 
                     try:
-                        report = parse_loc_file_report(full_path)
-                        if report.diagnostics:
-                            logger.error(
-                                "Skipping translation file with canonical parse errors %s: %s",
-                                full_path,
-                                ", ".join(d.code for d in report.diagnostics),
-                            )
-                            continue
-                        entries = [(entry.key, entry.value) for entry in report.eligible_entries]
+                        if game_id == "surviving_mars":
+                            entries = [
+                                (entry.key, entry.value)
+                                for entry in surviving_mars_csv.entries(full_path, "Translation")
+                            ]
+                        else:
+                            report = parse_loc_file_report(full_path)
+                            if report.diagnostics:
+                                logger.error(
+                                    "Skipping translation file with canonical parse errors %s: %s",
+                                    full_path,
+                                    ", ".join(d.code for d in report.diagnostics),
+                                )
+                                continue
+                            entries = [(entry.key, entry.value) for entry in report.eligible_entries]
                     except Exception as e:
                         logger.error(f"Failed to parse translation file {full_path}: {e}")
                         continue
@@ -298,9 +360,13 @@ class TranslationArchiveService:
                         continue
 
                     relative_translation_path = self._normalize_relpath(os.path.relpath(full_path, trans_dir))
-                    mapped_source_path = self._map_translation_path_to_source(
-                        relative_translation_path,
-                        paradox_source_lang,
+                    mapped_source_path = (
+                        relative_translation_path
+                        if game_id == "surviving_mars"
+                        else self._map_translation_path_to_source(
+                            relative_translation_path,
+                            paradox_source_lang,
+                        )
                     )
 
                     source_file_data = source_by_relpath.get(mapped_source_path)
@@ -401,13 +467,28 @@ class TranslationArchiveService:
 
         return paradox_source_lang in path_parts
 
-    def _detect_translation_language(self, file_name: str, root: str) -> Optional[str]:
+    def _detect_translation_language(
+        self,
+        file_name: str,
+        root: str,
+        translation_root: Optional[str] = None,
+    ) -> Optional[str]:
         match = re.search(r"_l_([a-zA-Z0-9_-]+)\.(yml|yaml)$", file_name, re.IGNORECASE)
         if match:
             try:
                 return LanguageCode.from_str(match.group(1)).value
             except ValueError:
                 return None
+
+        candidate_parts = []
+        if translation_root:
+            candidate_parts.append(Path(translation_root).name)
+        candidate_parts.extend(reversed(Path(root).parts))
+        for part in candidate_parts:
+            try:
+                return LanguageCode.from_str(part).value
+            except ValueError:
+                continue
 
         for part in reversed(Path(root).parts):
             lowered = part.lower()

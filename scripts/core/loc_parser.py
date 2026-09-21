@@ -15,6 +15,7 @@ from scripts.core.paradox_localization_parser import (
     parse_file,
 )
 from scripts.utils import read_text_bom, write_text_bom
+from scripts.core import surviving_mars_csv
 
 
 # Kept for third-party callers and historical tests.  Production parsing uses
@@ -57,6 +58,9 @@ def parse_loc_file_report(path: Path) -> ParseReport:
         # JSON is an archive interchange format, not Paradox localization
         # syntax.  Keep the old tuple API for it and expose an empty report.
         return ParseReport((), (), read_text_bom(path))
+    if surviving_mars_csv.is_table_file(path):
+        document = surviving_mars_csv.parse_file(path)
+        return ParseReport(tuple(document.entries), (), document.source_text)
     return parse_file(path)
 
 
@@ -71,7 +75,7 @@ def parse_loc_file(path: Path) -> list[tuple[str, str]]:
 
     if path.suffix.lower() == ".json":
         return _parse_json(path)
-    return [(entry.key, entry.value) for entry in parse_file(path).eligible_entries]
+    return [(entry.key, entry.value) for entry in parse_loc_file_report(path).eligible_entries]
 
 
 def parse_loc_file_with_lines(path: Path) -> list[tuple[str, str, int]]:
@@ -79,7 +83,7 @@ def parse_loc_file_with_lines(path: Path) -> list[tuple[str, str, int]]:
 
     if path.suffix.lower() == ".json":
         return [(key, value, index) for index, (key, value) in enumerate(_parse_json(path), 1)]
-    return [entry.as_legacy_tuple() for entry in parse_file(path).eligible_entries]
+    return [entry.as_legacy_tuple() for entry in parse_loc_file_report(path).eligible_entries]
 
 
 def emit_loc_file(header: str, entries: list[tuple[str, str]]) -> str:
