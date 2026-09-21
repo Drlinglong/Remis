@@ -156,6 +156,11 @@ HELP_SKILLS: dict[str, dict[str, Any]] = {
         "description": "Surviving Mars / Relaunched 的 CSV 本地化、校验和输出路径。",
         "resources": ("zh/user-guides/surviving-mars.md",),
     },
+    "shell_languages": {
+        "title": "套壳语言与项目维护",
+        "description": "目标语言与游戏语言选项不一致时的套壳翻译和项目隔离。",
+        "resources": ("zh/user-guides/shell-languages.md",),
+    },
 }
 
 

@@ -67,7 +67,6 @@ class ProjectManager:
         if not self.kanban_service:
             from scripts.core.services.kanban_service import KanbanService
             self.kanban_service = KanbanService(repository=self.repository)
-        
         # Fallback for Repository
         if not self.repository:
             from scripts.core.repositories.project_repository import ProjectRepository
@@ -77,7 +76,6 @@ class ProjectManager:
             self.kanban_service.repository = self.repository
 
         self.archive_service = archive_service or TranslationArchiveService()
-
     def _normalize_source_root_path(self, folder_path: str, game_id: str) -> str:
         normalized_game_id = GAME_ID_ALIASES.get(game_id.lower(), game_id)
         game_profile = GAME_PROFILES_BY_ID.get(normalized_game_id)
@@ -100,7 +98,6 @@ class ProjectManager:
         root_path = Path(source_root)
         if not root_path.exists() or (game_profile and game_profile.get("format_adapter_id") == "surviving_mars_csv"):
             return []
-
         candidate_rel_paths = []
         if game_profile:
             candidate_rel_paths.extend(game_profile.get("protected_items", []) or [])
