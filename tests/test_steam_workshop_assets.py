@@ -305,6 +305,70 @@ def test_v25_migration_fails_explicitly_for_invalid_legacy_sequence(tmp_path):
         ).fetchone() == (0,)
 
 
+def test_v25_migration_rejects_legacy_orphan_foreign_keys(tmp_path):
+    db_path = tmp_path / "orphan-v24.sqlite"
+    _create_v24_asset_database(db_path)
+    with sqlite3.connect(db_path) as connection:
+        connection.execute(
+            "UPDATE steam_workshop_asset_versions SET workspace_id = 'missing'"
+        )
+
+    with pytest.raises(RuntimeError, match="references missing"):
+        migrate_main_database(str(db_path))
+
+    with sqlite3.connect(db_path) as connection:
+        assert connection.execute(
+            "SELECT COUNT(*) FROM schema_migrations WHERE version IN (25, 26)"
+        ).fetchone() == (0,)
+
+
+def test_v26_rejects_orphans_in_databases_that_already_recorded_v25(tmp_path):
+    db_path = tmp_path / "orphan-v25.sqlite"
+    _create_v24_asset_database(db_path)
+
+    def stop_before_v26_ledger(version, _name):
+        if version == 26:
+            raise RuntimeError("stop before v26 ledger")
+
+    with pytest.raises(RuntimeError, match="stop before v26 ledger"):
+        migrate_main_database(str(db_path), after_migration=stop_before_v26_ledger)
+    with sqlite3.connect(db_path) as connection:
+        assert connection.execute(
+            "SELECT COUNT(*) FROM schema_migrations WHERE version = 25"
+        ).fetchone() == (1,)
+        assert connection.execute(
+            "SELECT COUNT(*) FROM schema_migrations WHERE version = 26"
+        ).fetchone() == (0,)
+        connection.execute("DELETE FROM steam_workshop_workspaces")
+
+    with pytest.raises(RuntimeError, match="references missing"):
+        migrate_main_database(str(db_path))
+
+    with sqlite3.connect(db_path) as connection:
+        assert connection.execute(
+            "SELECT COUNT(*) FROM schema_migrations WHERE version = 26"
+        ).fetchone() == (0,)
+
+
+def test_v26_validation_is_restart_safe_after_crash_window(tmp_path):
+    db_path = tmp_path / "v26-crash.sqlite"
+    _create_v24_asset_database(db_path)
+
+    def fail_after_v26(version, _name):
+        if version == 26:
+            raise RuntimeError("simulated crash after v26")
+
+    with pytest.raises(RuntimeError, match="simulated crash"):
+        migrate_main_database(str(db_path), after_migration=fail_after_v26)
+
+    with sqlite3.connect(db_path) as connection:
+        assert connection.execute(
+            "SELECT COUNT(*) FROM schema_migrations WHERE version = 26"
+        ).fetchone() == (0,)
+
+    assert migrate_main_database(str(db_path)) == MAIN_DB_TARGET_VERSION
+
+
 def test_workspace_crud_supports_optional_bindings(workshop_client):
     client, _service, _db_path = workshop_client
     unbound = _workspace(client)

@@ -1,6 +1,5 @@
 import os
 import uuid
-import shutil
 import logging
 import traceback
 from typing import List, Optional
@@ -35,8 +34,8 @@ from scripts.core.services.initial_translation_start_service import (
 from scripts.core.services.translation_task_runtime import (
     finalize_translation_task as finalize_task,
     get_output_directories as _get_output_directories,
-    get_output_folder_name as _get_output_folder_name,
     prepare_initial_recovery,
+    resolve_task_output_directories,
 )
 from scripts.core.services.translation_workflow_outcome import (
     history_completion_description as _history_completion_description,
@@ -47,6 +46,7 @@ from scripts.core.services.translation_upload_service import (
     TranslationArchiveUploadError,
     install_translation_archive,
 )
+from scripts.core.services import legacy_translation_start_service
 from scripts.workflows import initial_translate
 from scripts.utils import i18n
 from scripts.core.services.translation_context_service import context_workflow_kwargs
@@ -190,12 +190,19 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
             selected_provider=api_provider,
             mod_context=mod_context,
             provider_runtime=provider_runtime,
+            project_id=project_id,
             use_resume=False,
         )
 
         task_state.update_task(
             task_id,
-            fields={"output_dirs": _get_output_directories(mod_name, target_languages)},
+            fields={
+                "output_dirs": _get_output_directories(
+                    mod_name,
+                    target_languages,
+                    project_id,
+                )
+            },
             push=False,
         )
         status, message, issue_count = _workflow_outcome_values(outcome)
@@ -355,7 +362,7 @@ def run_translation_workflow_v2(
         task_state.update_task(
             task_id,
             fields={
-                "output_dirs": _get_output_directories(mod_name, target_languages),
+                "output_dirs": resolve_task_output_directories(mod_name, target_languages, project_id, recovery_identity),
                 "reference_metrics": list(getattr(outcome, "reference_metrics", ())),
                 "checkpoint": {
                     "available": False,
@@ -525,7 +532,12 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
     # Auto-register translation path (Optimistic registration)
     # We predict the output path based on the request
     try:
-        for result_dir in _get_output_directories(mod_name, target_languages):
+        for result_dir in resolve_task_output_directories(
+            mod_name,
+            target_languages,
+            request.project_id,
+            recovery,
+        ):
             await project_manager.add_translation_path(request.project_id, result_dir)
             logging.info(f"Auto-registered translation path: {result_dir}")
     except Exception as e:
@@ -636,38 +648,21 @@ async def start_translation_v2(
     payload: TranslationRequestV2
 ):
     provider_runtime = resolve_runtime_or_400(payload.api_provider, payload.model_name)
-    task_id = str(uuid.uuid4())
-    task_state.create_task(
-        task_id,
-        status="pending",
-        fields={
-            "kind": "initial_translation", "title": "Mod translation",
-            "source_route": "/translation",
-            **provider_task_fields(provider_runtime),
-        },
-    )
-
-    if not os.path.exists(payload.project_path) or not os.path.isdir(payload.project_path):
-        raise HTTPException(status_code=400, detail="Invalid project path.")
-
-    mod_name = os.path.basename(payload.project_path)
-    source_path = os.path.join(SOURCE_DIR, mod_name)
-
     try:
-        if not payload.is_existing_source:
-            if os.path.exists(source_path):
-                shutil.rmtree(source_path)
-            shutil.copytree(payload.project_path, source_path)
-
-        task_state.update_task(
-            task_id,
-            status="starting",
-            append_log=f"Using source: '{mod_name}'",
-            push=True,
+        task_id, mod_name = legacy_translation_start_service.prepare_legacy_translation_start(
+            payload=payload,
+            provider_fields=provider_task_fields(provider_runtime),
+            source_dir=SOURCE_DIR,
         )
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"File processing failed: {e}")
+    except legacy_translation_start_service.InvalidLegacyProjectPath as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except legacy_translation_start_service.LegacySourcePreparationError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    except task_state.TaskPersistenceError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={"code": "task_persistence_failed", "message": "The translation task could not be recorded. Retry safely."},
+        ) from exc
 
     background_tasks.add_task(
         run_translation_workflow_v2,

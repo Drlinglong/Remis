@@ -8,3 +8,8 @@ class WorkshopRequest(BaseModel):
     project_id: Optional[str] = ""
     custom_language: Optional[str] = ""
     api_provider: str
+
+
+class WorkshopDescriptionResponse(BaseModel):
+    bbcode: str
+    saved_path: str

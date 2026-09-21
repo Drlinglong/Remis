@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from scripts.core import workshop_formatter, deploy_manager
 from scripts.core.services.validation_sidecar_service import ValidationSidecarService
-from scripts.schemas.tools import WorkshopRequest
+from scripts.schemas.tools import WorkshopDescriptionResponse, WorkshopRequest
 from scripts.shared import task_state
 from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
@@ -19,19 +19,44 @@ _DEPLOY_PREVIEW_TTL_SECONDS = 10 * 60
 _deploy_previews: Dict[str, Dict[str, Any]] = {}
 _deploy_preview_lock = threading.RLock()
 
-@router.post("/api/tools/generate_workshop_description")
+@router.post(
+    "/api/tools/generate_workshop_description",
+    response_model=WorkshopDescriptionResponse,
+)
 def generate_workshop_description(payload: WorkshopRequest):
     original_desc = workshop_formatter.get_workshop_item_details(payload.item_id)
     if original_desc is None:
         raise HTTPException(status_code=502, detail="Failed to fetch from Steam Workshop.")
-    formatted_bbcode = workshop_formatter.format_description_with_ai(
-        original_description=original_desc, **payload.dict()
-    )
-    if "[AI Formatting Failed" in formatted_bbcode:
-         raise HTTPException(status_code=500, detail=f"AI processing failed: {formatted_bbcode}")
+    try:
+        formatted_bbcode = workshop_formatter.format_description_with_ai(
+            original_description=original_desc,
+            user_template=payload.user_template,
+            target_language=payload.target_language,
+            project_id=payload.project_id or "",
+            selected_provider=payload.api_provider,
+            custom_language=payload.custom_language or "",
+        )
+    except workshop_formatter.WorkshopFormattingUnavailableError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={"code": "workshop_ai_unavailable", "message": str(exc)},
+        ) from exc
+    except workshop_formatter.WorkshopFormattingError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail={"code": "workshop_ai_failed", "message": str(exc)},
+        ) from exc
     saved_path = workshop_formatter.archive_generated_description(
         project_id=payload.project_id, bbcode_content=formatted_bbcode, workshop_id=payload.item_id
     )
+    if not saved_path:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "code": "workshop_description_archive_failed",
+                "message": "The generated description could not be archived.",
+            },
+        )
     return {"bbcode": formatted_bbcode, "saved_path": saved_path}
 
 class DeployRequest(BaseModel):

@@ -5,8 +5,8 @@ from typing import Optional, List
 from scripts.app_settings import LANGUAGES
 from scripts.core import api_handler
 from scripts.utils import i18n
-from scripts.utils.system_utils import slugify_to_ascii
 from scripts.core.services.provider_runtime import handler_for_selection
+from scripts.core.services.translation_task_runtime import get_output_folder_names
 
 
 @dataclass(frozen=True)
@@ -16,20 +16,29 @@ class InitialTranslationRunPlan:
     primary_target_lang: dict
 
 
-def build_run_plan(mod_name: str, target_languages: List[dict]) -> InitialTranslationRunPlan:
+def build_run_plan(
+    mod_name: str,
+    target_languages: List[dict],
+    project_id: Optional[str] = None,
+    output_folder_name: Optional[str] = None,
+) -> InitialTranslationRunPlan:
+    resolved_folder_name = output_folder_name or get_output_folder_names(
+        mod_name,
+        target_languages,
+        project_id,
+    )[0]
     is_batch_mode = len(target_languages) > 1
     if is_batch_mode:
         return InitialTranslationRunPlan(
             is_batch_mode=True,
-            output_folder_name=f"Multilanguage-{slugify_to_ascii(mod_name)}",
+            output_folder_name=resolved_folder_name,
             primary_target_lang=LANGUAGES["1"],
         )
 
     target_lang = target_languages[0]
-    prefix = target_lang.get("folder_prefix", f"{target_lang['code']}-")
     return InitialTranslationRunPlan(
         is_batch_mode=False,
-        output_folder_name=f"{prefix}{slugify_to_ascii(mod_name)}",
+        output_folder_name=resolved_folder_name,
         primary_target_lang=target_lang,
     )
 

@@ -6,6 +6,10 @@ from scripts.core.services.workshop_issue_export_service import resolve_dynamic_
 from scripts.app_settings import DEST_DIR, SOURCE_DIR
 
 
+class PostProcessingValidationError(RuntimeError):
+    """Raised when final validation cannot complete reliably."""
+
+
 def build_format_validation_summary(total_errors: int, total_warnings: int) -> str:
     """Build a summary whose wording cannot misclassify zero-count errors."""
     total_issues = total_errors + total_warnings
@@ -48,6 +52,10 @@ def run_post_processing(
             source_lang,
             dynamic_valid_tags=dynamic_valid_tags,
         )
+        if not validation_success:
+            raise PostProcessingValidationError(
+                "Final post-processing validation did not complete."
+            )
 
         stats = post_processor.get_validation_stats()
         total_errors = stats.get('total_errors', 0)
@@ -60,11 +68,16 @@ def run_post_processing(
                 format_issues_override=total_issues,
             )
 
-        if validation_success:
-            post_processor.attach_results_to_proofreading_tracker(proofreading_tracker)
+        post_processor.attach_results_to_proofreading_tracker(proofreading_tracker)
 
-    except Exception as e:
-        logging.error(f"Post-processing failed: {e}")
+    except PostProcessingValidationError:
+        logging.exception("Post-processing validation failed")
+        raise
+    except Exception as exc:
+        logging.exception("Post-processing validation failed")
+        raise PostProcessingValidationError(
+            "Final post-processing validation failed unexpectedly."
+        ) from exc
 
 
 def finalize_language_run(

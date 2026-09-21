@@ -39,6 +39,9 @@ def test_high_risk_router_response_contracts_are_published():
     assert _response_schema(
         paths, "/api/system/reset-demo-state", "post", "200"
     )["$ref"].endswith("/DemoResetResponse")
+    assert _response_schema(
+        paths, "/api/tools/generate_workshop_description", "post", "200"
+    )["$ref"].endswith("/WorkshopDescriptionResponse")
 
 
 def test_zip_upload_is_marked_as_legacy_while_project_translation_is_current():

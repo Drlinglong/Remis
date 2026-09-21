@@ -244,8 +244,24 @@ def _resolve_run_identity(
     return identity, resolved_task_id, resolved_run_id
 
 
-def _build_run_plan(mod_name: str, target_languages: list[dict]):
-    run_plan = build_run_plan(mod_name, target_languages)
+def _build_run_plan(
+    mod_name: str,
+    target_languages: list[dict],
+    project_id: Optional[str],
+    recovery_identity: dict,
+):
+    recovery_output = str(recovery_identity.get("output_dir") or "").strip()
+    output_folder_name = (
+        os.path.basename(os.path.normpath(recovery_output))
+        if recovery_output
+        else None
+    )
+    run_plan = build_run_plan(
+        mod_name,
+        target_languages,
+        project_id=project_id,
+        output_folder_name=output_folder_name,
+    )
     return run_plan, run_plan.output_folder_name, run_plan.primary_target_lang
 
 
@@ -288,7 +304,7 @@ def run(
     recovery_identity, task_id, run_id = _resolve_run_identity(
         recovery_identity, task_id, run_id, progress_callback
     )
-    run_plan, output_folder_name, primary_target_lang = _build_run_plan(mod_name, target_languages)
+    run_plan, output_folder_name, primary_target_lang = _build_run_plan(mod_name, target_languages, project_id, recovery_identity)
     logging.info(i18n.t("start_workflow",
                  workflow_name=i18n.t("workflow_initial_translate_name"),
                  mod_name=mod_name))

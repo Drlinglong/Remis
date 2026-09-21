@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from hashlib import sha256
 from typing import Any, Optional
 
 from scripts.app_settings import DEST_DIR
@@ -17,22 +18,72 @@ from scripts.shared import task_state
 from scripts.utils.system_utils import slugify_to_ascii
 
 
-def get_output_folder_name(mod_name: str, target_lang: dict) -> str:
+def _project_output_suffix(project_id: Optional[str]) -> str:
+    if not project_id:
+        return ""
+    normalized = slugify_to_ascii(str(project_id)).strip("-_") or "project"
+    digest = sha256(str(project_id).encode("utf-8")).hexdigest()[:12]
+    return f"--{normalized[:32]}-{digest}"
+
+
+def get_output_folder_name(
+    mod_name: str,
+    target_lang: dict,
+    project_id: Optional[str] = None,
+) -> str:
     prefix = target_lang.get("folder_prefix", f"{target_lang.get('code', 'unknown')}-")
-    return f"{prefix}{slugify_to_ascii(mod_name)}"
+    return f"{prefix}{slugify_to_ascii(mod_name)}{_project_output_suffix(project_id)}"
 
 
-def get_output_directories(mod_name: str, target_languages: list[dict]) -> list[str]:
+def get_output_folder_names(
+    mod_name: str,
+    target_languages: list[dict],
+    project_id: Optional[str] = None,
+) -> list[str]:
     if len(target_languages) > 1:
-        return [os.path.join(DEST_DIR, f"Multilanguage-{slugify_to_ascii(mod_name)}")]
+        return [
+            f"Multilanguage-{slugify_to_ascii(mod_name)}"
+            f"{_project_output_suffix(project_id)}"
+        ]
     return [
-        os.path.join(DEST_DIR, get_output_folder_name(mod_name, target_language))
+        get_output_folder_name(mod_name, target_language, project_id)
         for target_language in target_languages
     ]
 
 
-def get_checkpoint_output_dir(mod_name: str, target_languages: list[dict]) -> str:
-    return get_output_directories(mod_name, target_languages)[0]
+def get_output_directories(
+    mod_name: str,
+    target_languages: list[dict],
+    project_id: Optional[str] = None,
+) -> list[str]:
+    return [
+        os.path.join(DEST_DIR, folder_name)
+        for folder_name in get_output_folder_names(
+            mod_name,
+            target_languages,
+            project_id,
+        )
+    ]
+
+
+def get_checkpoint_output_dir(
+    mod_name: str,
+    target_languages: list[dict],
+    project_id: Optional[str] = None,
+) -> str:
+    return get_output_directories(mod_name, target_languages, project_id)[0]
+
+
+def resolve_task_output_directories(
+    mod_name: str,
+    target_languages: list[dict],
+    project_id: Optional[str],
+    recovery_identity: Optional[dict],
+) -> list[str]:
+    recovery_output = str((recovery_identity or {}).get("output_dir") or "").strip()
+    if recovery_output:
+        return [os.path.abspath(recovery_output)]
+    return get_output_directories(mod_name, target_languages, project_id)
 
 
 def prepare_initial_recovery(
@@ -55,6 +106,7 @@ def prepare_initial_recovery(
             configuration["provider_runtime_fingerprint"] = runtime_fingerprint
     owner_task_id = task_id
     owner_run_id = task_id
+    parent_recovery = {}
     if request.resume_from_task_id:
         repository = task_state.get_repository()
         if repository is None:
@@ -75,7 +127,14 @@ def prepare_initial_recovery(
         task_id=task_id,
         project_id=request.project_id,
         source_root=source_path,
-        output_dir=get_checkpoint_output_dir(mod_name, target_languages),
+        output_dir=(
+            parent_recovery.get("output_dir")
+            or get_checkpoint_output_dir(
+                mod_name,
+                target_languages,
+                request.project_id,
+            )
+        ),
         target_lang_codes=[language["code"] for language in target_languages],
         configuration=configuration,
         snapshot_hash=source_snapshot_hash,

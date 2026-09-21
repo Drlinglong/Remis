@@ -5,6 +5,7 @@ import pytest
 from fastapi import HTTPException
 
 from scripts.routers import tools
+from scripts.core import workshop_formatter
 from scripts.shared import services, task_state
 
 
@@ -67,6 +68,89 @@ def _configure_project(monkeypatch, tmp_path):
         AsyncMock(),
     )
     return project
+
+
+def _workshop_request():
+    return tools.WorkshopRequest(
+        item_id="123",
+        user_template="Template",
+        target_language="en",
+        project_id="project-1",
+        api_provider="missing-provider",
+    )
+
+
+def test_workshop_description_maps_request_and_archives_only_success(monkeypatch):
+    captured = {}
+    monkeypatch.setattr(workshop_formatter, "get_workshop_item_details", lambda _item: "Original")
+
+    def format_description_with_ai(**kwargs):
+        captured.update(kwargs)
+        return "[b]Formatted[/b]"
+
+    monkeypatch.setattr(workshop_formatter, "format_description_with_ai", format_description_with_ai)
+    monkeypatch.setattr(
+        workshop_formatter,
+        "archive_generated_description",
+        lambda **_kwargs: "archive/generated.md",
+    )
+
+    result = tools.generate_workshop_description(_workshop_request())
+
+    assert result == {
+        "bbcode": "[b]Formatted[/b]",
+        "saved_path": "archive/generated.md",
+    }
+    assert captured["original_description"] == "Original"
+    assert captured["selected_provider"] == "missing-provider"
+    assert "item_id" not in captured
+    assert "api_provider" not in captured
+
+
+def test_workshop_description_does_not_archive_unavailable_ai(monkeypatch):
+    archive = MagicMock()
+    monkeypatch.setattr(workshop_formatter, "get_workshop_item_details", lambda _item: "Original")
+    monkeypatch.setattr(
+        workshop_formatter,
+        "format_description_with_ai",
+        MagicMock(side_effect=workshop_formatter.WorkshopFormattingUnavailableError("not configured")),
+    )
+    monkeypatch.setattr(workshop_formatter, "archive_generated_description", archive)
+
+    with pytest.raises(HTTPException) as error:
+        tools.generate_workshop_description(_workshop_request())
+
+    assert error.value.status_code == 503
+    assert error.value.detail["code"] == "workshop_ai_unavailable"
+    archive.assert_not_called()
+
+
+def test_workshop_formatter_raises_when_provider_is_not_configured(monkeypatch):
+    monkeypatch.setattr(workshop_formatter, "get_handler", lambda _provider: None)
+
+    with pytest.raises(workshop_formatter.WorkshopFormattingUnavailableError):
+        workshop_formatter.format_description_with_ai(
+            original_description="Original",
+            user_template="Template",
+            target_language="en",
+            project_id="",
+            selected_provider="missing-provider",
+        )
+
+
+def test_workshop_formatter_rejects_empty_provider_response(monkeypatch):
+    handler = MagicMock(client=object())
+    handler.get_response.return_value = "   "
+    monkeypatch.setattr(workshop_formatter, "get_handler", lambda _provider: handler)
+
+    with pytest.raises(workshop_formatter.WorkshopFormattingError, match="empty"):
+        workshop_formatter.format_description_with_ai(
+            original_description="Original",
+            user_template="Template",
+            target_language="en",
+            project_id="",
+            selected_provider="configured-provider",
+        )
 
 
 async def _preview():
