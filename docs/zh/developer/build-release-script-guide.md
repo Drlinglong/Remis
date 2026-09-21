@@ -28,8 +28,9 @@ ZIP 格式；当前 EXE 发版不能使用它。
 5. 按需继续提供兼容性、已知边界、验证和安装包信息。中英文内容必须语义一致，但
    应分别符合各自语言的自然表达。
 6. 每次发版都必须更新 `scripts/react-ui/package.json` 中的 `releaseDate`，并让它与
-   Release Note 的 `Released on YYYY-MM-DD.` 以及设置 > 版本信息 > 最后更新保持一致。
-   发布元数据测试是打包前的强制门禁。
+   当前未发布记录 `docs/zh/developer/release-vX.Y.Z.md` 以及设置 > 版本信息 > 最后更新
+   保持一致。正式发布后，归档副本使用 `Released on YYYY-MM-DD.` 记录同一日期。发布
+   元数据测试是打包前的强制门禁。
 
 推荐结构：
 
@@ -63,7 +64,9 @@ ZIP 格式；当前 EXE 发版不能使用它。
 python -m pytest -q tests/test_release_metadata.py
 ```
 
-完整且唯一的规范维护在 `archive/release_notes/README.md`。
+当前未发布记录的入口是 `docs/zh/developer/release-vX.Y.Z.md`；已发布或历史副本才进入
+`archive/release_notes/`。目录结构、Highlights 和归档规则维护在
+`archive/release_notes/README.md`。
 
 ## 使用方法
 

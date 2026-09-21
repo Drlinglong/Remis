@@ -34,9 +34,10 @@ Every release note must be written for ordinary users first and technical reader
    needed. Keep English and Chinese equivalent in meaning while writing each
    naturally.
 6. Update `releaseDate` in `scripts/react-ui/package.json`, use the same date in
-   the release note's `Released on YYYY-MM-DD.` line, and confirm Settings >
-   Version Info > Last Updated displays it. The release metadata test is a
-   mandatory pre-package gate.
+   the current unreleased record at `docs/zh/developer/release-vX.Y.Z.md`, and
+   confirm Settings > Version Info > Last Updated displays it. After release,
+   an archived copy records the same date in its `Released on YYYY-MM-DD.` line.
+   The release metadata test is a mandatory pre-package gate.
 
 Recommended structure:
 
@@ -70,8 +71,10 @@ Before packaging, run:
 python -m pytest -q tests/test_release_metadata.py
 ```
 
-The canonical and complete convention is maintained in
-`archive/release_notes/README.md`.
+The current unreleased record belongs under `docs/zh/developer/`; only
+published or historical copies belong under `archive/release_notes/`. The
+archive directory's structure, Highlights, and promotion rules are maintained
+in `archive/release_notes/README.md`.
 
 ## Usage
 

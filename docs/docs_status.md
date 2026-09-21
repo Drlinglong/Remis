@@ -24,9 +24,11 @@
 
 面向用户的指南和从中生成的 Agent 回答，应先说明实际影响与操作建议，再按用户追问解释技术细节。API 参考和开发契约供 Agent 判断能力，不应原样复制内部术语给普通用户。套壳提示已覆盖现有 11 种界面语言。
 
-[3.2.1 更新日志](zh/developer/release-v3.2.1.md)：`status: draft`，
-`audience: developer`，`copilot_scope: excluded`，`last_verified: 2026-09-11`。
-记录待发布改动、验证与已知限制，不表示已发布。
+[3.2.1 更新日志](zh/developer/release-v3.2.1.md) 是当前未发布开发记录的唯一入口：
+`status: draft`，`audience: developer`，`copilot_scope: excluded`，
+`last_verified: 2026-09-12`。记录待发布改动、验证与已知限制，不表示已发布。
+`archive/release_notes/` 仅保存已发布或历史版本说明；发布后是否生成归档副本必须是显式的
+文档治理步骤。
 
 | 路径 | status | audience | copilot_scope | canonical_for |
 |---|---|---|---|---|

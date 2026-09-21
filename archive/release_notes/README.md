@@ -1,10 +1,13 @@
 # Release Notes Archive
 
-This directory is the canonical home for Project Remis release notes.
+This directory contains published and historical Project Remis release notes.
 
 - Keep release notes out of the repository root.
 - Name new files as `RELEASE_NOTES_vX.Y.Z.md`.
-- Draft the next patch note here while changes land, instead of reconstructing the release from memory at packaging time.
+- Keep the current unreleased development record in
+  `docs/zh/developer/release-vX.Y.Z.md` (and its maintained language
+  counterparts), not in this archive. Promote a release record here only as
+  an explicit post-release documentation step.
 
 ## Required structure
 
@@ -34,8 +37,10 @@ meaning, but should read naturally in each language.
 
 Every release must update `releaseDate` in
 `scripts/react-ui/package.json`. The Settings > Version Info > Last Updated
-field is injected from this value. The current release note must contain the
-same date as `Released on YYYY-MM-DD.`. Run
+field is injected from this value. The current release record under
+`docs/zh/developer/release-vX.Y.Z.md` must contain the same release date; a
+published archived note uses the same date in its `Released on YYYY-MM-DD.`
+line. Run
 `python -m pytest -q tests/test_release_metadata.py` before packaging; the gate
-checks version synchronization, the release-note date, and the Version Info
-binding.
+checks version synchronization, the current release-record date, and the
+Version Info binding.
