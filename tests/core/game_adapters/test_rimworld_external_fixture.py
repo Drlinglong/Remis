@@ -21,6 +21,7 @@ def test_external_pawnrules_keyed_xml_round_trips_without_changing_source(tmp_pa
 
     adapter = RimWorldAdapter()
     discovery = adapter.discover(FIXTURE_ROOT, {"code": "en"}, "1.3")
+    assert discovery.metadata["package_id"] == "remis.fixture.pawnrules"
     resource = next(
         item for item in discovery.resources
         if item.relative_path == "Languages/English/Keyed/Keys.xml"
