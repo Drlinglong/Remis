@@ -98,16 +98,16 @@ export function GuidePage() {
         <div className="container closing-grid">
           <div>
             <p className="eyebrow">{t('NEED MORE HELP?')}</p>
-            <h2>{t('Use the docs today. Ask the Remis Copilot tomorrow.')}</h2>
+            <h2>{t('Use with an AI Agent')}</h2>
           </div>
           <div>
             <p>
-              {t('The planned Micro-RAG assistant is aimed directly at setup, logs, fake localization, and validation explanations. Until then, the documentation and community remain the source of truth.')}
+              {t('The shipped workflow is the product core. RAG and agent layers extend it through explicit boundaries, not by replacing it with a free-roaming bot.')}
             </p>
             <div className="inline-links">
               <TextLink href={links.documentation} external>Browse documentation</TextLink>
+              <TextLink href={sitePath('codex/')}>Use with Codex</TextLink>
               <TextLink href={links.discussions} external>Ask the community</TextLink>
-              <TextLink href={sitePath('roadmap/')}>See the Copilot roadmap</TextLink>
             </div>
           </div>
         </div>

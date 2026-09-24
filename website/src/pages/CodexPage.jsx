@@ -103,13 +103,13 @@ const conversations = {
 
 const capabilityGroups = {
   en: [
-    ['Project & Mod Management', 'Detect game and language', 'Import local mods', 'Inspect files and metadata', 'Track project status'],
+    ['Project & Mod Management', 'Detect game and language', 'Import local mods', 'Inspect files and metadata', 'Read published Project Archive context'],
     ['AI Localization', 'Translate one or many languages', 'Apply glossary and context', 'Choose model and provider', 'Resume interrupted jobs'],
     ['Validation & Repair', 'Preserve variables and syntax', 'Detect malformed output', 'Retry failed entries', 'Surface ambiguous text'],
     ['Review & Export', 'Show validation evidence', 'Keep human approval gates', 'Generate proofreading reports', 'Export installable packages'],
   ],
   zh: [
-    ['项目与 Mod 管理', '识别游戏与语言', '导入本地 Mod', '检查文件和元数据', '追踪项目状态'],
+    ['项目与 Mod 管理', '识别游戏与语言', '导入本地 Mod', '检查文件和元数据', '读取已发布的项目档案上下文'],
     ['AI 本地化', '翻译一种或多种语言', '应用术语和上下文', '选择模型与 Provider', '恢复中断任务'],
     ['校验与修复', '保留变量和游戏语法', '发现畸形输出', '重试失败条目', '暴露歧义文本'],
     ['复核与导出', '展示校验证据', '保留人工审批门槛', '生成校对报告', '导出可安装包'],
@@ -119,6 +119,7 @@ const capabilityGroups = {
 const architecture = [
   ['Shared Agent Contract', 'Capabilities, operational rules, and safety boundaries', '能力发现、操作规则与安全边界'],
   ['Remis Local API', 'Stable structured interface', '稳定的结构化接口'],
+  ['Project Archive', 'Versioned, traceable Context Releases', '有版本、可追溯的 Context Release'],
   ['Remis Workflow Engine', 'Translation · validation · repair · persistence · review', '翻译 · 校验 · 修复 · 持久状态 · 复核'],
   ['Localized Mod', 'Installable, validated output', '可安装、已校验的输出'],
 ]

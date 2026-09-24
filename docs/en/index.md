@@ -9,6 +9,7 @@ This directory contains all English documentation for the V3 Mod Localization Fa
 ## User Guides
 - [Frequently Asked Questions (FAQ)](user-guides/faq.md) - Common questions and solutions
 - [How the Factory Works](user-guides/how_the_factory_works.md) - User workflow overview
+- [Project Archive](user-guides/project-archive.md) - Versioned, traceable context engineering for a mod
 - [Using Ollama for Localization](user-guides/using_ollama.md) - Guide to using local LLMs with Ollama
 - [Using Custom OpenAI API](user-guides/using_custom_openai_api.md) - Custom endpoint configuration
 - [Using ModelScope and SiliconFlow](user-guides/using_modelscope_and_siliconflow.md) - Third-party provider setup
