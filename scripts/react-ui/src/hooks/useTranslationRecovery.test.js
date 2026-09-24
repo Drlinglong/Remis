@@ -155,4 +155,65 @@ describe('translation recovery contract', () => {
     expect(result.current.recovery).toBeNull();
     expect(result.current.canResume).toBe(false);
   });
+
+  it('hides the prior project recovery immediately and rejects its actions after a project switch', async () => {
+    let resolveProjectA;
+    const apiClient = {
+      get: vi.fn((url) => (url.includes('project-a')
+        ? new Promise((resolve) => { resolveProjectA = resolve; })
+        : Promise.resolve({ data: { ...recovery, project_id: 'project-b', task_id: 'task-b' } }))),
+      post: vi.fn(),
+    };
+    const { result, rerender } = renderHook(
+      ({ projectId }) => useTranslationRecovery(projectId, { apiClient }),
+      { initialProps: { projectId: 'project-a' } },
+    );
+
+    rerender({ projectId: 'project-b' });
+    expect(result.current.recovery).toBeNull();
+    expect(result.current.canResume).toBe(false);
+    await act(async () => {
+      await expect(result.current.resume()).rejects.toBeInstanceOf(TranslationRecoveryActionError);
+    });
+    expect(apiClient.post).not.toHaveBeenCalled();
+    await waitFor(() => expect(result.current.recovery?.task_id).toBe('task-b'));
+
+    await act(async () => {
+      resolveProjectA({ data: { ...recovery, project_id: 'project-a', task_id: 'task-a' } });
+    });
+    expect(result.current.recovery?.task_id).toBe('task-b');
+
+    rerender({ projectId: 'project-c' });
+    let rejectedError;
+    await act(async () => {
+      try {
+        await result.current.resume();
+      } catch (error) {
+        rejectedError = error;
+      }
+    });
+    expect(rejectedError).toBeInstanceOf(TranslationRecoveryActionError);
+    expect(apiClient.post).not.toHaveBeenCalled();
+  });
+
+  it('rejects recovery actions when the backend project id conflicts with the owning project', async () => {
+    const apiClient = {
+      get: vi.fn().mockResolvedValue({ data: { ...recovery, project_id: 'other-project' } }),
+      post: vi.fn(),
+    };
+    const { result } = renderHook(() => useTranslationRecovery('project-1', { apiClient }));
+
+    await waitFor(() => expect(result.current.recovery?.task_id).toBe('task-interrupted'));
+    expect(result.current.canResume).toBe(false);
+    let rejectedError;
+    await act(async () => {
+      try {
+        await result.current.resume();
+      } catch (error) {
+        rejectedError = error;
+      }
+    });
+    expect(rejectedError).toBeInstanceOf(TranslationRecoveryActionError);
+    expect(apiClient.post).not.toHaveBeenCalled();
+  });
 });

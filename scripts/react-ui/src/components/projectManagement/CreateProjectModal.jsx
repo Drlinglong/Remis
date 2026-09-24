@@ -15,12 +15,14 @@ import {
 import { IconCopy, IconFolder, IconLink } from '@tabler/icons-react';
 import styles from './CreateProjectModal.module.css';
 
-const fallbackGames = [
+const getFallbackGames = (t) => [
   { value: 'stellaris', label: 'Stellaris' },
   { value: 'hoi4', label: 'Hearts of Iron IV' },
   { value: 'vic3', label: 'Victoria 3' },
   { value: 'ck3', label: 'Crusader Kings III' },
   { value: 'eu4', label: 'Europa Universalis IV' },
+  { value: 'project_zomboid', label: t('game_name_project_zomboid', 'Project Zomboid') },
+  { value: 'rimworld', label: t('game_name_rimworld', 'RimWorld') },
   { value: 'surviving_mars', label: 'Surviving Mars / Relaunched' },
 ];
 
@@ -118,7 +120,7 @@ export function CreateProjectModal({
         </Alert>
         <Select
           label={t('form_label_game')}
-          data={availableGames.length > 0 ? availableGames : fallbackGames}
+          data={availableGames.length > 0 ? availableGames : getFallbackGames(t)}
           value={newProjectGame}
           onChange={(value) => setNewProjectGame(value)}
           disabled={isCreatingProject}

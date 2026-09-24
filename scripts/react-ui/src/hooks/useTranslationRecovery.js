@@ -79,29 +79,36 @@ export function useTranslationRecovery(projectId, {
   apiClient = api,
   autoLoad = true,
 } = {}) {
-  const [state, setState] = useState(IDLE_STATE);
+  const [state, setState] = useState({ ...IDLE_STATE, ownerProjectId: null });
   const requestSequence = useRef(0);
+  const stateBelongsToProject = state.ownerProjectId === projectId;
+  const visibleState = stateBelongsToProject ? state : { ...IDLE_STATE, ownerProjectId: projectId };
+  const recoveryMatchesProject = Boolean(
+    visibleState.recovery
+    && (!visibleState.recovery.project_id || visibleState.recovery.project_id === projectId),
+  );
 
   const loadRecovery = useCallback(async (requestedProjectId = projectId) => {
     if (!requestedProjectId) {
-      setState(IDLE_STATE);
+      requestSequence.current += 1;
+      setState({ ...IDLE_STATE, ownerProjectId: null });
       return null;
     }
 
     const sequence = requestSequence.current + 1;
     requestSequence.current = sequence;
-    setState((previous) => ({ ...previous, phase: 'loading', error: null }));
+    setState({ ...IDLE_STATE, phase: 'loading', ownerProjectId: requestedProjectId });
 
     try {
       const response = await apiClient.get(buildTranslationRecoveryEndpoint(requestedProjectId));
       const recovery = normalizeTranslationRecovery(response);
       if (requestSequence.current === sequence) {
-        setState({ phase: 'ready', recovery, error: null, pendingAction: null });
+        setState({ phase: 'ready', recovery, error: null, pendingAction: null, ownerProjectId: requestedProjectId });
       }
       return recovery;
     } catch (error) {
       if (requestSequence.current === sequence) {
-        setState({ phase: 'error', recovery: null, error, pendingAction: null });
+        setState({ phase: 'error', recovery: null, error, pendingAction: null, ownerProjectId: requestedProjectId });
       }
       throw error;
     }
@@ -112,8 +119,11 @@ export function useTranslationRecovery(projectId, {
   }, [autoLoad, loadRecovery]);
 
   const performAction = useCallback(async (action, payload = {}) => {
-    const taskId = state.recovery?.task_id;
-    if (!isRecoveryActionAllowed(state.recovery, action)) {
+    const recovery = state.ownerProjectId === projectId ? state.recovery : null;
+    const recoveryProjectId = recovery?.project_id;
+    const taskId = recovery?.task_id;
+    if (!taskId || (recoveryProjectId && recoveryProjectId !== projectId)
+      || !isRecoveryActionAllowed(recovery, action)) {
       const error = new TranslationRecoveryActionError(action);
       setState((previous) => ({ ...previous, error }));
       throw error;
@@ -130,26 +140,26 @@ export function useTranslationRecovery(projectId, {
       );
       const recovery = normalizeTranslationRecovery(response);
       if (requestSequence.current === sequence) {
-        setState({ phase: 'ready', recovery, error: null, pendingAction: null });
+        setState({ phase: 'ready', recovery, error: null, pendingAction: null, ownerProjectId: projectId });
       }
       return response.data;
     } catch (error) {
       if (requestSequence.current === sequence) {
-        setState((previous) => ({ ...previous, phase: 'error', error, pendingAction: null }));
+        setState((previous) => ({ ...previous, phase: 'error', error, pendingAction: null, ownerProjectId: projectId }));
       }
       throw error;
     }
-  }, [apiClient, state.recovery]);
+  }, [apiClient, projectId, state.ownerProjectId, state.recovery]);
 
   const resume = useCallback((payload = {}) => performAction(
     TRANSLATION_RECOVERY_ACTIONS.RESUME,
     {
-      ...(state.recovery?.checkpoint?.revision != null
-        ? { expected_checkpoint_revision: state.recovery.checkpoint.revision }
+      ...(visibleState.recovery?.checkpoint?.revision != null
+        ? { expected_checkpoint_revision: visibleState.recovery.checkpoint.revision }
         : {}),
       ...payload,
     },
-  ), [performAction, state.recovery]);
+  ), [performAction, visibleState.recovery]);
 
   const startOver = useCallback((payload) => performAction(
     TRANSLATION_RECOVERY_ACTIONS.START_OVER,
@@ -158,7 +168,9 @@ export function useTranslationRecovery(projectId, {
 
   const clearCheckpoint = useCallback(async () => {
     const action = TRANSLATION_RECOVERY_ACTIONS.CLEAR;
-    if (!isRecoveryActionAllowed(state.recovery, action)) {
+    const recovery = state.ownerProjectId === projectId ? state.recovery : null;
+    if (!recovery || (recovery.project_id && recovery.project_id !== projectId)
+      || !isRecoveryActionAllowed(recovery, action)) {
       const error = new TranslationRecoveryActionError(action);
       setState((previous) => ({ ...previous, error }));
       throw error;
@@ -172,25 +184,27 @@ export function useTranslationRecovery(projectId, {
       const response = await apiClient.delete(buildTranslationCheckpointEndpoint(projectId));
       const recovery = normalizeTranslationRecovery(response);
       if (requestSequence.current === sequence) {
-        setState({ phase: 'ready', recovery, error: null, pendingAction: null });
+        setState({ phase: 'ready', recovery, error: null, pendingAction: null, ownerProjectId: projectId });
       }
       return response.data;
     } catch (error) {
       if (requestSequence.current === sequence) {
-        setState((previous) => ({ ...previous, phase: 'error', error, pendingAction: null }));
+        setState((previous) => ({ ...previous, phase: 'error', error, pendingAction: null, ownerProjectId: projectId }));
       }
       throw error;
     }
-  }, [apiClient, projectId, state.recovery]);
+  }, [apiClient, projectId, state.ownerProjectId, state.recovery]);
 
   return {
-    ...state,
-    isLoading: state.phase === 'loading',
-    isActionPending: state.phase === 'action',
-    canResume: isRecoveryActionAllowed(state.recovery, TRANSLATION_RECOVERY_ACTIONS.RESUME),
-    canStartOver: isRecoveryActionAllowed(state.recovery, TRANSLATION_RECOVERY_ACTIONS.START_OVER),
-    canClearCheckpoint: isRecoveryActionAllowed(
-      state.recovery,
+    ...visibleState,
+    isLoading: visibleState.phase === 'loading',
+    isActionPending: visibleState.phase === 'action',
+    canResume: recoveryMatchesProject
+      && isRecoveryActionAllowed(visibleState.recovery, TRANSLATION_RECOVERY_ACTIONS.RESUME),
+    canStartOver: recoveryMatchesProject
+      && isRecoveryActionAllowed(visibleState.recovery, TRANSLATION_RECOVERY_ACTIONS.START_OVER),
+    canClearCheckpoint: recoveryMatchesProject && isRecoveryActionAllowed(
+      visibleState.recovery,
       TRANSLATION_RECOVERY_ACTIONS.CLEAR,
     ),
     loadRecovery,

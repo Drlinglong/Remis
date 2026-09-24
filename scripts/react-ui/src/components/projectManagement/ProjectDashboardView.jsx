@@ -13,6 +13,7 @@ import {
 import ShellLanguageNotice from '../shared/ShellLanguageNotice';
 import { FEATURES } from '../../config/features';
 import ProjectGlossaryPanel from '../project/ProjectGlossaryPanel';
+import ProjectGameSupportPanel from '../project/ProjectGameSupportPanel';
 import ProjectHeader from '../project/ProjectHeader';
 import ProjectHistory from '../project/ProjectHistory';
 import ProjectValidation from '../project/ProjectValidation';
@@ -73,7 +74,7 @@ export function ProjectDashboardView({
             </Badge>
           </Group>
           <Group gap="xs" className={styles.identityMeta} wrap="wrap">
-            <Text size="sm">{selectedProject.game_id}</Text>
+            <Text size="sm">{t(`game_name_${selectedProject.game_id}`, selectedProject.game_id)}</Text>
             <span aria-hidden="true">•</span>
             <Text size="sm">
               {t('project_management.source_language', 'Source language')}: {' '}
@@ -143,13 +144,19 @@ export function ProjectDashboardView({
 
         <Tabs.Panel id="project-dashboard-overview" value="overview" className={styles.scrollPanel}>
           {projectDetails ? (
-            <ProjectOverview
-              projectDetails={projectDetails}
-              handleProofread={handleProofread}
-              onFileStatusChange={handleFileStatusChange}
-              handleNotesChange={handleUpdateNotes}
-              onPathsUpdated={() => fetchProjectFiles(selectedProject.project_id)}
-            />
+            <>
+              <ProjectGameSupportPanel
+                projectId={selectedProject.project_id}
+                gameId={selectedProject.game_id}
+              />
+              <ProjectOverview
+                projectDetails={projectDetails}
+                handleProofread={handleProofread}
+                onFileStatusChange={handleFileStatusChange}
+                handleNotesChange={handleUpdateNotes}
+                onPathsUpdated={() => fetchProjectFiles(selectedProject.project_id)}
+              />
+            </>
           ) : <Text>{t('project_management.loading_details', 'Loading project details…')}</Text>}
         </Tabs.Panel>
 

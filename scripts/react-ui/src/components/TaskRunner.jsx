@@ -15,8 +15,7 @@ import {
     useMantineTheme,
     Alert,
     SimpleGrid,
-    Loader,
-    Tooltip
+    Loader
 } from '@mantine/core';
 import {
     IconChevronDown,
@@ -29,9 +28,7 @@ import {
     IconBug,
     IconBook,
     IconTypography,
-    IconFolderOpen,
-    IconRocket,
-    IconTrash
+    IconFolderOpen
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { notifications } from '@mantine/notifications';
@@ -40,6 +37,8 @@ import { useDeployActions } from '../hooks/useDeployActions';
 import { DeployModals } from './deploy/DeployModals';
 import BusyHeartbeat from './shared/BusyHeartbeat';
 import { isTerminalTaskStatus } from '../utils/taskStatus';
+import { allowsParadoxDeployment } from '../utils/gameSupportPolicy';
+import ParadoxCompletionActions from './project/ParadoxCompletionActions';
 
 const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
     const { t } = useTranslation();
@@ -92,6 +91,7 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
     };
 
     const normalizedStatus = String(task?.status || '').toLowerCase();
+    const canUseParadoxActions = allowsParadoxDeployment(translationDetails?.gameId);
     const isCompleted = normalizedStatus === 'completed';
     const isPartiallyFailed = normalizedStatus === 'partial_failed';
     const isDoneWithOutput = isCompleted || isPartiallyFailed;
@@ -297,30 +297,14 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
                             >
                                 {t('button_open_folder')}
                             </Button>
-                            <Tooltip label={t('deploy_tooltip_label')} position="top" withArrow>
-                                <Button
-                                    leftSection={deployStatus === 'loading' ? <Loader size={14} color="white" /> : <IconRocket size={20} />}
-                                    size="lg"
-                                    color={deployStatus === 'success' ? 'green' : (deployStatus === 'error' ? 'red' : 'blue')}
-                                    onClick={handleOpenDeployModal}
-                                    loading={deployStatus === 'loading'}
-                                    disabled={deployStatus === 'success'}
-                                >
-                                    {deployStatus === 'loading' ? t('button_deploying') : t('button_auto_deploy')}
-                                </Button>
-                            </Tooltip>
-                            
-                            <Tooltip label={t('deploy_clean_tooltip_label')} position="top" withArrow>
-                                <Button
-                                    leftSection={<IconTrash size={20} />}
-                                    size="lg"
-                                    color="red"
-                                    onClick={handleOpenCleanModal}
-                                    disabled={deployStatus === 'loading'}
-                                >
-                                    {t('button_clean_fake_loc')}
-                                </Button>
-                            </Tooltip>
+                            <ParadoxCompletionActions
+                                deployStatus={deployStatus}
+                                gameId={translationDetails?.gameId}
+                                handleOpenCleanModal={handleOpenCleanModal}
+                                handleOpenDeployModal={handleOpenDeployModal}
+                                loadingIcon={<Loader size={14} color="white" />}
+                                t={t}
+                            />
                             <Button
                                 leftSection={<IconRefresh size={20} />}
                                 size="lg"
@@ -362,7 +346,7 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
                     </Paper>
                 </Collapse>
 
-                <DeployModals deployActions={deployActions} />
+                {canUseParadoxActions && <DeployModals deployActions={deployActions} />}
             </Stack>
         );
     }

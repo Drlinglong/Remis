@@ -40,6 +40,11 @@ export const projectService = {
 
     getProjectValidationStatus: (projectId) => api.get(`/api/project/${projectId}/validation-status`),
 
+    getGameSupport: (projectId, options = {}) => api.get(
+        `/api/projects/${encodeURIComponent(projectId)}/game-support`,
+        options,
+    ),
+
     /**
      * Retrieve status and progress of a background task.
      * @param {string} taskId Task ID

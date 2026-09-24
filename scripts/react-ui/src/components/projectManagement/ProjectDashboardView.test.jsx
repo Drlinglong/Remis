@@ -17,6 +17,10 @@ vi.mock('../project/ProjectGlossaryPanel', () => ({
   default: () => <div>project glossary</div>,
 }));
 
+vi.mock('../project/ProjectGameSupportPanel', () => ({
+  default: ({ gameId, projectId }) => <div data-testid="game-support-panel">{gameId}:{projectId}</div>,
+}));
+
 vi.mock('../project/ProjectHeader', () => ({
   default: () => <div data-testid="project-workspace-status">project status and next action</div>,
 }));
@@ -146,5 +150,20 @@ describe('ProjectDashboardView', () => {
     renderDashboard({ activeTab: 'publishing_assets' });
 
     expect(screen.getByText('publishing assets for proj-1')).toBeInTheDocument();
+  });
+
+  it('shows game support within the existing project overview journey', () => {
+    renderDashboard({
+      selectedProject: {
+        project_id: 'rimworld-project',
+        name: 'Colony translations',
+        status: 'active',
+        game_id: 'rimworld',
+      },
+    });
+
+    expect(screen.getByText('game_name_rimworld')).toBeInTheDocument();
+    expect(screen.getByTestId('game-support-panel')).toHaveTextContent('rimworld:rimworld-project');
+    expect(screen.getByText('overview')).toBeInTheDocument();
   });
 });

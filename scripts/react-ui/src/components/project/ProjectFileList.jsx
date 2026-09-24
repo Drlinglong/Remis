@@ -1,11 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Paper, Group, Title, Table, Tooltip, Text, Badge, Button, Select } from '@mantine/core';
 import { IconClock, IconCheck, IconX, IconPlayerPlay, IconEdit, IconPlayerPause } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import styles from './ProjectDetailSurfaces.module.css';
+import { hasStructuredGameSupport } from '../../utils/gameSupportPolicy';
+import ProjectSourcePreviewModal from './ProjectSourcePreviewModal';
 
 const ProjectFileList = ({ projectDetails, handleProofread, onFileStatusChange }) => {
     const { t } = useTranslation();
+    const [sourcePreviewFile, setSourcePreviewFile] = useState(null);
+    const structuredGame = hasStructuredGameSupport(projectDetails.game_id);
 
     // Helper to get relative path
     const getRelativePath = (fullPath) => {
@@ -43,6 +47,7 @@ const ProjectFileList = ({ projectDetails, handleProofread, onFileStatusChange }
     const rows = projectDetails.files.map((file) => {
         const relativePath = getRelativePath(file.name);
         const currentOption = statusOptions.find(o => o.value === file.status) || statusOptions[0];
+        const readOnlySource = structuredGame && file.file_type === 'source';
 
         return (
             <Table.Tr key={file.key}>
@@ -61,6 +66,7 @@ const ProjectFileList = ({ projectDetails, handleProofread, onFileStatusChange }
                     <Select
                         size="xs"
                         variant="unstyled"
+                        disabled={readOnlySource}
                         value={file.status}
                         data={statusOptions}
                         onChange={(val) => onFileStatusChange(file.key, val)}
@@ -80,7 +86,15 @@ const ProjectFileList = ({ projectDetails, handleProofread, onFileStatusChange }
                 <Table.Td style={{ width: '80px' }}>{file.progress}</Table.Td>
                 <Table.Td style={{ width: '120px' }}>
                     <Group gap="xs">
-                        {file.actions.map(action => (
+                        {readOnlySource ? (
+                            <Button
+                                variant="subtle"
+                                size="xs"
+                                onClick={() => setSourcePreviewFile(file)}
+                            >
+                                {t('project_management.view_source', { defaultValue: 'View source' })}
+                            </Button>
+                        ) : file.actions.map(action => (
                             <Tooltip key={action} label={t('project_management.tooltip_proofread')}>
                                 <Button
                                     variant="subtle"
@@ -121,6 +135,11 @@ const ProjectFileList = ({ projectDetails, handleProofread, onFileStatusChange }
                     </Table>
                 </Paper>
             </div>
+            <ProjectSourcePreviewModal
+                file={sourcePreviewFile}
+                projectId={projectDetails.project_id}
+                onClose={() => setSourcePreviewFile(null)}
+            />
         </div>
     );
 };
