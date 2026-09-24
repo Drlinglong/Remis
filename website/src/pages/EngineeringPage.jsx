@@ -190,7 +190,7 @@ export function EngineeringPage() {
               </MeasuredText>
             </div>
             <p>
-              {t('The roadmap adds AI capability without handing filesystem authority to a free-roaming agent. Each layer has one job and one trust boundary.')}
+              {t('The model may retrieve, explain, classify, plan, and suggest. Remis owns the action registry, validation, risk level, preview, confirmation, and execution.')}
             </p>
           </div>
 

@@ -14,6 +14,8 @@ export const links = {
   discussions: 'https://github.com/Drlinglong/Remis/discussions',
   documentation: 'https://github.com/Drlinglong/Remis/tree/main/docs',
   architecture: 'https://github.com/Drlinglong/Remis/blob/main/docs/en/developer/architecture.md',
+  archiveGuideEn: 'https://github.com/Drlinglong/Remis/blob/main/docs/en/user-guides/project-archive.md',
+  archiveGuideZh: 'https://github.com/Drlinglong/Remis/blob/main/docs/zh/user-guides/mod-archive.md',
   agentQuickstart: 'https://github.com/Drlinglong/Remis/blob/main/docs/en/developer/agent-api-quickstart.md',
   agentSkill: 'https://github.com/Drlinglong/Remis/tree/main/.agents/skills/remis-agent',
   agentApi: 'http://127.0.0.1:1453/docs',
@@ -57,11 +59,11 @@ export function pageFromPath(pathname, base = SITE_BASE) {
   return segment === '' || segment === 'index.html' ? 'home' : 'notFound'
 }
 
-// Verified 2026-08-30 via the GitHub Releases API: 38 public releases and
-// 616 cumulative public release-asset downloads. Downloads use a durable band.
+// Verified 2026-09-09 via the GitHub Releases API: 41 public releases and
+// 628 cumulative public release-asset downloads. Downloads use a durable band.
 export const proofPoints = [
   { value: '8,000+', label: 'Workshop reach', note: 'users and subscribers reached by released localization work' },
-  { value: '38', label: 'Public releases', note: 'a maintained Windows desktop product, not a one-off demo' },
+  { value: '41', label: 'Public releases', note: 'a maintained Windows desktop product, not a one-off demo' },
   { value: '600+', label: 'Installer downloads', note: 'public GitHub release downloads across shipped versions' },
   { value: '120+', label: 'Tracked test files', note: 'backend, workflow, validation, and frontend regression coverage' },
 ]
@@ -87,15 +89,15 @@ export const productLayers = [
   {
     index: '02',
     eyebrow: 'KNOWLEDGE LAYER',
-    status: 'In development',
+    status: 'Shipped',
     title: 'A contextual Copilot that knows where you are',
-    body: 'The 3.1.0 branch adds session memory, route-aware help, agent-selected read tools, and persistent task handoff across the Remis interface.',
+    body: 'The assistant receives the current route and page context, then chooses bounded read tools for product-specific answers.',
     code: 'observe → retrieve → explain → hand off',
   },
   {
     index: '03',
     eyebrow: 'AUTOMATION LAYER',
-    status: 'In development',
+    status: 'Shipped',
     title: 'Approval-gated agents over native workflows',
     body: 'PydanticAI plans typed localization work, Remis validates every tool and argument, and the user approves the workflow inline before execution.',
     code: 'plan → preview → approve → execute',
@@ -169,19 +171,19 @@ export const copilotLayers = [
   {
     eyebrow: 'READ-ONLY KNOWLEDGE LAYER',
     name: 'Contextual help and read tools',
-    status: 'In development',
-    description: 'The 3.1.0 branch grounds answers in the current route, packaged product guides, session history, and agent-selected read-only skills.',
+    status: 'Shipped',
+    description: 'The assistant receives the current route and page context, then chooses bounded read tools for product-specific answers.',
   },
   {
     eyebrow: 'SCHEMA-BOUND REASONING LAYER',
     name: 'PydanticAI Copilot',
-    status: 'In development',
+    status: 'Shipped',
     description: 'PydanticAI produces typed help responses and localization workflow proposals. Unknown tools, invalid arguments, and free-form executable behaviour are rejected.',
   },
   {
     eyebrow: 'DETERMINISTIC EXECUTION LAYER',
     name: 'Remis workflow engine',
-    status: 'Foundation shipped',
+    status: 'Shipped',
     description: 'Owns validation, UI previews, confirmation gates, native handlers, logging, and every write to project or game directories.',
   },
 ]
@@ -354,15 +356,15 @@ export const roadmapPhases = [
     summary: 'Project glossary binding, validation sidecars, stronger proofreading boundaries, neologism workflows, and safer recovery paths.',
   },
   {
-    status: 'In development',
+    status: 'Shipped',
     title: 'Contextual, session-based Help Copilot',
-    version: 'Post-v3.1.0',
+    version: 'v3.2.0',
     summary: 'Route-aware help, packaged product knowledge, persistent sessions, agent-selected read tools, and a floating assistant across the app.',
   },
   {
-    status: 'In development',
+    status: 'Shipped',
     title: 'Approval-gated localization workflows',
-    version: 'Post-v3.1.0',
+    version: 'v3.2.0',
     summary: 'PydanticAI turns user intent into typed workflow plans. Remis validates, previews, and waits for inline approval before handing off work.',
   },
   {
