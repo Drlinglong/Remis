@@ -443,7 +443,10 @@ class ProofreadingService:
 
     async def get_proofread_data(self, project_id: str, file_id: str) -> Dict[str, Any]:
         project, target_file_path = await self._resolve_target_file_path(project_id, file_id)
-
+        from scripts.core.game_adapters.registry import resource_adapter
+        if resource_adapter(project.get("game_id")):
+            from scripts.core.game_adapters.proofreading import get_proofread_data
+            return await get_proofread_data(self, project, target_file_path, file_id)
         if surviving_mars_csv.is_table_file(target_file_path):
             from scripts.core.services.surviving_mars_proofreading import get_proofread_data
             return await get_proofread_data(self, project, target_file_path, file_id)
@@ -578,6 +581,11 @@ class ProofreadingService:
                 raise ProofreadingConflictError(
                     "The proofreading target changed after it was loaded."
                 )
+            from scripts.core.game_adapters.registry import resource_adapter
+            if resource_adapter(project.get("game_id")):
+                from scripts.core.game_adapters.proofreading import save_proofread_data
+                return await save_proofread_data(self, project, target_file_path, file_id,
+                                                 entries_list, structure_patches)
             if surviving_mars_csv.is_table_file(target_file_path):
                 from scripts.core.services.surviving_mars_proofreading import save_proofread_data
                 return await save_proofread_data(

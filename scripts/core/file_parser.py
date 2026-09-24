@@ -73,6 +73,11 @@ def extract_translatable_content_with_diagnostics(
 ) -> tuple[list[str], list[str], dict[int, dict], tuple[ParseDiagnostic, ...]]:
     """Extract content without discarding structured parser diagnostics."""
 
+    from scripts.core.game_adapters.registry import adapter_for_path
+    if adapter_for_path(file_path):
+        from scripts.core.game_adapters.workflow_bridge import extract_file
+        return extract_file(file_path)
+
     if surviving_mars_csv.is_table_file(file_path):
         original_lines, texts_to_translate, key_map = surviving_mars_csv.extract_file(file_path)
         _apply_hooks(file_path, original_lines, texts_to_translate, key_map)

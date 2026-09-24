@@ -10,7 +10,7 @@ from scripts.shared import task_state
 
 
 LOCALIZATION_DIR_NAMES = {"localization", "localisation"}
-LOCALIZATION_EXTENSIONS = {".yml", ".yaml", ".csv", ".txt"}
+LOCALIZATION_EXTENSIONS = {".yml", ".yaml", ".csv", ".txt", ".json", ".xml"}
 
 
 class ProjectWatchService:

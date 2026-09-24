@@ -137,6 +137,11 @@ class PostProcessingManager:
         """
         translated_files = []
 
+        from scripts.core.game_adapters.registry import resource_adapter
+        if resource_adapter(self.game_profile):
+            from scripts.core.game_adapters.output_records import output_files
+            return output_files(self.output_folder, target_lang["code"])
+
         if self.game_profile.get("format_adapter_id") == surviving_mars_csv.FORMAT_ADAPTER_ID:
             for root, _, files in os.walk(self.output_folder):
                 for file in files:
@@ -270,6 +275,10 @@ class PostProcessingManager:
         return None
 
     def _load_source_entries(self, target_file_path: str, target_lang: dict, source_lang: dict) -> Dict[str, str]:
+        from scripts.core.game_adapters.registry import resource_adapter
+        if resource_adapter(self.game_profile):
+            from scripts.core.game_adapters.output_records import source_values
+            return source_values(target_file_path)
         source_file = self._resolve_source_file(target_file_path, target_lang, source_lang)
         if not source_file:
             return {}

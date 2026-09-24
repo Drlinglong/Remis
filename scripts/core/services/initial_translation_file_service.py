@@ -31,6 +31,9 @@ def sync_project_file_status(project_id: str, source_file_path: str):
 
 def build_dest_dir(file_task: FileTask, target_lang: dict, output_folder_name: str, game_profile: dict) -> str:
     """Build the destination directory while preserving module and language-folder structure."""
+    from scripts.core.game_adapters.registry import resource_adapter
+    if resource_adapter(game_profile):
+        return os.path.join(DEST_DIR, output_folder_name, target_lang["code"])
     known_lang_folders = set()
     for lang_def in LANGUAGES.values():
         if "name_en" in lang_def:

@@ -248,9 +248,11 @@ def _resolve_run_identity(
     return identity, resolved_task_id, resolved_run_id
 
 
-def _build_run_plan(mod_name: str, target_languages: list[dict]):
+def _build_run_plan(mod_name: str, target_languages: list[dict], game_profile: dict, run_id: str):
+    from scripts.core.services.initial_translation_run_service import resource_output_folder
     run_plan = build_run_plan(mod_name, target_languages)
-    return run_plan, run_plan.output_folder_name, run_plan.primary_target_lang
+    output_folder = resource_output_folder(run_plan.output_folder_name, game_profile, run_id)
+    return run_plan, output_folder, run_plan.primary_target_lang
 
 
 def _unpack_prepared_run(prepared: PreparedTranslationRun, recovery_identity: dict):
@@ -292,7 +294,7 @@ def run(
     recovery_identity, task_id, run_id = _resolve_run_identity(
         recovery_identity, task_id, run_id, progress_callback
     )
-    run_plan, output_folder_name, primary_target_lang = _build_run_plan(mod_name, target_languages)
+    run_plan, output_folder_name, primary_target_lang = _build_run_plan(mod_name, target_languages, game_profile, run_id)
     logging.info(i18n.t("start_workflow",
                  workflow_name=i18n.t("workflow_initial_translate_name"),
                  mod_name=mod_name))

@@ -5,7 +5,7 @@ import sys
 import multiprocessing
 from enum import Enum
 from scripts.config import prompts
-from scripts.build_profile import get_build_profile, runtime_app_data_folder
+from scripts.build_profile import get_build_profile, resolve_app_data_dir
 import json
 
 def get_appdata_config_path():
@@ -128,16 +128,7 @@ def get_app_root():
 
 def get_app_data_dir():
     """Returns the user data directory (AppData)."""
-    appdata = os.getenv('APPDATA')
-    
-    app_folder = runtime_app_data_folder(BUILD_PROFILE)
-    
-    if not appdata:
-        # Fallback for non-standard environments
-        base_dir = os.path.join(os.path.expanduser("~"), f".{app_folder.lower()}")
-    else:
-        base_dir = os.path.join(appdata, app_folder)
-    
+    base_dir = resolve_app_data_dir(profile=BUILD_PROFILE)
     os.makedirs(base_dir, exist_ok=True)
     return base_dir
 
@@ -315,6 +306,8 @@ class SupportedGame(str, Enum):
     EU_4 = "eu4"
     EU_5 = "eu5"
     SURVIVING_MARS = "surviving_mars"
+    PROJECT_ZOMBOID = "project_zomboid"
+    RIMWORLD = "rimworld"
 
 GAME_ID_ALIASES = {
     # Victoria 3
@@ -349,6 +342,8 @@ GAME_ID_ALIASES = {
 
     # Surviving Mars / Relaunched
     "surviving_mars": SupportedGame.SURVIVING_MARS.value,
+    "project_zomboid": SupportedGame.PROJECT_ZOMBOID.value,
+    "rimworld": SupportedGame.RIMWORLD.value,
     "surviving mars": SupportedGame.SURVIVING_MARS.value,
     "surviving mars: relaunched": SupportedGame.SURVIVING_MARS.value,
     "project spark": SupportedGame.SURVIVING_MARS.value,

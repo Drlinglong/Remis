@@ -25,6 +25,11 @@ def load_glossaries_for_run(game_id: str, use_glossary: bool, selected_glossary_
 
 def prepare_output_workspace(mod_name: str, output_folder_name: str, game_profile: dict) -> str:
     """Create output directories and copy static assets for a run."""
+    from scripts.core.game_adapters.registry import resource_adapter
+    if resource_adapter(game_profile):
+        output = os.path.join(DEST_DIR, output_folder_name)
+        os.makedirs(output, exist_ok=True)
+        return output
     directory_handler.create_output_structure(mod_name, output_folder_name, game_profile)
     asset_handler.copy_assets(mod_name, output_folder_name, game_profile)
     return os.path.join(DEST_DIR, output_folder_name)
@@ -36,7 +41,8 @@ def clean_source_directory(
     game_profile: Optional[dict] = None,
 ):
     """Delete non-localization source files after setup when clean_source is enabled."""
-    if game_profile and game_profile.get("format_adapter_id") == "surviving_mars_csv":
+    from scripts.core.game_adapters.registry import resource_adapter
+    if game_profile and (resource_adapter(game_profile) or game_profile.get("format_adapter_id") == "surviving_mars_csv"):
         logging.warning(
             "Skipping source cleanup for Surviving Mars: ModItemLocTable files "
             "may be located anywhere in the mod tree."

@@ -122,6 +122,11 @@ def rebuild_and_write_file(
     """
     import os
     from scripts.utils.punctuation_handler import clean_punctuation_core
+    from scripts.core.game_adapters.registry import resource_adapter
+
+    if resource_adapter(game_profile):
+        from scripts.core.game_adapters.workflow_bridge import rebuild
+        return rebuild(key_map, translated_texts, dest_dir, target_lang)
 
     source_code = source_lang.get("code", "zh-CN")
     target_code = target_lang.get("code", "en")

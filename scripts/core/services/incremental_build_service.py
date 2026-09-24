@@ -56,6 +56,8 @@ class IncrementalBuildService:
         written_files: List[str] = []
         archive_files_data: List[Dict[str, Any]] = []
         archive_results: Dict[str, List[str]] = {}
+        from scripts.core.game_adapters.registry import resource_adapter
+        structured = resource_adapter(game_profile)
 
         is_surviving_mars = game_profile.get("format_adapter_id") == "surviving_mars_csv"
         for record in processing_records:
@@ -65,7 +67,9 @@ class IncrementalBuildService:
             delta_indices = record["key_delta_indices"]
             canonical_entries = fd.get("canonical_entries", ())
 
-            ai_results = translated_results.get(filename, [])
+            ai_results = translated_results.get(fd["file_path"] if structured else filename, [])
+            if structured and len(ai_results) != len(delta_indices):
+                raise ValueError(f"Incomplete incremental translations for {fd['file_path']}")
             for delta_idx, trans_text in zip(delta_indices, ai_results):
                 full_entries[delta_idx]["translation"] = trans_text
 
@@ -83,8 +87,16 @@ class IncrementalBuildService:
                         else None
                     ),
                 }
+                if structured:
+                    rebuild_key_map[index].update(fd.get("adapter_key_map", {}).get(index, {}))
 
             try:
+                if structured and rebuild_key_map:
+                    from dataclasses import replace
+                    first = next(iter(rebuild_key_map.values()))
+                    document = first["adapter_document"]
+                    first["adapter_document"] = replace(document, metadata={**document.metadata,
+                        "needs_review_keys": [e["key"] for e in full_entries if e.get("resolution") == "review"]})
                 dest_root = (
                     lang_output_dir / Path(fd["file_path"]).parent
                     if is_surviving_mars
@@ -95,6 +107,8 @@ class IncrementalBuildService:
                         target_lang_info=target_lang_info,
                     )
                 )
+                if structured:
+                    dest_root = lang_output_dir
                 os.makedirs(dest_root, exist_ok=True)
 
                 out_path = rebuild_and_write_file(
@@ -111,6 +125,8 @@ class IncrementalBuildService:
                 written_files.append(out_path)
             except Exception as e:
                 logger.error(f"Failed to rebuild file {filename}: {e}")
+                if structured:
+                    raise
 
             archive_files_data.append({
                 "filename": filename,

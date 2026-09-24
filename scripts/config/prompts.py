@@ -223,6 +223,12 @@ Translate the following list:
 --- END OF INPUT LIST ---"""
 
 
+from scripts.config.resource_game_prompts import (  # noqa: E402,F401
+    PROJECT_ZOMBOID_PROMPT_TEMPLATE, PROJECT_ZOMBOID_SINGLE_PROMPT_TEMPLATE,
+    PROJECT_ZOMBOID_FORMAT_PROMPT, RIMWORLD_PROMPT_TEMPLATE,
+    RIMWORLD_SINGLE_PROMPT_TEMPLATE, RIMWORLD_FORMAT_PROMPT,
+)
+
 # --- Fallback Prompt ---
 FALLBACK_FORMAT_PROMPT = """Output Logic:
     "1. Return a single JSON array of strings matching input length exactly ({chunk_size} items).\n"

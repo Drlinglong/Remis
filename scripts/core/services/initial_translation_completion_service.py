@@ -27,6 +27,9 @@ def process_metadata_for_language(
     mod_context,
     game_profile,
 ):
+    from scripts.core.game_adapters.registry import resource_adapter
+    if resource_adapter(game_profile):
+        return
     try:
         asset_handler.process_metadata(
             mod_name,

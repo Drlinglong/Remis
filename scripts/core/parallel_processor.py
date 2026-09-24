@@ -544,6 +544,9 @@ class ParallelProcessor:
                 file_translated_texts.extend(task.translated_texts)
 
             if file_failed or len(file_translated_texts) != len(file_task.texts_to_translate):
+                from scripts.core.game_adapters.registry import resource_adapter
+                if resource_adapter(file_task.game_profile):
+                    raise RuntimeError(f"Incomplete game resource translation: {file_task.filename}")
                 self.logger.error(f"File translation failed for {file_task.filename}, using fallback.")
                 file_results[file_task.filename] = file_task.texts_to_translate
             else:

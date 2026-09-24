@@ -27,17 +27,14 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from scripts.build_profile import get_build_profile, runtime_app_data_folder
+from scripts.build_profile import get_build_profile, resolve_app_data_dir
 
 def panic_log(msg):
     try:
-        appdata = os.getenv('APPDATA')
-        if appdata:
-             folder_name = runtime_app_data_folder(get_build_profile())
-             path = os.path.join(appdata, folder_name, "startup_panic.log")
-             os.makedirs(os.path.dirname(path), exist_ok=True)
-             with open(path, "a", encoding="utf-8") as f:
-                 f.write(f"[{datetime.datetime.now()}] {msg}\n")
+        path = os.path.join(resolve_app_data_dir(), "startup_panic.log")
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(f"[{datetime.datetime.now()}] {msg}\n")
     except:
         pass
 
@@ -165,6 +162,8 @@ def setup_app_routers():
     )
     from scripts.core.feature_policy import mod_archive_enabled
     
+    from scripts.routers import game_support
+    app.include_router(game_support.router)
     app.include_router(projects.router)
     app.include_router(project_watches.router)
     app.include_router(translation.router)
@@ -256,13 +255,8 @@ def get_frozen_log_config():
     Returns a logging configuration that writes ONLY to a file.
     This bypasses any StreamHandler that might check isatty() on sys.stderr.
     """
-    appdata = os.getenv('APPDATA')
-    if appdata:
-         folder_name = runtime_app_data_folder(get_build_profile())
-         log_file = os.path.join(appdata, folder_name, "logs", "uvicorn_frozen.log")
-         os.makedirs(os.path.dirname(log_file), exist_ok=True)
-    else:
-         log_file = "uvicorn_frozen.log"
+    log_file = os.path.join(resolve_app_data_dir(), "logs", "uvicorn_frozen.log")
+    os.makedirs(os.path.dirname(log_file), exist_ok=True)
 
     return {
         "version": 1,

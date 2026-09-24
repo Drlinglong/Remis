@@ -9,6 +9,14 @@ if "%ENV_NAME%"=="" set "ENV_NAME=local_factory"
 
 echo Launching FastAPI backend server...
 cd /d "%PROJECT_ROOT%"
+if not defined REMIS_APP_DATA_DIR if exist "%PROJECT_ROOT%\.git" if not exist "%PROJECT_ROOT%\.git\NUL" set "REMIS_APP_DATA_DIR=%PROJECT_ROOT%\.runtime"
+if defined REMIS_APP_DATA_DIR (
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "if ($env:REMIS_APP_DATA_DIR -match '^[A-Za-z]:[\\/]' -or $env:REMIS_APP_DATA_DIR -match '^\\\\[^\\]+\\[^\\]+') { exit 0 }; exit 1"
+    if errorlevel 1 (
+        echo [ERROR] REMIS_APP_DATA_DIR must be an absolute path: "%REMIS_APP_DATA_DIR%"
+        exit /b 1
+    )
+)
 
 set "PYTHON_EXE=python"
 set "CONDA_BASE="

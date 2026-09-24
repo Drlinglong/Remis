@@ -185,11 +185,7 @@ class WorkshopIssueExportService:
         if not output_root.exists():
             return self._write_exports(output_root, issues, generated_at)
 
-        output_files = (
-            output_root.rglob("*.csv")
-            if game_id == "surviving_mars"
-            else output_root.rglob("*.yml")
-        )
+        output_files = self._output_files(output_root, game_id, target_lang_info["code"])
         for translated_file in output_files:
             file_context = self._prepare_output_file_context(
                 translated_file,
@@ -266,6 +262,14 @@ class WorkshopIssueExportService:
         export_result["issues"] = issues
         return export_result
 
+    @staticmethod
+    def _output_files(output_root, game_id, language):
+        from scripts.core.game_adapters.registry import resource_adapter
+        if resource_adapter(game_id):
+            from scripts.core.game_adapters.output_records import output_files
+            return map(Path, output_files(output_root, language))
+        return output_root.rglob("*.csv" if game_id == "surviving_mars" else "*.yml")
+
     def _prepare_output_file_context(
         self,
         translated_file: Path,
@@ -276,6 +280,17 @@ class WorkshopIssueExportService:
         target_paradox: str,
     ) -> Optional[tuple[str, Optional[Path], Dict[str, str], List[tuple[str, str, int]]]]:
         """Resolve one output file into source and target entry views."""
+
+        from scripts.core.game_adapters.registry import resource_adapter
+        adapter = resource_adapter(game_id)
+        if adapter:
+            from scripts.core.game_adapters.output_records import output_record, source_values
+            from scripts.core.game_adapters.workflow_bridge import safe_output
+            _, record = output_record(translated_file)
+            source_file = safe_output(source_root, record["source_path"]) if record else None
+            return (translated_file.relative_to(output_root).as_posix(), source_file,
+                    source_values(translated_file),
+                    [e.as_legacy_tuple() for e in adapter.parse(translated_file).entries])
 
         if game_id == "surviving_mars":
             if not surviving_mars_csv.is_table_file(translated_file):

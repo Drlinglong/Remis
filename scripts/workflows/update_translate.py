@@ -12,6 +12,7 @@ from scripts.core.services.incremental_diff_service import IncrementalDiffServic
 from scripts.core.services.incremental_build_service import IncrementalBuildService
 from scripts.core.services.incremental_archive_service import IncrementalArchiveService
 from scripts.core.services.incremental_package_service import IncrementalPackageService
+from scripts.core.game_adapters.registry import resource_adapter
 from scripts.core.services.incremental_preparation_service import IncrementalPreparationService
 from scripts.core.services.incremental_translation_service import IncrementalTranslationService
 from scripts.core.services.workshop_issue_export_service import WorkshopIssueExportService, resolve_dynamic_valid_tags
@@ -84,7 +85,7 @@ def _prepare_language_translation(
         selected_provider=selected_provider,
         source_path=source_path,
         base_output_dir=lang_output_dir,
-        total_targets=1,
+        total_targets=total_target_langs if resource_adapter(game_profile) else 1,
         progress_callback=(
             (lambda data: progress_callback(_build_aggregated_progress(
                 data, lang_index, total_target_langs, target_lang_code
@@ -180,16 +181,16 @@ async def run_incremental_update(
 
     if not dry_run and is_multilang:
         package_started_at = perf_counter()
-        shared_output_folder_name = package_service.build_multilang_output_folder_name(project_name)
         shared_package_info = package_service.prepare_output_package(
             project_name=project_name,
             source_path=source_path,
             target_lang_info=target_lang_infos[0],
             game_profile=game_profile,
-            output_folder_name=shared_output_folder_name,
+            output_folder_name=package_service.build_multilang_output_folder_name(project_name),
             clean_existing=True,
         )
         shared_output_dir = shared_package_info["package_root"]
+        shared_output_folder_name = shared_package_info["output_folder_name"]
         output_dirs = [str(shared_output_dir)]
         shared_package_prepare_ms = round((perf_counter() - package_started_at) * 1000, 1)
         logger.info(f"Prepared shared incremental package root for {project_name}: {shared_output_dir}")
@@ -429,7 +430,7 @@ async def run_incremental_update(
             f"{project_name} ({target_lang_code}) to {export_result.get('issues_path')}"
         )
 
-        metadata_handler = handler_for_selection(selected_provider, model_name, provider_runtime)
+        metadata_handler = None if resource_adapter(game_profile) else handler_for_selection(selected_provider, model_name, provider_runtime)
         if metadata_handler and metadata_handler.client and (not is_multilang or target_lang_info == target_lang_infos[0]):
             metadata_started_at = perf_counter()
             package_service.process_metadata(
@@ -501,7 +502,7 @@ async def run_incremental_update(
             }
         )
         if not shared_path_registered:
-            await project_manager.add_translation_path(project_id, str(lang_output_dir))
+            await project_manager.add_translation_path(project_id, str(shared_output_dir or lang_output_dir))
             shared_path_registered = True
 
     if not dry_run and is_multilang and shared_output_dir is not None:

@@ -92,7 +92,9 @@ class TranslationArchiveService:
         except ValueError:
             paradox_source_lang = "english"
 
-        source_scan = self._scan_source_files(source_path, paradox_source_lang, game_id=game_id)
+        from scripts.core.game_adapters.registry import resource_adapter
+        adapter = resource_adapter(game_id)
+        source_scan = self._scan_source_files(source_path, source_lang_code if adapter else paradox_source_lang, game_id=game_id)
         if source_scan.issues:
             return {
                 "status": "error",
@@ -110,6 +112,14 @@ class TranslationArchiveService:
         if not source_files_data:
             return {"status": "warning", "message": "No source files found to archive."}
 
+        scanned_translations = None
+        if adapter and translation_dirs:
+            try:
+                scanned_translations = self._scan_translation_dirs(
+                    source_files_data, source_path, translation_dirs, paradox_source_lang, game_id=game_id)
+            except (OSError, ValueError) as exc:
+                return {"status": "error", "code": "translation_scan_failed", "message": str(exc)}
+
         mod_id = self.archive_manager.resolve_mod_entry(project_name, project_id)
         if not mod_id:
             return {"status": "error", "message": "Failed to initialize mod archive entry."}
@@ -126,7 +136,7 @@ class TranslationArchiveService:
                 "version_id": version_id,
             }
 
-        file_results, match_count = self._scan_translation_dirs(
+        file_results, match_count = scanned_translations or self._scan_translation_dirs(
             source_files_data=source_files_data,
             source_path=source_path,
             translation_dirs=translation_dirs,
@@ -162,6 +172,11 @@ class TranslationArchiveService:
         game_id: str = "",
     ) -> SourceScanResult:
         result = SourceScanResult()
+
+        from scripts.core.game_adapters.registry import resource_adapter
+        if resource_adapter(game_id):
+            from scripts.core.game_adapters.archive_bridge import scan_source
+            return scan_source(source_path, paradox_source_lang, game_id)
 
         logger.info(f"Scanning source files in {source_path} (source language: {paradox_source_lang})")
 
@@ -305,6 +320,10 @@ class TranslationArchiveService:
         paradox_source_lang: str,
         game_id: str = "",
     ) -> tuple[Dict[str, Dict[str, List[str]]], int]:
+        from scripts.core.game_adapters.registry import resource_adapter
+        if resource_adapter(game_id):
+            from scripts.core.game_adapters.archive_bridge import scan_translations
+            return scan_translations(source_files_data, translation_dirs, game_id)
         source_by_relpath = {fd["file_path"]: fd for fd in source_files_data}
         source_candidates_by_key: Dict[str, List[Dict[str, Any]]] = {}
 

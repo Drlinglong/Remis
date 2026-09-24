@@ -63,7 +63,13 @@ class ContextSourceParser:
         content = resolved.read_bytes()
         text = content.decode("utf-8-sig")
         parse_summary: dict[str, int]
-        if resolved.suffix.lower() == ".json":
+        from scripts.core.game_adapters.registry import adapter_for_path
+        adapter = adapter_for_path(resolved)
+        if adapter:
+            document = adapter.parse_text(text, resolved, {"source_root": str(source_root)})
+            raw_items = [(entry.key, entry.value) for entry in document.entries]
+            parse_summary = self._simple_parse_summary(raw_items)
+        elif resolved.suffix.lower() == ".json":
             raw_items = self._parse_json(text)
             parse_summary = self._simple_parse_summary(raw_items)
         elif resolved.suffix.lower() == ".csv":

@@ -161,6 +161,11 @@ class FileService:
         dependency. Translation upload is the separate persistence boundary.
         """
         normalized_game_id = (game_id or "victoria3").lower()
+        from scripts.core.game_adapters.registry import resource_adapter
+        if resource_adapter(normalized_game_id):
+            from scripts.core.game_adapters.project_support import discover_manifest
+            return discover_manifest(project_id, source_path, translation_dirs, source_language,
+                                     normalized_game_id, status_by_file_id)
         allowed_extensions = (
             [".yml", ".yaml", ".csv", ".txt"]
             if normalized_game_id in {"eu4", "surviving_mars"}

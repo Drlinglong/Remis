@@ -96,7 +96,7 @@ class ProjectManager:
 
     def _get_import_scope_items(self, source_root: str, game_profile: Optional[Dict[str, Any]]) -> List[Path]:
         root_path = Path(source_root)
-        if not root_path.exists() or (game_profile and game_profile.get("format_adapter_id") == "surviving_mars_csv"):
+        if not root_path.exists() or (game_profile and game_profile.get("source_localization_folder") == "."):
             return []
         candidate_rel_paths = []
         if game_profile:

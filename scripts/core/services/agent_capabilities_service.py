@@ -2,6 +2,8 @@
 
 
 def build_capabilities(*, api_version, version, games, languages, providers, shells, policy, context_capabilities):
+    from scripts.core.game_adapters.registry import game_capabilities
+    games = [{**game, "capabilities": game_capabilities(game["id"])} for game in games]
     return {
         "api_version": api_version,
         "remis_version": version,

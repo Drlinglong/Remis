@@ -46,6 +46,10 @@ class IncrementalSnapshotService:
         progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
         game_profile: Optional[Dict[str, Any]] = None,
     ) -> List[Dict[str, Any]]:
+        from scripts.core.game_adapters.registry import resource_adapter
+        if resource_adapter(game_profile):
+            from scripts.core.game_adapters.workflow_bridge import build_snapshot
+            return build_snapshot(source_path, game_profile, source_lang_info, progress_callback)
         if (
             game_profile
             and game_profile.get("format_adapter_id") == surviving_mars_csv.FORMAT_ADAPTER_ID
