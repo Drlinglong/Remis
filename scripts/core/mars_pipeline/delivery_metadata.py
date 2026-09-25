@@ -362,4 +362,3 @@ def _source_copy_mod_id(source_id: str) -> str:
     """Give a full copy a deterministic identity distinct from its Workshop source."""
     suffix = hashlib.sha256(f"remis-source-copy\0{source_id}".encode("utf-8")).hexdigest()[:12]
     return f"Remis{suffix}"
-
