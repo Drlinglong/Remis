@@ -10,6 +10,11 @@ Remis discovers `.csv` files with this exact five-column header:
 ID,Text,Translation,VoiceActor,Context
 ```
 
+An official Mod Editor export may begin with the exact line `sep=,` before the
+header; Remis recognizes and preserves it. Editable Mods under
+`%APPDATA%/Surviving Mars Relaunched/Mods/<Mod name>` can be imported directly;
+other application directories in AppData remain protected.
+
 `ID` must contain ASCII decimal digits and is preserved as an exact string, including leading zeros. `Text` is the source value, and only `Translation` is writable. `VoiceActor` and `Context` remain unchanged. Quoted, comma-containing, multiline, and tagged fields are parsed with a standards-compliant CSV reader; unrelated CSV files are ignored.
 
 Surviving Mars tags such as `<em>`, `<resource(res)>`, and `<image UI/... 2000>` must remain exactly identical in the translation, including spelling, parameters, case, and multiplicity. Text between tags may be translated; tag names and parameters inside angle brackets must not be translated or rewritten. The final validation reports missing or unexpected tags for human review.

@@ -54,6 +54,75 @@ def test_csv_adapter_preserves_columns_and_multiline_fields() -> None:
     assert rows[3][2] == "第一行\n第二行"
 
 
+def test_exact_separator_directive_preserves_prefix_bom_row_indexes_and_line_numbers(tmp_path: Path) -> None:
+    table_path = tmp_path / "ModTexts.csv"
+    source = (
+        "\ufeffsep=,\r\n"
+        "ID,Text,Translation,VoiceActor,Context\r\n"
+        '000123,"First line\r\nsecond line",,"Voice A","Context, one"\r\n'
+        '000002,"Need <resource(res)>","已有译文",,"Keep tag"\r\n'
+    )
+    source_bytes = source.encode("utf-8")
+    table_path.write_bytes(source_bytes)
+
+    assert surviving_mars_csv.is_table_file(table_path)
+    document = surviving_mars_csv.parse_file(table_path)
+    assert document.header_row_index == 1
+    assert document.data_row_count == 2
+    assert [entry.key for entry in document.entries] == ["000123", "000002"]
+    assert [entry.row_index for entry in document.entries] == [2, 3]
+    assert [entry.line_number for entry in document.entries] == [4, 5]
+    assert surviving_mars_csv.parse_summary(document) == {
+        "raw": 2, "syntax_parsed": 2, "policy_excluded": 0,
+        "eligible": 2, "parse_errors": 0,
+    }
+
+    lines, texts, key_map = surviving_mars_csv.extract_file(table_path)
+    assert len(lines) == 5
+    assert texts == ["First line\r\nsecond line", "Need <resource(res)>"]
+    assert key_map[0]["line_num"] == 3
+    assert key_map[0]["row_index"] == 2
+    assert [item.key for item in surviving_mars_csv.entries(table_path)] == ["000123", "000002"]
+    translated_entries = surviving_mars_csv.entries(table_path, "Translation")
+    assert [(item.key, item.value, item.line_number) for item in translated_entries] == [
+        ("000002", "已有译文", 5),
+    ]
+    assert table_path.read_bytes() == source_bytes
+
+    rewritten = surviving_mars_csv.rewrite_text(
+        document.source_text,
+        ["第一行\r\n第二行", "需要 <resource(res)>"],
+        {index: {"key_part": entry.key, "row_index": entry.row_index}
+         for index, entry in enumerate(document.entries)},
+    )
+    assert rewritten.startswith("sep=,\r\nID,Text,Translation,VoiceActor,Context\r\n")
+    assert not rewritten.startswith("\ufeff")
+    assert "\r\n" in rewritten
+    result = surviving_mars_csv.parse_text(rewritten)
+    assert [entry.key for entry in result.entries] == ["000123", "000002"]
+    assert [entry.line_number for entry in result.entries] == [5, 6]
+    assert [row[2] for row in result.rows[2:]] == ["第一行\r\n第二行", "需要 <resource(res)>"]
+    assert result.rows[2][0] == "000123"
+    assert result.rows[2][3:] == ("Voice A", "Context, one")
+    assert surviving_mars_csv.compare_tags("<resource(res)>", "<resource(res)>").is_mismatch is False
+
+
+@pytest.mark.parametrize("prefix,header", [
+    ("sep=;\n", "ID,Text,Translation,VoiceActor,Context\n"),
+    ("sep=,\n", "ID,Text,Translation,VoiceActor,Other\n"),
+    ('"sep=",\n', "ID,Text,Translation,VoiceActor,Context\n"),
+])
+def test_separator_directive_only_accepts_exact_prefix_and_strict_header(
+    tmp_path: Path, prefix: str, header: str,
+) -> None:
+    table_path = tmp_path / "Invalid.csv"
+    table_path.write_text(prefix + header + "001,Text,,,,\n", encoding="utf-8", newline="")
+
+    assert surviving_mars_csv.is_table_file(table_path) is False
+    with pytest.raises(surviving_mars_csv.NotSurvivingMarsCsv):
+        surviving_mars_csv.parse_file(table_path)
+
+
 def test_file_parser_and_discovery_use_moditem_table_schema(tmp_path: Path) -> None:
     table_path = tmp_path / "nested" / "Game.csv"
     table_path.parent.mkdir()
@@ -217,3 +286,7 @@ async def test_proofreading_reads_and_writes_only_translation_column(tmp_path: P
     assert written.rows[1][3:] == source_document.rows[1][3:]
     assert project_manager.status_updates == [("project", "file", "done")]
     assert len(archive.updates) == 1
+def test_separator_header_cannot_be_targeted_by_a_translation_key_map():
+    source = "sep=,\nID,Text,Translation,VoiceActor,Context\n001,Source,,,\n"
+    with pytest.raises(surviving_mars_csv.SurvivingMarsCsvError, match="Invalid row index"):
+        surviving_mars_csv.rewrite_text(source, ["bad"], {0: {"row_index": 1, "key_part": "ID"}})

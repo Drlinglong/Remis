@@ -36,6 +36,28 @@ _plans: dict[str, StoredPlan] = {}
 _plans_lock = threading.Lock()
 
 
+def _mars_import_roots() -> tuple[str | None, str | None]:
+    appdata = os.environ.get("APPDATA")
+    if not appdata:
+        return None, None
+    appdata_root = os.path.normcase(os.path.realpath(appdata))
+    mod_root = os.path.normcase(os.path.join(appdata_root, "Surviving Mars Relaunched", "Mods"))
+    return appdata_root, mod_root
+
+
+def _inside_mars_mod(normalized, protected_root, appdata_root, mars_mod_root):
+    return bool(protected_root == appdata_root and mars_mod_root
+                and normalized.startswith(mars_mod_root + os.sep))
+
+
+def _configured_import_roots() -> set[str]:
+    roots = set()
+    for configured in os.environ.get("REMIS_AGENT_IMPORT_ROOTS", "").split(os.pathsep):
+        if configured.strip():
+            roots.add(os.path.normcase(os.path.realpath(os.path.expanduser(configured.strip()))))
+    return roots
+
+
 def _resolve_allowed_mod_folder(folder_path: str) -> Path:
     normalized = os.path.normcase(
         os.path.realpath(os.path.expanduser(folder_path))
@@ -48,14 +70,10 @@ def _resolve_allowed_mod_folder(folder_path: str) -> Path:
         os.path.normcase(os.path.realpath(str(PROJECT_ROOT))),
         bundled_demo_root,
     }
-    configured_roots = os.environ.get("REMIS_AGENT_IMPORT_ROOTS", "")
-    for configured in configured_roots.split(os.pathsep):
-        if configured.strip():
-            allowed_roots.add(
-                os.path.normcase(
-                    os.path.realpath(os.path.expanduser(configured.strip()))
-                )
-            )
+    allowed_roots.update(_configured_import_roots())
+    appdata_root, mars_mod_root = _mars_import_roots()
+    if mars_mod_root:
+        allowed_roots.add(mars_mod_root)
     for drive_letter in "CDEFGHIJKLMNOPQRSTUVWXYZ":
         for relative_root in (
             r"SteamLibrary\steamapps\workshop\content",
@@ -93,7 +111,8 @@ def _resolve_allowed_mod_folder(folder_path: str) -> Path:
         inside_bundled_demos = normalized.startswith(
             bundled_demo_root.rstrip("\\/") + os.sep
         )
-        if not inside_bundled_demos and (
+        inside_mars_mod = _inside_mars_mod(normalized, protected_root, appdata_root, mars_mod_root)
+        if not inside_bundled_demos and not inside_mars_mod and (
             normalized == protected_root or normalized.startswith(protected_prefix)
         ):
             raise ValueError("Mod folder is inside a protected system root")

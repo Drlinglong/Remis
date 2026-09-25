@@ -69,6 +69,19 @@ def test_async_read_tools_do_not_use_blocking_requests():
     assert "asyncio.to_thread" in source
 
 
+def test_mars_editable_mods_are_allowed_without_opening_other_appdata(tmp_path, monkeypatch):
+    appdata = tmp_path / "AppData" / "Roaming"
+    mod = _make_mod(appdata / "Surviving Mars Relaunched" / "Mods")
+    private = _make_mod(appdata / "OtherApplication")
+    sibling = _make_mod(appdata / "Surviving Mars Relaunched" / "Mods-private")
+    monkeypatch.setenv("APPDATA", str(appdata))
+    monkeypatch.setenv("REMIS_AGENT_IMPORT_ROOTS", str(tmp_path))
+    assert workflow.inspect_mod_folder(str(mod))["read_only"] is True
+    for blocked in (private, sibling, mod.parent, appdata):
+        with pytest.raises(ValueError, match="protected system root|specific mod folder"):
+            workflow.inspect_mod_folder(str(blocked))
+
+
 @pytest.mark.asyncio
 async def test_plan_requires_approval_and_executes_exactly_once(tmp_path, monkeypatch):
     mod = _make_mod(tmp_path)

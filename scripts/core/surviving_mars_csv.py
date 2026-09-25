@@ -58,10 +58,11 @@ class CsvDocument:
     entries: tuple[CsvEntry, ...]
     source_text: str
     line_ending: str
+    header_row_index: int = 0
 
     @property
     def data_row_count(self) -> int:
-        return max(0, len(self.rows) - 1)
+        return max(0, len(self.rows) - self.header_row_index - 1)
 
 
 @dataclass(frozen=True)
@@ -92,14 +93,24 @@ def _rows_from_text(text: str) -> list[list[str]]:
         raise SurvivingMarsCsvError(f"CSV syntax error: {exc}") from exc
 
 
-def _validate_rows(rows: list[list[str]]) -> None:
-    if not rows or tuple(rows[0]) != HEADER:
+def _header_row_index(text: str, rows: list[list[str]]) -> int:
+    """Recognize only the exact ``sep=,`` first-line directive."""
+    first_line = text.splitlines()[0] if text.splitlines() else ""
+    if first_line == "sep=," and rows and rows[0] == ["sep=", ""]:
+        return 1
+    return 0
+
+
+def _validate_rows(rows: list[list[str]], header_row_index: int = 0) -> None:
+    if (header_row_index >= len(rows)
+            or tuple(rows[header_row_index]) != HEADER
+            or (header_row_index == 1 and rows[0] != ["sep=", ""])):
         raise NotSurvivingMarsCsv(
             "Expected header: " + ",".join(HEADER)
         )
 
     seen_ids: set[str] = set()
-    for row_index, row in enumerate(rows[1:], start=1):
+    for row_index, row in enumerate(rows[header_row_index + 1:], start=header_row_index + 1):
         if not row:
             continue
         if len(row) != len(HEADER):
@@ -119,12 +130,15 @@ def _validate_rows(rows: list[list[str]]) -> None:
 def parse_text(text: str) -> CsvDocument:
     """Parse and validate a complete ModItemLocTable CSV document."""
 
+    # File reads use utf-8-sig, so direct text parsing follows the same BOM policy.
+    text = text.removeprefix("\ufeff")
     rows = _rows_from_text(text)
-    _validate_rows(rows)
+    header_row_index = _header_row_index(text, rows)
+    _validate_rows(rows, header_row_index)
     entries: list[CsvEntry] = []
     reader = csv.reader(io.StringIO(text, newline=""), strict=True)
     for row_index, row in enumerate(reader):
-        if row_index == 0 or not row or not row[1].strip():
+        if row_index <= header_row_index or not row or not row[1].strip():
             continue
         entries.append(
             CsvEntry(
@@ -139,6 +153,7 @@ def parse_text(text: str) -> CsvDocument:
         entries=tuple(entries),
         source_text=text,
         line_ending=_line_ending(text),
+        header_row_index=header_row_index,
     )
 
 
@@ -161,7 +176,12 @@ def is_table_file(path: str | Path) -> bool:
         return False
     try:
         with candidate.open("r", encoding="utf-8-sig", newline="") as handle:
-            first_row = next(csv.reader(handle, strict=True), None)
+            first_line = handle.readline()
+            if first_line.rstrip("\r\n") == "sep=,":
+                first_row = next(csv.reader(handle, strict=True), None)
+            else:
+                handle.seek(0)
+                first_row = next(csv.reader(handle, strict=True), None)
     except (OSError, UnicodeError, csv.Error):
         return False
     return first_row is not None and tuple(first_row) == HEADER
@@ -197,7 +217,7 @@ def entries(path: str | Path, value_column: str = "Text") -> list[CsvEntry]:
     result: list[CsvEntry] = []
     reader = csv.reader(io.StringIO(document.source_text, newline=""), strict=True)
     for row_index, row in enumerate(reader):
-        if row_index == 0 or not row or not row[column_index].strip():
+        if row_index <= document.header_row_index or not row or not row[column_index].strip():
             continue
         result.append(
             CsvEntry(
@@ -231,7 +251,7 @@ def rewrite_text(
             raise SurvivingMarsCsvError(f"Missing key map entry at index {index}")
         row_index = entry_info.get("row_index")
         key = str(entry_info.get("key_part", ""))
-        if not isinstance(row_index, int) or row_index <= 0 or row_index >= len(rows):
+        if not isinstance(row_index, int) or row_index <= document.header_row_index or row_index >= len(rows):
             raise SurvivingMarsCsvError(f"Invalid row index for translation {index}: {row_index!r}")
         if not rows[row_index] or rows[row_index][0] != key:
             raise SurvivingMarsCsvError(
@@ -269,7 +289,7 @@ def compare_tags(source_text: str, target_text: str) -> CsvTagMismatch:
 def parse_summary(document: CsvDocument) -> dict[str, int]:
     """Expose the parser counters used by Remis snapshots and context trees."""
 
-    nonblank_rows = sum(1 for row in document.rows[1:] if row)
+    nonblank_rows = sum(1 for row in document.rows[document.header_row_index + 1:] if row)
     return {
         "raw": document.data_row_count,
         "syntax_parsed": nonblank_rows,

@@ -11,7 +11,7 @@ MAX_SCAN_FILES = 10000
 
 def csv_contract() -> dict:
     return {
-        "header": list(csv_adapter.HEADER), "source_column": "Text",
+        "header": list(csv_adapter.HEADER), "optional_first_line": "sep=,", "source_column": "Text",
         "writable_column": "Translation",
         "preserved_columns": ["ID", "Text", "VoiceActor", "Context"],
         "id_policy": "ASCII decimal string; preserve leading zeros and exact identity",

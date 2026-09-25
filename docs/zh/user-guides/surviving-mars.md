@@ -12,6 +12,10 @@ Remis 只会自动发现表头完全匹配下面五列的 `.csv` 文件：
 ID,Text,Translation,VoiceActor,Context
 ```
 
+官方 Mod Editor 导出的文件可以在表头前有一行 `sep=,`；Remis 会识别并保留它。
+可直接复制导入 `%APPDATA%/Surviving Mars Relaunched/Mods/<Mod 名称>` 中的可编辑 Mod，
+该路径支持不开放 AppData 下其他应用目录。
+
 - `ID` 必须是 ASCII 十进制数字，并作为字符串保留精确身份，包括前导零；不能改名、重排或重复。
 - `Text` 是源文本，`Translation` 是唯一写回列。
 - `VoiceActor` 和 `Context` 原样保留。
