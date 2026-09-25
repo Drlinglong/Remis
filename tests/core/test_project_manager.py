@@ -279,9 +279,8 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
         
         self.mock_repo.get_project.return_value = mock_obj
 
-        with patch.object(
-            self.pm,
-            "_read_project_sidecar",
+        with patch(
+            "scripts.core.project_manager.read_project_sidecar",
             return_value={"config": {"translation_dirs": ["/trans/path"]}},
         ):
             # Action
@@ -295,6 +294,7 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
                 source_language="en",
                 game_id="victoria3",
                 status_by_file_id={},
+                game_version=None,
             )
             self.assertEqual(result["file_count"], 0)
             self.mock_repo.get_project_files.assert_not_awaited()

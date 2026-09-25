@@ -20,6 +20,10 @@ logger = logging.getLogger(__name__)
 from scripts.core.project_json_manager import ProjectJsonManager
 from scripts.core.services.kanban_service import KanbanService
 from scripts.core.services.translation_archive_service import TranslationArchiveService
+from scripts.core.services.project_version_context import (
+    project_sidecar_context,
+    read_project_sidecar,
+)
 from scripts.utils.i18n_utils import paradox_to_iso
 from scripts.utils.validation_logger import ValidationLogger
 from scripts.core.db_models import Project as DBProject, ProjectFile as DBProjectFile, ProjectHistory
@@ -179,6 +183,7 @@ class ProjectManager:
         game_id: str,
         source_language: str,
         import_mode: str = "copy",
+        game_version: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Creates a new project.
@@ -245,11 +250,8 @@ class ProjectManager:
         
         # Initialize JSON sidecar
         json_manager = ProjectJsonManager(final_source_path)
-        json_manager.update_config({
-            "translation_dirs": [],
-            "source_language": source_language,
-            "project_import": import_metadata,
-        })
+        json_manager.update_config({"translation_dirs": [], "source_language": source_language,
+                                    "project_import": import_metadata, "game_version": game_version})
 
         # Scan files (Initial Scan)
         await self.refresh_project_files(project_id)
@@ -262,7 +264,7 @@ class ProjectManager:
             metadata={"name": name}
         )
         
-        return saved_project.model_dump()
+        return {**saved_project.model_dump(), **({"game_version": game_version} if game_version else {})}
 
     async def get_project_by_file_id(self, file_id: str) -> Optional[Dict[str, Any]]:
         """Retrieves project details associated with a specific file ID."""
@@ -280,6 +282,11 @@ class ProjectManager:
         return None
 
     async def _normalize_project_record(self, project_data: Dict[str, Any]) -> Dict[str, Any]:
+        if not project_data:
+            return project_data
+        source_path = project_data.get("source_path")
+        if source_path:
+            project_data.update(project_sidecar_context(source_path, project_data))
         if not project_data or not project_data.get("source_path") or not project_data.get("game_id"):
             return project_data
 
@@ -295,21 +302,8 @@ class ProjectManager:
                     logger.error(f"Failed to persist normalized source_path for project {project_id}: {exc}")
         return project_data
 
-    @staticmethod
-    def _read_project_sidecar(source_path: str) -> Dict[str, Any]:
-        """Load project-side configuration/status without creating or repairing files."""
-        sidecar_path = Path(source_path) / ".remis_project.json"
-        if not sidecar_path.is_file():
-            return {}
-        try:
-            payload = json.loads(sidecar_path.read_text(encoding="utf-8"))
-            return payload if isinstance(payload, dict) else {}
-        except (OSError, json.JSONDecodeError) as exc:
-            logger.warning("Could not read project sidecar %s: %s", sidecar_path, exc)
-            return {}
-
     def _discover_project_files(self, project: Dict[str, Any]) -> Dict[str, Any]:
-        sidecar = self._read_project_sidecar(project["source_path"])
+        sidecar = read_project_sidecar(project["source_path"])
         config = sidecar.get("config", {}) if isinstance(sidecar.get("config"), dict) else {}
         raw_translation_dirs = config.get("translation_dirs", [])
         translation_dirs = (
@@ -331,6 +325,7 @@ class ProjectManager:
             source_language=project.get("source_language", "en"),
             game_id=project.get("game_id", "victoria3"),
             status_by_file_id=status_by_file_id,
+            game_version=config.get("game_version") if isinstance(config.get("game_version"), str) else None,
         )
 
     async def _get_project_for_discovery(self, project_id: str) -> Optional[Dict[str, Any]]:
@@ -564,6 +559,9 @@ class ProjectManager:
              logger.error(f"Game profile not found for '{game_id}'. Available: {list(GAME_PROFILES_BY_ID.keys())}")
              # Last effort fallback to victoria3
              game_profile = GAME_PROFILES_BY_ID.get("victoria3", {})
+
+        if project.get("game_version"):
+            game_profile = {**game_profile, "game_version": project["game_version"]}
 
         result = await run_incremental_update(
             project_id=project_id,

@@ -651,11 +651,13 @@ def test_continuation_rejects_provider_runtime_drift(tmp_path):
     try:
         _, recovery = prepare_initial_recovery(
             request=request,
-            project={"source_path": str(source_root)},
+            project={"source_path": str(source_root), "game_version": "41.78.0"},
             task_id="task-runtime",
             target_languages=[{"code": "zh-CN", "folder_prefix": "zh-CN-"}],
             provider_runtime=runtime_a,
+            game_profile={"id": "project_zomboid", "game_version": "41.78.0"},
         )
+        assert recovery["configuration_snapshot"]["game_version"] == "41.78.0"
         repository.save_task({
             "task_id": "task-runtime",
             "kind": "initial_translation",
@@ -672,10 +674,21 @@ def test_continuation_rejects_provider_runtime_drift(tmp_path):
         with pytest.raises(ValueError, match="configuration changed"):
             prepare_initial_recovery(
                 request=request,
-                project={"source_path": str(source_root)},
+                project={"source_path": str(source_root), "game_version": "41.78.0"},
                 task_id="task-runtime-resumed",
                 target_languages=[{"code": "zh-CN", "folder_prefix": "zh-CN-"}],
                 provider_runtime=runtime_b,
+                game_profile={"id": "project_zomboid", "game_version": "41.78.0"},
+            )
+
+        with pytest.raises(ValueError, match="configuration changed"):
+            prepare_initial_recovery(
+                request=request,
+                project={"source_path": str(source_root), "game_version": "42.15.0"},
+                task_id="task-version-resumed",
+                target_languages=[{"code": "zh-CN", "folder_prefix": "zh-CN-"}],
+                provider_runtime=runtime_a,
+                game_profile={"id": "project_zomboid", "game_version": "42.15.0"},
             )
     finally:
         task_state.configure_repository(previous_repository, hydrate=False)

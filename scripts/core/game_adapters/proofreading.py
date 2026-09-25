@@ -15,7 +15,11 @@ def _binding(project, target, adapter):
         return source, record["language"], {e["key"]: e["source"] for e in record["entries"]}
     target_document = adapter.parse(Path(target))
     target_keys = {entry.key for entry in target_document.entries}
-    discovery = adapter.discover(source_root, {"code": project.get("source_language", "en")})
+    discovery = adapter.discover(
+        source_root,
+        {"code": project.get("source_language", "en")},
+        project.get("game_version"),
+    )
     matches = []
     for resource in discovery.resources:
         document = adapter.parse(resource.path, resource.metadata)
@@ -61,7 +65,11 @@ async def save_proofread_data(service, project, target_file_path, file_id,
         raise ValueError("Game resource structure is preserved; edit translation values only")
     adapter = resource_adapter(project["game_id"])
     target = Path(target_file_path)
-    discovery = adapter.discover(Path(project["source_path"]), {"code": project.get("source_language", "en")})
+    discovery = adapter.discover(
+        Path(project["source_path"]),
+        {"code": project.get("source_language", "en")},
+        project.get("game_version"),
+    )
     if target.resolve() in {resource.path.resolve() for resource in discovery.resources}:
         raise ValueError("Source resources are read-only; edit a translation package")
     document = adapter.parse(target)

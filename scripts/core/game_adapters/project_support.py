@@ -34,8 +34,9 @@ def inspect_support(game_id: str, root: str, language: str = "en",
 
 
 def discover_manifest(project_id: str, source_path: str, translation_dirs: list[str],
-                      source_language: str, game_id: str, statuses: dict | None) -> dict:
-    support = inspect_support(game_id, source_path, source_language)
+                      source_language: str, game_id: str, statuses: dict | None,
+                      game_version: str | None = None) -> dict:
+    support = inspect_support(game_id, source_path, source_language, game_version)
     warnings = list(support["diagnostics"])
     resources = [(Path(item["path"]), "source", item["entry_count"])
                  for item in support["resources"]]

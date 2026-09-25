@@ -76,8 +76,9 @@ Inspect a candidate folder with optional game context:
 
 `POST /projects/inspect` returns the dynamic scan under
 `inspection.game_support`. The project import-plan also returns its scan at
-`inspection.game_support`. `game_version` is a scan hint only: it does not
-modify project settings or configure later jobs. After import, call
+`inspection.game_support`. A version on inspect is a one-time scan hint. Include
+a known version in `POST /projects/plan` to persist it with the approved project;
+discovery and translation then use the same version. After import, call
 `GET /projects/{project_id}/game-support` to scan the project's current source
 tree; the top-level result includes recognized resources and entry counts,
 diagnostics, coverage scope, read-only status, runtime verification status,

@@ -380,7 +380,7 @@ async def _project_summary(project: Dict[str, Any]) -> AgentProjectSummary:
         project_id=project_id,
         name=str(project.get("name") or ""),
         game_id=str(project.get("game_id") or ""),
-        source_language=str(project.get("source_language") or "en"),
+        source_language=str(project.get("source_language") or "en"), game_version=project.get("game_version"),
         source_path=project.get("source_path"),
         status=str(project.get("status") or "active"),
         file_count=len(files),
@@ -451,7 +451,7 @@ async def inspect_agent_project(request: AgentProjectInspectRequest):
 async def plan_agent_project(request: AgentProjectPlanRequest):
     inspection = _validate_agent_import_path(request.folder_path)
     try:
-        inspection["game_support"] = inspect_game_support(request.game_id, inspection["folder_path"], request.source_language.value)
+        inspection["game_support"] = inspect_game_support(request.game_id, inspection["folder_path"], request.source_language.value, request.game_version)
     except ValueError as exc:
         raise _error(400, "invalid_game", str(exc)) from exc
     execution_args = {
@@ -463,7 +463,7 @@ async def plan_agent_project(request: AgentProjectPlanRequest):
             if hasattr(request.source_language, "value")
             else str(request.source_language)
         ),
-        "import_mode": request.import_mode,
+        "import_mode": request.import_mode, "game_version": request.game_version,
     }
     if not execution_args["name"]:
         raise _error(400, "invalid_request", "Project name is required")

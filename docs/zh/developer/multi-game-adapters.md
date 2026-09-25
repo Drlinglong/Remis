@@ -1,6 +1,6 @@
 # 多游戏本地化适配与离线验收
 
-本轮在既有 Project Zomboid、RimWorld 和 Surviving Mars Relaunched CSV 支持上，补充 Mars 从现有翻译输出生成独立本地轻量翻译 Mod 的受审批工作流。基线中的 CSV 工作流仍保留。该包通过 SDK `metadata.loctables` 与 `ModItemLocTable` 格式引用已有译文，并将原 Mod 设为必需依赖；不复制资产、不覆盖原 Mod、不自动安装/发布，且没有游戏内运行时验证。
+3.2.1 提供首版稳定的 Surviving Mars / Relaunched FPK 准备与多语言交付，保留既有 CSV 工作流。轻量包通过 SDK `metadata.loctables` 与 `ModItemLocTable` 引用译文并依赖原 Mod；完整副本包含原资源和受支持的 Lua 国际化改写。两者均审批后导出，不自动安装或发布。奇异矿物完整副本已由用户实测中法德；Project Zomboid 与 RimWorld 仍为 Preview，不能将该结果推广到其他游戏或任意 Lua 写法。当前操作契约见[火星求生指南](../user-guides/surviving-mars.md)。
 
 ## 支持范围
 
@@ -8,7 +8,7 @@
 | --- | --- | --- | --- |
 | Project Zomboid | Translate 目录的字符串值 JSON、安全 Lua-table TXT；common/版本目录；单 Mod 的 Workshop 容器 | 目标语言资源、独立 mod.info、原 Mod 的 require 依赖 | 不执行 Lua；复杂表达式、未知 JSON 形状和多 Mod 容器报诊断；不翻译硬编码脚本文字 |
 | RimWorld | Keyed、DefInjected、Strings；Defs 中显式规则支持的可翻译字段和 rulesStrings；版本目录与 LoadFolders 证据 | Languages/目标游戏语言目录、独立 About.xml、原 packageId 依赖与 loadAfter | 不执行程序集或 PatchOperation；继承和依赖条件不能离线完整展开；未知字段、条件和混合 XML 内容显示诊断 |
-| Surviving Mars Relaunched | 现有 ModItemLocTable CSV | 原有 CSV 流程；可从已有目标语言 CSV 输出生成轻量翻译 Mod | 需要原 Mod 作为 required dependency；不复制资产、不修改原 Mod、不部署/发布；游戏内加载未验证 |
+| Surviving Mars Relaunched | FPK 全资源隔离解包、ModItemLocTable CSV、支持范围内的 Lua 本地化与硬编码候选 | 原有 CSV 流程；单一多语言轻量补丁或完整国际化副本 | 轻量包依赖原 Mod；完整副本替代启用；不改输入包、不自动安装或发布；仅用户报告的奇异矿物中法德样例已实测 |
 | P 社游戏 | 现有 localization/localisation 解析与工作流 | 现有产物 | 回归原有路径与语义 token 保护 |
 
 版本号用于说明证据与选择有效目录。Mod 元数据版本变化不会使所有条目重新翻译；已知规则
@@ -70,7 +70,7 @@ fixture 契约测试。不要给 TaskRunner、项目管理器或模型客户端�
 Workshop 写回、取消/中断终态及切换项目时的恢复隔离。新旧游戏一起跑回归，并执行 Python 架构 guard、
 compileall、前端 test/lint/build 与 locale 编码测试。
 
-2026-09-25 最终验证：
+2026-09-25 适配器早期阶段验证（保留历史记录；3.2.1 完整发布验证见[发布说明](release-v3.2.1.md)）：
 
 - 后端选定回归：299 passed、3 skipped；随后新增的真实 RimWorld fixture 验证另有 1 passed。
   合计 300 passed、3 skipped。跳过项为当前 Windows 权限无法创建的链接样例；

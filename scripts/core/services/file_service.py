@@ -153,6 +153,7 @@ class FileService:
         source_language: str,
         game_id: str,
         status_by_file_id: Optional[Dict[str, str]] = None,
+        game_version: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Build a transient disk manifest.
@@ -165,7 +166,7 @@ class FileService:
         if resource_adapter(normalized_game_id):
             from scripts.core.game_adapters.project_support import discover_manifest
             return discover_manifest(project_id, source_path, translation_dirs, source_language,
-                                     normalized_game_id, status_by_file_id)
+                                     normalized_game_id, status_by_file_id, game_version)
         allowed_extensions = (
             [".yml", ".yaml", ".csv", ".txt"]
             if normalized_game_id in {"eu4", "surviving_mars"}

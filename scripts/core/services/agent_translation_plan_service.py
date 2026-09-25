@@ -81,7 +81,12 @@ def _game_plan_support(request, plan):
     if request.workflow == "incremental" and request.use_resume:
         raise AgentTranslationPlanError(409, "incremental_resume_unsupported", "Create a fresh incremental plan; task-owned checkpoint resume is unavailable.")
     if game_id and support.get("output_kind") in {"independent_translation_mod", "csv_files"} and inspection.get("source_path"):
-        support = inspect_game_support(game_id, inspection["source_path"], inspection.get("source_language", "en"))
+        support = inspect_game_support(
+            game_id,
+            inspection["source_path"],
+            inspection.get("source_language", "en"),
+            inspection.get("game_version"),
+        )
         if not request.dry_run and (support["has_blocking_diagnostics"] or not support["recognized_resource_count"]):
             raise AgentTranslationPlanError(409, "game_resources_blocked", "Resolve blocking game resource diagnostics before translation.", {"game_support": support})
     return support

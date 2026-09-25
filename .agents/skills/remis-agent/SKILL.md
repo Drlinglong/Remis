@@ -86,8 +86,9 @@ UI; its ordinary new-project translation planner does not unpack FPKs.
 2. Inspect the mod folder with `POST /api/agent/projects/inspect`, including
    `game_id`, `source_language`, and `game_version` when known. Read the returned
    `inspection.game_support` diagnostics and recognized-resource coverage. A scan-time
-   `game_version` is only a discovery hint; it does not alter project settings
-   or runtime workflow configuration.
+   `game_version` on inspect is a one-time discovery hint. To bind a known
+   version to the approved project, include it in `POST /api/agent/projects/plan`;
+   Remis persists it and uses it for discovery and translation.
 3. If needed, create an import plan with `POST /api/agent/projects/plan`.
 4. Show the plan, source path, detected game evidence, and copy/reference mode.
 5. Obtain explicit user approval, then call `POST /api/agent/projects`.

@@ -17,7 +17,7 @@
 
 采用统一 `Entry` 供 Remis 工作流消费，同时保留 `source_path`、`kind`、`stable_key`、原文档/节点定位、精确源文本、行号/索引、源语言、游戏版本依据、eligible/review 状态与 diagnostics。`stable_key` 可分别是 Keyed key、DefInjected 的完整点路径、Strings 的相对路径+行号、rulesStrings 的 RulePack field+索引。写回由 adapter 根据原始字节/文本只替换内容节点/词表行；XML 保留声明、注释、空白、编码和行尾，不重排或标准化整棵文档。输出采用明确目标语言和目标 mod 目录策略，完整保留 source/Def keys 与 grammar 结构。
 
-解析策略分层：安全 UTF-8 文件发现 → 版本/加载条件解析 → 安全 XML 解析 → 已知模式/字段规则分类 → entry 与诊断。未知字段不默默全收，也不把整类格式判成完全不支持。至少将不认识的 DefType/path、重复/空 key、重复 Keyed key、XML malformed、越界/无法解码列表索引、未知 LoadFolders 条件、继承/运行时生成/程序集字符串列为显式状态。不可执行 DLL/程序集，也不解析 DTD 或外部实体。
+解析策略分层：安全 UTF-8 文件发现 → 版本/加载条件解析 → 安全 XML 解析 → 已知模式/字段规则分类 → entry 与诊断。未知字段不默默全收，也不把整类格式判成完全不支持。至少将不认识的 DefType/path、重复/空 key、重复 Keyed key、XML malformed、越界/无法解码列表索引、未知 LoadFolders 条件、继承/运行时生成/程序集字符串列为显式状态。不可执行 DLL/程序集，也不解析 DTD 或外部实体。缺失已启用 Mod 集合时，条件加载诊断必须为 error，并阻止共享翻译发现；明确的空集合与未知集合不同。完整补丁版本按主/次版本匹配 LoadFolders 分支，资源元数据仍保留请求的完整版本。
 
 现有实现可复用的理念：`parse_file` 显式 UTF-8（对 RimWorld 可允许并保留 BOM）、结构化 parser error、稳定定位、重写前 key-map 对账，以及 compare_tags 的精确 token multiset。Surviving Mars adapter 以 ID 校验后仅写 Translation 列；RimWorld 应为 XML/文本文件设计各自的 loss-minimizing writer，禁止通用 XML serialize 导致注释/格式损失。
 

@@ -81,6 +81,26 @@ def test_pyinstaller_explicitly_collects_fpk_and_zstandard_modules():
     assert "--hidden-import tools.remis_fpk" in command
 
 
+def _mock_archive_readers(monkeypatch, archive, pyz):
+    """Unit tests isolate the optional release-only PyInstaller dependency."""
+    import sys
+    from types import ModuleType
+
+    package = ModuleType("PyInstaller")
+    package.archive = ModuleType("PyInstaller.archive")
+    readers = ModuleType("PyInstaller.archive.readers")
+    readers.CArchiveReader = lambda executable: archive
+
+    def read_pyz(executable, start_offset):
+        assert start_offset == 300
+        return pyz
+
+    readers.ZlibArchiveReader = read_pyz
+    package.archive.readers = readers
+    for module in (package, package.archive, readers):
+        monkeypatch.setitem(sys.modules, module.__name__, module)
+
+
 def test_frozen_archive_verifier_accepts_required_registry_modules(monkeypatch):
     from types import SimpleNamespace
 
@@ -92,13 +112,7 @@ def test_frozen_archive_verifier_accepts_required_registry_modules(monkeypatch):
         module: (0, "module")
         for module in build_pipeline.REQUIRED_FROZEN_GAME_ADAPTER_MODULES
     })
-    monkeypatch.setattr(
-        "PyInstaller.archive.readers.CArchiveReader", lambda executable: archive
-    )
-    monkeypatch.setattr(
-        "PyInstaller.archive.readers.ZlibArchiveReader",
-        lambda executable, start_offset: pyz if start_offset == 300 else None,
-    )
+    _mock_archive_readers(monkeypatch, archive, pyz)
 
     build_pipeline.verify_frozen_game_adapter_modules("release/web_server.exe")
 
@@ -113,13 +127,7 @@ def test_frozen_archive_verifier_rejects_missing_registry_modules(monkeypatch):
     pyz = SimpleNamespace(toc={
         "scripts.core.game_adapters.registry": (0, "module"),
     })
-    monkeypatch.setattr(
-        "PyInstaller.archive.readers.CArchiveReader", lambda executable: archive
-    )
-    monkeypatch.setattr(
-        "PyInstaller.archive.readers.ZlibArchiveReader",
-        lambda executable, start_offset: pyz,
-    )
+    _mock_archive_readers(monkeypatch, archive, pyz)
 
     with pytest.raises(
         RuntimeError,

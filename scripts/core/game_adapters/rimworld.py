@@ -287,34 +287,30 @@ def _effective_roots(root: Path, game_version: str | None,
             if re.search(r"<!\s*(?:DOCTYPE|ENTITY)\b", text, re.I):
                 raise ValueError("DTD/entity declarations are not supported")
             tree = ET.fromstring(text)
-            branch = tree.find(f"v{game_version}")
+            branch_version = _loadfolders_version(game_version)
+            branch = tree.find(f"v{branch_version}")
             if branch is None:
-                diagnostics.append(Diagnostic("loadfolders_branch_missing", f"No v{game_version} branch in LoadFolders.xml", str(load_file)))
+                diagnostics.append(Diagnostic("loadfolders_branch_missing", f"No v{branch_version} branch in LoadFolders.xml", str(load_file)))
                 return [], diagnostics
             result: list[tuple[Path, str]] = []
-            active = set(source_lang.get("active_mods", [])) if isinstance(source_lang, dict) else set()
+            active_value = source_lang.get("active_mods") if isinstance(source_lang, dict) else None
+            active_known = isinstance(active_value, (list, tuple, set, frozenset))
+            active = set(active_value or []) if active_known else set()
             for item in branch.findall("li"):
                 required = item.get("IfModActive")
                 forbidden = item.get("IfModNotActive")
                 required_all = item.get("IfModActiveAll")
-                if required and not active:
-                    diagnostics.append(Diagnostic("loadfolders_condition_unknown", f"Conditional path {item.text!r} needs active mod IDs", str(load_file)))
-                    relative = (item.text or "").strip().strip("/")
-                    _append_load_path(root, relative, f"unresolved:{relative}", result, diagnostics, load_file)
+                if (required or forbidden or required_all) and not active_known:
+                    diagnostics.append(Diagnostic(
+                        "loadfolders_condition_unknown",
+                        f"Cannot resolve conditional path {item.text!r} without an explicit active mod list",
+                        str(load_file),
+                        "error",
+                    ))
                     continue
                 if required and not (set(required.split(",")) & active):
                     continue
-                if forbidden and not active:
-                    diagnostics.append(Diagnostic("loadfolders_condition_unknown", f"Conditional path {item.text!r} needs active mod IDs", str(load_file)))
-                    relative = (item.text or "").strip().strip("/")
-                    _append_load_path(root, relative, f"unresolved:{relative}", result, diagnostics, load_file)
-                    continue
                 if forbidden and set(forbidden.split(",")) & active:
-                    continue
-                if required_all and not active:
-                    diagnostics.append(Diagnostic("loadfolders_condition_unknown", f"Conditional path {item.text!r} needs active mod IDs", str(load_file)))
-                    relative = (item.text or "").strip().strip("/")
-                    _append_load_path(root, relative, f"unresolved:{relative}", result, diagnostics, load_file)
                     continue
                 if required_all and not set(required_all.split(",")).issubset(active):
                     continue
@@ -342,6 +338,12 @@ def _effective_roots(root: Path, game_version: str | None,
             diagnostics.append(Diagnostic("versioned_overlay_unknown", "Versioned folders cannot be resolved without game version; versioned resources are returned as candidates."))
             roots.extend((directory, f"candidate:{directory.name}") for directory in version_dirs)
     return roots, diagnostics
+
+
+def _loadfolders_version(game_version: str) -> str:
+    """LoadFolders branches use major.minor tags such as v1.6."""
+    match = re.fullmatch(r"(\d+\.\d+)(?:\.\d+)*", game_version)
+    return match.group(1) if match else game_version
 
 
 def _package_id(root: Path) -> str | None:

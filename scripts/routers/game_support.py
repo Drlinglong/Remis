@@ -14,8 +14,9 @@ async def project_game_support(project_id: str, game_version: str | None = None)
     project = await project_manager.get_project(project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+    effective_version = game_version or project.get("game_version")
     return inspect_game_support(project["game_id"], project["source_path"],
-                                project.get("source_language", "en"), game_version)
+                                project.get("source_language", "en"), effective_version)
 
 
 @router.get("/api/projects/{project_id}/game-resources/{file_id}/preview")
@@ -29,7 +30,11 @@ async def preview_game_source(project_id: str, file_id: str):
     if not item:
         raise HTTPException(status_code=404, detail="Source resource not found in this project")
     path = Path(item["file_path"]).resolve()
-    discovery = adapter.discover(Path(project["source_path"]), {"code": project.get("source_language", "en")})
+    discovery = adapter.discover(
+        Path(project["source_path"]),
+        {"code": project.get("source_language", "en")},
+        project.get("game_version"),
+    )
     if path not in {resource.path.resolve() for resource in discovery.resources}:
         raise HTTPException(status_code=404, detail="Source resource is no longer part of the active Mod")
     if path.stat().st_size > 8 * 1024 * 1024:

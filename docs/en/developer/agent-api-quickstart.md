@@ -45,8 +45,9 @@ information. It does not expose provider credentials.
 For each game, read its `game_support` contract and inspect a candidate with
 `POST /api/agent/projects/inspect`, supplying `game_id`, `source_language`, and
 an optional scan-time `game_version`. The scan reports recognized-resource
-coverage and diagnostics. `game_version` is only a discovery hint; it does not
-change saved project settings or job execution configuration. After import,
+coverage and diagnostics. `game_version` on inspect is a one-time hint. Include
+a known `game_version` in `POST /api/agent/projects/plan` to bind the reviewed
+resource branch to project discovery and translation. After import,
 `GET /api/agent/projects/{project_id}/game-support` scans the current project
 source. Plans carry a `game_support` snapshot for approval review.
 

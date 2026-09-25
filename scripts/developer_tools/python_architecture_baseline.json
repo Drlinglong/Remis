@@ -8,7 +8,7 @@
   "module_line_exceptions": {
     "scripts/core/archive_manager.py": 867,
     "scripts/core/glossary_manager.py": 1647,
-    "scripts/core/project_manager.py": 1060,
+    "scripts/core/project_manager.py": 1058,
     "scripts/core/services/model_arena_execution_service.py": 1163,
     "scripts/core/services/model_arena_service.py": 949,
     "scripts/routers/agent.py": 965,

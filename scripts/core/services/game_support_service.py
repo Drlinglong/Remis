@@ -126,5 +126,8 @@ async def inspect_project_game_support(project_id: str, game_version: str | None
     project = await project_manager.get_project(project_id)
     if not project:
         raise LookupError("Project not found")
-    return {"project_id": project_id, **inspect_game_support(project["game_id"], project["source_path"],
-            project.get("source_language", "en"), game_version)}
+    effective_version = game_version or project.get("game_version")
+    return {"project_id": project_id, **inspect_game_support(
+        project["game_id"], project["source_path"],
+        project.get("source_language", "en"), effective_version,
+    )}

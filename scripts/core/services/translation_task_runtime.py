@@ -181,6 +181,8 @@ def prepare_initial_recovery(
     mod_name = os.path.basename(os.path.normpath(source_path))
     source_snapshot_hash = source_tree_hash(source_path)
     configuration = canonical_configuration(request.model_dump(mode="json"))
+    if game_profile and game_profile.get("game_version"):
+        configuration["game_version"] = game_profile["game_version"]
     if provider_runtime is not None and hasattr(provider_runtime, "safe_metadata"):
         runtime_fingerprint = provider_runtime.safe_metadata().get("config_fingerprint")
         if runtime_fingerprint:

@@ -433,6 +433,7 @@ async def create_translation_plan(
             "project_id": project_id,
             "project_name": project.get("name"),
             "game_id": project.get("game_id"),
+            "game_version": project.get("game_version"),
             "source_path": project.get("source_path"),
             "source_language": source_language,
             "project_file_count": len(files),

@@ -247,14 +247,20 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
                 logging.error(f"Failed to log failure activity: {e}")
 
 
-def _resolve_game_profile(game_profile_id: str):
+def _resolve_game_profile(game_profile_id: str, game_version: Optional[str] = None):
     normalized_game_id = "victoria3" if game_profile_id == "vic3" else game_profile_id
     if normalized_game_id != game_profile_id:
         logging.info("Normalized game_id 'vic3' to 'victoria3'")
-    return GAME_PROFILES.get(normalized_game_id) or next(
+    profile = GAME_PROFILES.get(normalized_game_id) or next(
         (profile for profile in GAME_PROFILES.values() if profile["id"] == normalized_game_id),
         None,
     )
+    return {**profile, "game_version": game_version} if profile and game_version else profile
+
+
+def _resolve_project_game_profile(project: dict):
+    """Resolve the runtime profile with the version approved for this project."""
+    return _resolve_game_profile(str(project.get("game_id") or ""), project.get("game_version"))
 
 
 @cancellable_translation_workflow
@@ -279,7 +285,7 @@ def run_translation_workflow_v2(
     recovery_identity: Optional[dict] = None,
     stale_choice: Optional[str] = None,
     stale_acknowledgement: Optional[dict] = None,
-    provider_runtime=None,
+    provider_runtime=None, game_version: Optional[str] = None,
 ):
     i18n.load_language('en_US')
     use_resume = enforce_checkpoint_resume_policy(use_resume)
@@ -305,7 +311,7 @@ def run_translation_workflow_v2(
     )
     try:
         logging.info(f"Starting V2 Workflow for Task {task_id}"); logging.info(f"Params: game_profile_id={game_profile_id}, source={source_lang_code}, targets={target_lang_codes}")
-        game_profile = _resolve_game_profile(game_profile_id)
+        game_profile = _resolve_game_profile(game_profile_id, game_version)
         source_lang = next((lang for lang in LANGUAGES.values() if lang["code"] == source_lang_code), None)
         target_languages = _resolve_target_languages(target_lang_codes)
         logging.info(f"Resolved: GameProfile={game_profile is not None}, SourceLang={source_lang is not None}, TargetLangs={len(target_languages)}")
@@ -422,6 +428,7 @@ def _enqueue_project_translation(
         embedded_workshop=request.embedded_workshop.model_dump() if request.embedded_workshop else None,
         reference_reuse=request.reference_reuse.model_dump() if request.reference_reuse else None,
         recovery_identity=recovery,
+        game_version=project.get("game_version"),
         **({"provider_runtime": provider_runtime} if provider_runtime else {}),
         **context_workflow_kwargs(request),
     )
@@ -465,7 +472,7 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
     request.translation_context_mode = context_resolution.effective_mode
     task_id = str(uuid.uuid4())
     mod_name = os.path.basename(os.path.normpath(source_path))
-    game_profile = _resolve_game_profile(str(project.get("game_id") or ""))
+    game_profile = _resolve_project_game_profile(project)
     target_languages = _resolve_requested_target_languages(
         [code.value for code in request.target_lang_codes],
         request.custom_lang_config,

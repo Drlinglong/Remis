@@ -211,6 +211,35 @@ def test_run_translation_workflow_v2_success_uses_shared_task_state(monkeypatch)
     run_workflow.assert_called_once()
 
 
+def test_run_translation_workflow_v2_uses_project_runtime_version(monkeypatch):
+    task_state.create_task("task-pz-version", status="pending")
+    monkeypatch.setattr(translation.i18n, "load_language", MagicMock())
+    run_workflow = MagicMock()
+    monkeypatch.setattr(translation.initial_translate, "run", run_workflow)
+
+    translation.run_translation_workflow_v2(
+        "task-pz-version", "PZ fixture", "project_zomboid", "en", ["zh-CN"],
+        "gemini", "", [], None, False, game_version="41.78.0",
+    )
+
+    assert run_workflow.call_args.kwargs["game_profile"]["game_version"] == "41.78.0"
+
+
+def test_project_translation_enqueue_passes_persisted_game_version():
+    background = MagicMock()
+    request = InitialTranslationRequest(
+        project_id="project-pz", source_lang_code="en", target_lang_codes=["zh-CN"],
+    )
+
+    translation._enqueue_project_translation(
+        background, "task-pz", "PZ fixture",
+        {"game_id": "project_zomboid", "game_version": "41.78.0"},
+        request, provider_runtime=None, recovery={},
+    )
+
+    assert background.add_task.call_args.kwargs["game_version"] == "41.78.0"
+
+
 def test_run_translation_workflow_v2_preserves_partial_failed_outcome(monkeypatch):
     task_state.create_task("task-partial", status="pending")
     monkeypatch.setattr(translation.i18n, "load_language", MagicMock())

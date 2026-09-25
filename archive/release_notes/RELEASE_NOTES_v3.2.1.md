@@ -24,7 +24,7 @@
 
 ## Engineering quality and reliability
 
-- Introduce extensible game adapters while preserving the existing Paradox workflows and translation archive compatibility.
+- Introduce extensible game adapters while preserving the existing Paradox workflows and translation archive compatibility. Persist an approved game version through project discovery and translation; block unresolved RimWorld conditional load folders.
 - Add bounded FPK extraction, isolated preparation, source/manifest hashes, stable localization IDs, multilingual delivery validation and project-bound publication identities. The standalone extractor is also available in the public [remis-fpk repository](https://github.com/Drlinglong/remis-fpk).
 - Preserve CSV paragraph breaks and Surviving Mars runtime tags. Fix reasoning-setting transitions for manually entered models and support the GPT-6 catalog entries.
 - Integrate backend fixes for persistent project identity, resumable translation lineage, database migrations and task completion/error handling. Harden custom-language output paths, project sidecars and description archives; refuse destructive same-name source imports in the legacy entry point.
@@ -53,7 +53,7 @@
 
 ## 工程质量与可靠性
 
-- 建立可扩展游戏适配接口，保留现有 P 社流程与翻译归档兼容性。
+- 建立可扩展游戏适配接口，保留现有 P 社流程与翻译归档兼容性。审批时指定的游戏版本贯穿项目发现与翻译；环世界条件加载目录无法确认时会阻止翻译。
 - 加入有限额的 FPK 解包、隔离准备、源文件与清单哈希、稳定本地化 ID、多语言交付校验，以及绑定到项目的发布身份。解包工具也已拆分到公开的 [remis-fpk 独立仓库](https://github.com/Drlinglong/remis-fpk)。
 - 保留 CSV 段落换行和火星求生运行时标签；修复手动模型的推理设置切换，并补齐 GPT-6 模型目录。
 - 合入后端项目持久身份、翻译恢复链路、数据库迁移和任务成功/失败状态处理修复；补强自定义语言输出路径、项目元数据和描述归档边界，拒绝旧入口破坏性覆盖同名源目录。

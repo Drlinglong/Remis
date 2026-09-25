@@ -14,7 +14,8 @@ def test_agent_skill_routes_through_dynamic_game_support_and_manual_install():
     assert "game_support" in skill
     assert 'workflow: "initial"' in skill
     assert 'workflow: "incremental"' in skill
-    assert "game_version` is only a discovery hint" in skill
+    assert "game_version` on inspect is a one-time discovery hint" in skill
+    assert "Remis persists it and uses it for discovery and translation" in skill
     assert "source resources remain read-only" in skill
     assert "do not call" in skill and "`approve-export`" in skill
     assert "translation-package/options" in skill

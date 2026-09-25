@@ -161,6 +161,7 @@ async def test_translation_plan_is_read_only_until_reserved(monkeypatch):
             "name": "Example CN",
             "source_path": "C:/mods/example",
             "source_language": "en",
+            "game_version": "1.6.4512",
         }
 
     async def fake_get_files(project_id):
@@ -180,6 +181,7 @@ async def test_translation_plan_is_read_only_until_reserved(monkeypatch):
     )
 
     assert plan["inspection"]["project_file_count"] == 2
+    assert plan["inspection"]["game_version"] == "1.6.4512"
     assert plan["status"] == "awaiting_approval"
     args = workflow.reserve_translation_plan(plan["plan_id"])
     assert args == plan["execution_args"]

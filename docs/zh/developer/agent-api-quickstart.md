@@ -32,8 +32,9 @@ Invoke-RestMethod http://127.0.0.1:1453/api/agent/capabilities
 
 选择游戏前先读取 `games[].game_support`。调用
 `POST /api/agent/projects/inspect` 时可提供 `game_id`、`source_language` 和
-扫描提示 `game_version`；响应会给出识别资源范围与诊断。`game_version` 只用于本次扫描，
-不会写入项目配置或改变后续任务参数。导入后可调用
+扫描提示 `game_version`；响应会给出识别资源范围与诊断。inspect 中的版本只用于本次扫描。
+若要让审批时检查的资源分支贯穿项目发现和翻译，请在
+`POST /api/agent/projects/plan` 中提交已知的 `game_version`。导入后可调用
 `GET /api/agent/projects/{project_id}/game-support` 扫描项目当前源目录；导入计划和翻译计划也会携带
 `game_support`，审批前应查看其中的诊断。
 

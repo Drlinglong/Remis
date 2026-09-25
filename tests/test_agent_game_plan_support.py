@@ -125,3 +125,32 @@ def test_paradox_initial_shell_is_preserved_and_incremental_shell_is_rejected():
         )
 
     assert (caught.value.status_code, caught.value.code) == (400, "unsupported_shell_language")
+
+
+def test_game_version_from_project_plan_is_used_for_resource_approval(monkeypatch, tmp_path):
+    from scripts.core.services import game_support_service
+
+    source = tmp_path / "versioned-project"
+    source.mkdir()
+    captured = []
+
+    def inspect(game_id, source_path, source_language, game_version=None):
+        captured.append((game_id, source_path, source_language, game_version))
+        return {
+            "output_kind": "independent_translation_mod",
+            "read_only": True,
+            "has_blocking_diagnostics": False,
+            "recognized_resource_count": 1,
+        }
+
+    monkeypatch.setattr(game_support_service, "inspect_game_support", inspect)
+    result = _game_plan_support(
+        _request("rimworld"),
+        {"inspection": {
+            "game_id": "rimworld", "source_path": str(source),
+            "source_language": "en", "game_version": "1.6.4512",
+        }},
+    )
+
+    assert captured == [("rimworld", str(source), "en", "1.6.4512")]
+    assert result["recognized_resource_count"] == 1

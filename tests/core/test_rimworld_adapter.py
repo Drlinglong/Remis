@@ -2,8 +2,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from scripts.core.game_adapters.rimworld import RimWorldAdapter
 from scripts.core.game_adapters.rimworld_text import parse_rules_strings, parse_strings
+from scripts.core.game_adapters.workflow_bridge import discover_files
 
 FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "rimworld_adapter" / "Mod"
 
@@ -147,19 +150,82 @@ def test_rules_strings_only_extracts_rhs_and_keeps_grammar_tokens():
     assert not RimWorldAdapter().validate(doc.entries[0].value, "[PAWN_nameDef] {0} 携带。")
 
 
-def test_loadfolders_reports_unknown_conditions_without_hiding_candidates(tmp_path):
+def test_loadfolders_blocks_paid_discovery_when_conditional_override_is_ambiguous(tmp_path):
     (tmp_path / "About").mkdir()
     (tmp_path / "About" / "About.xml").write_text("<ModMetaData><packageId>Example.Mod</packageId></ModMetaData>", encoding="utf-8")
     (tmp_path / "LoadFolders.xml").write_text(
         "<loadFolders><v1.6><li>/</li><li IfModActive=\"Example.DLC\">DLC</li></v1.6></loadFolders>",
         encoding="utf-8",
     )
+    base = tmp_path / "Languages" / "English" / "Keyed"
+    base.mkdir(parents=True)
+    (base / "Keys.xml").write_text(
+        "<LanguageData><Visible>base</Visible></LanguageData>", encoding="utf-8"
+    )
     candidate = tmp_path / "DLC" / "Languages" / "English" / "Keyed"
     candidate.mkdir(parents=True)
-    (candidate / "Keys.xml").write_text("<LanguageData><Visible>yes</Visible></LanguageData>", encoding="utf-8")
-    found = RimWorldAdapter().discover(tmp_path, {"folder": "English"}, "1.6")
-    assert "loadfolders_condition_unknown" in _codes(found.diagnostics)
-    assert any(resource.metadata["condition"].startswith("unresolved:") for resource in found.resources)
+    (candidate / "Keys.xml").write_text(
+        "<LanguageData><Visible>conditional</Visible></LanguageData>", encoding="utf-8"
+    )
+
+    found = RimWorldAdapter().discover(
+        tmp_path, {"folder": "English", "active_mods": None}, "1.6"
+    )
+    condition_error = next(
+        item for item in found.diagnostics if item.code == "loadfolders_condition_unknown"
+    )
+    assert condition_error.severity == "error"
+    assert len(found.resources) == 1
+    assert found.resources[0].path == base / "Keys.xml"
+    with pytest.raises(ValueError, match="loadfolders_condition_unknown"):
+        discover_files(str(tmp_path), {"id": "rimworld"}, {"folder": "English", "active_mods": None})
+
+
+def test_loadfolders_selects_explicit_active_mod_override(tmp_path):
+    (tmp_path / "LoadFolders.xml").write_text(
+        "<loadFolders><v1.6><li>/</li><li IfModActive=\"Example.DLC\">DLC</li></v1.6></loadFolders>",
+        encoding="utf-8",
+    )
+    base = tmp_path / "Languages" / "English" / "Keyed"
+    base.mkdir(parents=True)
+    (base / "Keys.xml").write_text(
+        "<LanguageData><Visible>base</Visible></LanguageData>", encoding="utf-8"
+    )
+    conditional = tmp_path / "DLC" / "Languages" / "English" / "Keyed"
+    conditional.mkdir(parents=True)
+    (conditional / "Keys.xml").write_text(
+        "<LanguageData><Visible>conditional</Visible></LanguageData>", encoding="utf-8"
+    )
+
+    files = discover_files(
+        str(tmp_path),
+        {"id": "rimworld", "game_version": "1.6"},
+        {"folder": "English", "active_mods": ["Example.DLC"]},
+    )
+
+    assert len(files) == 1
+    assert Path(files[0]["path"]) == conditional / "Keys.xml"
+
+
+def test_loadfolders_normalizes_full_patch_version_to_major_minor(tmp_path):
+    (tmp_path / "LoadFolders.xml").write_text(
+        "<loadFolders><v1.6><li>1.6</li></v1.6></loadFolders>",
+        encoding="utf-8",
+    )
+    versioned = tmp_path / "1.6" / "Languages" / "English" / "Keyed"
+    versioned.mkdir(parents=True)
+    (versioned / "Keys.xml").write_text(
+        "<LanguageData><Visible>versioned</Visible></LanguageData>", encoding="utf-8"
+    )
+
+    found = RimWorldAdapter().discover(
+        tmp_path,
+        {"folder": "English", "active_mods": []},
+        "1.6.4512",
+    )
+
+    assert any(resource.path == versioned / "Keys.xml" for resource in found.resources)
+    assert "loadfolders_branch_missing" not in _codes(found.diagnostics)
 
 
 def test_external_entities_are_rejected():

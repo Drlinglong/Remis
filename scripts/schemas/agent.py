@@ -58,7 +58,7 @@ class AgentProjectInspectRequest(BaseModel):
     folder_path: str
     game_id: Optional[str] = None
     source_language: LanguageCode = LanguageCode.EN
-    game_version: Optional[str] = None
+    game_version: Optional[str] = Field(default=None, max_length=80)
 
 
 class AgentProjectPlanRequest(BaseModel):
@@ -67,6 +67,7 @@ class AgentProjectPlanRequest(BaseModel):
     game_id: str
     source_language: LanguageCode = LanguageCode.EN
     import_mode: Literal["copy", "reference"] = "copy"
+    game_version: Optional[str] = Field(default=None, max_length=80)
 
     @field_validator("source_language", mode="before")
     @classmethod
@@ -196,6 +197,7 @@ class AgentProjectSummary(BaseModel):
     name: str
     game_id: str
     source_language: str
+    game_version: Optional[str] = None
     status: str
     file_count: int = 0
     file_status_counts: Dict[str, int] = Field(default_factory=dict)
