@@ -13,6 +13,7 @@ const IDLE_STATE = Object.freeze({
   recovery: null,
   error: null,
   pendingAction: null,
+  ownerProjectId: null,
 });
 
 const isRecord = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -81,6 +82,8 @@ export function useTranslationRecovery(projectId, {
 } = {}) {
   const [state, setState] = useState(IDLE_STATE);
   const requestSequence = useRef(0);
+  const projectIdRef = useRef(projectId);
+  projectIdRef.current = projectId;
 
   const loadRecovery = useCallback(async (requestedProjectId = projectId) => {
     if (!requestedProjectId) {
@@ -90,18 +93,36 @@ export function useTranslationRecovery(projectId, {
 
     const sequence = requestSequence.current + 1;
     requestSequence.current = sequence;
-    setState((previous) => ({ ...previous, phase: 'loading', error: null }));
+    setState({
+      phase: 'loading',
+      recovery: null,
+      error: null,
+      pendingAction: null,
+      ownerProjectId: requestedProjectId,
+    });
 
     try {
       const response = await apiClient.get(buildTranslationRecoveryEndpoint(requestedProjectId));
       const recovery = normalizeTranslationRecovery(response);
-      if (requestSequence.current === sequence) {
-        setState({ phase: 'ready', recovery, error: null, pendingAction: null });
+      if (requestSequence.current === sequence && projectIdRef.current === requestedProjectId) {
+        setState({
+          phase: 'ready',
+          recovery,
+          error: null,
+          pendingAction: null,
+          ownerProjectId: requestedProjectId,
+        });
       }
       return recovery;
     } catch (error) {
-      if (requestSequence.current === sequence) {
-        setState({ phase: 'error', recovery: null, error, pendingAction: null });
+      if (requestSequence.current === sequence && projectIdRef.current === requestedProjectId) {
+        setState({
+          phase: 'error',
+          recovery: null,
+          error,
+          pendingAction: null,
+          ownerProjectId: requestedProjectId,
+        });
       }
       throw error;
     }
@@ -111,11 +132,17 @@ export function useTranslationRecovery(projectId, {
     if (autoLoad) void loadRecovery().catch(() => {});
   }, [autoLoad, loadRecovery]);
 
+  const ownsSelectedProject = state.ownerProjectId === projectId;
+  const activeRecovery = ownsSelectedProject ? state.recovery : null;
+
   const performAction = useCallback(async (action, payload = {}) => {
-    const taskId = state.recovery?.task_id;
-    if (!isRecoveryActionAllowed(state.recovery, action)) {
+    const actionProjectId = projectId;
+    const taskId = activeRecovery?.task_id;
+    if (!actionProjectId || !isRecoveryActionAllowed(activeRecovery, action)) {
       const error = new TranslationRecoveryActionError(action);
-      setState((previous) => ({ ...previous, error }));
+      if (projectIdRef.current === actionProjectId) {
+        setState((previous) => ({ ...previous, error }));
+      }
       throw error;
     }
 
@@ -129,27 +156,33 @@ export function useTranslationRecovery(projectId, {
         payload,
       );
       const recovery = normalizeTranslationRecovery(response);
-      if (requestSequence.current === sequence) {
-        setState({ phase: 'ready', recovery, error: null, pendingAction: null });
+      if (requestSequence.current === sequence && projectIdRef.current === actionProjectId) {
+        setState({
+          phase: 'ready',
+          recovery,
+          error: null,
+          pendingAction: null,
+          ownerProjectId: actionProjectId,
+        });
       }
       return response.data;
     } catch (error) {
-      if (requestSequence.current === sequence) {
+      if (requestSequence.current === sequence && projectIdRef.current === actionProjectId) {
         setState((previous) => ({ ...previous, phase: 'error', error, pendingAction: null }));
       }
       throw error;
     }
-  }, [apiClient, state.recovery]);
+  }, [activeRecovery, apiClient, projectId]);
 
   const resume = useCallback((payload = {}) => performAction(
     TRANSLATION_RECOVERY_ACTIONS.RESUME,
     {
-      ...(state.recovery?.checkpoint?.revision != null
-        ? { expected_checkpoint_revision: state.recovery.checkpoint.revision }
+      ...(activeRecovery?.checkpoint?.revision != null
+        ? { expected_checkpoint_revision: activeRecovery.checkpoint.revision }
         : {}),
       ...payload,
     },
-  ), [performAction, state.recovery]);
+  ), [activeRecovery, performAction]);
 
   const startOver = useCallback((payload) => performAction(
     TRANSLATION_RECOVERY_ACTIONS.START_OVER,
@@ -158,9 +191,12 @@ export function useTranslationRecovery(projectId, {
 
   const clearCheckpoint = useCallback(async () => {
     const action = TRANSLATION_RECOVERY_ACTIONS.CLEAR;
-    if (!isRecoveryActionAllowed(state.recovery, action)) {
+    const actionProjectId = projectId;
+    if (!actionProjectId || !isRecoveryActionAllowed(activeRecovery, action)) {
       const error = new TranslationRecoveryActionError(action);
-      setState((previous) => ({ ...previous, error }));
+      if (projectIdRef.current === actionProjectId) {
+        setState((previous) => ({ ...previous, error }));
+      }
       throw error;
     }
 
@@ -169,28 +205,41 @@ export function useTranslationRecovery(projectId, {
     setState((previous) => ({ ...previous, phase: 'action', pendingAction: action, error: null }));
 
     try {
-      const response = await apiClient.delete(buildTranslationCheckpointEndpoint(projectId));
+      const response = await apiClient.delete(buildTranslationCheckpointEndpoint(actionProjectId));
       const recovery = normalizeTranslationRecovery(response);
-      if (requestSequence.current === sequence) {
-        setState({ phase: 'ready', recovery, error: null, pendingAction: null });
+      if (requestSequence.current === sequence && projectIdRef.current === actionProjectId) {
+        setState({
+          phase: 'ready',
+          recovery,
+          error: null,
+          pendingAction: null,
+          ownerProjectId: actionProjectId,
+        });
       }
       return response.data;
     } catch (error) {
-      if (requestSequence.current === sequence) {
+      if (requestSequence.current === sequence && projectIdRef.current === actionProjectId) {
         setState((previous) => ({ ...previous, phase: 'error', error, pendingAction: null }));
       }
       throw error;
     }
-  }, [apiClient, projectId, state.recovery]);
+  }, [activeRecovery, apiClient, projectId]);
+
+  const exposedPhase = ownsSelectedProject
+    ? state.phase
+    : projectId && autoLoad ? 'loading' : 'idle';
 
   return {
-    ...state,
-    isLoading: state.phase === 'loading',
-    isActionPending: state.phase === 'action',
-    canResume: isRecoveryActionAllowed(state.recovery, TRANSLATION_RECOVERY_ACTIONS.RESUME),
-    canStartOver: isRecoveryActionAllowed(state.recovery, TRANSLATION_RECOVERY_ACTIONS.START_OVER),
+    phase: exposedPhase,
+    recovery: activeRecovery,
+    error: ownsSelectedProject ? state.error : null,
+    pendingAction: ownsSelectedProject ? state.pendingAction : null,
+    isLoading: exposedPhase === 'loading',
+    isActionPending: ownsSelectedProject && state.phase === 'action',
+    canResume: isRecoveryActionAllowed(activeRecovery, TRANSLATION_RECOVERY_ACTIONS.RESUME),
+    canStartOver: isRecoveryActionAllowed(activeRecovery, TRANSLATION_RECOVERY_ACTIONS.START_OVER),
     canClearCheckpoint: isRecoveryActionAllowed(
-      state.recovery,
+      activeRecovery,
       TRANSLATION_RECOVERY_ACTIONS.CLEAR,
     ),
     loadRecovery,
