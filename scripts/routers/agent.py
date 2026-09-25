@@ -36,6 +36,11 @@ from scripts.core.services.translation_context_readiness_service import (
     TranslationContextReadinessService,
 )
 from scripts.core.services.validation_sidecar_service import ValidationSidecarService
+from scripts.core.services.game_support_service import get_game_support, inspect_game_support
+from scripts.core.services.agent_game_review_service import merge_game_review_payload
+from scripts.core.services.agent_game_output_service import (
+    SUPPORTED_GAME_IDS, AgentGameOutputError, filter_game_actions, guard_deployment, preview_game_output,
+)
 from scripts.core.neologism_manager import neologism_manager
 from scripts.routers.agent_workshop import FixRunRequest, start_fix_run
 from scripts.routers.agent_context import AGENT_CONTEXT_CAPABILITIES
@@ -54,7 +59,6 @@ from scripts.schemas.agent import (
     AgentRepairRequest,
     AgentValidationSummary,
 )
-from scripts.schemas.translation import InitialTranslationRequest
 from scripts.shared import task_state
 from scripts.shared.services import glossary_manager, project_manager
 from scripts.utils.system_utils import sanitize_for_json
@@ -288,6 +292,8 @@ async def _build_job_response(job_id: str) -> AgentJobResponse:
         output_paths=output_paths,
         project_payload=_validation_payload,
     )
+    project = await project_manager.get_project(project_id) if project_id else None
+    validation_payload = merge_game_review_payload(validation_payload, (project or {}).get("game_id"), output_paths, DEST_DIR)
     validation = validation_payload["summary"]
     result = live_task.get("result") or {}
     agent_managed = metadata is not None
@@ -331,6 +337,7 @@ async def _build_job_response(job_id: str) -> AgentJobResponse:
             ),
         },
     )
+    _attach_game_support(response, project)
     agent_registry.update_snapshot(
         job_id,
         {
@@ -346,6 +353,16 @@ async def _build_job_response(job_id: str) -> AgentJobResponse:
         },
     )
     return response
+
+
+def _attach_game_support(response, project):
+    if project and project.get("game_id"):
+        response.game_support = get_game_support(project["game_id"])
+        response.allowed_actions = filter_game_actions(project["game_id"], response.allowed_actions,
+            has_output=bool(response.output_paths) and response.status == "completed")
+        if response.kind == "incremental_translation":
+            response.allowed_actions = ["create_translation_plan" if item == "retry" else item for item in response.allowed_actions]
+            response.recovery["checkpoint_resume_supported"] = False
 
 
 async def _project_summary(project: Dict[str, Any]) -> AgentProjectSummary:
@@ -370,6 +387,7 @@ async def _project_summary(project: Dict[str, Any]) -> AgentProjectSummary:
         file_status_counts=status_counts,
         validation=validation,
         allowed_actions=actions,
+        game_support=get_game_support(str(project.get("game_id") or "")),
     )
 
 
@@ -417,6 +435,11 @@ async def list_agent_projects(status: Optional[str] = None):
 @router.post("/projects/inspect")
 async def inspect_agent_project(request: AgentProjectInspectRequest):
     inspection = _validate_agent_import_path(request.folder_path)
+    if request.game_id:
+        try:
+            inspection["game_support"] = inspect_game_support(request.game_id, inspection["folder_path"], request.source_language.value, request.game_version)
+        except ValueError as exc:
+            raise _error(400, "invalid_game", str(exc)) from exc
     return {
         "status": "ready",
         "inspection": inspection,
@@ -427,6 +450,10 @@ async def inspect_agent_project(request: AgentProjectInspectRequest):
 @router.post("/projects/plan", response_model=AgentProjectPlanResponse)
 async def plan_agent_project(request: AgentProjectPlanRequest):
     inspection = _validate_agent_import_path(request.folder_path)
+    try:
+        inspection["game_support"] = inspect_game_support(request.game_id, inspection["folder_path"], request.source_language.value)
+    except ValueError as exc:
+        raise _error(400, "invalid_game", str(exc)) from exc
     execution_args = {
         "name": request.name.strip(),
         "folder_path": inspection["folder_path"],
@@ -547,60 +574,19 @@ async def start_agent_job(
     except PermissionError as exc:
         raise _error(409, "approval_required", str(exc)) from exc
 
+    if plan.get("kind") != "translation":
+        agent_registry.release_plan(request.plan_id)
+        raise _error(400, "wrong_plan_type", "Expected an Agent translation plan")
     args = plan["execution_args"]
     if plan["dry_run"]:
-        project = await project_manager.get_project(plan["project_id"])
-        files = await project_manager.get_project_files(plan["project_id"])
-        job_id = f"job_{uuid.uuid4().hex}"
-        task_state.create_task(
-            job_id,
-            status="completed",
-            log_message="Agent dry-run readiness check completed.",
-            fields={
-                "kind": "dry_run",
-                "project_id": plan["project_id"],
-                "created_by": {"type": "remis_agent", "label": "Remis Agent"},
-                "idempotency_key": request.plan_id,
-            },
-        )
-        task_state.init_progress(
-            job_id,
-            {
-                "total": len(files),
-                "current": len(files),
-                "percent": 100,
-                "stage": "Readiness check completed",
-            },
-        )
-        task_state.update_task(
-            job_id,
-            summary={
-                "project_name": (project or {}).get("name"),
-                "file_count": len(files),
-                "would_use_provider": args.get("api_provider"),
-                "would_use_model": args.get("model"),
-                "translation_context_mode": args.get("translation_context_mode"),
-            },
-            fields={
-                "project_id": plan["project_id"],
-                "agent_job_kind": "dry_run",
-                "output_dirs": [],
-            },
-        )
-        agent_registry.record_job(
-            job_id=job_id,
-            project_id=plan["project_id"],
-            plan_id=request.plan_id,
-            kind="dry_run",
-            execution_args=args,
-        )
+        from scripts.core.services.agent_job_execution_service import create_readiness_job
+        job_id = await create_readiness_job(plan, request.plan_id, registry=agent_registry,
+            project_manager=project_manager, task_state=task_state)
         return await _build_job_response(job_id)
 
     try:
-        response = await start_translation_project(
-            InitialTranslationRequest(**{**args, "idempotency_key": request.plan_id}),
-            background_tasks,
-        )
+        from scripts.core.services.agent_job_execution_service import dispatch_translation
+        response = await dispatch_translation(args, request.plan_id, background_tasks, start_translation_project)
     except Exception:
         agent_registry.release_plan(request.plan_id)
         raise
@@ -609,7 +595,7 @@ async def start_agent_job(
         job_id,
         fields={
             "project_id": plan["project_id"],
-            "agent_job_kind": "translation",
+            "agent_job_kind": "incremental_translation" if args.get("workflow") == "incremental" else "translation",
             "created_by": {"type": "remis_agent", "label": "Remis Agent"},
             "idempotency_key": request.plan_id,
         },
@@ -618,7 +604,7 @@ async def start_agent_job(
         job_id=job_id,
         project_id=plan["project_id"],
         plan_id=request.plan_id,
-        kind="translation",
+        kind="incremental_translation" if args.get("workflow") == "incremental" else "translation",
         execution_args=args,
     )
     try:
@@ -666,6 +652,8 @@ async def get_agent_job_validation(job_id: str):
         include_items=True,
         project_payload=_validation_payload,
     )
+    project = await project_manager.get_project(project_id)
+    payload = merge_game_review_payload(payload, (project or {}).get("game_id"), _task_output_paths(task), DEST_DIR)
     allowed_actions = (
         []
         if payload.get("_suppressed")
@@ -676,6 +664,9 @@ async def get_agent_job_validation(job_id: str):
     )
     if not metadata:
         allowed_actions = []
+    if project:
+        allowed_actions = filter_game_actions(project.get("game_id"), allowed_actions,
+            has_output=bool(_task_output_paths(task)) and status == "completed" and bool(metadata))
     return {
         "job_id": job_id,
         "project_id": project_id,
@@ -693,6 +684,8 @@ async def retry_agent_job(job_id: str):
     if not metadata:
         raise _error(404, "job_not_found", "Agent job not found")
     args = metadata.get("execution_args") or {}
+    if args.get("workflow") == "incremental" or metadata.get("kind") == "incremental_translation":
+        raise _error(409, "incremental_resume_unsupported", "Create a fresh incremental translation plan; checkpoint retry is unavailable.")
     try:
         retry_checkpoint = translation_plan.resolve_agent_retry_checkpoint(
             task_state.get_repository(), task_id=job_id, project_id=metadata["project_id"],
@@ -832,49 +825,9 @@ async def repair_agent_job(
     return await _build_job_response(repair_job_id)
 
 
-def _export_candidate(
-    task: Dict[str, Any],
-    metadata: Dict[str, Any],
-    requested_name: Optional[str],
-) -> tuple[str, Path]:
-    persisted_snapshot = metadata.get("last_snapshot") or {}
-    raw_output_paths = (
-        task.get("output_dirs")
-        or persisted_snapshot.get("output_dirs")
-        or []
-    )
-    output_paths = [Path(item).resolve() for item in raw_output_paths]
-    destination_root = Path(DEST_DIR).resolve()
-    candidates = {
-        item.name: item for item in output_paths if item.parent == destination_root
-    }
-    if requested_name:
-        if (
-            requested_name in {".", ".."}
-            or "/" in requested_name
-            or "\\" in requested_name
-        ):
-            raise _error(
-                400,
-                "invalid_output_folder",
-                "output_folder_name must be a single folder name",
-            )
-        requested = candidates.get(requested_name)
-        if requested is None:
-            raise _error(
-                400,
-                "unknown_output_folder",
-                "The requested output folder does not belong to this job",
-            )
-        return requested.name, requested
-    if len(candidates) != 1:
-        raise _error(
-            409,
-            "output_selection_required",
-            "Select one output folder from the job before export",
-        )
-    candidate = next(iter(candidates.values()))
-    return candidate.name, candidate
+def _export_candidate(task, metadata, requested_name):
+    from scripts.core.services.agent_export_paths import export_candidate
+    return export_candidate(task, metadata, requested_name, Path(DEST_DIR), _error)
 
 
 def _validate_deploy_target(
@@ -909,11 +862,16 @@ async def preview_agent_export(job_id: str, output_folder_name: Optional[str] = 
     )
     project = await project_manager.get_project(metadata["project_id"])
     game_id = str((project or {}).get("game_id") or "")
+    if game_id in SUPPORTED_GAME_IDS:
+        return {"job_id": job_id, "project_id": metadata["project_id"], "source_path": str(source_path),
+                "output_folder_name": folder_name,
+                **preview_game_output(project, [source_path], destination_root=Path(DEST_DIR))}
     target = _validate_deploy_target(game_id, folder_name, None)
     return {
         "job_id": job_id,
         "project_id": metadata["project_id"],
         "source_path": str(source_path),
+        "output_folder_name": folder_name,
         "target_path": str(target),
         "target_exists": target.exists(),
         "requires_approval": True,
@@ -940,6 +898,15 @@ async def approve_agent_export(job_id: str, request: AgentExportRequest):
     task = task_state.get_task(job_id) or {}
     if not metadata:
         raise _error(404, "job_not_found", "Agent job not found")
+    project = await project_manager.get_project(metadata["project_id"])
+    game_id = str((project or {}).get("game_id") or "")
+    try:
+        get_game_support(game_id)
+        guard_deployment(game_id, request.game_id)
+    except AgentGameOutputError as exc:
+        raise _error(exc.status_code, exc.code, exc.message) from exc
+    except ValueError as exc:
+        raise _error(400, "invalid_game", str(exc)) from exc
     validation = (await _validation_payload(metadata["project_id"]))["summary"]
     if validation.errors:
         raise _error(
@@ -950,8 +917,6 @@ async def approve_agent_export(job_id: str, request: AgentExportRequest):
     folder_name, _ = _export_candidate(
         task, metadata, request.output_folder_name
     )
-    project = await project_manager.get_project(metadata["project_id"])
-    game_id = request.game_id or str((project or {}).get("game_id") or "")
     target = _validate_deploy_target(
         game_id, folder_name, request.target_deploy_path
     )

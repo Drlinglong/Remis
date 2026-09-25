@@ -122,7 +122,41 @@ ProjectDashboardView 178→199 行；增量监视 hook 165→184 行；恢复 ho
 也不能声称游戏已成功加载。最终游戏验收由用户执行：启用原 Mod 与生成翻译包、检查依赖/加载顺序、
 检查实际文本与占位符/grammar，并检查游戏日志。遇到未覆盖字段时，保留资源样本及版本/来源，再扩展规则。
 
-## 本地提交
+## Agent API 与文档治理补充（2026-09-25）
+
+面向操作者的步骤统一维护在 [Codex Skill](../../../.agents/skills/remis-agent/SKILL.md)
+及其 [API 参考](../../../.agents/skills/remis-agent/references/api-workflow.md)。
+[用户指南](../user-guides/multi-game-localization.md) 已登记到内置 Help Copilot 的帮助目录，
+中英 API quickstart 和文档导航指向这些现行入口；旧 `agent.md` 只补迁移指引。
+
+`game_support_service` 为 Agent API 和 Copilot 提供同一份静态能力与动态项目检查。
+新增游戏时应更新适配器注册、格式/语言映射和该能力契约，再补扫描、输出、工具与文档回归；
+工具 schema 的游戏枚举直接来自注册的 game profiles，不另维护游戏 ID 白名单。
+
+- `GET /api/agent/capabilities`：每个游戏的 `game_support` 包含格式、输出方式、增量规则和限制。
+- `GET /api/agent/projects/{project_id}/game-support`：扫描项目资源、条目与诊断；
+  `POST /projects/inspect` 可显式指定游戏、源语言和只读版本提示。
+- `POST /api/agent/jobs/plan`：以 `workflow=initial|incremental` 选择既有执行器，默认保持初次翻译。
+  两种流程均沿用计划、审批、任务持久化和结果查询；增量 checkpoint 重试返回明确的不支持原因。
+- 任务与 validation 读取当前任务输出 manifest 的 `needs_review`，把保留的旧译文标为人工复核，
+  不作为可强制模型修复的条目。PZ/RimWorld 输出预览只检查包记录和资源存在，不调用 P 社部署器。
+- 内置 Help Copilot 可查询能力、检查已选项目、引导并提交初次翻译计划供用户审批；
+  增量执行入口为项目界面或 Agent API，聊天助手不会把增量请求当成初次翻译启动。
+
+运行中接口验收使用隔离后端 `127.0.0.1:1456`：preflight 成功，未发现更新的正式 Release；
+PZ 返回 1 个资源/1 个条目，RimWorld 返回 2 个资源/3 个条目；OpenAPI 已包含新路由与 workflow 枚举。
+两款游戏的增量 dry-run 均持久化为 `completed`，产物为空、`validation.available=false`。
+这是就绪检查，不是增量差异计算或格式验收。未调用模型，费用为 0。
+
+该补充的 Agent/Copilot 回归为 208 passed（退出码 0），覆盖真实注册工具调用、API 路由与执行器分发、
+审批/恢复限制、旧 P 社导出、输出包检查、人工复核投影和文档链接。Python 架构 guard、
+compileall、diff 空白检查通过。
+
+职责复核：`agent.py` 由 1000 行降至 965 行，架构基线同步降低；任务分发、输出路径选择、
+游戏输出预览和人工复核投影抽到独立服务。新增 Python 服务均低于 800 行。
+本补充不修改前端组件、状态或 effects。
+
+## 本地提交记录
 
 - `da262d50` — `feat(localization): add extensible PZ and RimWorld workflows`
 - `8c6e4c0e` — `feat(ui): integrate multi-game project support and recovery guards`

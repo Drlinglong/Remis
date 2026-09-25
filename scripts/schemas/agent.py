@@ -10,6 +10,7 @@ from scripts.schemas.agent_language import AgentCustomLangConfig, validate_shell
 
 class AgentJobPlanRequest(BaseModel):
     project_id: str
+    workflow: Literal["initial", "incremental"] = "initial"
     target_lang_codes: List[LanguageCode] = Field(
         default_factory=lambda: [LanguageCode.ZH_CN]
     )
@@ -55,6 +56,9 @@ class AgentJobStartRequest(BaseModel):
 
 class AgentProjectInspectRequest(BaseModel):
     folder_path: str
+    game_id: Optional[str] = None
+    source_language: LanguageCode = LanguageCode.EN
+    game_version: Optional[str] = None
 
 
 class AgentProjectPlanRequest(BaseModel):
@@ -157,6 +161,7 @@ class AgentJobResponse(BaseModel):
     message: Optional[str] = None
     recovery: Dict[str, Any] = Field(default_factory=dict)
     links: Dict[str, str] = Field(default_factory=dict)
+    game_support: Dict[str, Any] = Field(default_factory=dict)
 
 
 class AgentPlanResponse(BaseModel):
@@ -170,6 +175,7 @@ class AgentPlanResponse(BaseModel):
     allowed_actions: List[str] = Field(default_factory=list)
     context_readiness: Dict[str, Any] = Field(default_factory=dict)
     translation: Dict[str, Any] = Field(default_factory=dict)
+    game_support: Dict[str, Any] = Field(default_factory=dict)
     expires_at: str
 
 
@@ -197,3 +203,4 @@ class AgentProjectSummary(BaseModel):
         default_factory=AgentValidationSummary
     )
     allowed_actions: List[str] = Field(default_factory=list)
+    game_support: Dict[str, Any] = Field(default_factory=dict)

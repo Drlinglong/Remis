@@ -15,6 +15,7 @@ from scripts.app_settings import APP_DATA_DIR, PROJECT_ROOT
 from scripts.core.services.provider_runtime import provider_selection_exists
 from scripts.core import surviving_mars_csv
 from scripts.core.game_adapters.registry import adapter_for_path
+from scripts.core.copilot.game_support import inspect_folder_game_support
 from scripts.core.copilot.provider_readiness import (
     check_provider_readiness,
 )
@@ -181,6 +182,16 @@ def inspect_mod_folder(folder_path: str) -> dict[str, Any]:
     }
 
 
+def _localization_plan_summary(game_support: dict[str, Any]) -> str:
+    summary = "只读检查已完成。批准后由 Remis 创建项目，并按已确认参数立即启动初次翻译。"
+    if game_support.get("coverage_scope") == "recognized_resources_only":
+        summary += (
+            f"已识别 {game_support.get('recognized_resource_count', 0)} 个资源、"
+            f"{game_support.get('recognized_entry_count', 0)} 个条目；识别范围不等于游戏内验收。"
+        )
+    return summary
+
+
 def create_localization_plan(
     *,
     folder_path: str,
@@ -205,6 +216,8 @@ def create_localization_plan(
         raise ValueError("Project name is required")
     if import_mode not in {"copy", "reference"}:
         raise ValueError("Import mode must be copy or reference")
+    game_support = inspect_folder_game_support(game_id, inspection["folder_path"], source_language)
+    inspection["game_support"] = game_support
     if target_language == source_language:
         raise ValueError("Target language must differ from the source language")
     if not provider_selection_exists(api_provider):
@@ -223,7 +236,7 @@ def create_localization_plan(
         "workflow_type": "localize_mod_v1",
         "status": "awaiting_approval",
         "title": f"创建汉化项目：{name}",
-        "summary": "只读检查已完成。批准后由 Remis 创建项目，并按已确认参数立即启动初次翻译。",
+        "summary": _localization_plan_summary(game_support),
         "inspection": inspection,
         "steps": [
             {

@@ -1,6 +1,6 @@
 ---
 name: remis-agent
-description: Operate Remis through its localhost Agent API to inspect or import Paradox mods, plan and monitor localization, validate or repair results, and export safely. Use when a user asks Codex to install, check, or control Remis; localize a mod; preserve game syntax; inspect failed entries; or prepare an installable localization package.
+description: Operate Remis through its localhost Agent API to inspect or import supported game mods, plan and monitor localization, validate or repair results, and prepare outputs safely. Use when a user asks Codex to install, check, or control Remis; localize a mod; preserve game syntax; inspect failed entries; or prepare an installable localization package.
 ---
 
 # Remis Agent Operator
@@ -51,7 +51,10 @@ but the saved translations used by future updates have not yet been updated.
    version is behind the latest GitHub Release. If GitHub cannot be reached,
    report that the check failed instead of claiming the version is current.
 5. Read `GET http://127.0.0.1:1453/api/agent/capabilities` before choosing a
-   game, language, provider, model, or action.
+   game, language, provider, model, or action. Use each game's `game_support`
+   projection, then inspect a candidate source or project with the game-support
+   endpoint before planning. Support is limited to recognized resource formats
+   and does not mean in-game runtime verification.
 6. On first setup, inspect `provider_setup` from preflight. If no cloud
    credential is configured, immediately guide the user to Remis Settings >
    API Settings before planning cloud translation. Offer to explain that an API
@@ -70,11 +73,20 @@ before touching a mod.
 Use this sequence:
 
 1. Run the preflight release and provider-setup checks.
-2. Inspect the mod folder with `POST /api/agent/projects/inspect`.
+2. Inspect the mod folder with `POST /api/agent/projects/inspect`, including
+   `game_id`, `source_language`, and `game_version` when known. Read the returned
+   `inspection.game_support` diagnostics and recognized-resource coverage. A scan-time
+   `game_version` is only a discovery hint; it does not alter project settings
+   or runtime workflow configuration.
 3. If needed, create an import plan with `POST /api/agent/projects/plan`.
 4. Show the plan, source path, detected game evidence, and copy/reference mode.
 5. Obtain explicit user approval, then call `POST /api/agent/projects`.
 6. Create a translation plan with `POST /api/agent/jobs/plan`.
+   Choose `workflow: "initial"` or `workflow: "incremental"`; omitted means
+   `initial`. Incremental work compares recognized entries, not mod version
+   alone. Dry-run checks readiness only and does not calculate the incremental
+   diff. Incremental checkpoint resume is unsupported; make a fresh plan for
+   incremental work. Custom shell languages are limited to Paradox initial translation.
 7. Select one explicit `translation_context_mode`: `none`, `glossaries`, or
    `archive`. Never reconstruct this choice from legacy booleans.
 8. Read and show `context_readiness`, including the source-snapshot match,
@@ -89,8 +101,20 @@ Use this sequence:
 13. Retry deterministic failures first. Request approval before model-backed
     repair with `POST /api/agent/jobs/{job_id}/repair`.
 14. Preview export with `GET /api/agent/jobs/{job_id}/export-preview`.
-15. Show overwrite and deployment risks. Obtain explicit approval before
-    `POST /api/agent/jobs/{job_id}/approve-export`.
+15. Follow that game's preview contract. For a deployment-enabled game, show
+    overwrite and deployment risks, then obtain explicit approval before
+    `POST /api/agent/jobs/{job_id}/approve-export`. For manual-install outputs,
+    show the package and manual installation boundary; do not call
+    `approve-export`.
+
+For Project Zomboid and RimWorld, source resources remain read-only and outputs
+are separate manual-install packages, one package per target language. Their
+export preview lists existing valid local packages and uses
+`export_mode: "manual_install"`; `approve-export` does not install or deploy
+them. Surviving Mars preview lists local CSV files. Consult the dynamic
+`game_support` contract for recognized formats and limitations; keep unknown
+fields, conditions, inherited values and runtime-generated text visible for
+human review.
 
 Published Mod Archives can be removed through the approval-gated Agent endpoint
 documented in the API reference. Archive removal deletes only regenerable

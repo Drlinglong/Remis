@@ -144,6 +144,7 @@ tools.
 Developer entry points:
 
 - [Agent API quickstart](docs/en/developer/agent-api-quickstart.md)
+- [Multi-game localization guide](docs/zh/user-guides/multi-game-localization.md)
 - [Remis Agent Skill](.agents/skills/remis-agent/SKILL.md)
 - [OpenAI Build Week](https://openai.com/zh-Hans-CN/build-week/)
 

@@ -53,6 +53,66 @@ If `release_check.checked` is false, say the update check was unavailable. If
 Use the identifiers returned by `capabilities`; do not infer game, language,
 provider, or model identifiers from display labels.
 
+### Game support and source coverage
+
+`GET /capabilities` keeps the existing `games[].capabilities` fields and adds a
+per-game `games[].game_support` contract. Read its `formats`, `limitations`,
+`output_kind`, `export_mode`, `workflow_modes`, `incremental_checkpoint_resume_supported`,
+`version_policy`, `incremental_policy`, `changed_translation_policy`,
+`runtime_verified`, and `source_files_read_only` values. This is the static
+adapter contract; it is not a claim that every file or runtime string in a Mod
+is covered.
+
+Inspect a candidate folder with optional game context:
+
+```json
+{
+  "folder_path": "C:\\Mods\\Example",
+  "game_id": "rimworld",
+  "source_language": "en",
+  "game_version": "1.6"
+}
+```
+
+`POST /projects/inspect` returns the dynamic scan under
+`inspection.game_support`. The project import-plan also returns its scan at
+`inspection.game_support`. `game_version` is a scan hint only: it does not
+modify project settings or configure later jobs. After import, call
+`GET /projects/{project_id}/game-support` to scan the project's current source
+tree; the top-level result includes recognized resources and entry counts,
+diagnostics, coverage scope, read-only status, runtime verification status,
+allowed actions, and a static support contract under `support`. The translation
+plan returns top-level `game_support`: for structured games this contains the
+dynamic scan and nests the static contract at `support`; for other games it is
+the static contract. Inspect those diagnostics before approval.
+Set `source_language` from the user's selected source or project metadata; do
+not assume that source text must be English.
+
+For Project Zomboid, recognized inputs include JSON string maps and restricted
+literal Lua-table TXT. For RimWorld, recognized inputs include Keyed,
+DefInjected, Strings, explicitly catalogued translatable Def fields, and
+`rulesStrings`. Unknown shapes or fields are diagnosed rather than executed or
+assumed translatable. RimWorld inheritance, patch effects, conditional load
+selection and assembly/runtime text may need human review. Neither adapter runs
+game assemblies or evaluates Lua. Source files remain unchanged.
+
+### Initial and incremental workflows
+
+`POST /jobs/plan` accepts `workflow: "initial" | "incremental"`; omission
+defaults to `initial`. Submit the approved plan through the existing
+`POST /jobs` endpoint. Incremental mode compares recognized source entries, so
+a version or path change alone does not trigger retranslations. Existing
+translations for changed source are retained with a review resolution; entries
+marked `needs_review` stay unresolved until reviewed. `dry_run: true` is a
+readiness check only and does not run the entry diff. Check
+`game_support.incremental_checkpoint_resume_supported`; for these adapters it
+is false, so a fresh incremental plan is required instead of checkpoint resume.
+Custom shell languages are unsupported for these adapters, including
+incremental work.
+
+`game_support` is dynamic policy data. Prefer the latest capabilities, inspect,
+plan and job responses over a hard-coded local format list.
+
 ## Inspect and import a mod
 
 ```powershell
@@ -208,8 +268,23 @@ $preview = Invoke-RestMethod `
   "http://127.0.0.1:1453/api/agent/jobs/$($job.job_id)/export-preview"
 ```
 
-Display target paths, overwrite state, and warnings. Then obtain export
-approval. If `preview.overwrite_required` is true, separately confirm overwrite:
+Display the returned output kind, local packages or files, paths, overwrite
+state, and warnings before acting. Paradox deployment follows its approval
+flow. For Project Zomboid and RimWorld, preview reports existing valid package
+records (`packages`) with `export_mode: "manual_install"`, package root,
+language, source mod ID and resource paths. The preview also reports
+`validation_scope: "artifact_presence_only"`, `runtime_verified: false`, no
+game target path, and only local-inspection actions when packages are
+available. Install those packages manually using the game's Mod installation
+process; after an explicit approval request, `POST /jobs/{job_id}/approve-export` returns
+`409 unsupported_game_deployment` for these games and Surviving Mars.
+Surviving Mars preview returns existing `local_files` and `export_mode:
+"local_files"` with the same `validation_scope`; it does not construct a
+separate translation Mod.
+
+For a game with Paradox deployment, display `output_folder_name`, target paths,
+overwrite state, and warnings. Then obtain export approval. If
+`preview.requires_overwrite_confirmation` is true, separately confirm overwrite:
 
 ```powershell
 $body = @{
@@ -234,6 +309,9 @@ Pass this configuration to `POST /api/agent/jobs/plan` alongside the project,
 provider/model and explicit context mode. `name` is the language shown to the
 translation model; `key` is the supported game language used in output files.
 `folder_prefix` must be a safe, distinct output prefix ending in a hyphen.
+This example is for Paradox initial translation. Multi-game adapters do not
+support shell languages, and `workflow: "incremental"` rejects
+`custom_lang_config` for every game.
 
 ```json
 {

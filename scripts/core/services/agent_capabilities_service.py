@@ -3,7 +3,9 @@
 
 def build_capabilities(*, api_version, version, games, languages, providers, shells, policy, context_capabilities):
     from scripts.core.game_adapters.registry import game_capabilities
-    games = [{**game, "capabilities": game_capabilities(game["id"])} for game in games]
+    from scripts.core.services.game_support_service import get_game_support
+    games = [{**game, "capabilities": game_capabilities(game["id"]),
+              "game_support": get_game_support(game["id"])} for game in games]
     return {
         "api_version": api_version,
         "remis_version": version,
@@ -24,6 +26,11 @@ def build_capabilities(*, api_version, version, games, languages, providers, she
         "baseline_sync": {"supported": True, "endpoint": "/api/agent/jobs/{job_id}/baseline/sync",
             "requires_approval": True, "max_keys": 100, "validation_refreshed": False},
         "actions": policy({
+            "inspect_game_support": {"supported": True, "requires_approval": False,
+                "endpoint": "/api/agent/projects/{project_id}/game-support"},
+            "plan_incremental_translation": {"supported": True, "requires_approval": False,
+                "endpoint": "/api/agent/jobs/plan", "request_fields": {"workflow": "incremental"},
+                "checkpoint_resume_supported": False},
             "read_projects": {"supported": True, "requires_approval": False},
             "plan_translation": {"supported": True, "requires_approval": False},
             "run_dry_run": {"supported": True, "requires_approval": False},

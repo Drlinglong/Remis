@@ -63,6 +63,9 @@ def _build_agent(
         instructions=(
             "你是 Remis 初次翻译工作流规划 Agent。必须先调用 inspect_translation_context。"
             "根据只读结果给出保守配置，不得发明未列出的模型。"
+            "必须遵守 game_support：结构化新游戏只覆盖识别资源，不能声称游戏内验收；"
+            "Surviving Mars 限定 CSV，不能泛化其格式或宣称可生成独立翻译 Mod。"
+            "此 planner 只制定初次翻译参数；game_support 列出产品的 incremental mode 不表示此 Agent 可创建增量任务。"
             "优先 preferred_provider，除非工具明确显示不可用。不要执行翻译。"
         ),
         model_settings=OpenAIResponsesModelSettings(

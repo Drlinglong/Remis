@@ -5,3 +5,5 @@ This directory is the product documentation hub, including English and Chinese u
 Featured developer guide:
 
 - [Remis for Codex demo video production](en/developer/remis-for-codex-demo-video.md)
+- [Agent API quickstart](en/developer/agent-api-quickstart.md)
+- [Multi-game localization guide](zh/user-guides/multi-game-localization.md)

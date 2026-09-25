@@ -30,6 +30,13 @@ Invoke-RestMethod http://127.0.0.1:1453/api/agent/capabilities
 
 能力接口只返回可公开的游戏、语言、Provider 与工作流信息，不会返回 Provider 密钥。
 
+选择游戏前先读取 `games[].game_support`。调用
+`POST /api/agent/projects/inspect` 时可提供 `game_id`、`source_language` 和
+扫描提示 `game_version`；响应会给出识别资源范围与诊断。`game_version` 只用于本次扫描，
+不会写入项目配置或改变后续任务参数。导入后可调用
+`GET /api/agent/projects/{project_id}/game-support` 扫描项目当前源目录；导入计划和翻译计划也会携带
+`game_support`，审批前应查看其中的诊断。
+
 每次开始新工作流之前都要调用 `preflight`。它会实时检查官方 GitHub 的最新 Release，并报告 Provider 设置是否缺失。首次安装后，应先在 **Remis 设置 > API 设置** 中配置云端 Provider 密钥，或者明确选择并测试一个无需密钥的本地 Provider。API key 是模型 Provider 发放的秘密凭据，用于身份认证，通常也关联计费；它应该只填进 Remis，不能贴到 Agent 对话里。
 
 ## 受控调用流程
@@ -65,8 +72,15 @@ flowchart TD
 - **输出必须校验：** 游戏变量、语法、编码和目录结构继续接受确定性检查。
 - **操作可追踪：** 计划、任务、修复、批准和可恢复快照保存在本机 Remis 数据中。
 
-## 当前边界
+## 多游戏工作流边界
 
-在底层工作流具备安全的协作式停止点之前，Agent API 会明确报告暂停与取消尚不支持。Codex 必须如实说明，不能假装运行中的任务已暂停。
+`POST /api/agent/jobs/plan` 支持 `workflow: "initial"`（默认）和
+`workflow: "incremental"`。增量流程比较已识别的条目；仅版本号或路径变化不会触发整批重译。原文变化时保留已有译文并标记待复核，`needs_review` 在人工确认前不算已解决。`dry_run` 只检查就绪状态，不执行条目差异计算。Project Zomboid 和 RimWorld 当前不支持增量 checkpoint 恢复或自定义套壳语言；请重新创建增量计划。
+
+Project Zomboid 支持 JSON 字符串映射及受限的字面量 Lua 表 TXT。RimWorld 支持 Keyed、DefInjected、Strings、规则目录明确列出的 Def 可翻译字段和 `rulesStrings`。这表示适配器能识别这些格式，不代表覆盖 Mod 的所有文件；未知字段及依赖运行时的内容会产生诊断或交由人工复核。源文件只读；每个目标语言生成独立包，导出预览只列出现有本地产物供手动安装。预览的 `validation_scope` 是 `artifact_presence_only`，不代表游戏运行时已验证。对于以明确批准方式调用的导出请求，这两款游戏和 Surviving Mars 会返回 `409 unsupported_game_deployment`。Surviving Mars 沿用现有 ModItemLocTable CSV 初次翻译、增量更新和校对流程并预览本地 CSV，不生成独立翻译 Mod。
+
+详细响应字段见 [Agent API 技术参考](../../../.agents/skills/remis-agent/references/api-workflow.md)，玩家说明见[多游戏本地化指南](../user-guides/multi-game-localization.md)。
+
+Agent API 对支持部署的游戏仍提供审批门控的导出，并为适用任务提供协作式取消；取消不是立即杀死进程。暂停仍不支持，因为当前 runner 没有安全的协作式暂停点。
 
 服务运行时可在 `http://127.0.0.1:1453/docs` 查看交互式 API 文档。
