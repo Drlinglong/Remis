@@ -163,6 +163,11 @@ export default function ProjectManagement() {
         setNewProjectSourceLang={setNewProjectSourceLang}
         t={t}
         onClose={() => setIsCreateModalOpen(false)}
+        onPipelineCreated={(projectId) => {
+          fetchProjects();
+          setSelectedProjectId(projectId);
+          setIsCreateModalOpen(false);
+        }}
       />
 
       <DeleteProjectModal

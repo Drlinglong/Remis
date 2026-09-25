@@ -28,6 +28,7 @@ from scripts.app_settings import (
 )
 from scripts.core.services.reference_reuse_preview_service import ReferenceReusePreviewService
 from scripts.core.services.translation_progress_callback import build_translation_progress_callback
+from scripts.core.services.game_language_policy import validate_target_language_codes
 from scripts.core.services.initial_translation_start_service import (
     ProjectTranslationLockError,
     create_initial_translation_task,
@@ -131,6 +132,10 @@ async def preview_reference_reuse(request: ReferenceReusePreviewRequest):
             detail="Failed to resolve game profile, source language, or target languages",
         )
     try:
+        validate_target_language_codes(game_id, [str(item["code"]) for item in target_languages])
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    try:
         _reject_source_language_targets(source_lang_code, target_languages)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -195,7 +200,7 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
 
         task_state.update_task(
             task_id,
-            fields={"output_dirs": _get_output_directories(mod_name, target_languages)},
+            fields={"output_dirs": _get_output_directories(mod_name, target_languages, game_profile)},
             push=False,
         )
         status, message, issue_count = _workflow_outcome_values(outcome)
@@ -355,7 +360,7 @@ def run_translation_workflow_v2(
         task_state.update_task(
             task_id,
             fields={
-                "output_dirs": _get_output_directories(mod_name, target_languages),
+                "output_dirs": _get_output_directories(mod_name, target_languages, game_profile),
                 "reference_metrics": list(getattr(outcome, "reference_metrics", ())),
                 "checkpoint": {
                     "available": False,
@@ -472,6 +477,9 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
         request.custom_lang_config,
     )
     try:
+        validate_target_language_codes(
+            str(project.get("game_id") or ""), [str(item["code"]) for item in target_languages]
+        )
         mod_name, recovery = prepare_initial_recovery(
             request=request,
             project=project,
@@ -525,7 +533,7 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
     # Auto-register translation path (Optimistic registration)
     # We predict the output path based on the request
     try:
-        for result_dir in _get_output_directories(mod_name, target_languages):
+        for result_dir in _get_output_directories(mod_name, target_languages, game_profile):
             await project_manager.add_translation_path(request.project_id, result_dir)
             logging.info(f"Auto-registered translation path: {result_dir}")
     except Exception as e:
@@ -635,6 +643,14 @@ async def start_translation_v2(
     background_tasks: BackgroundTasks,
     payload: TranslationRequestV2
 ):
+    target_codes = [item.value if hasattr(item, "value") else str(item)
+                    for item in payload.target_lang_codes]
+    if payload.custom_lang_config:
+        target_codes.append(str(payload.custom_lang_config.code))
+    try:
+        validate_target_language_codes(payload.game_profile_id, target_codes)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     provider_runtime = resolve_runtime_or_400(payload.api_provider, payload.model_name)
     task_id = str(uuid.uuid4())
     task_state.create_task(

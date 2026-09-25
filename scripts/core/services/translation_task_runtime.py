@@ -7,6 +7,7 @@ from typing import Any, Optional
 
 from scripts.app_settings import DEST_DIR
 from scripts.core.provider_errors import provider_failure_task_fields
+from scripts.core.services.initial_translation_run_service import language_output_folder_name
 from scripts.core.services.translation_recovery_service import (
     TranslationRecoveryService,
     build_recovery_descriptor,
@@ -22,8 +23,17 @@ def get_output_folder_name(mod_name: str, target_lang: dict) -> str:
     return f"{prefix}{slugify_to_ascii(mod_name)}"
 
 
-def get_output_directories(mod_name: str, target_languages: list[dict]) -> list[str]:
+def get_output_directories(
+    mod_name: str,
+    target_languages: list[dict],
+    game_profile: Optional[dict] = None,
+) -> list[str]:
     if len(target_languages) > 1:
+        if game_profile and game_profile.get("format_adapter_id") == "surviving_mars_csv":
+            return [
+                os.path.join(DEST_DIR, language_output_folder_name(mod_name, language))
+                for language in target_languages
+            ]
         return [os.path.join(DEST_DIR, f"Multilanguage-{slugify_to_ascii(mod_name)}")]
     return [
         os.path.join(DEST_DIR, get_output_folder_name(mod_name, target_language))

@@ -228,9 +228,15 @@ class _ProofreadingArchive:
 
 
 @pytest.mark.asyncio
-async def test_proofreading_reads_and_writes_only_translation_column(tmp_path: Path) -> None:
+@pytest.mark.parametrize("output_folder, language", [
+    ("output", "zh-CN"), ("fr-prepared", "fr"), ("de-prepared", "de"),
+    ("pt-BR-prepared", "pt-BR"), ("zh-CN-prepared", "zh-CN"),
+])
+async def test_proofreading_reads_and_writes_only_translation_column(
+    tmp_path: Path, output_folder: str, language: str,
+) -> None:
     source_path = tmp_path / "source" / "Game.csv"
-    target_path = tmp_path / "output" / "Game.csv"
+    target_path = tmp_path / output_folder / "Game.csv"
     source_path.parent.mkdir()
     target_path.parent.mkdir()
     source_path.write_text(CSV_TEXT, encoding="utf-8", newline="")
@@ -286,6 +292,7 @@ async def test_proofreading_reads_and_writes_only_translation_column(tmp_path: P
     assert written.rows[1][3:] == source_document.rows[1][3:]
     assert project_manager.status_updates == [("project", "file", "done")]
     assert len(archive.updates) == 1
+    assert archive.updates[0][0][3] == language
 def test_separator_header_cannot_be_targeted_by_a_translation_key_map():
     source = "sep=,\nID,Text,Translation,VoiceActor,Context\n001,Source,,,\n"
     with pytest.raises(surviving_mars_csv.SurvivingMarsCsvError, match="Invalid row index"):

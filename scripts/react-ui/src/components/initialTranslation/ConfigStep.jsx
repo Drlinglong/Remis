@@ -36,6 +36,8 @@ import {
   buildTranslationContextModeOptions,
   buildModelOptions,
   findLanguageByCode,
+  getSupportedLanguageCodes,
+  resolveGameProfile,
   resolveGameName,
   TRANSLATION_CONTEXT_MODES,
 } from '../../utils/initialTranslation';
@@ -63,6 +65,7 @@ export default function ConfigStep({
   showResume = FEATURES.ENABLE_CHECKPOINT_RESUME,
   t,
 }) {
+  const selectedGameProfile = resolveGameProfile(config.game_profiles, selectedProject?.game_id);
   const translationBatchOptions = [
     { value: '', label: t('translation_page.translation_limit_auto', { defaultValue: 'Auto (Recommended)' }) },
     { value: '5', label: '5' },
@@ -230,6 +233,10 @@ export default function ConfigStep({
                 <LanguageTargetSelector
                   form={form}
                   languages={config.languages}
+                  gameId={selectedProject?.game_id}
+                  supportedLanguageCodes={selectedGameProfile
+                    ? getSupportedLanguageCodes(selectedGameProfile, config.languages)
+                    : null}
                   sourceLanguageCode={sourceLanguageCode}
                   t={t}
                 />

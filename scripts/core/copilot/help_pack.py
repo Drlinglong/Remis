@@ -153,7 +153,7 @@ HELP_SKILLS: dict[str, dict[str, Any]] = {
     },
     "surviving_mars": {
         "title": "火星求生重制版本地化",
-        "description": "Surviving Mars / Relaunched 的 CSV 本地化，以及从已有译文生成本地独立翻译 Mod。",
+        "description": "如何汉化火星求生 Mod：导入 Workshop 的 ModContent.fpk、隔离准备、翻译、多语言文本补丁或完整副本、本机安装及使用游戏 Mod Editor 手动上传工坊。",
         "resources": ("zh/user-guides/surviving-mars.md",),
     },
     "multi_game_localization": {
@@ -213,6 +213,7 @@ AGENT_OPS_SUMMARY = """
 - open_deploy_dialog（仅导航；真正部署需用户在 UI 确认）
 
 ## 首次汉化正确顺序
+以下一键部署/清理步骤适用于 Paradox 文本流程；火星求生必须改用下述 FPK 准备、Mod 包导出和手动安装流程。
 1. 设置 API（可选但强烈建议）
 2. 项目管理 → 创建新项目
 3. 初次翻译 → 选项目
@@ -226,8 +227,14 @@ AGENT_OPS_SUMMARY = """
 - 两款结构化游戏按资源条目识别与增量比较；只说明扫描器识别的资源范围，不能称为游戏内容覆盖率。
 - 新游戏资源格式尚未经过游戏内验收，`runtime_verified=false`；不能承诺游戏中可加载或全部文本均被覆盖。
 - Surviving Mars / Relaunched 的现有翻译范围是扫描到的 ModItemLocTable CSV；独立翻译 Mod 导出只包装已有目标语言 CSV 输出，不会翻译额外源文或覆盖 Untranslated(...) 硬编码文本。不得把此能力泛化到其他游戏。
-- 火星独立包是本地轻量 Mod：metadata.loctables 与 items.lua 中的 ModItemLocTable 引用所选 CSV，并通过 required ModDependency 依赖原 Mod；不复制资产、不覆盖原 Mod、不部署或发布，runtime_verified=false。按 game_support.translation_package 暴露的 options/plan/export endpoints 引导 Codex 调用；桌面聊天只可说明 GUI/API 操作，不可声称已自动导出。
-- 火星专属问题先读取 surviving_mars 指南和 game_support.csv_contract；只写 Translation，保留 ID、其他列与标签参数。FPK 不能直接导入，应先用官方 Mod Editor 获取可编辑源目录。
+- 火星已有 CSV 项目的轻量包通过 game_support.translation_package 导出：metadata.loctables 与 items.lua 中的 ModItemLocTable 引用所选 CSV，并依赖原 Mod。FPK 准备项目的两种交付使用 source_pipeline；两条流程都只生成本地包。桌面聊天只可说明 GUI/API 操作，不可声称已自动导出。
+- 火星专属问题先读取 surviving_mars 指南及 game_support.csv_contract/source_pipeline。CSV 只写 Translation，保留 ID、其他列与标签参数。FPK 可经独立准备流程隔离解包全部资产，复核 Lua 候选后创建普通 CSV 项目；通过 GUI 或 Agent API 操作，不要求用户手点导出 CSV。
+- 普通支持扫描的 hardcoded_lua 仍只列候选；完整准备流程另有持久化 manifest、稳定 ID 和批准的源码改写。常规界面提供 text_only（只含翻译文本，需同时启用原 Mod）和 source_copy（完整国际化副本，含全部资产，停用原 Mod 和旧翻译补丁）。存在硬编码候选时推荐完整副本。overlay 是需复核运行时绑定的高级 API，不是常规第三种部署方式。
+- 用户问“如何进行火星求生的 Mod”时读取 surviving_mars 帮助。原始输入为已下载的原作者 ModContent.fpk，不是工坊网页 URL 或已发布的汉化副本。新 FPK 项目必须先打开“创建项目 → 火星求生”的独立准备窗口；聊天不能把 FPK 当普通文件夹直接提交新建翻译工作流。准备成功后，使用返回的项目 ID 再规划初次翻译。
+- fr-prepared、de-prepared 等是项目保留的语言工作输出，不是安装包或可随手删除的临时文件。FPK 项目导出时选择多个目标语言输出，生成同一个 Mod 包中的 Localization/Schinese、French、German 等语言表；以 API 返回的 package_path 为安装/发布来源。
+- 本机安装：将完整导出包放到 %APPDATA%/Surviving Mars Relaunched/Mods/<output_mod_id>/，metadata.lua 直接在该目录内，不要多套一层包目录。不要覆盖 Steam 缓存。按 text_only/source_copy 的启用规则选择 Mod，在游戏设置切换语言并重启验证。
+- 创意工坊上传仍需用户使用火星求生自带的 Mod Editor 手动打包/发布。首次发布后，将自己获得的工坊 ID 保存到项目管理的完整副本发布绑定；以后导出携带该编号并由编辑器更新。不得使用原作者编号，不得声称聊天能自动上传。
+- 格式标签/换行自动校验与人工校对页面是两回事。火星专用校对界面尚未完善，不引导用户依赖它完成流程；看到格式问题时核对记录所指的文件、语言和当前导出，不把旧工作目录的问题等同于最新包的问题。
 - 增量模式不支持 checkpoint 恢复；中断后需要从归档基线重新创建计划。项目级问题必须调用只读支持检查，并据其资源与诊断回答。
 - 内置 Copilot 目前只可生成初次翻译工作流；可以说明增量能力，但不能声称聊天能够创建或启动增量任务。
 用户询问首次汉化或表达模糊意向时，先问用户希望「手动操作指导」还是「由 Agent 规划」。在用户明确选择 Agent 规划之前，不要建议 start_localization_workflow。

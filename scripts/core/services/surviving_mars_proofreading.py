@@ -66,11 +66,16 @@ def _source_file(project: Dict[str, Any], target_path: str | Path) -> Optional[P
 
 
 def _target_language(target_path: str | Path, fallback: str = "zh-CN") -> str:
+    codes = sorted((language.value for language in LanguageCode), key=len, reverse=True)
     for part in reversed(Path(target_path).parts):
         try:
             return LanguageCode.from_str(part).value
         except ValueError:
-            continue
+            # Initial translation owns roots such as fr-prepared / pt-BR-prepared.
+            # Match the entire language prefix so German edits never sync into Chinese.
+            for code in codes:
+                if part.casefold().startswith(code.casefold() + "-"):
+                    return code
     return fallback
 
 

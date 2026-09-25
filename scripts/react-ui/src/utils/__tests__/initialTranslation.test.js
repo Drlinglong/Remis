@@ -4,11 +4,25 @@ import {
   buildTranslationContextModeOptions,
   buildTranslationDetails,
   buildTranslationPayload,
+  getSupportedLanguageCodes,
   resolvePreferredModel,
   resolveTranslationContextMode,
 } from '../initialTranslation';
 
 describe('initialTranslation utils', () => {
+  it('uses profile language codes with a legacy keyed-catalog fallback', () => {
+    expect(getSupportedLanguageCodes({
+      supported_language_codes: ['zh-CN', 'en'],
+      supported_language_keys: ['1'],
+    }, { '1': { code: 'en' } })).toEqual(['zh-CN', 'en']);
+
+    expect(getSupportedLanguageCodes({ supported_language_keys: ['1', '3'] }, {
+      '1': { code: 'en' },
+      '2': { code: 'zh-CN' },
+      '3': { code: 'fr' },
+    })).toEqual(['en', 'fr']);
+  });
+
   it('defaults legacy settings to glossaries and exposes archive only when requested', () => {
     const t = (key) => key;
 

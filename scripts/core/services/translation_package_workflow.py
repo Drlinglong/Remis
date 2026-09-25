@@ -6,7 +6,7 @@ import asyncio
 from pathlib import Path
 import re
 
-from scripts.app_settings import APP_DATA_DIR, LANGUAGES, resolve_path
+from scripts.app_settings import APP_DATA_DIR, resolve_path
 from scripts.core.agent_service import agent_registry
 from scripts.core.services import mars_translation_package as mars
 from scripts.shared.services import project_manager
@@ -57,8 +57,7 @@ def _select_output(project: dict, name: str) -> Path:
 
 
 def _language_options() -> list[dict]:
-    names = {value["code"]: value.get("name", value["code"]) for value in LANGUAGES.values()}
-    return [{"code": code, "name": names.get(code, code), "game_language": token}
+    return [{"code": code, "name": mars.LANGUAGE_LABELS[code], "game_language": token}
             for code, token in mars.LANGUAGE_NAMES.items()]
 
 

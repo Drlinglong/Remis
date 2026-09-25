@@ -23,55 +23,26 @@ from scripts.core.services.mars_mod_metadata import MetadataParseError, top_mod_
 
 
 LANGUAGE_NAMES = {
-    "en": "English",
     "zh-CN": "Schinese",
+    "en": "English",
     "fr": "French",
     "de": "German",
     "es": "Spanish",
-    "ja": "Japanese",
-    "ko": "Koreana",
     "pl": "Polish",
     "pt-BR": "Brazilian",
     "ru": "Russian",
     "tr": "Turkish",
-    "ar-SA": "Arabic",
-    "bg-BG": "Bulgarian",
-    "cs-CZ": "Czech",
-    "da-DK": "Danish",
-    "nl-NL": "Dutch",
-    "en-US": "English",
-    "fi-FI": "Finnish",
-    "fr-FR": "French",
-    "de-DE": "German",
-    "el-GR": "Greek",
-    "hu-HU": "Hungarian",
-    "id-ID": "Indonesian",
-    "it-IT": "Italian",
-    "ja-JP": "Japanese",
-    "ko-KR": "Koreana",
-    "nb-NO": "Norwegian",
-    "pl-PL": "Polish",
-    "pt-PT": "Portuguese",
-    "ro-RO": "Romanian",
-    "ru-RU": "Russian",
-    "es-ES": "Spanish",
-    "es-MX": "Latam",
-    "sv-SE": "Swedish",
-    "zh-TW": "Tchinese",
-    "th-TH": "Thai",
-    "tr-TR": "Turkish",
-    "uk-UA": "Ukrainian",
-    "vi-VN": "Vietnamese",
 }
 
-# These are the language packs present in the inspected Relaunched install.
-# Other SDK language tokens remain exportable but are explicitly unverified.
-INSTALLED_LANGUAGE_CODES = frozenset(
-    {
-        "pt-BR", "en", "fr", "de", "es", "pl", "ru", "tr", "zh-CN",
-        "en-US", "fr-FR", "de-DE", "pl-PL", "ru-RU", "es-ES", "tr-TR",
-    }
-)
+LANGUAGE_LABELS = {
+    "zh-CN": "Simplified Chinese", "en": "English", "fr": "French", "de": "German",
+    "es": "Spanish (Spain)", "pl": "Polish", "pt-BR": "Portuguese (Brazil)",
+    "ru": "Russian", "tr": "Turkish",
+}
+
+# These are the nine canonical language targets supported by the current Mars
+# workflow; SDK tokens outside this set are intentionally not exportable.
+INSTALLED_LANGUAGE_CODES = frozenset(LANGUAGE_NAMES)
 MIN_LUA_REVISION = 350453
 MAX_METADATA_BYTES = 2_000_000
 MAX_CSV_BYTES = 32_000_000

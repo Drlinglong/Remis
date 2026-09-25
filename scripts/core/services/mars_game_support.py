@@ -5,6 +5,7 @@ import stat
 
 from scripts.core import surviving_mars_csv as csv_adapter
 from scripts.core.game_adapters.registry import game_capabilities
+from scripts.core.services.mars_lua_coverage import LuaCoverage
 
 MAX_SCAN_FILES = 10000
 
@@ -35,6 +36,7 @@ def inspect_csv_support(source_path: str) -> dict:
     diagnostics = result["diagnostics"]
     root = Path(source_path)
     packed = []
+    lua = LuaCoverage(root)
 
     def failed(exc):
         diagnostics.append({"code": "resource_discovery_error", "severity": "error", "message": str(exc)})
@@ -56,6 +58,8 @@ def inspect_csv_support(source_path: str) -> dict:
                     continue
                 if path.suffix.lower() == ".fpk":
                     packed.append(path)
+                if path.suffix.lower() == ".lua":
+                    lua.inspect(path)
                 if not csv_adapter.is_table_file(path):
                     continue
                 try:
@@ -66,10 +70,15 @@ def inspect_csv_support(source_path: str) -> dict:
                                         "path": str(path), "message": str(exc)})
     except (OSError, ValueError) as exc:
         failed(exc)
+    result["hardcoded_lua"] = lua.result(result["metadata"]["scan_complete"] and not packed)
+    diagnostics.extend(lua.diagnostics)
+    if lua.candidates:
+        diagnostics.append({"code": "hardcoded_lua_outside_csv", "severity": "warning",
+            "message": f"Found {len(lua.candidates)} direct Untranslated call candidates outside CSV translation coverage. Review hardcoded_lua before claiming whole-Mod completion."})
     if packed:
         diagnostics.append({"code": "compiled_package_unsupported",
             "severity": "warning" if result["resources"] else "error", "path": str(packed[0]),
-            "message": "FPK packages are not inspected. Use the official Mod Editor to obtain editable CSV sources."})
+            "message": "This ordinary CSV scan does not unpack FPK files. Use Create Project > Surviving Mars to prepare ModContent.fpk in isolation, or import CSV exported by the official Mod Editor."})
     if not result["resources"]:
         diagnostics.append({"code": "csv_resources_missing", "severity": "error",
             "message": "No valid ModItemLocTable CSV found. Expected header: " + ",".join(csv_adapter.HEADER)})

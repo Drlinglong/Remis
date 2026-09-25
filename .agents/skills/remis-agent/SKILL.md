@@ -72,6 +72,16 @@ before touching a mod.
 
 Use this sequence:
 
+**Route the input before generic folder import.** If the user asks how to
+localize Surviving Mars or supplies `ModContent.fpk`, first read
+[the Mars player guide](../../../docs/zh/user-guides/surviving-mars.md) and
+[the FPK API workflow](references/api-workflow.md#prepare-an-fpk-and-deliver-an-internationalized-mod).
+Use the original author's locally downloaded FPK with the preparation API;
+do not feed the archive or its containing Workshop folder into generic CSV
+import. After preparation returns a persisted `project_id`, continue translation
+on that existing project. The built-in Help Copilot can guide the preparation
+UI; its ordinary new-project translation planner does not unpack FPKs.
+
 1. Run the preflight release and provider-setup checks.
 2. Inspect the mod folder with `POST /api/agent/projects/inspect`, including
    `game_id`, `source_language`, and `game_version` when known. Read the returned
@@ -121,15 +131,57 @@ For Surviving Mars, use `game_support.csv_contract` and the dynamic scan to
 confirm recognized CSV resources, entry counts, diagnostics, and runtime status.
 Only `ModItemLocTable` CSV with the declared five-column header is supported;
 IDs stay exact strings and only `Translation` is writable. Initial translation,
-incremental update, and proofreading keep using the existing CSV project
-workflow. A separate approved local-package workflow can wrap an existing
+and incremental update keep using the existing CSV project workflow. Automatic
+format validation exists, while the dedicated player-facing proofreading UI is
+not yet complete. Do not require that UI to finish a Mars workflow. The targeted
+Agent proofreading API below is a separate capability. A separate approved local-package workflow can wrap an existing
 project translation output as a translation-only Mod; it does not translate
-additional files or copy source assets. FPK cannot be read directly and
-requires an editable source directory prepared with the official Mod Editor.
+additional files or copy source assets. For an FPK archive, select Surviving
+Mars in Create Project; a separate preparation window explains the choices
+before inspecting the archive. Use `game_support.source_pipeline` and its
+approval-gated plan/prepare endpoints. The default `delivery_mode` is
+`source_copy`; `text_only` creates CSVs without Lua rewrites and keeps the
+original Mod as a required dependency. Candidates still needing review stay
+out of the translation CSV and are not rewritten. Prefer the complete source
+copy when hard-coded text must be covered. Preserve `run_id` for future
+updates and stable ID matching. The normal delivery UI offers a full source
+copy or translation-only package; runtime overlays are advanced API
+configuration and require a verified binding profile without blockers. A
+source copy receives a new Mod ID and a `[Remis i18n]` title prefix; it
+replaces the original, so never enable both. These operations do not overwrite
+Workshop caches, install files, publish, or prove runtime/save compatibility.
+Per-language folders such as `fr-prepared` and `de-prepared` are durable project
+translation outputs, not installable Mods or disposable scratch files. For a
+multilingual FPK project, select all intended language outputs in a single
+pipeline export plan. The resulting one `package_path` contains the language
+tables together. Install that complete package, never the individual working
+CSV folders. On Windows Relaunched, the local destination is
+`%APPDATA%/Surviving Mars Relaunched/Mods/<output_mod_id>/` with `metadata.lua`
+directly inside. Text-only packages require the original enabled alongside;
+complete source copies replace it and require the original/older patches disabled.
+Manual Steam upload/updates require the game's own Mod Editor; Remis does not
+pack or upload automatically. Bind the ID returned by the first successful
+publication before exporting later updates.
+Before exporting a full source copy, inspect its project-scoped Workshop binding
+at `GET /api/agent/projects/{project_id}/mars-pipeline/publication`. After the
+user identifies their own published copy, save its ID with approved PUT and the
+GET revision. Never bind the original author's ID. The saved binding persists
+across export folders and appears in project management; export previews include
+its snapshot. Changed or corrupt bindings block export instead of reverting to
+a new item. Existing exported folders remain unchanged. This local binding does
+not verify Steam ownership or upload files; see the API workflow reference.
 The built-in Remis chat can guide initial translation and explain this export,
 but does not execute incremental updates or package export. Use the project UI
 or this Agent API for incremental work; use the package options/plan/export API
 below or the corresponding project UI for package generation.
+
+Inspect `hardcoded_lua` alongside CSV coverage. Its direct Untranslated calls
+are review candidates outside the translation job, not automatically included
+entries. Report literal/dynamic counts, partial scans and remaining blind spots;
+never claim whole-Mod completion from CSV success. Candidate keys are provisional,
+not persisted numeric localization IDs. The separate FPK preparation workflow
+provides reviewed, hash-guarded rewrites and delivery; it is documented in
+[the workflow specification](../../../docs/zh/developer/mars-lua-localization-workflow.md).
 
 For a separate package, call preflight, then
 `GET /api/agent/projects/{project_id}/translation-package/options`; choose an

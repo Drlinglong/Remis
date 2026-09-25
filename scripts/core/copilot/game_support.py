@@ -20,6 +20,8 @@ _PUBLIC_SUPPORT_FIELDS = (
     "output_kind",
     "export_mode",
     "language_folders",
+    "supported_language_codes",
+    "game_language_tokens",
     "shell_languages_supported",
     "limitations",
     "version_policy",
@@ -32,6 +34,8 @@ _PUBLIC_SUPPORT_FIELDS = (
     "terminology",
     "csv_contract",
     "translation_package",
+    "hardcoded_lua",
+    "source_pipeline",
 )
 
 
@@ -100,6 +104,12 @@ def _safe_project_summary(result: dict[str, Any]) -> dict[str, Any]:
         "recognized_resource_count": int(result.get("recognized_resource_count") or 0),
         "recognized_entry_count": int(result.get("recognized_entry_count") or 0),
         "coverage_scope": result.get("coverage_scope"),
+        "hardcoded_lua": {
+            key: value for key, value in (result.get("hardcoded_lua") or {}).items()
+            if key in {"scan_complete", "scope", "files_scanned", "candidate_count",
+                       "literal_count", "dynamic_count", "included_in_translation",
+                       "automatic_rewrite_supported", "requires_review", "limitations"}
+        },
         "has_blocking_diagnostics": bool(result.get("has_blocking_diagnostics")),
         "runtime_verified": result.get("runtime_verified"),
         "allowed_actions": list(result.get("allowed_actions") or []),

@@ -363,12 +363,14 @@ async def create_translation_plan(
     project = await project_manager.get_project(project_id)
     if not project:
         raise ValueError("Project not found")
+    from scripts.core.services.game_language_policy import validate_target_language_codes
     files = await project_manager.get_project_files(project_id)
     source_language = str(project.get("source_language") or "en")
     targets = [str(code).strip() for code in target_lang_codes if str(code).strip()]
     custom_lang_config = validate_shell_targets(targets, custom_lang_config)
     if not targets:
         raise ValueError("At least one target language is required")
+    validate_target_language_codes(str(project.get("game_id") or ""), targets)
     if source_language in targets:
         raise ValueError("Target language must differ from the project source language")
     if not provider_selection_exists(api_provider):

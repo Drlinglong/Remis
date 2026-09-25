@@ -26,7 +26,7 @@
 
 多游戏用户指南 `docs/zh/user-guides/multi-game-localization.md` 是桌面 Help Copilot 的 `user-help` 入口；Agent 的唯一 API 规范仍是 `.agents/skills/remis-agent/references/api-workflow.md`，本地游戏支持以运行时 `game_support` 响应为准。当前格式证据和离线/运行时边界见 `docs/zh/developer/multi-game-adapters.md` 与相邻游戏证据笔记；这些开发笔记不进入普通用户答疑语料。
 
-Surviving Mars 专属中文指南 `docs/zh/user-guides/surviving-mars.md` 是该游戏 CSV 与独立翻译 Mod 本地导出工作流的用户和桌面 Help Copilot 入口；English companion 位于 `docs/en/user-guides/surviving-mars.md`。支持五列表头和 CSV 不变量由运行时 `game_support.csv_contract` 提供；独立包 API 由 `game_support.translation_package` 提供 endpoints 和边界。不要在其它指南维护第二份易漂移的字段表。指南区分桌面聊天只协助初次翻译/解释导出、项目界面或 Agent API 支持增量与独立包的边界。
+Surviving Mars 专属中文指南 `docs/zh/user-guides/surviving-mars.md` 是 CSV、隔离 FPK 准备、`text_only`/`source_copy` 对照、多语言本地交付、安装和手动发布的用户与 Help Copilot 入口；English companion 位于 `docs/en/user-guides/surviving-mars.md`。五列表头和 CSV 不变量由 `game_support.csv_contract` 提供；已有 CSV 轻量包接口由 `translation_package` 提供，完整准备/源码副本/文本包/高级运行时覆盖接口由 `source_pipeline` 提供。不要在其它指南维护第二份易漂移的字段表。桌面聊天只解释和引导；计划、审批和执行通过项目界面或 Agent API 完成。此游戏新 FPK 项目尚无专用可视化校对工作区，但格式校验和 Agent 定点读写可用。运行时覆盖不是普通 UI 选项，候选计数不代表完整覆盖，所有交付仍需游戏内验证。
 
 [3.2.1 更新日志](zh/developer/release-v3.2.1.md) 是当前未发布开发记录的唯一入口：
 `status: draft`，`audience: developer`，`copilot_scope: excluded`，
@@ -36,6 +36,9 @@ Surviving Mars 专属中文指南 `docs/zh/user-guides/surviving-mars.md` 是该
 
 | 路径 | status | audience | copilot_scope | canonical_for |
 |---|---|---|---|---|
+| `zh/developer/mars-lua-localization-workflow.md` | current | developer, agent | excluded | 隔离 FPK 准备、稳定 ID、复核后的源码改造、两种常规交付与高级 API 运行时覆盖；运行时需游戏验收 |
+| `zh/developer/mars-pipeline-acceptance-2026-09-25.md` | current | developer | excluded | Exotic Minerals Expanded 的本地准备、翻译校验、静态源副本验收证据及未完成的游戏验证 |
+| `zh/developer/mars-unpack-probe.md` | current | developer | excluded | 社区旧解包器探测及独立 FLPK v1 读写边界；全资源恢复证据与社区分发准备 |
 | `docs/zh/user-guides/**` | `current` | `user` | `user-help` | 用户何时使用、如何操作、失败后怎么办 |
 | `docs/zh/product-intent-<feature>.md` | `current` | `product`, `agent` | `agent-planning` | 为什么存在、产品边界、明确非目标 |
 | `docs/zh/product-intent-template.md` | `current` | `product`, `agent` | `excluded` | 文档治理模板，不是具体功能事实 |
@@ -141,7 +144,7 @@ capabilities 和持久化 Task Center 状态为准。
 - `docs/zh/user-guides/tools-thumbnail-generator.md`
 - `docs/zh/user-guides/logs-and-diagnostics.md`
 - `docs/zh/user-guides/error-catalog.md`
-- `docs/zh/user-guides/surviving-mars.md`（CSV 初次翻译、增量更新、校对与边界）
+- `docs/zh/user-guides/surviving-mars.md`（CSV 与隔离 FPK 准备、多语言本地交付、安装发布和当前校对边界）
 - `docs/zh/user-guides/faq.md`（已按客户端工作流修订）
 
 ## 作为专题参考阅读

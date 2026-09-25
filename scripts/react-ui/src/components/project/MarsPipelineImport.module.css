@@ -1,0 +1,49 @@
+.importSurface {
+  color: var(--paper-text-main);
+}
+
+.importSurface :global(.mantine-Accordion-root),
+.importSurface :global(.mantine-Accordion-item),
+.importSurface :global(.mantine-Accordion-panel),
+.importSurface :global(.mantine-Accordion-content) {
+  color: var(--paper-text-main);
+  background-color: var(--paper-bg, var(--surface-bg-solid));
+  border-color: color-mix(in srgb, var(--paper-text-main) 28%, transparent);
+}
+
+.importSurface :global(.mantine-Accordion-control) {
+  color: var(--paper-text-main);
+  background-color: color-mix(in srgb, var(--paper-text-main) 8%, var(--paper-bg, var(--surface-bg-solid)));
+}
+
+.importSurface :global(.mantine-Accordion-control:hover) {
+  color: var(--paper-text-main);
+  background-color: color-mix(in srgb, var(--paper-text-main) 14%, var(--paper-bg, var(--surface-bg-solid)));
+}
+
+.importSurface :global(.mantine-Accordion-chevron) {
+  color: var(--paper-text-main);
+}
+
+.importSurface :global(.mantine-Checkbox-label),
+.importSurface :global(.mantine-Radio-label),
+.importSurface :global(.mantine-Code-root) {
+  color: var(--paper-text-main);
+}
+
+.importSurface :global(.mantine-Code-root) {
+  background-color: color-mix(in srgb, var(--paper-text-main) 8%, var(--paper-bg, var(--surface-bg-solid)));
+}
+
+.importSurface :global(.mantine-Button-root[data-variant='light']),
+.importSurface :global(.mantine-Button-root[data-variant='subtle']) {
+  color: var(--paper-text-main);
+  background-color: color-mix(in srgb, var(--paper-text-main) 10%, var(--paper-bg, var(--surface-bg-solid)));
+  border-color: color-mix(in srgb, var(--paper-text-main) 34%, transparent);
+}
+
+.importSurface :global(.mantine-Button-root[data-variant='light']:hover),
+.importSurface :global(.mantine-Button-root[data-variant='subtle']:hover) {
+  color: var(--paper-text-main);
+  background-color: color-mix(in srgb, var(--paper-text-main) 17%, var(--paper-bg, var(--surface-bg-solid)));
+}

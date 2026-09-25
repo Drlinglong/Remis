@@ -34,6 +34,12 @@ def build_run_plan(mod_name: str, target_languages: List[dict]) -> InitialTransl
     )
 
 
+def language_output_folder_name(mod_name: str, target_lang: dict) -> str:
+    """Return the same stable language-prefixed folder used by single-target runs."""
+    prefix = target_lang.get("folder_prefix", f"{target_lang['code']}-")
+    return f"{prefix}{slugify_to_ascii(mod_name)}"
+
+
 def resolve_provider_model(selected_provider: str, model_name: Optional[str]) -> Optional[str]:
     return model_name
 

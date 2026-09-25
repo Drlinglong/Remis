@@ -279,7 +279,7 @@ def run_language_translation(
         mod_name, output_folder_name, target_lang.get("code", "zh-CN")
     )
     checkpoint_manager = build_checkpoint_manager(
-        output_dir_path,
+        target_lang.get("_checkpoint_output_dir_path", output_dir_path),
         selected_provider,
         model_name,
         source_lang,

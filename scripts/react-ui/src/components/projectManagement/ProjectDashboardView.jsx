@@ -14,7 +14,7 @@ import ShellLanguageNotice from '../shared/ShellLanguageNotice';
 import { FEATURES } from '../../config/features';
 import ProjectGlossaryPanel from '../project/ProjectGlossaryPanel';
 import ProjectGameSupportPanel from '../project/ProjectGameSupportPanel';
-import MarsTranslationPackagePanel from '../project/MarsTranslationPackagePanel';
+import MarsPipelineDelivery from '../project/MarsPipelineDelivery';
 import ProjectHeader from '../project/ProjectHeader';
 import ProjectHistory from '../project/ProjectHistory';
 import ProjectValidation from '../project/ProjectValidation';
@@ -150,8 +150,8 @@ export function ProjectDashboardView({
                 projectId={selectedProject.project_id}
                 gameId={selectedProject.game_id}
               />
-              <MarsTranslationPackagePanel
-                key={selectedProject.project_id}
+              <MarsPipelineDelivery
+                key={`pipeline-${selectedProject.project_id}`}
                 projectId={selectedProject.project_id}
                 gameId={selectedProject.game_id}
               />

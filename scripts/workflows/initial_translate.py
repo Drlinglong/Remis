@@ -16,6 +16,7 @@ from scripts.core.services.initial_translation_snapshot_service import (
 from scripts.core.services.initial_translation_run_service import (
     build_run_plan,
     create_translation_handler,
+    language_output_folder_name,
     resolve_provider_model,
 )
 from scripts.core.services.initial_translation_language_service import run_language_translation
@@ -142,16 +143,32 @@ def _run_language_targets(
     source_snapshot_hash, config_fingerprint,
 ) -> tuple[dict, ...]:
     metrics = []
+    mars_language_outputs = (
+        len(target_languages) > 1
+        and game_profile.get("format_adapter_id") == "surviving_mars_csv"
+    )
     for target_lang in target_languages:
+        language_folder = (
+            language_output_folder_name(mod_name, target_lang)
+            if mars_language_outputs else output_folder_name
+        )
+        language_output_path = (
+            os.path.join(DEST_DIR, language_folder)
+            if mars_language_outputs else output_dir_path
+        )
+        language_target = (
+            {**target_lang, "_checkpoint_output_dir_path": output_dir_path}
+            if mars_language_outputs else target_lang
+        )
         metrics.append(run_language_translation(
             mod_name=mod_name,
             source_lang=source_lang,
-            target_lang=target_lang,
+            target_lang=language_target,
             game_profile=game_profile,
             mod_context=mod_context,
             handler=handler,
-            output_folder_name=output_folder_name,
-            output_dir_path=output_dir_path,
+            output_folder_name=language_folder,
+            output_dir_path=language_output_path,
             selected_provider=selected_provider,
             model_name=model_name,
             all_files_content=all_files_content,

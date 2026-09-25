@@ -78,3 +78,9 @@
 .importModeAlert :global(.mantine-Alert-message) {
   color: var(--paper-text-main) !important;
 }
+
+.importModeAlert :global(.mantine-Button-root[data-variant='light']) {
+  color: var(--paper-text-main) !important;
+  background: color-mix(in srgb, var(--paper-text-main) 10%, var(--paper-bg)) !important;
+  border: 1px solid color-mix(in srgb, var(--paper-text-main) 34%, transparent) !important;
+}

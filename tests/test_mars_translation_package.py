@@ -73,16 +73,14 @@ def _read_output_table(root: Path, relative: str):
 
 
 def test_language_mapping_uses_sdk_language_tokens_and_reports_local_availability():
-    assert package.LANGUAGE_NAMES["zh-CN"] == "Schinese"
-    assert package.LANGUAGE_NAMES["zh-TW"] == "Tchinese"
-    assert package.LANGUAGE_NAMES["pt-BR"] == "Brazilian"
-    assert package.LANGUAGE_NAMES["en-US"] == "English"
-    assert {code: package.LANGUAGE_NAMES[code] for code in ("en", "fr", "de", "es", "ja", "ko", "pl", "ru", "tr")} == {
-        "en": "English", "fr": "French", "de": "German", "es": "Spanish",
-        "ja": "Japanese", "ko": "Koreana", "pl": "Polish", "ru": "Russian",
-        "tr": "Turkish",
+    assert package.LANGUAGE_NAMES == {
+        "zh-CN": "Schinese", "en": "English", "fr": "French", "de": "German",
+        "es": "Spanish", "pl": "Polish", "pt-BR": "Brazilian",
+        "ru": "Russian", "tr": "Turkish",
     }
-    assert "zh-CN" in package.INSTALLED_LANGUAGE_CODES
+    assert package.LANGUAGE_LABELS["es"] == "Spanish (Spain)"
+    assert package.LANGUAGE_LABELS["pt-BR"] == "Portuguese (Brazil)"
+    assert package.INSTALLED_LANGUAGE_CODES == frozenset(package.LANGUAGE_NAMES)
 
 
 def test_read_source_metadata_ignores_fake_nested_or_quoted_fields(tmp_path):
@@ -356,12 +354,8 @@ def test_linked_input_root_is_rejected_and_nested_links_are_not_followed(tmp_pat
         package.inspect_package_inputs(root_link, translations, "zh-CN")
 
 
-def test_unsupported_language_token_is_exportable_but_not_runtime_claimed(tmp_path):
+def test_language_outside_mars_catalog_is_rejected(tmp_path):
     source, translations = _inputs(tmp_path)
 
-    facts = package.inspect_package_inputs(source, translations, "ja-JP")
-
-    assert facts["package"]["game_language"] == "Japanese"
-    assert facts["runtime_verified"] is False
-    assert len(facts["warnings"]) == 1
-    assert "runtime language availability is unverified" in facts["warnings"][0]
+    with pytest.raises(package.TranslationPackageError, match="Unsupported Surviving Mars"):
+        package.inspect_package_inputs(source, translations, "ja-JP")

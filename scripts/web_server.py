@@ -162,10 +162,12 @@ def setup_app_routers():
     )
     from scripts.core.feature_policy import mod_archive_enabled
     
-    from scripts.routers import game_support, agent_game_support, translation_packages
+    from scripts.routers import game_support, agent_game_support, translation_packages, mars_pipeline, mars_archive_recovery
     app.include_router(game_support.router)
     app.include_router(agent_game_support.router)
     app.include_router(translation_packages.router)
+    app.include_router(mars_pipeline.router)
+    app.include_router(mars_archive_recovery.router)
     app.include_router(projects.router)
     app.include_router(project_watches.router)
     app.include_router(translation.router)

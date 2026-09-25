@@ -12,6 +12,7 @@ from scripts.core.copilot.help_agent import (
     requests_incremental_workflow,
 )
 from scripts.core.copilot.help_pack import AGENT_OPS_SUMMARY, HELP_SKILLS, read_help_skills
+from scripts.core.copilot.help_pack import build_skill_router_prompt, build_system_prompt
 
 
 def test_static_support_is_allowlisted_and_states_three_game_boundaries():
@@ -41,6 +42,32 @@ def test_support_help_skill_is_registered_for_bundled_guide():
     )
     excerpts = read_help_skills(["multi_game_localization"])
     assert excerpts and "Project Zomboid" in excerpts[0]["content"]
+
+
+def test_mars_question_can_load_the_canonical_end_to_end_player_guide():
+    question = [{"role": "user", "content": "我如何进行火星求生的mod本地化并安装上传？"}]
+    router = build_skill_router_prompt(question)
+    assert '"id": "surviving_mars"' in router
+    assert "ModContent.fpk" in router and "Mod Editor" in router
+    prompt, sources, grounding, _ = build_system_prompt(["surviving_mars"])
+    assert grounding == "strong"
+    assert sources[0]["path"] == "zh/user-guides/surviving-mars.md"
+    for expected in ("ModContent.fpk", "text_only", "source_copy",
+                     "Surviving Mars Relaunched/Mods", "Mod Editor"):
+        assert expected in prompt
+    assert "不是常规第三种部署方式" in prompt
+
+
+def test_mars_agent_contract_exposes_combined_package_and_manual_delivery():
+    pipeline = game_support.read_game_support("surviving_mars")["source_pipeline"]
+    assert pipeline["multiple_languages_per_package"] is True
+    assert pipeline["translation_outputs_are_working_files"] is True
+    assert pipeline["delivery_modes"] == ["text_only", "source_copy"]
+    assert pipeline["installation"]["mode"] == "manual_install"
+    assert pipeline["installation"]["metadata_at_package_root"] is True
+    assert pipeline["publishing"]["automatic_upload"] is False
+    assert pipeline["publishing"]["mode"] == "manual_game_mod_editor"
+    assert pipeline["publication_endpoint"].endswith("/mars-pipeline/publication")
 
 
 def test_help_copilot_requires_project_from_inspected_catalog():

@@ -62,6 +62,16 @@ export function resolveGameProfile(gameProfiles = {}, gameId) {
   return gameProfiles[gameId] || Object.values(gameProfiles).find((profile) => profile.id === gameId) || null;
 }
 
+export function getSupportedLanguageCodes(profile, languages = {}) {
+  if (Array.isArray(profile?.supported_language_codes)) {
+    return profile.supported_language_codes;
+  }
+  const languageKeys = new Set((profile?.supported_language_keys || []).map(String));
+  return Object.entries(languages)
+    .filter(([key]) => languageKeys.has(String(key)))
+    .map(([, language]) => language.code);
+}
+
 export function resolveGameName(gameProfiles = {}, gameId) {
   const profile = resolveGameProfile(gameProfiles, gameId);
   return profile ? profile.name.split('(')[0].trim() : 'Unknown';

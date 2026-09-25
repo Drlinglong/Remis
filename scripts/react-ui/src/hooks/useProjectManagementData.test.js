@@ -67,6 +67,30 @@ describe('useProjectManagementData', () => {
     });
   });
 
+  it('keeps each game profile language support in the game option data', async () => {
+    configService.getConfig.mockResolvedValue({
+      data: {
+        game_profiles: {
+          mars: {
+            id: 'surviving_mars',
+            name: 'Surviving Mars',
+            supported_language_codes: ['zh-CN', 'en', 'fr', 'de', 'es', 'pl', 'pt-BR', 'ru', 'tr'],
+          },
+        },
+        languages: {},
+      },
+    });
+    const { result } = renderHook(() => useProjectManagementData());
+
+    await waitFor(() => {
+      expect(result.current.availableGames).toEqual([{
+        value: 'surviving_mars',
+        label: 'Surviving Mars',
+        supported_language_codes: ['zh-CN', 'en', 'fr', 'de', 'es', 'pl', 'pt-BR', 'ru', 'tr'],
+      }]);
+    });
+  });
+
   it('normalizes wrapped project file payloads before building details', async () => {
     const { result } = renderHook(() => useProjectManagementData());
 
