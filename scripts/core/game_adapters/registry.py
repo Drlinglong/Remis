@@ -51,6 +51,6 @@ def game_capabilities(game_id: str) -> dict:
         "independent_translation_mod": structured,
         "paradox_deployment": not (structured or csv),
         "source_cleanup": not (structured or csv),
-        "runtime_verified": False if structured else None,
+        "runtime_verified": False if structured or csv else None,
         "coverage_kind": "recognized_resources" if structured else "localization_files",
     }

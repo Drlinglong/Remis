@@ -96,19 +96,49 @@ assumed translatable. RimWorld inheritance, patch effects, conditional load
 selection and assembly/runtime text may need human review. Neither adapter runs
 game assemblies or evaluates Lua. Source files remain unchanged.
 
+Surviving Mars exposes a static `csv_contract` in `game_support` and a dynamic
+scan in project inspection. Use the returned `recognized_resource_count`,
+`recognized_entry_count`, `coverage_scope`, `diagnostics`, and
+`runtime_verified`; do not infer full Mod coverage from a successful scan. The
+contract includes `header`, `source_column`, `writable_column`,
+`preserved_columns`, `id_policy`, `tag_policy`, `encoding`,
+`preserve_relative_paths`, and `compressed_packages_supported`. The accepted
+header is `ID,Text,Translation,VoiceActor,Context`.
+`ID` is an ASCII decimal string and leading zeros remain significant. Only
+`Translation` may change; `Text`, `ID`, `VoiceActor`, and `Context` are
+preserved. Text between tags may be translated, but tag spelling, parameters,
+case and multiplicity inside the tag are immutable. Invalid/no-table scans have
+blocking diagnostics; ordinary plans reject them, while dry-run remains
+available to inspect readiness and diagnostics. `runtime_verified` is false.
+This game supports initial translation, incremental update and proofreading
+through the existing CSV project workflow; it does not produce a separate
+translation Mod. The desktop Copilot only prepares initial-translation plans.
+Use the project UI or Agent API for incremental updates.
+
+CSV output preserves source-relative paths. FPK is a compiled package and is
+not readable by the adapter; use the official Mod Editor to prepare an editable
+source directory. This adapter does not itself unpack/repack FPK or edit
+ModItem metadata.
+
 ### Initial and incremental workflows
 
 `POST /jobs/plan` accepts `workflow: "initial" | "incremental"`; omission
 defaults to `initial`. Submit the approved plan through the existing
 `POST /jobs` endpoint. Incremental mode compares recognized source entries, so
-a version or path change alone does not trigger retranslations. Existing
-translations for changed source are retained with a review resolution; entries
-marked `needs_review` stay unresolved until reviewed. `dry_run: true` is a
-readiness check only and does not run the entry diff. Check
+Mod metadata version changes alone do not trigger retranslations; source path
+move reuse is not guaranteed across games. Follow
+`game_support.incremental_policy` and `changed_translation_policy` for that
+game. Project Zomboid and RimWorld retain translations for changed source with
+`needs_review`; Surviving Mars uses its existing CSV incremental workflow.
+`dry_run: true` is a readiness check only and does not run the entry diff. Check
 `game_support.incremental_checkpoint_resume_supported`; for these adapters it
 is false, so a fresh incremental plan is required instead of checkpoint resume.
 Custom shell languages are unsupported for these adapters, including
 incremental work.
+
+The in-product desktop chat currently guides initial translation only. Use the
+project UI or this Agent API with `workflow: "incremental"` for incremental
+updates; do not infer chat execution support from API support.
 
 `game_support` is dynamic policy data. Prefer the latest capabilities, inspect,
 plan and job responses over a hard-coded local format list.
@@ -278,9 +308,9 @@ game target path, and only local-inspection actions when packages are
 available. Install those packages manually using the game's Mod installation
 process; after an explicit approval request, `POST /jobs/{job_id}/approve-export` returns
 `409 unsupported_game_deployment` for these games and Surviving Mars.
-Surviving Mars preview returns existing `local_files` and `export_mode:
-"local_files"` with the same `validation_scope`; it does not construct a
-separate translation Mod.
+Surviving Mars preview returns parsed CSV tables in `local_files` and
+`export_mode: "local_files"` with the same `validation_scope`; invalid or
+unrelated CSVs are omitted. It does not construct a separate translation Mod.
 
 For a game with Paradox deployment, display `output_folder_name`, target paths,
 overwrite state, and warnings. Then obtain export approval. If

@@ -218,6 +218,8 @@ def create_localization_plan(
         raise ValueError("Import mode must be copy or reference")
     game_support = inspect_folder_game_support(game_id, inspection["folder_path"], source_language)
     inspection["game_support"] = game_support
+    if game_id == "surviving_mars" and game_support["has_blocking_diagnostics"]:
+        raise ValueError("Resolve Surviving Mars CSV diagnostics before planning a translation workflow.")
     if target_language == source_language:
         raise ValueError("Target language must differ from the source language")
     if not provider_selection_exists(api_provider):

@@ -111,10 +111,21 @@ For Project Zomboid and RimWorld, source resources remain read-only and outputs
 are separate manual-install packages, one package per target language. Their
 export preview lists existing valid local packages and uses
 `export_mode: "manual_install"`; `approve-export` does not install or deploy
-them. Surviving Mars preview lists local CSV files. Consult the dynamic
+them. Surviving Mars preview lists existing CSV files that pass the table
+header and parser checks. Consult the dynamic
 `game_support` contract for recognized formats and limitations; keep unknown
 fields, conditions, inherited values and runtime-generated text visible for
 human review.
+
+For Surviving Mars, use `game_support.csv_contract` and the dynamic scan to
+confirm recognized CSV resources, entry counts, diagnostics, and runtime status.
+Only `ModItemLocTable` CSV with the declared five-column header is supported;
+IDs stay exact strings and only `Translation` is writable. Initial translation,
+incremental update, and proofreading use the existing CSV project workflow;
+the output remains local CSV files, not a separate translation Mod. FPK cannot
+be read directly and requires an editable source directory prepared with the
+official Mod Editor. The built-in Remis chat can guide only initial translation;
+use the project UI or this Agent API for incremental updates.
 
 Published Mod Archives can be removed through the approval-gated Agent endpoint
 documented in the API reference. Archive removal deletes only regenerable

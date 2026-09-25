@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from scripts.core.game_adapters.project_support import inspect_support
 from scripts.core.game_adapters.registry import game_capabilities, resource_adapter
+from scripts.core.services.mars_game_support import csv_contract, inspect_csv_support
 
 
 def get_game_support(game_id: str) -> dict:
@@ -20,7 +21,8 @@ def get_game_support(game_id: str) -> dict:
                             "Hard-coded Lua strings and special media formats are not covered."],
         "rimworld": ["Unknown fields, inheritance, PatchOperation and conditional dependencies need review.",
                      "Assemblies and runtime-generated text are not executed or fully resolved."],
-        "surviving_mars": ["Reuses existing CSV translation only; independent translation Mod generation is not implemented."],
+        "surviving_mars": ["Reuses existing CSV translation, incremental updates and proofreading; independent translation Mod generation is not implemented.",
+                           "FPK unpacking/repacking, ModItem creation, deployment and publishing are not implemented."],
     }
     special = adapter is not None or game_id == "surviving_mars"
     return {
@@ -35,7 +37,8 @@ def get_game_support(game_id: str) -> dict:
         "version_policy": "Record provenance and effective directories; do not disable known rules for minor-version differences.",
         "incremental_policy": "Compare individual source entries; Mod metadata version changes alone do not require retranslating entries.",
         "changed_translation_policy": "preserve_and_require_review" if adapter else "existing_workflow",
-        "runtime_verified": False if adapter else None,
+        "runtime_verified": False if special else None,
+        **({"csv_contract": csv_contract()} if game_id == "surviving_mars" else {}),
         "source_files_read_only": True,
         "workflow_modes": ["initial", "incremental"],
         "incremental_checkpoint_resume_supported": False,
@@ -46,13 +49,14 @@ def get_game_support(game_id: str) -> dict:
 def inspect_game_support(game_id: str, source_path: str, source_language: str = "en",
                          game_version: str | None = None) -> dict:
     contract = get_game_support(game_id)
-    result = inspect_support(game_id, source_path, source_language, game_version)
+    result = (inspect_csv_support(source_path) if game_id == "surviving_mars"
+              else inspect_support(game_id, source_path, source_language, game_version))
     diagnostics = result["diagnostics"]
     return {**result, "support": contract, "read_only": True,
             "source_language": source_language, "requested_game_version": game_version,
             "recognized_resource_count": len(result["resources"]),
             "recognized_entry_count": sum(item["entry_count"] for item in result["resources"]),
-            "coverage_scope": "recognized_resources_only" if resource_adapter(game_id) else "use_existing_file_inspection",
+            "coverage_scope": "recognized_resources_only" if resource_adapter(game_id) or game_id == "surviving_mars" else "use_existing_file_inspection",
             "has_blocking_diagnostics": any(item.get("severity") == "error" for item in diagnostics),
             "runtime_verified": contract["runtime_verified"],
             "allowed_actions": ["inspect_diagnostics"] if any(item.get("severity") == "error" for item in diagnostics)

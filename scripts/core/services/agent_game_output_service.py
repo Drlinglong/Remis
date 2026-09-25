@@ -237,11 +237,17 @@ def _has_required_mod_metadata(package_root: Path, game_id: str) -> bool:
 
 
 def _mars_files(roots: list[Path]) -> list[str]:
+    from scripts.core import surviving_mars_csv
     files = []
     for root in roots:
         for path in _walk_without_links(root):
-            if path.is_file() and path.suffix.casefold() == ".csv":
-                files.append(str(path.resolve()))
+            if not path.is_file() or not surviving_mars_csv.is_table_file(path):
+                continue
+            try:
+                surviving_mars_csv.parse_file(path)
+            except (OSError, ValueError):
+                continue
+            files.append(str(path.resolve()))
     return sorted(set(files))
 
 

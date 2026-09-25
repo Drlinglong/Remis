@@ -156,6 +156,21 @@ compileall、diff 空白检查通过。
 游戏输出预览和人工复核投影抽到独立服务。新增 Python 服务均低于 800 行。
 本补充不修改前端组件、状态或 effects。
 
+## 火星 CSV 的 Agent 适配补充
+
+火星复用 `surviving_mars_csv` 解析器；独立的只读发现服务向 API 和内置 Copilot 返回
+真实资源/条目数、CSV 列保护约定、FPK 与坏表诊断。扫描不跟随链接，有文件数上限，
+扫描不完整时阻断普通计划。缺少合法 CSV 的 Agent/聊天初次计划不会进入付费执行；
+API dry-run 仍可读取诊断。输出预览只列出能通过现有 CSV 表结构解析的本地文件。
+
+中英火星专属指南、Codex Skill 和 API 参考同步治理，说明只写 `Translation`、保留 ID 前导零
+和标签参数，区分现有 CSV 流程与尚未实现的独立 Mod 生成。内置助手读取专属指南及
+`csv_contract`；增量执行仍通过项目界面或 Agent API。运行中 API 对专用合成 CSV
+返回 1 个资源/2 个条目，`runtime_verified=false`；未调用模型或运行游戏。
+
+补充回归：Agent/Copilot 与原 CSV 测试共 223 passed、1 skipped，退出码 0；跳过项为本机
+无法创建的目录 symlink 样例。架构 guard、compileall 通过，未修改前端组件或增加状态/effects。
+
 ## 本地提交记录
 
 - `da262d50` — `feat(localization): add extensible PZ and RimWorld workflows`

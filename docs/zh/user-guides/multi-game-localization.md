@@ -20,6 +20,6 @@ Remis 桌面 Help Copilot 可以引导用户并展示初次翻译计划供用户
 
 ## 手动安装边界
 
-对 Project Zomboid 和 RimWorld，导出预览只列出 Remis 已生成、清单和资源记录有效的本地包，并标为 `manual_install`。`validation_scope: artifact_presence_only` 只表示产物存在检查，不代表游戏运行时已验证。预览不会复制到游戏目录；以明确批准方式调用 `approve-export` 会返回 `409 unsupported_game_deployment`，不会部署这些游戏的包。查看预览后，按对应游戏的 Mod 安装方式手动安装。Surviving Mars 预览列出已有 CSV 文件，也不代表可自动部署。
+对 Project Zomboid 和 RimWorld，导出预览只列出 Remis 已生成、清单和资源记录有效的本地包，并标为 `manual_install`。`validation_scope: artifact_presence_only` 只表示产物存在检查，不代表游戏运行时已验证。预览不会复制到游戏目录；以明确批准方式调用 `approve-export` 会返回 `409 unsupported_game_deployment`，不会部署这些游戏的包。查看预览后，按对应游戏的 Mod 安装方式手动安装。Surviving Mars 预览只列出通过 CSV 表头和结构解析的本地产物，不代表游戏加载已验证或可以自动部署。
 
 格式支持表示 Remis 能识别并处理列出的本地化资源，不表示游戏已加载验证。需要确认覆盖顺序、条件加载或运行时行为时，请在备份和隔离的测试 Mod 上进行游戏内检查。

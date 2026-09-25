@@ -30,6 +30,7 @@ _PUBLIC_SUPPORT_FIELDS = (
     "workflow_modes",
     "incremental_checkpoint_resume_supported",
     "terminology",
+    "csv_contract",
 )
 
 

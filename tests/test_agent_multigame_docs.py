@@ -46,6 +46,40 @@ def test_player_guide_distinguishes_help_and_incremental_workflows():
     assert "ModItemLocTable CSV 初次翻译、增量更新和校对流程" in guide
 
 
+def test_surviving_mars_guides_match_the_csv_and_agent_contract():
+    chinese = _read("docs/zh/user-guides/surviving-mars.md")
+    english = _read("docs/en/user-guides/surviving-mars.md")
+    api = _read(".agents/skills/remis-agent/references/api-workflow.md")
+    for guide in (chinese, english):
+        assert "ID,Text,Translation,VoiceActor,Context" in guide
+        assert "leading zeros" in guide or "前导零" in guide
+        assert "Translation`" in guide
+        assert "ModContent.fpk" in guide
+        assert "official Mod Editor" in guide or "官方 Mod Editor" in guide
+        assert "custom_lang_config" in guide
+    assert "文本标签" not in chinese
+    assert "标签与标签之间的正文可以翻译" in chinese
+    assert "尖括号内部的标签名称和参数不可翻译" in chinese
+    assert "Text between tags may be translated" in english
+    assert "tag names and parameters inside angle brackets must not be translated" in english
+    assert "initial translation, incremental update and proofreading" in " ".join(api.split())
+    for field in (
+        "csv_contract",
+        "source_column",
+        "writable_column",
+        "preserved_columns",
+        "id_policy",
+        "tag_policy",
+        "preserve_relative_paths",
+        "compressed_packages_supported",
+        "recognized_resource_count",
+        "recognized_entry_count",
+    ):
+        assert field in api
+    assert "`Translation` may change" in api
+    assert "Invalid/no-table scans have\nblocking diagnostics" in api
+
+
 def test_user_and_developer_docs_link_to_the_single_api_contract():
     user_guide = "docs/zh/user-guides/multi-game-localization.md"
     api_reference = ".agents/skills/remis-agent/references/api-workflow.md"
@@ -60,7 +94,9 @@ def test_user_and_developer_docs_link_to_the_single_api_contract():
         assert "unsupported_game_deployment" in contents
 
     for relative_path in ("README.md", "docs/README.md", "docs/README_ZH.md"):
-        assert "multi-game-localization.md" in _read(relative_path)
+        contents = _read(relative_path)
+        assert "multi-game-localization.md" in contents
+        assert "surviving-mars.md" in contents
 
     for relative_path in ("docs/agent.md", "docs/en/agent.md"):
         assert "Agent API" in _read(relative_path)
@@ -80,6 +116,8 @@ def test_updated_documentation_has_no_broken_local_markdown_links():
         "docs/en/developer/agent-api-quickstart.md",
         "docs/zh/developer/agent-api-quickstart.md",
         "docs/zh/user-guides/multi-game-localization.md",
+        "docs/zh/user-guides/surviving-mars.md",
+        "docs/en/user-guides/surviving-mars.md",
         ".agents/skills/remis-agent/SKILL.md",
         ".agents/skills/remis-agent/references/api-workflow.md",
     )

@@ -163,7 +163,9 @@ def test_surviving_mars_preview_lists_csv_as_local_files_only(tmp_path: Path):
     output = destination / "mars-job"
     csv_file = output / "translations" / "CHS.csv"
     csv_file.parent.mkdir(parents=True)
-    csv_file.write_text("key,value\n", encoding="utf-8")
+    csv_file.write_text("ID,Text,Translation,VoiceActor,Context\n001,Source,Target,,\n", encoding="utf-8")
+    (output / "ordinary.csv").write_text("key,value\n", encoding="utf-8")
+    (output / "broken.csv").write_text("ID,Text,Translation,VoiceActor,Context\nabc,Source,Target,,\n", encoding="utf-8")
     (output / "unrelated.yml").write_text("l_english:\n", encoding="utf-8")
 
     result = preview_game_output(

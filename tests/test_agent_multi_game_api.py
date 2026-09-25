@@ -50,7 +50,7 @@ def _package(root: Path, game_id: str) -> None:
         resource = "Languages/ChineseSimplified/Keyed/UI.xml"
         content = "<LanguageData><Title>打开 {0}</Title></LanguageData>"
     else:
-        _write(root / "ChineseSimplified.csv", "key,value\n")
+        _write(root / "ChineseSimplified.csv", "ID,Text,Translation,VoiceActor,Context\n001,Source,Target,,\n")
         return
     _write(root / metadata, "<ModMetaData/>" if game_id == "rimworld" else "id=agent.fixture\n")
     _write(root / resource, content)
