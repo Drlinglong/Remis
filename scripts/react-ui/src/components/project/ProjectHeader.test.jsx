@@ -109,6 +109,49 @@ describe('ProjectHeader', () => {
     })).toBeInTheDocument();
   });
 
+  it('hides Paradox deployment and cleanup for structured games even when translation is ready', async () => {
+    renderWithProvider(
+      <ProjectHeader
+        projectDetails={{
+          ...baseProjectDetails,
+          game_id: 'project_zomboid',
+          has_available_translation: true,
+          overview: { ...baseProjectDetails.overview, translated: 100, toBeProofread: 0 },
+          validation: { issues_count: 0 },
+        }}
+        handleStatusChange={vi.fn()}
+        onDeleteForever={vi.fn()}
+        onManageProject={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole('heading', { name: 'project_management.primary_continue_translation' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'project_management.direct_deploy' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'project_management.project_menu' }));
+    expect(screen.queryByRole('menuitem', { name: 'button_auto_deploy' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'button_clean_fake_loc' })).not.toBeInTheDocument();
+  });
+
+  it('routes a source-only project to initial translation and suppresses false proofreading progress', () => {
+    renderWithProvider(
+      <ProjectHeader
+        projectDetails={{
+          ...baseProjectDetails,
+          game_id: 'project_zomboid',
+          has_available_translation: false,
+          overview: { ...baseProjectDetails.overview, translated: 0, toBeProofread: 100 },
+        }}
+        handleStatusChange={vi.fn()}
+        onDeleteForever={vi.fn()}
+        onManageProject={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole('button', { name: 'button_start_translation' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'project_management.primary_continue_proofreading' })).not.toBeInTheDocument();
+    expect(screen.getByText('project_management.overview.to_be_proofread: 0%')).toBeInTheDocument();
+  });
+
   it('shows deleted project actions for restore and permanent delete', async () => {
     const handleStatusChange = vi.fn();
     const onDeleteForever = vi.fn();

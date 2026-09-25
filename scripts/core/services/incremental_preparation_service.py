@@ -79,6 +79,8 @@ def _prepare_file_entries(
     full_file_entries: List[Dict[str, Any]] = []
     canonical_entries = file_data.get("canonical_entries", ())
     file_path = file_data["file_path"]
+    from scripts.core.game_adapters.review_state import pending_keys
+    pending = pending_keys(file_data, target_lang_code)
 
     for entry_index, (key, source_text, line_num) in enumerate(file_data["parsed_entries"]):
         summary["total"] += 1
@@ -94,7 +96,17 @@ def _prepare_file_entries(
             "is_dirty": False,
             "entry": canonical_entries[entry_index] if entry_index < len(canonical_entries) else None,
         }
-        if status == "unchanged":
+        needs_review = bool(file_data.get("adapter_key_map") and history_entry
+                            and history_entry.get("translation")
+                            and (status == "changed" or key in pending))
+        if needs_review:
+            summary["changed"] += 1
+            file_summary["changed"] += 1
+            entry_info.update(translation=history_entry["translation"], resolution="review")
+            reference_protected_entries.append({"source_file": file_path, "key": key})
+            file_summary["dirty_entries"].append({"key": key, "status": "changed",
+                "line_num": line_num, "source_text": source_text, "resolution": "review"})
+        elif status == "unchanged":
             summary["unchanged"] += 1
             file_summary["unchanged"] += 1
             entry_info["translation"] = history_entry["translation"] if history_entry else None
@@ -204,7 +216,7 @@ class IncrementalPreparationService:
             file_summaries.append(file_summary)
             if texts_to_translate:
                 file_tasks_for_ai.append(_build_incremental_file_task(
-                    filename=filename,
+                    filename=file_path if file_data.get("adapter_key_map") else filename,
                     file_data=file_data,
                     texts=texts_to_translate,
                     key_delta_indices=key_delta_indices,

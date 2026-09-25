@@ -6,7 +6,7 @@ import sqlite3
 from dataclasses import dataclass
 from typing import Any
 
-from scripts.app_settings import PROJECTS_DB_PATH
+from scripts.app_settings import GAME_PROFILES_BY_ID, PROJECTS_DB_PATH
 from scripts.core.context_service import ContextService
 from scripts.core.repositories.context_repository import ContextRepository
 from scripts.core.services.incremental_snapshot_service import IncrementalSnapshotService
@@ -328,8 +328,10 @@ class TranslationContextReadinessService:
         if not source_root:
             return None, 0, frozenset()
         try:
+            game_id = str(project.get("game_id") or "").strip().lower()
             files = self.source_inventory_service.build_snapshot(
                 str(source_root), self._source_language_info(project),
+                game_profile=GAME_PROFILES_BY_ID.get(game_id),
             )
             if not files:
                 return None, 0, frozenset()

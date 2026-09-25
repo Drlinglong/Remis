@@ -76,6 +76,27 @@ def test_clear_translation_checkpoints_clears_each_language(monkeypatch):
     assert cleared == ["zh-CN", "ja"]
 
 
+def test_sync_project_outputs_registers_every_language_root(monkeypatch):
+    calls = []
+
+    async def add_translation_path(project_id, output_path):
+        calls.append(("add", project_id, output_path))
+
+    async def refresh_project_files(project_id):
+        calls.append(("refresh", project_id))
+
+    monkeypatch.setattr(completion_service.project_manager, "add_translation_path", add_translation_path)
+    monkeypatch.setattr(completion_service.project_manager, "refresh_project_files", refresh_project_files)
+
+    completion_service.sync_project_outputs("project-1", ["fr-prepared", "de-prepared"])
+
+    assert calls == [
+        ("add", "project-1", "fr-prepared"),
+        ("add", "project-1", "de-prepared"),
+        ("refresh", "project-1"),
+    ]
+
+
 def test_finalize_workflow_run_runs_tail_steps(monkeypatch):
     calls = []
 

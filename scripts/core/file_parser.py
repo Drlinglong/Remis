@@ -28,6 +28,7 @@ from typing import Callable, List
 import logging
 
 from scripts.core.paradox_localization_parser import ParseDiagnostic
+from scripts.core import surviving_mars_csv
 from scripts.utils import i18n  # komunikaty wielojęzykowe
 from scripts.utils.quote_extractor import QuoteExtractor
 
@@ -71,6 +72,17 @@ def extract_translatable_content_with_diagnostics(
     file_path: str,
 ) -> tuple[list[str], list[str], dict[int, dict], tuple[ParseDiagnostic, ...]]:
     """Extract content without discarding structured parser diagnostics."""
+
+    from scripts.core.game_adapters.registry import adapter_for_path
+    if adapter_for_path(file_path):
+        from scripts.core.game_adapters.workflow_bridge import extract_file
+        return extract_file(file_path)
+
+    if surviving_mars_csv.is_table_file(file_path):
+        original_lines, texts_to_translate, key_map = surviving_mars_csv.extract_file(file_path)
+        _apply_hooks(file_path, original_lines, texts_to_translate, key_map)
+        logging.info(i18n.t("extracted_texts", count=len(texts_to_translate)))
+        return original_lines, texts_to_translate, key_map, ()
 
     original_lines, texts_to_translate, key_map, diagnostics = (
         QuoteExtractor.extract_from_file_with_diagnostics(file_path)

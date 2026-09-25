@@ -22,8 +22,8 @@ def _reference_key(key_info: dict) -> str:
     return getattr(entry, "base_key", None) or key_info.get("key_part", "")
 
 
-def _split_reference_hits(texts, key_map, reference_resolver, source_file=""):
-    if reference_resolver is None:
+def _split_reference_hits(texts, key_map, reference_resolver, source_file="", preserved=None):
+    if reference_resolver is None and not preserved:
         return list(texts), list(range(len(texts))), {}
 
     model_texts = []
@@ -31,6 +31,13 @@ def _split_reference_hits(texts, key_map, reference_resolver, source_file=""):
     reference_translations = {}
     for index, source_text in enumerate(texts):
         key_info = key_map[index]
+        if index in (preserved or {}):
+            reference_translations[index] = preserved[index]
+            continue
+        if reference_resolver is None:
+            model_positions.append(index)
+            model_texts.append(source_text)
+            continue
         match = reference_resolver.lookup(
             _reference_key(key_info),
             source_text,
@@ -75,6 +82,7 @@ def _mark_checkpoint_completed(
         )
     else:
         checkpoint_manager.mark_file_completed(identity)
+    run_state.completed_files += 1
 
 
 def build_file_task_iterator(
@@ -139,11 +147,13 @@ def build_file_task_iterator(
         )
 
         source_file = file_data.get("file_path", file_data["filename"])
+        from scripts.core.game_adapters.translation_reuse import existing_translations
         model_texts, model_positions, reference_translations = _split_reference_hits(
             texts,
             key_map,
             reference_resolver,
             source_file,
+            existing_translations(file_data, target_lang),
         )
         if reference_run_metrics is not None:
             reference_run_metrics["model_submitted"] = (

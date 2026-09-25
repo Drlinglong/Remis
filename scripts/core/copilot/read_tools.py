@@ -11,7 +11,14 @@ from typing import Any
 
 import httpx
 
-from scripts.app_settings import API_PROVIDERS, PROJECTS_DB_PATH, config_manager, resolve_path
+from scripts.app_settings import (
+    API_PROVIDERS,
+    GAME_PROFILES_BY_ID,
+    PROJECTS_DB_PATH,
+    config_manager,
+    resolve_path,
+)
+from scripts.core.copilot.game_support import inspect_project_game_support, read_game_support
 from scripts.routers.translation import check_checkpoint_status
 from scripts.schemas.translation import CheckpointStatusRequest
 
@@ -54,8 +61,10 @@ def build_workflow_read_tool_schemas() -> list[dict[str, Any]]:
     provider_ids = list(API_PROVIDERS)
     empty = {"type": "object", "properties": {}, "additionalProperties": False}
     return [
-        {"type": "function", "name": "inspect_translation_context", "description": "Read the complete bounded planning context: project, file summary, preferred provider/models, glossaries, and checkpoint.", "parameters": empty},
+        {"type": "function", "name": "inspect_translation_context", "description": "Read the complete bounded planning context: project, game support and recognized resources, file summary, preferred provider/models, glossaries, and checkpoint.", "parameters": empty},
         {"type": "function", "name": "inspect_project", "description": "Read project metadata and aggregate file counts.", "parameters": empty},
+        {"type": "function", "name": "get_game_support", "description": "Read static game formats, output modes, incremental policy, and limitations.", "parameters": {"type": "object", "properties": {"game_id": {"type": "string", "enum": list(GAME_PROFILES_BY_ID)}}, "required": ["game_id"], "additionalProperties": False}},
+        {"type": "function", "name": "inspect_project_game_support", "description": "Read recognized resources and diagnostics for the server-bound project, optionally with a game version.", "parameters": {"type": "object", "properties": {"game_version": {"type": ["string", "null"]}}, "additionalProperties": False}},
         {"type": "function", "name": "list_project_files", "description": "Read a bounded sample and status summary of indexed project files.", "parameters": empty},
         {"type": "function", "name": "get_provider_status", "description": "Read non-secret configuration and reachability for one provider.", "parameters": {"type": "object", "properties": {"provider": {"type": "string", "enum": provider_ids}}, "required": ["provider"], "additionalProperties": False}},
         {"type": "function", "name": "list_available_models", "description": "Read configured model names for one provider; never returns keys.", "parameters": {"type": "object", "properties": {"provider": {"type": "string", "enum": provider_ids}}, "required": ["provider"], "additionalProperties": False}},
@@ -220,6 +229,11 @@ async def execute_workflow_read_tool(
         provider_snapshot = await _get_provider_snapshot(preferred_provider)
         return {
             "project": await _inspect_project(project_id),
+            "game_support": await execute_workflow_read_tool(
+                "inspect_project_game_support", {}, project_id=project_id,
+                target_lang_codes=target_lang_codes,
+                preferred_provider=preferred_provider,
+            ),
             "files": await _list_project_files(project_id),
             "provider_status": provider_snapshot["status"],
             "models": provider_snapshot["models"],
@@ -233,6 +247,12 @@ async def execute_workflow_read_tool(
         }
     if name == "inspect_project":
         return await _inspect_project(project_id)
+    if name == "get_game_support":
+        return read_game_support(str(arguments.get("game_id") or ""))
+    if name == "inspect_project_game_support":
+        return await inspect_project_game_support(
+            project_id, str(arguments["game_version"]) if arguments.get("game_version") else None
+        )
     if name == "list_project_files":
         return await _list_project_files(project_id)
     if name == "get_provider_status":

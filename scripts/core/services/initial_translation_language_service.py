@@ -172,6 +172,9 @@ def _process_file_tasks(
                     all_files_content,
                     progress_metadata=run_state.checkpoint_progress(),
                 )
+                if not is_failed:
+                    run_state.completed_files += 1
+                update_progress(file_task.filename)
 
 
 def _build_parallel_processor(max_workers, chunk_size, source_context_overlap, context_selection):
@@ -276,7 +279,7 @@ def run_language_translation(
         mod_name, output_folder_name, target_lang.get("code", "zh-CN")
     )
     checkpoint_manager = build_checkpoint_manager(
-        output_dir_path,
+        target_lang.get("_checkpoint_output_dir_path", output_dir_path),
         selected_provider,
         model_name,
         source_lang,
@@ -290,7 +293,7 @@ def run_language_translation(
         config_fingerprint=config_fingerprint,
         provider_runtime=provider_runtime,
     )
-    run_state = LanguageRunState.from_checkpoint(checkpoint_manager)
+    run_state = LanguageRunState.from_checkpoint(checkpoint_manager, total_files=len(all_files_content))
     progress_lock = threading.Lock()
     (
         reference_resolver,

@@ -4,9 +4,10 @@ import { notifications } from '@mantine/notifications';
 import { IconBrain, IconRobot } from '@tabler/icons-react';
 import { fetchCopilotSettings, saveCopilotSettings } from '../../services/copilotService';
 import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard';
-import { applyReasoningToggle } from './copilotSettingsForm';
+import { applyReasoningToggle, normalizeCopilotSettings } from './copilotSettingsForm';
 
 const presetLabels = {
+  none: '关闭推理',
   minimal: '最少',
   low: '低',
   medium: '中',
@@ -34,9 +35,11 @@ export default function CopilotSettingsTab() {
   useEffect(() => {
     fetchCopilotSettings()
       .then((data) => {
-        setProviders(data.providers || []);
-        setForm(data.settings);
-        setSavedForm(data.settings);
+        const nextProviders = data.providers || [];
+        const nextSettings = normalizeCopilotSettings(data.settings, nextProviders);
+        setProviders(nextProviders);
+        setForm(nextSettings);
+        setSavedForm(nextSettings);
       })
       .catch((error) => notifications.show({
         title: '无法读取小助手设置',

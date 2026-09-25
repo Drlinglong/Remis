@@ -93,6 +93,9 @@ class GameType(str, Enum):
     VIC3 = "vic3"
     CK3 = "ck3"
     EU4 = "eu4"
+    SURVIVING_MARS = "surviving_mars"
+    PROJECT_ZOMBOID = "project_zomboid"
+    RIMWORLD = "rimworld"
     
     @classmethod
     def from_str(cls, value: str):
@@ -100,10 +103,17 @@ class GameType(str, Enum):
         value = value.lower().strip()
         mapping = {
             "stellaris": cls.STELLARIS,
+            "project_zomboid": cls.PROJECT_ZOMBOID, "project zomboid": cls.PROJECT_ZOMBOID,
+            "rimworld": cls.RIMWORLD,
             "hearts of iron iv": cls.HOI4, "hoi4": cls.HOI4,
             "victoria 3": cls.VIC3, "victoria3": cls.VIC3, "vic3": cls.VIC3,
             "crusader kings iii": cls.CK3, "ck3": cls.CK3,
-            "europa universalis iv": cls.EU4, "eu4": cls.EU4
+            "europa universalis iv": cls.EU4, "eu4": cls.EU4,
+            "surviving mars": cls.SURVIVING_MARS,
+            "surviving mars: relaunched": cls.SURVIVING_MARS,
+            "surviving_mars": cls.SURVIVING_MARS,
+            "project spark": cls.SURVIVING_MARS,
+            "7": cls.SURVIVING_MARS
         }
         return mapping.get(value, cls.STELLARIS)
         

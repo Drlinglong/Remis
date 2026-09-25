@@ -1,4 +1,4 @@
-"""Focused orchestration for Agent-owned initial translation plans."""
+"""Focused orchestration for Agent-owned initial and incremental translation plans."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable
 
 from scripts.schemas.agent import AgentJobPlanRequest, AgentPlanResponse
+from scripts.schemas.agent_language import language_plan_details
 from scripts.core.services.translation_context_readiness_service import TranslationContextModeResolution
 from scripts.core.services.translation_recovery_service import TranslationRecoveryService
 
@@ -70,6 +71,22 @@ async def _resolve_agent_context(request, execution_args, plan, readiness_servic
     )
 
 
+def _game_plan_support(request, plan):
+    from scripts.core.services.game_support_service import get_game_support, inspect_game_support
+    inspection = plan.get("inspection") or {}
+    game_id = inspection.get("game_id")
+    support = get_game_support(game_id) if game_id else {}
+    if request.custom_lang_config and (request.workflow == "incremental" or support.get("shell_languages_supported") is False):
+        raise AgentTranslationPlanError(400, "unsupported_shell_language", "This game/workflow does not support Paradox shell-language configuration.")
+    if request.workflow == "incremental" and request.use_resume:
+        raise AgentTranslationPlanError(409, "incremental_resume_unsupported", "Create a fresh incremental plan; task-owned checkpoint resume is unavailable.")
+    if game_id and support.get("output_kind") in {"independent_translation_mod", "csv_files"} and inspection.get("source_path"):
+        support = inspect_game_support(game_id, inspection["source_path"], inspection.get("source_language", "en"))
+        if not request.dry_run and (support["has_blocking_diagnostics"] or not support["recognized_resource_count"]):
+            raise AgentTranslationPlanError(409, "game_resources_blocked", "Resolve blocking game resource diagnostics before translation.", {"game_support": support})
+    return support
+
+
 async def build_agent_translation_plan(
     request: AgentJobPlanRequest,
     *,
@@ -113,6 +130,7 @@ async def build_agent_translation_plan(
             stale_choice=request.stale_choice,
             stale_acknowledgement=request.stale_acknowledgement,
             embedded_workshop_enabled=request.embedded_workshop_enabled,
+            custom_lang_config=request.custom_lang_config,
         )
     except ValueError as exc:
         message = str(exc)
@@ -123,7 +141,8 @@ async def build_agent_translation_plan(
             message,
         ) from exc
 
-    execution_args = plan["execution_args"]
+    game_support = _game_plan_support(request, plan)
+    execution_args = {**plan["execution_args"], "workflow": request.workflow}
     execution_args.setdefault("translation_context_mode", request.translation_context_mode)
     context_resolution, context_readiness = await _resolve_agent_context(
         request, execution_args, plan, readiness_service,
@@ -182,5 +201,7 @@ async def build_agent_translation_plan(
         summary=summary,
         allowed_actions=["start_dry_run"] if request.dry_run else ["approve_start"],
         context_readiness=context_readiness,
+        translation={**language_plan_details(execution_args), "workflow": request.workflow},
+        game_support=game_support,
         expires_at=record["expires_at"],
     )

@@ -61,6 +61,8 @@ export const ProjectSelectStep = ({
                 </Group>
             </Paper>
 
+            <Text size="xs" c="dimmed">{t('project_management.source_directory_note')}</Text>
+
             <SimpleGrid id="incremental-project-grid" cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
                 {filteredProjects.map((p) => (
                     <Card

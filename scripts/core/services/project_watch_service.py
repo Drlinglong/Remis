@@ -10,7 +10,7 @@ from scripts.shared import task_state
 
 
 LOCALIZATION_DIR_NAMES = {"localization", "localisation"}
-LOCALIZATION_EXTENSIONS = {".yml", ".yaml", ".csv", ".txt"}
+LOCALIZATION_EXTENSIONS = {".yml", ".yaml", ".csv", ".txt", ".json", ".xml"}
 
 
 class ProjectWatchService:
@@ -436,7 +436,7 @@ class ProjectWatchService:
 
         for profile in GAME_PROFILES_BY_ID.values():
             source_folder = profile.get("source_localization_folder")
-            if source_folder:
+            if source_folder and str(source_folder).strip() not in {"", "."}:
                 child = root / str(source_folder)
                 if child.exists() and child.is_dir():
                     candidates.append(child)

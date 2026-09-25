@@ -51,7 +51,14 @@ def test_approved_provider_catalogs_and_defaults_are_locked():
         ),
         "openai": (
             "gpt-5.6-luna",
-            ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"],
+            [
+                "gpt-5.6-sol",
+                "gpt-5.6-terra",
+                "gpt-5.6-luna",
+                "gpt-6-astra",
+                "gpt-6-sol",
+                "gpt-6-luna",
+            ],
         ),
         "qwen": ("qwen3.8-max", ["qwen3.8-max", "qwen3.8-flash-next"]),
         "grok": ("grok-4.6", ["grok-4.6"]),
@@ -96,6 +103,9 @@ def test_curated_aggregator_catalogs_never_infer_reasoning():
             "openai/gpt-5.6-luna",
             [
                 "openai/gpt-5.6-luna",
+                "openai/gpt-6-luna",
+                "openai/gpt-6-sol",
+                "openai/gpt-6-astra",
                 "google/gemini-3.8-flash",
                 "google/gemini-3.7-flash",
                 "qwen/qwen3.8-max",
@@ -117,7 +127,143 @@ def test_curated_aggregator_catalogs_never_infer_reasoning():
         config = API_PROVIDERS[provider_id]
         assert config["default_model"] == default_model
         assert config["available_models"] == models
-        assert config["reasoning"]["models"] == dict.fromkeys(models)
+        if provider_id == "openrouter":
+            dispositions = config["reasoning"]["models"]
+            assert dispositions["openai/gpt-6-luna"]["source_url"] == (
+                "https://openrouter.ai/api/v1/models"
+            )
+            assert dispositions["openai/gpt-6-luna"]["reviewed_at"] == (
+                "2026-09-25"
+            )
+            assert {
+                preset: value["reasoning"]["effort"]
+                for preset, value in dispositions["openai/gpt-6-luna"][
+                    "presets"
+                ].items()
+            } == {
+                "none": "none",
+                "low": "low",
+                "medium": "medium",
+                "high": "high",
+                "xhigh": "xhigh",
+                "max": "max",
+            }
+            new_models = {
+                "openai/gpt-6-luna",
+                "openai/gpt-6-sol",
+                "openai/gpt-6-astra",
+            }
+            assert {
+                model: capability
+                for model, capability in dispositions.items()
+                if model not in new_models
+            } == dict.fromkeys(
+                model for model in models if model not in new_models
+            )
+        else:
+            assert config["reasoning"]["models"] == dict.fromkeys(models)
+
+
+@pytest.mark.parametrize(
+    ("preset", "effort"),
+    [
+        ("none", "none"),
+        ("low", "low"),
+        ("medium", "medium"),
+        ("high", "high"),
+        ("xhigh", "xhigh"),
+        ("max", "max"),
+    ],
+)
+def test_openrouter_gpt6_luna_uses_exact_reasoning_effort_mapping(
+    preset,
+    effort,
+):
+    config = {
+        **API_PROVIDERS["openrouter"],
+        "default_model": "openai/gpt-6-luna",
+        "reasoning_builtin_enabled": True,
+        "reasoning_preset": preset,
+    }
+
+    resolution = resolve_reasoning_parameters(config)
+
+    assert resolution.supported is True
+    assert resolution.selected_preset == preset
+    assert resolution.parameters == {"reasoning": {"effort": effort}}
+
+
+@pytest.mark.parametrize(
+    ("model", "preset", "effort"),
+    [
+        ("gpt-6-astra", "low", "low"),
+        ("gpt-6-astra", "medium", "medium"),
+        ("gpt-6-astra", "high", "high"),
+        ("gpt-6-astra", "xhigh", "xhigh"),
+        ("gpt-6-astra", "max", "max"),
+        ("gpt-6-sol", "none", "none"),
+        ("gpt-6-sol", "low", "low"),
+        ("gpt-6-sol", "medium", "medium"),
+        ("gpt-6-sol", "high", "high"),
+        ("gpt-6-sol", "xhigh", "xhigh"),
+        ("gpt-6-sol", "max", "max"),
+        ("gpt-6-luna", "none", "none"),
+        ("gpt-6-luna", "low", "low"),
+        ("gpt-6-luna", "medium", "medium"),
+        ("gpt-6-luna", "high", "high"),
+        ("gpt-6-luna", "xhigh", "xhigh"),
+        ("gpt-6-luna", "max", "max"),
+    ],
+)
+def test_openai_gpt6_models_use_verified_chat_completions_effort_mapping(
+    model,
+    preset,
+    effort,
+):
+    config = {
+        **API_PROVIDERS["openai"],
+        "default_model": model,
+        "reasoning_builtin_enabled": True,
+        "reasoning_preset": preset,
+    }
+
+    resolution = resolve_reasoning_parameters(config)
+
+    assert resolution.supported is True
+    assert resolution.parameters == {"reasoning_effort": effort}
+
+
+@pytest.mark.parametrize(
+    ("model", "preset", "effort"),
+    [
+        (f"openai/{family}", preset, preset)
+        for family in ("gpt-6-sol",)
+        for preset in ("none",)
+    ]
+    + [
+        (f"openai/{family}", preset, preset)
+        for family in ("gpt-6-sol", "gpt-6-astra")
+        for preset in ("low", "medium", "high", "xhigh", "max")
+    ],
+)
+def test_openrouter_gpt6_sol_and_astra_use_exact_effort_mapping(
+    model,
+    preset,
+    effort,
+):
+    config = {
+        **API_PROVIDERS["openrouter"],
+        "default_model": model,
+        "reasoning_builtin_enabled": True,
+        "reasoning_preset": preset,
+    }
+
+    resolution = resolve_reasoning_parameters(config)
+
+    assert resolution.supported is True
+    assert resolution.parameters == {"reasoning": {"effort": effort}}
+    if model == "openai/gpt-6-astra":
+        assert "none" not in resolution.available_presets
 
 
 def test_unknown_custom_model_never_receives_builtin_reasoning_parameters():

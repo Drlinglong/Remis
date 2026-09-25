@@ -35,6 +35,8 @@ def build_translation_progress_callback(
         workshop_progress=None,
         log_message: Optional[str] = None,
         event_level: Optional[str] = None,
+        completed_files: Optional[int] = None,
+        total_files: Optional[int] = None,
     ):
         current_time = time.time()
         is_final = stage in ("Completed", "Failed") or (
@@ -65,6 +67,10 @@ def build_translation_progress_callback(
             event_level=event_level,
             push=should_push,
             fields={
+                **({"file_progress": {
+                    "completed": completed_files, "total": total_files,
+                    "scope": "current_language",
+                }} if total_files is not None else {}),
                 "checkpoint": {
                     "available": bool(current > 0 and not is_final),
                     "resume_supported": bool(resume_supported),

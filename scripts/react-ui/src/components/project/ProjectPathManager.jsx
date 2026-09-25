@@ -112,6 +112,7 @@ const ProjectPathManager = ({ projectDetails, onPathsUpdated }) => {
                             </ActionIcon>
                         </Group>
                         <Text size="xs" c="dimmed" style={{ wordBreak: 'break-all' }}>{projectDetails.source_path || 'Loading...'}</Text>
+                        <Text size="xs" c="dimmed">{t('project_management.source_directory_note')}</Text>
                     </div>
                     <div>
                         <Group gap={4}>

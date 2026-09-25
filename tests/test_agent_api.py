@@ -21,6 +21,13 @@ from scripts.schemas.agent import (
 from scripts.shared import task_state
 
 
+@pytest.fixture(autouse=True)
+def isolate_project_lookup(monkeypatch):
+    # Job capability projection now reads its project; unit tests must not open
+    # the live development SQLite engine when they do not supply a project.
+    monkeypatch.setattr(agent_router.project_manager, "get_project", AsyncMock(return_value=None))
+
+
 @pytest.fixture
 def isolated_registry(tmp_path, monkeypatch):
     registry = AgentRegistry(str(tmp_path / "agent-registry.json"))

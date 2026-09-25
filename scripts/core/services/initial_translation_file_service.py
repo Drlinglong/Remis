@@ -31,6 +31,9 @@ def sync_project_file_status(project_id: str, source_file_path: str):
 
 def build_dest_dir(file_task: FileTask, target_lang: dict, output_folder_name: str, game_profile: dict) -> str:
     """Build the destination directory while preserving module and language-folder structure."""
+    from scripts.core.game_adapters.registry import resource_adapter
+    if resource_adapter(game_profile):
+        return os.path.join(DEST_DIR, output_folder_name, target_lang["code"])
     known_lang_folders = set()
     for lang_def in LANGUAGES.values():
         if "name_en" in lang_def:
@@ -43,6 +46,12 @@ def build_dest_dir(file_task: FileTask, target_lang: dict, output_folder_name: s
         relative_parts = [part for part in file_task.file_path.replace("\\", "/").split("/") if part]
         dir_parts = relative_parts[:-1] if relative_parts else []
         target_folder = target_lang["key"][2:]
+
+        if game_profile.get("format_adapter_id") == "surviving_mars_csv":
+            # ModItemLocTable files are selected by the mod's Lua
+            # ``Language`` property, not by a Paradox language directory or
+            # filename suffix. Preserve the source-relative CSV path.
+            return os.path.join(DEST_DIR, output_folder_name, *dir_parts)
 
         if file_task.is_custom_loc:
             rel_after_custom_root = dir_parts[1:] if dir_parts and dir_parts[0].lower() == "customizable_localization" else dir_parts

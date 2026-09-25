@@ -34,8 +34,23 @@ def build_run_plan(mod_name: str, target_languages: List[dict]) -> InitialTransl
     )
 
 
+def language_output_folder_name(mod_name: str, target_lang: dict) -> str:
+    """Return the same stable language-prefixed folder used by single-target runs."""
+    prefix = target_lang.get("folder_prefix", f"{target_lang['code']}-")
+    return f"{prefix}{slugify_to_ascii(mod_name)}"
+
+
 def resolve_provider_model(selected_provider: str, model_name: Optional[str]) -> Optional[str]:
     return model_name
+
+
+def resource_output_folder(base_name: str, game_profile: dict, run_id: str) -> str:
+    """Keep each resource package run separate while retaining its resume identity."""
+    from scripts.core.game_adapters.registry import resource_adapter
+    if not resource_adapter(game_profile):
+        return base_name
+    import hashlib
+    return f"{base_name}-{hashlib.sha256(str(run_id).encode('utf-8')).hexdigest()[:12]}"
 
 
 def create_translation_handler(

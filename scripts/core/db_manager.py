@@ -105,6 +105,13 @@ class DatabaseConnectionManager:
         async with async_session() as session:
             yield session
 
+    async def close_async_engine(self):
+        """Release pooled aiosqlite workers before the server process exits."""
+        engine = getattr(self, "_async_engine", None)
+        if engine is not None:
+            await engine.dispose()
+            del self._async_engine
+
     @asynccontextmanager
     async def async_session_scope(self):
         """

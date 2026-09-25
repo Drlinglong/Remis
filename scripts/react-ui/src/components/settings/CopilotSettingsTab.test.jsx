@@ -4,7 +4,7 @@ import { MantineProvider } from '@mantine/core';
 import { createMemoryRouter, RouterProvider, useLocation } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CopilotSettingsTab from './CopilotSettingsTab';
-import { applyReasoningToggle } from './copilotSettingsForm';
+import { applyReasoningToggle, normalizeCopilotSettings } from './copilotSettingsForm';
 import { fetchCopilotSettings, saveCopilotSettings } from '../../services/copilotService';
 import { UnsavedChangesGuardProvider } from '../../hooks/useUnsavedChangesGuard';
 
@@ -82,6 +82,31 @@ describe('CopilotSettingsTab', () => {
       reasoning_enabled: true,
       reasoning_preset: 'low',
     });
+  });
+
+  it('disables saved built-in reasoning when the selected model has no verified mapping', () => {
+    expect(normalizeCopilotSettings({
+      provider: 'openai', model: 'gpt-6-luna', reasoning_enabled: true, reasoning_preset: 'high',
+    }, [{ id: 'openai', reasoning_models: { 'gpt-5.6-luna': { presets: { low: {} } } } }])).toEqual({
+      provider: 'openai', model: 'gpt-6-luna', reasoning_enabled: false, reasoning_preset: 'high',
+    });
+  });
+
+  it('saves settings for a model with legacy enabled reasoning but no mapping', async () => {
+    fetchCopilotSettings.mockResolvedValue({
+      settings: { provider: 'openai', model: 'gpt-6-luna', reasoning_enabled: true, reasoning_preset: 'high' },
+      providers: [{ id: 'openai', name: 'OpenAI', models: ['gpt-6-luna'], reasoning_models: {} }],
+    });
+    render(<MantineProvider><CopilotSettingsTab /></MantineProvider>);
+
+    const toggle = await screen.findByRole('switch', { name: /启用模型内置推理/ });
+    expect(toggle).not.toBeChecked();
+    expect(toggle).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: '保存小助手设置' }));
+
+    await waitFor(() => expect(saveCopilotSettings).toHaveBeenCalledWith({
+      provider: 'openai', model: 'gpt-6-luna', reasoning_enabled: false, reasoning_preset: 'high',
+    }));
   });
 
   it('warns before route navigation and allows exactly the requested discard', async () => {

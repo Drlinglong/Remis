@@ -16,6 +16,7 @@ import api from '../utils/api';
 import { normalizeArrayPayload } from '../utils/payload';
 import styles from './ApiSettingsTab.module.css';
 import ProviderReasoningSettings from './apiSettings/ProviderReasoningSettings';
+import { shouldEnableBuiltinReasoning } from './apiSettings/reasoningForm';
 import { parseCustomParameters } from './apiSettings/reasoningForm';
 import ApiResourceGuides from './apiSettings/ApiResourceGuides';
 import CustomProviderProfiles from './apiSettings/CustomProviderProfiles';
@@ -104,7 +105,10 @@ const ApiSettingsContent = () => {
             selectedModel: provider.selected_model || '',
             promptPrefix: provider.prompt_prefix || '',
             systemPromptSuffix: provider.system_prompt_suffix || '',
-            reasoningBuiltinEnabled: Boolean(provider.reasoning?.supported && provider.reasoning?.builtin_enabled),
+            reasoningBuiltinEnabled: Boolean(
+                provider.reasoning?.builtin_enabled
+                && provider.reasoning_models?.[provider.selected_model],
+            ),
             reasoningPreset: provider.reasoning?.selected_preset || 'medium',
             customParametersText: Object.keys(provider.reasoning?.custom_parameters || {}).length
                 ? JSON.stringify(provider.reasoning.custom_parameters, null, 2)
@@ -134,6 +138,7 @@ const ApiSettingsContent = () => {
         setSubmitting(true);
         try {
             const customParameters = parseCustomParameters(editForm.customParametersText);
+            const provider = providers.find((item) => item.id === providerId);
             const payload = {
                 provider_id: providerId,
                 models: editForm.models,
@@ -141,7 +146,9 @@ const ApiSettingsContent = () => {
                 selected_model: editForm.selectedModel,
                 prompt_prefix: editForm.promptPrefix,
                 system_prompt_suffix: editForm.systemPromptSuffix,
-                reasoning_builtin_enabled: editForm.reasoningBuiltinEnabled,
+                reasoning_builtin_enabled: shouldEnableBuiltinReasoning(
+                    editForm, provider?.reasoning_models || {},
+                ),
                 reasoning_preset: editForm.reasoningPreset,
                 custom_parameters: customParameters
             };

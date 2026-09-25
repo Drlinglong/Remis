@@ -15,6 +15,10 @@ from pydantic_ai.usage import UsageLimits
 from scripts.core.copilot.actions import LocalizationWorkflowArgs
 from scripts.core.copilot.help_agent_models import build_help_model, supports_pydantic_help_agent
 from scripts.core.copilot.help_pack import AGENT_OPS_SUMMARY, HELP_SKILLS, read_help_skills
+from scripts.core.copilot.game_support import (
+    inspect_project_game_support as _inspect_project_game_support,
+    read_game_support,
+)
 from scripts.core.copilot.task_status import get_copilot_task_status
 from scripts.core.services.provider_runtime import ProviderRuntimeSnapshot
 
@@ -29,6 +33,10 @@ _TASK_STATUS_INTENT_PATTERN = re.compile(
     r"|(?:进度|状态).{0,16}(?:如何|怎样|怎么样|多少|查询|查看)"
     r"|(?:task|job)\s+(?:status|progress|result)"
     r"|(?:status|progress)\s+(?:of|for)\s+(?:the\s+)?(?:task|job)",
+    re.IGNORECASE,
+)
+_INCREMENTAL_INTENT_PATTERN = re.compile(
+    r"增量|只翻(?:译)?新增|仅翻(?:译)?新增|incremental|translate\s+only\s+new",
     re.IGNORECASE,
 )
 
@@ -69,6 +77,8 @@ class HelpDeps:
     inspected_workflow_entities: bool = False
     required_task_ids: list[str] = field(default_factory=list)
     task_status_results: dict[str, dict[str, Any]] = field(default_factory=dict)
+    game_support_results: dict[str, dict[str, Any]] = field(default_factory=dict)
+    incremental_workflow_requested: bool = False
 
 
 def task_ids_requiring_status_lookup(history: list[dict[str, str]]) -> list[str]:
@@ -87,6 +97,44 @@ def task_ids_requiring_status_lookup(history: list[dict[str, str]]) -> list[str]
         if identifiers:
             return [identifiers[-1]]
     return []
+
+
+def requests_incremental_workflow(history: list[dict[str, str]]) -> bool:
+    latest_user = next(
+        (str(item.get("content") or "") for item in reversed(history) if item.get("role") == "user"),
+        "",
+    )
+    return bool(_INCREMENTAL_INTENT_PATTERN.search(latest_user))
+
+
+def _project_is_in_inspected_catalog(deps: HelpDeps, project_id: str) -> bool:
+    return deps.inspected_workflow_entities and any(
+        str(item.get("project_id")) == project_id
+        for item in deps.workflow_entities.get("projects", [])
+        if isinstance(item, dict)
+    )
+
+
+def _register_game_support_tools(agent: Agent[HelpDeps, HelpAnswer]) -> None:
+    @agent.tool
+    async def get_game_support(ctx: RunContext[HelpDeps], game_id: str) -> dict[str, Any]:
+        """Read static supported formats, output mode, and explicit limitations for one game."""
+        result = read_game_support(game_id)
+        ctx.deps.game_support_results[f"game:{game_id}"] = result
+        return result
+
+    @agent.tool
+    async def inspect_project_game_support(
+        ctx: RunContext[HelpDeps], project_id: str, game_version: str | None = None
+    ) -> dict[str, Any]:
+        """Read recognized resources and diagnostics for a project in the inspected catalogue."""
+        if not _project_is_in_inspected_catalog(ctx.deps, project_id):
+            raise ValueError("Project must be selected from the inspected workflow catalogue")
+        if game_version and len(game_version) > 80:
+            raise ValueError("Game version must be 80 characters or fewer")
+        result = await _inspect_project_game_support(project_id, game_version)
+        ctx.deps.game_support_results[project_id] = result
+        return result
 
 
 def build_help_agent(
@@ -116,6 +164,10 @@ def build_help_agent(
             "inspect_workflow_entities，再从结果中选择规范实体。不要猜测文档未覆盖的产品细节。"
             "用户询问某个翻译任务的进度、状态或结果时，必须使用对话中的 task ID 调用 "
             "get_task_status；只能依据该工具的权威结果回答，不得从聊天中推断任务终态。"
+            "询问游戏格式、输出包或支持范围时调用 get_game_support；询问已有项目识别到的资源时，"
+            "先调用 inspect_workflow_entities，再用目录中的 project_id 调用 inspect_project_game_support。"
+            "只报告扫描识别范围；runtime_verified=false 表示尚未游戏内验收。"
+            "内置 Copilot 工作流当前只创建和启动初次翻译；可解释增量能力，但不得声称能从聊天创建或启动增量任务。"
             "只建议允许的 Remis action ID。\n\n"
             f"{AGENT_OPS_SUMMARY}\n\n可用帮助技能：\n{catalog}"
         ),
@@ -156,6 +208,8 @@ def build_help_agent(
         ctx.deps.task_status_results[str(task_id)] = result
         return result
 
+    _register_game_support_tools(agent)
+
     @agent.output_validator
     async def validate_help_answer(ctx: RunContext[HelpDeps], output: HelpAnswer) -> HelpAnswer:
         if not ctx.deps.loaded_excerpts and not ctx.deps.no_match_reason:
@@ -171,6 +225,10 @@ def build_help_agent(
                 f"Call get_task_status for the required task ID before answering: {missing_task_ids[0]}"
             )
         wants_workflow = any(item.action == "start_localization_workflow" for item in output.suggested_actions)
+        if wants_workflow and ctx.deps.incremental_workflow_requested:
+            raise ModelRetry(
+                "The Copilot workflow only starts initial translation; explain that incremental work must be started from its product page and return no workflow action"
+            )
         if wants_workflow and not ctx.deps.inspected_workflow_entities:
             raise ModelRetry("Call inspect_workflow_entities before proposing a localization workflow")
         if wants_workflow:
@@ -210,6 +268,7 @@ def run_pydantic_help_agent(
     deps = HelpDeps(
         workflow_entities=workflow_entity_catalog or {},
         required_task_ids=task_ids_requiring_status_lookup(history),
+        incremental_workflow_requested=requests_incremental_workflow(history),
     )
     agent = build_help_agent(
         provider,
@@ -228,6 +287,7 @@ def run_pydantic_help_agent(
         "selected_skill_ids": deps.selected_skill_ids,
         "workflow_entities_inspected": deps.inspected_workflow_entities,
         "task_status_lookups": deps.task_status_results,
+        "game_support_results": deps.game_support_results,
         "excerpts": deps.loaded_excerpts,
         "no_match_reason": deps.no_match_reason,
         "usage": asdict(result.usage if not callable(result.usage) else result.usage()),

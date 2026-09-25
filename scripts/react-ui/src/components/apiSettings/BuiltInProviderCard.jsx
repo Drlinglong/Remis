@@ -24,6 +24,7 @@ import {
     IconServer,
 } from '@tabler/icons-react';
 import ProviderReasoningSettings from './ProviderReasoningSettings';
+import { isReasoningSelectionValid, selectReasoningModel } from './reasoningForm';
 import styles from '../ApiSettingsTab.module.css';
 
 const URL_EDITABLE_PROVIDER_IDS = ['lm_studio', 'vllm', 'koboldcpp', 'oobabooga', 'text-generation-webui', 'ollama'];
@@ -142,14 +143,9 @@ const BuiltInProviderCard = ({
                                 .map((model) => ({ value: model, label: model }))}
                             value={editForm.selectedModel}
                             onChange={(value) => {
-                                const capability = provider.reasoning_models?.[value];
-                                const presets = Object.keys(capability?.presets || {});
-                                setEditForm({
-                                    ...editForm,
-                                    selectedModel: value,
-                                    reasoningBuiltinEnabled: capability ? editForm.reasoningBuiltinEnabled : false,
-                                    reasoningPreset: presets.includes(editForm.reasoningPreset) ? editForm.reasoningPreset : (presets[0] || 'medium'),
-                                });
+                                setEditForm((current) => selectReasoningModel(
+                                    current, value, provider.reasoning_models,
+                                ));
                             }}
                             size="xs"
                             leftSection={<IconRobot size={14} />}
@@ -163,7 +159,13 @@ const BuiltInProviderCard = ({
                             value={editForm.models}
                             onChange={(models) => {
                                 const isAdded = models.length > editForm.models.length;
-                                setEditForm((current) => ({ ...current, models, selectedModel: isAdded ? models[models.length - 1] : current.selectedModel }));
+                                setEditForm((current) => {
+                                    const selectedModel = isAdded ? models[models.length - 1] : current.selectedModel;
+                                    return {
+                                        ...selectReasoningModel(current, selectedModel, provider.reasoning_models),
+                                        models,
+                                    };
+                                });
                             }}
                             size="xs"
                             leftSection={<IconRobot size={14} />}
@@ -196,7 +198,13 @@ const BuiltInProviderCard = ({
                             onChange={(changes) => setEditForm((current) => ({ ...current, ...changes }))}
                         />
                         <Group grow mt="xs">
-                            <Button size="xs" onClick={() => handleSave(provider.id)} loading={submitting} leftSection={<IconCheck size={14} />}>
+                            <Button
+                                size="xs"
+                                onClick={() => handleSave(provider.id)}
+                                loading={submitting}
+                                disabled={!isReasoningSelectionValid(editForm, provider.reasoning_models)}
+                                leftSection={<IconCheck size={14} />}
+                            >
                                 {t('save')}
                             </Button>
                             <Button variant="subtle" color="gray" size="xs" onClick={handleCancelEdit} disabled={submitting}>

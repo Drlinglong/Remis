@@ -1,5 +1,9 @@
+import concurrent.futures
+import threading
+
 import pytest
 
+import scripts.core.parallel_processor as parallel_processor_module
 from scripts.core.base_handler import BaseApiHandler
 from scripts.core.parallel_processor import ParallelProcessor, ProcessingCancelledError
 from scripts.core.parallel_types import BatchTask, FileTask
@@ -178,6 +182,93 @@ def test_stream_processor_stops_queued_batches_after_provider_fatal_error():
     assert calls == [0]
 
 
+def test_stream_processor_prefers_fatal_error_when_completed_set_has_cancellation_first(
+    monkeypatch,
+):
+    processor = ParallelProcessor(max_workers=1, chunk_size_override=1)
+    file_task = _file_task()
+    file_task.texts_to_translate = ["one", "two", "three"]
+
+    def fatal_translation(task: BatchTask) -> BatchTask:
+        raise ProviderFatalError("invalid model", provider="test", status_code=401)
+
+    real_wait = concurrent.futures.wait
+
+    def wait_for_all_and_order_cancellation_first(futures, **kwargs):
+        done, pending = real_wait(
+            futures,
+            timeout=kwargs.get("timeout"),
+            return_when=concurrent.futures.ALL_COMPLETED,
+        )
+        ordered = sorted(
+            done,
+            key=lambda future: not isinstance(
+                future.exception(), ProcessingCancelledError
+            ),
+        )
+        return ordered, pending
+
+    monkeypatch.setattr(
+        parallel_processor_module.concurrent.futures,
+        "wait",
+        wait_for_all_and_order_cancellation_first,
+    )
+
+    with pytest.raises(ProviderFatalError, match="invalid model"):
+        list(processor.process_files_stream(iter([file_task]), fatal_translation))
+
+
+def test_stream_processor_drains_after_cancel_before_fatal_future_completes(monkeypatch):
+    processor = ParallelProcessor(max_workers=2, chunk_size_override=1)
+    file_task = _file_task()
+    file_task.texts_to_translate = ["one", "two", "three"]
+    fatal_ready = threading.Event()
+    release_fatal = threading.Event()
+    real_guarded = processor._process_single_batch_guarded
+
+    def gated_guarded(batch, function, abort_event, should_cancel=None):
+        if batch.batch_index == 0:
+            try:
+                return real_guarded(batch, function, abort_event, should_cancel)
+            except ProviderFatalError:
+                fatal_ready.set()
+                if not release_fatal.wait(timeout=5):
+                    raise AssertionError("test did not release the fatal worker")
+                raise
+        if batch.batch_index == 1 and not fatal_ready.wait(timeout=5):
+            raise AssertionError("fatal worker did not reach the synchronization point")
+        return real_guarded(batch, function, abort_event, should_cancel)
+
+    monkeypatch.setattr(processor, "_process_single_batch_guarded", gated_guarded)
+    real_wait = concurrent.futures.wait
+    wait_calls = 0
+
+    def release_after_first_completion(futures, **kwargs):
+        nonlocal wait_calls
+        wait_calls += 1
+        if wait_calls == 2:
+            release_fatal.set()
+        return real_wait(
+            futures,
+            timeout=kwargs.get("timeout"),
+            return_when=kwargs.get("return_when"),
+        )
+
+    monkeypatch.setattr(
+        parallel_processor_module.concurrent.futures,
+        "wait",
+        release_after_first_completion,
+    )
+
+    def fatal_translation(task: BatchTask) -> BatchTask:
+        raise ProviderFatalError("invalid model", provider="test", status_code=401)
+
+    with pytest.raises(ProviderFatalError, match="invalid model"):
+        list(processor.process_files_stream(iter([file_task]), fatal_translation))
+
+    assert wait_calls >= 2
+
+
 def test_stream_processor_discards_in_flight_result_after_cancellation():
     processor = ParallelProcessor(max_workers=1, chunk_size_override=1)
     file_task = _file_task()
@@ -215,6 +306,37 @@ def test_parallel_processor_stops_queued_batches_after_provider_fatal_error():
         processor.process_files_parallel([file_task], fatal_translation)
 
     assert calls == [0]
+
+
+def test_parallel_processor_does_not_mask_fatal_error_when_cancellation_completes_first(
+    monkeypatch,
+):
+    processor = ParallelProcessor(max_workers=1, chunk_size_override=1)
+    file_task = _file_task()
+    file_task.texts_to_translate = ["one", "two", "three"]
+
+    def fatal_translation(task: BatchTask) -> BatchTask:
+        raise ProviderFatalError("invalid model", provider="test", status_code=401)
+
+    real_as_completed = concurrent.futures.as_completed
+
+    def cancellation_first(futures):
+        completed = list(real_as_completed(futures))
+        return iter(sorted(
+            completed,
+            key=lambda future: not isinstance(
+                future.exception(), ProcessingCancelledError
+            ),
+        ))
+
+    monkeypatch.setattr(
+        parallel_processor_module.concurrent.futures,
+        "as_completed",
+        cancellation_first,
+    )
+
+    with pytest.raises(ProviderFatalError, match="invalid model"):
+        processor.process_files_parallel([file_task], fatal_translation)
 
 
 def test_stream_processor_treats_source_fallback_as_file_failure():

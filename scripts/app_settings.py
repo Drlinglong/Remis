@@ -5,7 +5,7 @@ import sys
 import multiprocessing
 from enum import Enum
 from scripts.config import prompts
-from scripts.build_profile import get_build_profile, runtime_app_data_folder
+from scripts.build_profile import get_build_profile, resolve_app_data_dir
 import json
 
 def get_appdata_config_path():
@@ -84,10 +84,10 @@ BUILD_PROFILE = get_build_profile()
 # --- 项目信息 ----------------------------------------------------
 PROJECT_NAME = "Paradox Mod 本地化工厂 - Paradox Mod Localization Factory"
 PROJECT_DISPLAY_NAME = "蕾姆丝计划 - Project Remis "
-VERSION = "3.2.0"
+VERSION = "3.2.1"
 if BUILD_PROFILE.channel == "agent-preview":
     VERSION = BUILD_PROFILE.version
-LAST_UPDATE_DATE = "2026-09-09"
+LAST_UPDATE_DATE = "2026-09-11"
 COPYRIGHT = "© 2026 Project Remis Team"
 
 # --- 项目信息显示配置 --------------------------------------------
@@ -128,16 +128,7 @@ def get_app_root():
 
 def get_app_data_dir():
     """Returns the user data directory (AppData)."""
-    appdata = os.getenv('APPDATA')
-    
-    app_folder = runtime_app_data_folder(BUILD_PROFILE)
-    
-    if not appdata:
-        # Fallback for non-standard environments
-        base_dir = os.path.join(os.path.expanduser("~"), f".{app_folder.lower()}")
-    else:
-        base_dir = os.path.join(appdata, app_folder)
-    
+    base_dir = resolve_app_data_dir(profile=BUILD_PROFILE)
     os.makedirs(base_dir, exist_ok=True)
     return base_dir
 
@@ -314,6 +305,9 @@ class SupportedGame(str, Enum):
     CK_3 = "ck3"
     EU_4 = "eu4"
     EU_5 = "eu5"
+    SURVIVING_MARS = "surviving_mars"
+    PROJECT_ZOMBOID = "project_zomboid"
+    RIMWORLD = "rimworld"
 
 GAME_ID_ALIASES = {
     # Victoria 3
@@ -344,7 +338,16 @@ GAME_ID_ALIASES = {
     # Europa Universalis V
     "eu5": SupportedGame.EU_5.value,
     "europa universalis v": SupportedGame.EU_5.value,
-    "6": SupportedGame.EU_5.value
+    "6": SupportedGame.EU_5.value,
+
+    # Surviving Mars / Relaunched
+    "surviving_mars": SupportedGame.SURVIVING_MARS.value,
+    "project_zomboid": SupportedGame.PROJECT_ZOMBOID.value,
+    "rimworld": SupportedGame.RIMWORLD.value,
+    "surviving mars": SupportedGame.SURVIVING_MARS.value,
+    "surviving mars: relaunched": SupportedGame.SURVIVING_MARS.value,
+    "project spark": SupportedGame.SURVIVING_MARS.value,
+    "7": SupportedGame.SURVIVING_MARS.value
 }
 
 # --- 保底格式提示模板 ---------------------------------------------

@@ -65,6 +65,9 @@ def run_post_processing(
 
     except Exception as e:
         logging.error(f"Post-processing failed: {e}")
+        from scripts.core.game_adapters.registry import resource_adapter
+        if resource_adapter(game_profile):
+            raise
 
 
 def finalize_language_run(

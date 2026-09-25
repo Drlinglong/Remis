@@ -16,6 +16,7 @@ from scripts.core.services.initial_translation_snapshot_service import (
 from scripts.core.services.initial_translation_run_service import (
     build_run_plan,
     create_translation_handler,
+    language_output_folder_name,
     resolve_provider_model,
 )
 from scripts.core.services.initial_translation_language_service import run_language_translation
@@ -142,16 +143,32 @@ def _run_language_targets(
     source_snapshot_hash, config_fingerprint,
 ) -> tuple[dict, ...]:
     metrics = []
+    mars_language_outputs = (
+        len(target_languages) > 1
+        and game_profile.get("format_adapter_id") == "surviving_mars_csv"
+    )
     for target_lang in target_languages:
+        language_folder = (
+            language_output_folder_name(mod_name, target_lang)
+            if mars_language_outputs else output_folder_name
+        )
+        language_output_path = (
+            os.path.join(DEST_DIR, language_folder)
+            if mars_language_outputs else output_dir_path
+        )
+        language_target = (
+            {**target_lang, "_checkpoint_output_dir_path": output_dir_path}
+            if mars_language_outputs else target_lang
+        )
         metrics.append(run_language_translation(
             mod_name=mod_name,
             source_lang=source_lang,
-            target_lang=target_lang,
+            target_lang=language_target,
             game_profile=game_profile,
             mod_context=mod_context,
             handler=handler,
-            output_folder_name=output_folder_name,
-            output_dir_path=output_dir_path,
+            output_folder_name=language_folder,
+            output_dir_path=language_output_path,
             selected_provider=selected_provider,
             model_name=model_name,
             all_files_content=all_files_content,
@@ -190,7 +207,11 @@ def _prepare_translation_run(
     load_glossaries_for_run(game_profile.get("id", ""), use_glossary, selected_glossary_ids)
     output_dir_path = prepare_output_workspace(mod_name, output_folder_name, game_profile)
     if clean_source:
-        clean_source_directory(mod_name, override_path=override_path)
+        clean_source_directory(
+            mod_name,
+            override_path=override_path,
+            game_profile=game_profile,
+        )
     source_result, total_files = _prepare_source_files(
         mod_name, game_profile, source_lang, override_path, progress_callback
     )
@@ -244,9 +265,11 @@ def _resolve_run_identity(
     return identity, resolved_task_id, resolved_run_id
 
 
-def _build_run_plan(mod_name: str, target_languages: list[dict]):
+def _build_run_plan(mod_name: str, target_languages: list[dict], game_profile: dict, run_id: str):
+    from scripts.core.services.initial_translation_run_service import resource_output_folder
     run_plan = build_run_plan(mod_name, target_languages)
-    return run_plan, run_plan.output_folder_name, run_plan.primary_target_lang
+    output_folder = resource_output_folder(run_plan.output_folder_name, game_profile, run_id)
+    return run_plan, output_folder, run_plan.primary_target_lang
 
 
 def _unpack_prepared_run(prepared: PreparedTranslationRun, recovery_identity: dict):
@@ -288,7 +311,7 @@ def run(
     recovery_identity, task_id, run_id = _resolve_run_identity(
         recovery_identity, task_id, run_id, progress_callback
     )
-    run_plan, output_folder_name, primary_target_lang = _build_run_plan(mod_name, target_languages)
+    run_plan, output_folder_name, primary_target_lang = _build_run_plan(mod_name, target_languages, game_profile, run_id)
     logging.info(i18n.t("start_workflow",
                  workflow_name=i18n.t("workflow_initial_translate_name"),
                  mod_name=mod_name))

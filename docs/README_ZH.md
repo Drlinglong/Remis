@@ -136,6 +136,8 @@ Remis 是真正执行汉化的完整产品；仓库中的 Skill 负责教 Codex 
 开发者入口：
 
 - [Agent API 快速开始](zh/developer/agent-api-quickstart.md)
+- [多游戏本地化指南](zh/user-guides/multi-game-localization.md)
+- [火星求生重制版本地化](zh/user-guides/surviving-mars.md)
 - [Remis Agent Skill](../.agents/skills/remis-agent/SKILL.md)
 - 本机 OpenAPI：`http://127.0.0.1:1453/docs`
 

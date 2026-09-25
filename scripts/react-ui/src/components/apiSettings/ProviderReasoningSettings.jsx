@@ -4,6 +4,7 @@ import { IconBrain, IconInfoCircle } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 
 const PRESET_LABEL_KEYS = {
+  none: 'api_reasoning_preset_none',
   low: 'api_reasoning_preset_low',
   medium: 'api_reasoning_preset_medium',
   high: 'api_reasoning_preset_high',
@@ -31,7 +32,7 @@ const ProviderReasoningSettings = ({ reasoning, form, onChange }) => {
         label={t('api_reasoning_builtin_label')}
         description={t('api_reasoning_builtin_description')}
         checked={form.reasoningBuiltinEnabled}
-        disabled={!supported}
+        disabled={!supported && !form.reasoningBuiltinEnabled}
         onChange={(event) => onChange({ reasoningBuiltinEnabled: event.currentTarget.checked })}
         thumbIcon={<IconBrain size={12} />}
       />

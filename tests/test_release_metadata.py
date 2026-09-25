@@ -102,12 +102,14 @@ def test_release_date_is_current_and_visible_in_version_info():
         "LAST_UPDATE_DATE",
     )
     release_date = dt.date.fromisoformat(package_json["releaseDate"])
-    release_note = (
+    release_record_path = (
         REPO_ROOT
-        / "archive"
-        / "release_notes"
-        / f"RELEASE_NOTES_v{package_json['version']}.md"
-    ).read_text(encoding="utf-8")
+        / "docs"
+        / "zh"
+        / "developer"
+        / f"release-v{package_json['version']}.md"
+    )
+    release_record = release_record_path.read_text(encoding="utf-8")
     version_info = (
         REPO_ROOT
         / "scripts"
@@ -117,6 +119,10 @@ def test_release_date_is_current_and_visible_in_version_info():
         / "VersionInfoTab.jsx"
     ).read_text(encoding="utf-8")
 
-    assert f"Released on {release_date.isoformat()}." in release_note
+    assert (
+        f"Released on {release_date.isoformat()}." in release_record
+        or f"准备日期：{release_date.isoformat()}" in release_record
+        or f"发布日期：{release_date.isoformat()}" in release_record
+    ), f"release date is missing from {release_record_path}"
     assert backend_release_date == release_date.isoformat()
     assert "const lastUpdated = __APP_RELEASE_DATE__" in version_info

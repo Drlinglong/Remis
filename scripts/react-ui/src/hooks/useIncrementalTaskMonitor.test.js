@@ -3,6 +3,7 @@ import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useIncrementalTaskMonitor } from './useIncrementalTaskMonitor';
+import projectService from '../services/projectService';
 
 vi.mock('../services/projectService', () => ({
   default: {
@@ -109,5 +110,36 @@ describe('useIncrementalTaskMonitor', () => {
 
     expect(props.addLog).toHaveBeenCalledWith('incremental_translation.status_ws_error');
     expect(errorSpy).toHaveBeenCalledWith('Failed to parse incremental task WebSocket message:', expect.any(SyntaxError));
+  });
+
+  it.each(['failed', 'cancelled', 'canceled', 'interrupted', 'partial_failed'])(
+    'stops monitoring and preserves the terminal %s result', (status) => {
+      const { props, result } = renderMonitor();
+
+      act(() => result.current.connectWebSocket('task-terminal', false));
+      const socket = FakeWebSocket.instances[0];
+      act(() => socket.onmessage({ data: JSON.stringify({ status, progress: { percent: 40 } }) }));
+      act(() => vi.advanceTimersByTime(1500));
+
+      expect(projectService.getTaskStatus).not.toHaveBeenCalled();
+      expect(props.executionInFlightRef.current).toBe(false);
+      expect(props.setExecuting).toHaveBeenCalledWith(false);
+      expect(props.setFinalSummary).toHaveBeenCalledWith(expect.objectContaining({ status }));
+      expect(props.addLog).toHaveBeenCalledWith('incremental_translation.task_failed_check_logs');
+      expect(socket.close).toHaveBeenCalledOnce();
+    },
+  );
+
+  it('releases pre-scan state for cancelled and interrupted task results', () => {
+    const { props, result } = renderMonitor();
+    props.preScanInFlightRef.current = true;
+
+    act(() => result.current.handleTaskUpdate({ status: 'canceled' }, true, 'polling'));
+
+    expect(props.preScanInFlightRef.current).toBe(false);
+    expect(props.setCurrentTaskId).toHaveBeenCalledWith(null);
+    expect(props.setCurrentTaskMode).toHaveBeenCalledWith(null);
+    expect(props.setLoading).toHaveBeenCalledWith(false);
+    expect(props.setScanResults).not.toHaveBeenCalled();
   });
 });

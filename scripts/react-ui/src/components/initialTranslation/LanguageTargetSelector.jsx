@@ -13,31 +13,66 @@ import {
 
 import controlsStyles from './InitialTranslationControls.module.css';
 
+function marsLanguageName(code, fallback, t) {
+  if (code === 'es') return t('mars_pipeline.language_es_spain', 'Spanish (Spain)');
+  if (code === 'pt-BR') return t('mars_pipeline.language_pt_br', 'Portuguese (Brazil)');
+  return fallback;
+}
+
 export default function LanguageTargetSelector({
   form,
   languages,
+  gameId,
+  supportedLanguageCodes,
   sourceLanguageCode,
   t,
 }) {
-  const languageOptions = Object.values(languages)
-    .filter((language) => language.code !== sourceLanguageCode)
+  const isSurvivingMars = gameId === 'surviving_mars';
+  const allowedLanguageCodes = React.useMemo(() => {
+    if (!isSurvivingMars || !Array.isArray(supportedLanguageCodes)) return null;
+    return new Set(supportedLanguageCodes || []);
+  }, [isSurvivingMars, supportedLanguageCodes]);
+  const languageOptions = React.useMemo(() => Object.values(languages || {})
+    .filter((language) => (
+      language.code !== sourceLanguageCode
+      && (!allowedLanguageCodes || allowedLanguageCodes.has(language.code))
+    ))
     .map((language) => ({
       value: language.code,
-      label: language.name,
-    }));
+      label: isSurvivingMars
+        ? marsLanguageName(language.code, language.name, t)
+        : language.name,
+    })), [allowedLanguageCodes, isSurvivingMars, languages, sourceLanguageCode, t]);
+  const eligibleTargetCodes = React.useMemo(
+    () => new Set(languageOptions.map((language) => language.value)),
+    [languageOptions]
+  );
   const selectedTargets = React.useMemo(
     () => form.values.target_lang_codes || [],
     [form.values.target_lang_codes]
   );
   const selectedTargetCount = selectedTargets.length;
+  const hasLanguageCatalog = Object.keys(languages || {}).length > 0;
 
   React.useEffect(() => {
-    if (!sourceLanguageCode || !selectedTargets.includes(sourceLanguageCode)) return;
+    if (!hasLanguageCatalog) {
+      if (sourceLanguageCode && selectedTargets.includes(sourceLanguageCode)) {
+        form.setFieldValue(
+          'target_lang_codes',
+          selectedTargets.filter((code) => code !== sourceLanguageCode)
+        );
+      }
+      return;
+    }
+    const filteredTargets = selectedTargets.filter((code) => (
+      code !== sourceLanguageCode && eligibleTargetCodes.has(code)
+    ));
+    if (filteredTargets.length === selectedTargets.length) return;
     form.setFieldValue(
       'target_lang_codes',
-      selectedTargets.filter((code) => code !== sourceLanguageCode)
+      filteredTargets
     );
-  }, [form, selectedTargets, sourceLanguageCode]);
+  }, [eligibleTargetCodes, form, hasLanguageCatalog, selectedTargets, sourceLanguageCode]);
 
   const toggleSelection = (languageCode) => {
     if (selectedTargets.includes(languageCode)) {

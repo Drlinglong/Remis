@@ -1,6 +1,7 @@
 # Core Dependencies
 # These are required for the project to run
 PyYAML
+zstandard==0.23.0
 
 # AI API Dependencies
 # Users can choose OpenAI-compatible or Google Gemini APIs.

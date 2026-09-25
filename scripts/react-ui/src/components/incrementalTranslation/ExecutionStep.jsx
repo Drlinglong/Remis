@@ -73,6 +73,13 @@ export const ExecutionStep = ({
     }, [t]);
     const stageTitle = getStageTitle(progressInfo, false);
     const stageDescription = getStageDescription(progressInfo) || (executing ? t('incremental_translation.status_processing') : t('incremental_translation.status_idle'));
+    const terminalStatus = finalSummary?.status || 'completed';
+    const summarySuccessful = ['completed', 'success'].includes(terminalStatus);
+    const summaryTitle = summarySuccessful
+        ? t('incremental_translation.completion_title')
+        : terminalStatus === 'partial_failed'
+            ? t('partial_failure_title')
+            : t(`task_center.status.${terminalStatus}`, { defaultValue: terminalStatus });
 
     const getValidationIssueCount = useCallback((summary) => {
         if (!summary || !Array.isArray(summary.workshop_issue_exports)) return 0;
@@ -274,7 +281,12 @@ export const ExecutionStep = ({
 
                 {finalSummary && (
                     <Stack id="incremental-final-summary" mt="xl">
-                        <Title order={4} c="green">{t('incremental_translation.completion_title')}</Title>
+                        <Title order={4} c={summarySuccessful ? 'green' : 'orange'}>{summaryTitle}</Title>
+                        {!summarySuccessful && (
+                            <Alert color="orange" title={summaryTitle}>
+                                {t('incremental_translation.task_failed_check_logs')}
+                            </Alert>
+                        )}
                         {finalSummary.warning_count > 0 && (
                             <Alert color="orange" title={t('incremental_translation.runtime_warning_summary_title')}>
                                 <Text size="sm">
@@ -305,7 +317,7 @@ export const ExecutionStep = ({
                                 ))}
                             </Alert>
                         )}
-                        <Alert color="green">
+                        <Alert color={summarySuccessful ? 'green' : 'orange'}>
                             <Stack gap={4}>
                                 <Text size="sm">{t('incremental_translation.output_dir_hint')}</Text>
                                 {finalSummary.output_dir && (
@@ -330,14 +342,16 @@ export const ExecutionStep = ({
                                     {t('task_center.view_task')}
                                 </Button>
                             )}
-                            {onStartProofreading && (
+                            {summarySuccessful && onStartProofreading && (
                                 <Button size="lg" variant="light" color="teal" onClick={onStartProofreading}>
                                     {t('project_management.primary_continue_proofreading')}
                                 </Button>
                             )}
-                            <Button size="lg" variant="light" onClick={openOutputFolder}>
-                                {t('button_open_folder')}
-                            </Button>
+                            {summarySuccessful && (
+                                <Button size="lg" variant="light" onClick={openOutputFolder}>
+                                    {t('button_open_folder')}
+                                </Button>
+                            )}
                             <Button size="lg" onClick={handleFinish}>
                                 {t('common.finish')}
                             </Button>

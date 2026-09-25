@@ -10,6 +10,9 @@
 
 推荐继续阅读：
 
+- [Agent API 快速开始](zh/developer/agent-api-quickstart.md)
+- [Remis Agent Skill](../.agents/skills/remis-agent/SKILL.md)
+- [Agent API 技术参考](../.agents/skills/remis-agent/references/api-workflow.md)
 - [重构决策指南](zh/developer/refactor_decision_guide.md)
 - [CI、依赖维护与仓库门禁](zh/developer/ci-setup.md)
 - [文档状态说明](docs_status.md)

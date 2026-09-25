@@ -125,3 +125,4 @@ class TranslationPlanInput(BaseModel):
     stale_acknowledgement: dict[str, Any] | None = None
     embedded_workshop_enabled: bool = True
     dry_run: bool = False
+    custom_lang_config: dict[str, str] | None = None

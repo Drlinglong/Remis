@@ -54,9 +54,15 @@ def read_files_for_backup(
         if progress_callback:
             progress_callback(idx, total_files, file_info["filename"], "Reading Source")
         try:
-            original_lines, texts_to_translate, key_map, diagnostics = (
-                file_parser.extract_translatable_content_with_diagnostics(file_path)
-            )
+            if file_info.get("adapter_id"):
+                from scripts.core.game_adapters.workflow_bridge import extract_file
+                original_lines, texts_to_translate, key_map, diagnostics = extract_file(
+                    file_path, file_info["adapter_id"], file_info.get("adapter_metadata")
+                )
+            else:
+                original_lines, texts_to_translate, key_map, diagnostics = (
+                    file_parser.extract_translatable_content_with_diagnostics(file_path)
+                )
         except Exception as e:
             logging.error(f"Failed to parse file {file_path} for backup: {e}")
             issue = SourceFileIssue(

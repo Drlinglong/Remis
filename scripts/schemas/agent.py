@@ -2,13 +2,15 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from scripts.schemas.common import LanguageCode
+from scripts.schemas.agent_language import AgentCustomLangConfig, validate_shell_targets
 
 
 class AgentJobPlanRequest(BaseModel):
     project_id: str
+    workflow: Literal["initial", "incremental"] = "initial"
     target_lang_codes: List[LanguageCode] = Field(
         default_factory=lambda: [LanguageCode.ZH_CN]
     )
@@ -25,6 +27,14 @@ class AgentJobPlanRequest(BaseModel):
     stale_acknowledgement: Optional[Dict[str, Any]] = None
     embedded_workshop_enabled: bool = True
     dry_run: bool = False
+    custom_lang_config: Optional[AgentCustomLangConfig] = None
+
+    @model_validator(mode="after")
+    def validate_shell(self):
+        validate_shell_targets(
+            [code.value for code in self.target_lang_codes], self.custom_lang_config,
+        )
+        return self
 
     @field_validator("target_lang_codes", mode="before")
     @classmethod
@@ -46,6 +56,9 @@ class AgentJobStartRequest(BaseModel):
 
 class AgentProjectInspectRequest(BaseModel):
     folder_path: str
+    game_id: Optional[str] = None
+    source_language: LanguageCode = LanguageCode.EN
+    game_version: Optional[str] = None
 
 
 class AgentProjectPlanRequest(BaseModel):
@@ -93,8 +106,11 @@ class AgentExportRequest(BaseModel):
 
 
 class AgentProgress(BaseModel):
-    completed_files: int = 0
-    total_files: int = 0
+    completed_files: Optional[int] = None
+    total_files: Optional[int] = None
+    file_count_scope: str = "unavailable"
+    current_batch: int = 0
+    total_batches: int = 0
     percent: int = 0
     current_file: str = ""
     stage: str = ""
@@ -145,6 +161,7 @@ class AgentJobResponse(BaseModel):
     message: Optional[str] = None
     recovery: Dict[str, Any] = Field(default_factory=dict)
     links: Dict[str, str] = Field(default_factory=dict)
+    game_support: Dict[str, Any] = Field(default_factory=dict)
 
 
 class AgentPlanResponse(BaseModel):
@@ -157,6 +174,8 @@ class AgentPlanResponse(BaseModel):
     summary: str
     allowed_actions: List[str] = Field(default_factory=list)
     context_readiness: Dict[str, Any] = Field(default_factory=dict)
+    translation: Dict[str, Any] = Field(default_factory=dict)
+    game_support: Dict[str, Any] = Field(default_factory=dict)
     expires_at: str
 
 
@@ -172,6 +191,7 @@ class AgentProjectPlanResponse(BaseModel):
 
 
 class AgentProjectSummary(BaseModel):
+    source_path: Optional[str] = None
     project_id: str
     name: str
     game_id: str
@@ -183,3 +203,4 @@ class AgentProjectSummary(BaseModel):
         default_factory=AgentValidationSummary
     )
     allowed_actions: List[str] = Field(default_factory=list)
+    game_support: Dict[str, Any] = Field(default_factory=dict)

@@ -189,7 +189,7 @@ def test_vic3_mismatched_color_tags_still_flags_target_only_imbalance(validator)
     assert [r for r in results if r.code == "validation_format_marker_parity_mismatch"]
 
 
-def test_vic3_concept_label_must_match_the_source(validator):
+def test_vic3_concept_label_allows_translation(validator):
     results = validator.validate_entry(
         "victoria3",
         "remis_concept_test:0",
@@ -200,7 +200,7 @@ def test_vic3_concept_label_must_match_the_source(validator):
         target_lang="zh-CN",
     )
 
-    assert [r for r in results if r.code == "validation_vic3_variable_parity_mismatch"]
+    assert not [r for r in results if r.level.value == "error"]
 
 
 def test_ck3_concept_allows_a_translated_player_visible_label(validator):

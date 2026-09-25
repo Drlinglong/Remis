@@ -13,6 +13,9 @@ from typing import Any
 from scripts.shared.services import project_manager
 from scripts.app_settings import APP_DATA_DIR, PROJECT_ROOT
 from scripts.core.services.provider_runtime import provider_selection_exists
+from scripts.core import surviving_mars_csv
+from scripts.core.game_adapters.registry import adapter_for_path
+from scripts.core.copilot.game_support import inspect_folder_game_support
 from scripts.core.copilot.provider_readiness import (
     check_provider_readiness,
 )
@@ -33,6 +36,28 @@ _plans: dict[str, StoredPlan] = {}
 _plans_lock = threading.Lock()
 
 
+def _mars_import_roots() -> tuple[str | None, str | None]:
+    appdata = os.environ.get("APPDATA")
+    if not appdata:
+        return None, None
+    appdata_root = os.path.normcase(os.path.realpath(appdata))
+    mod_root = os.path.normcase(os.path.join(appdata_root, "Surviving Mars Relaunched", "Mods"))
+    return appdata_root, mod_root
+
+
+def _inside_mars_mod(normalized, protected_root, appdata_root, mars_mod_root):
+    return bool(protected_root == appdata_root and mars_mod_root
+                and normalized.startswith(mars_mod_root + os.sep))
+
+
+def _configured_import_roots() -> set[str]:
+    roots = set()
+    for configured in os.environ.get("REMIS_AGENT_IMPORT_ROOTS", "").split(os.pathsep):
+        if configured.strip():
+            roots.add(os.path.normcase(os.path.realpath(os.path.expanduser(configured.strip()))))
+    return roots
+
+
 def _resolve_allowed_mod_folder(folder_path: str) -> Path:
     normalized = os.path.normcase(
         os.path.realpath(os.path.expanduser(folder_path))
@@ -45,14 +70,10 @@ def _resolve_allowed_mod_folder(folder_path: str) -> Path:
         os.path.normcase(os.path.realpath(str(PROJECT_ROOT))),
         bundled_demo_root,
     }
-    configured_roots = os.environ.get("REMIS_AGENT_IMPORT_ROOTS", "")
-    for configured in configured_roots.split(os.pathsep):
-        if configured.strip():
-            allowed_roots.add(
-                os.path.normcase(
-                    os.path.realpath(os.path.expanduser(configured.strip()))
-                )
-            )
+    allowed_roots.update(_configured_import_roots())
+    appdata_root, mars_mod_root = _mars_import_roots()
+    if mars_mod_root:
+        allowed_roots.add(mars_mod_root)
     for drive_letter in "CDEFGHIJKLMNOPQRSTUVWXYZ":
         for relative_root in (
             r"SteamLibrary\steamapps\workshop\content",
@@ -90,7 +111,8 @@ def _resolve_allowed_mod_folder(folder_path: str) -> Path:
         inside_bundled_demos = normalized.startswith(
             bundled_demo_root.rstrip("\\/") + os.sep
         )
-        if not inside_bundled_demos and (
+        inside_mars_mod = _inside_mars_mod(normalized, protected_root, appdata_root, mars_mod_root)
+        if not inside_bundled_demos and not inside_mars_mod and (
             normalized == protected_root or normalized.startswith(protected_prefix)
         ):
             raise ValueError("Mod folder is inside a protected system root")
@@ -148,12 +170,16 @@ def inspect_mod_folder(folder_path: str) -> dict[str, Any]:
             path = Path(current_root, name)
             rel = path.relative_to(root).as_posix()
             lower_name = name.lower()
-            if lower_name in {"descriptor.mod", "metadata.json"}:
+            is_surviving_mars_table = (
+                path.suffix.lower() == ".csv"
+                and surviving_mars_csv.is_table_file(path)
+            )
+            if lower_name in {"descriptor.mod", "metadata.json", "mod.info", "about.xml"}:
                 metadata_files.append(rel)
             if path.suffix.lower() in LOCALIZATION_SUFFIXES and any(
                 part.lower() in {"localisation", "localization"}
                 for part in path.parts
-            ):
+            ) or is_surviving_mars_table or adapter_for_path(path):
                 localization_files += 1
                 if len(sample_paths) < 8:
                     sample_paths.append(rel)
@@ -173,6 +199,16 @@ def inspect_mod_folder(folder_path: str) -> dict[str, Any]:
         "scan_truncated": truncated,
         "read_only": True,
     }
+
+
+def _localization_plan_summary(game_support: dict[str, Any]) -> str:
+    summary = "只读检查已完成。批准后由 Remis 创建项目，并按已确认参数立即启动初次翻译。"
+    if game_support.get("coverage_scope") == "recognized_resources_only":
+        summary += (
+            f"已识别 {game_support.get('recognized_resource_count', 0)} 个资源、"
+            f"{game_support.get('recognized_entry_count', 0)} 个条目；识别范围不等于游戏内验收。"
+        )
+    return summary
 
 
 def create_localization_plan(
@@ -199,6 +235,10 @@ def create_localization_plan(
         raise ValueError("Project name is required")
     if import_mode not in {"copy", "reference"}:
         raise ValueError("Import mode must be copy or reference")
+    game_support = inspect_folder_game_support(game_id, inspection["folder_path"], source_language)
+    inspection["game_support"] = game_support
+    if game_id == "surviving_mars" and game_support["has_blocking_diagnostics"]:
+        raise ValueError("Resolve Surviving Mars CSV diagnostics before planning a translation workflow.")
     if target_language == source_language:
         raise ValueError("Target language must differ from the source language")
     if not provider_selection_exists(api_provider):
@@ -217,7 +257,7 @@ def create_localization_plan(
         "workflow_type": "localize_mod_v1",
         "status": "awaiting_approval",
         "title": f"创建汉化项目：{name}",
-        "summary": "只读检查已完成。批准后由 Remis 创建项目，并按已确认参数立即启动初次翻译。",
+        "summary": _localization_plan_summary(game_support),
         "inspection": inspection,
         "steps": [
             {
@@ -317,15 +357,20 @@ async def create_translation_plan(
     stale_choice: str | None = None,
     stale_acknowledgement: dict[str, Any] | None = None,
     embedded_workshop_enabled: bool = True,
+    custom_lang_config=None,
 ) -> dict[str, Any]:
+    from scripts.schemas.agent_language import validate_shell_targets
     project = await project_manager.get_project(project_id)
     if not project:
         raise ValueError("Project not found")
+    from scripts.core.services.game_language_policy import validate_target_language_codes
     files = await project_manager.get_project_files(project_id)
     source_language = str(project.get("source_language") or "en")
     targets = [str(code).strip() for code in target_lang_codes if str(code).strip()]
+    custom_lang_config = validate_shell_targets(targets, custom_lang_config)
     if not targets:
         raise ValueError("At least one target language is required")
+    validate_target_language_codes(str(project.get("game_id") or ""), targets)
     if source_language in targets:
         raise ValueError("Target language must differ from the project source language")
     if not provider_selection_exists(api_provider):
@@ -349,6 +394,7 @@ async def create_translation_plan(
         "project_id": project_id,
         "source_lang_code": source_language,
         "target_lang_codes": targets,
+        "custom_lang_config": custom_lang_config,
         "api_provider": api_provider,
         "model": model.strip(),
         "batch_size_limit": batch_size_limit,

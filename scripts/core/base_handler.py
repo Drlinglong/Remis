@@ -438,14 +438,24 @@ class BaseApiHandler(ABC):
         lines.append("END PROJECT CONTEXT RELEASE\n")
         return "\n".join(lines)
 
-    def _parse_response(self, response: str, original_texts: list[str], target_lang_code: str) -> list[str] | None:
+    def _parse_response(
+        self,
+        response: str,
+        original_texts: list[str],
+        target_lang_code: str,
+        game_profile: dict | None = None,
+    ) -> list[str] | None:
         """
         【通用逻辑】调用结构化解析器来解析API响应。
         -   成功：返回翻译文本列表。
         -   失败：返回None，以触发上游的重试机制。
         """
 
-        parsed_model = parse_response(response, target_lang=target_lang_code)
+        parsed_model = parse_response(
+            response,
+            target_lang=target_lang_code,
+            preserve_newlines=(game_profile or {}).get("format_adapter_id") == "surviving_mars_csv",
+        )
         if parsed_model:
             return parsed_model.translations
         return None
@@ -465,7 +475,12 @@ class BaseApiHandler(ABC):
                 rate_limiter.wait()
 
                 raw_response = self._call_api(self.client, prompt)
-                translated_texts = self._parse_response(raw_response, task.texts, task.file_task.target_lang["code"])
+                translated_texts = self._parse_response(
+                    raw_response,
+                    task.texts,
+                    task.file_task.target_lang["code"],
+                    task.file_task.game_profile,
+                )
 
                 # Check for success: must not be None, must not be the original list, and length must match.
                 if translated_texts is not None and translated_texts is not task.texts and len(translated_texts) == len(task.texts):
@@ -609,7 +624,11 @@ class BaseApiHandler(ABC):
             
             # Restore tokens
             from scripts.utils.text_clean import restore_special_tokens
-            translated_text = restore_special_tokens(translated_text, target_lang["code"])
+            translated_text = restore_special_tokens(
+                translated_text,
+                target_lang["code"],
+                preserve_newlines=game_profile.get("format_adapter_id") == "surviving_mars_csv",
+            )
             
             return translated_text
         except Exception as e:

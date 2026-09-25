@@ -10,6 +10,8 @@ from scripts.core.checkpoint_manager import CheckpointManager
 
 @dataclass
 class LanguageRunState:
+    completed_files: int = 0
+    total_files: int = 0
     completed_batches: int = 0
     successful_batches: int = 0
     failed_batches: int = 0
@@ -20,7 +22,7 @@ class LanguageRunState:
     format_issues: int = 0
 
     @classmethod
-    def from_checkpoint(cls, checkpoint_manager: Any) -> "LanguageRunState":
+    def from_checkpoint(cls, checkpoint_manager: Any, total_files: int = 0) -> "LanguageRunState":
         """Hydrate counters from the task-owned checkpoint projection."""
         read_enabled = getattr(
             checkpoint_manager,
@@ -28,11 +30,13 @@ class LanguageRunState:
             getattr(checkpoint_manager, "resume_enabled", True),
         )
         if not read_enabled:
-            return cls()
+            return cls(total_files=total_files)
         progress = getattr(checkpoint_manager, "progress", {}) or {}
         metadata = getattr(checkpoint_manager, "metadata", {}) or {}
         values = {**metadata, **progress}
         return cls(
+            completed_files=len(getattr(checkpoint_manager, "completed_files", [])),
+            total_files=total_files,
             completed_batches=max(0, int(values.get("completed_batches", 0) or 0)),
             successful_batches=max(0, int(values.get("successful_batches", 0) or 0)),
             failed_batches=max(0, int(values.get("failed_batches", 0) or 0)),
@@ -158,6 +162,8 @@ def emit_progress(
             workshop_progress=workshop_progress,
             log_message=log_message,
             event_level=event_level,
+            completed_files=run_state.completed_files,
+            total_files=run_state.total_files,
         )
 
 
