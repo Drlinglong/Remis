@@ -26,6 +26,16 @@ const recovery = {
   allowed_actions: ['resume_task', 'start_over_task', 'clear_checkpoint'],
 };
 
+const deferred = () => {
+  let resolve;
+  let reject;
+  const promise = new Promise((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+};
+
 describe('translation recovery contract', () => {
   it('normalizes a backend recovery projection without deriving resumability from files', () => {
     const normalized = normalizeTranslationRecovery({ data: { recovery } });
@@ -156,13 +166,13 @@ describe('translation recovery contract', () => {
     expect(result.current.canResume).toBe(false);
   });
 
-  it('hides the prior project recovery immediately and rejects its actions after a project switch', async () => {
-    let resolveProjectA;
+  it('hides the prior project recovery immediately and ignores its late response after a project switch', async () => {
+    const projectA = deferred();
+    const projectB = deferred();
     const apiClient = {
-      get: vi.fn((url) => (url.includes('project-a')
-        ? new Promise((resolve) => { resolveProjectA = resolve; })
-        : Promise.resolve({ data: { ...recovery, project_id: 'project-b', task_id: 'task-b' } }))),
+      get: vi.fn((url) => (url.includes('project-a') ? projectA.promise : projectB.promise)),
       post: vi.fn(),
+      delete: vi.fn(),
     };
     const { result, rerender } = renderHook(
       ({ projectId }) => useTranslationRecovery(projectId, { apiClient }),
@@ -172,48 +182,120 @@ describe('translation recovery contract', () => {
     rerender({ projectId: 'project-b' });
     expect(result.current.recovery).toBeNull();
     expect(result.current.canResume).toBe(false);
-    await act(async () => {
-      await expect(result.current.resume()).rejects.toBeInstanceOf(TranslationRecoveryActionError);
-    });
+    await expect(result.current.resume()).rejects.toBeInstanceOf(TranslationRecoveryActionError);
     expect(apiClient.post).not.toHaveBeenCalled();
+
+    projectB.resolve({ data: { ...recovery, project_id: 'project-b', task_id: 'task-b' } });
     await waitFor(() => expect(result.current.recovery?.task_id).toBe('task-b'));
-
-    await act(async () => {
-      resolveProjectA({ data: { ...recovery, project_id: 'project-a', task_id: 'task-a' } });
-    });
+    projectA.resolve({ data: { ...recovery, project_id: 'project-a', task_id: 'task-a' } });
+    await act(async () => projectA.promise);
     expect(result.current.recovery?.task_id).toBe('task-b');
-
-    rerender({ projectId: 'project-c' });
-    let rejectedError;
-    await act(async () => {
-      try {
-        await result.current.resume();
-      } catch (error) {
-        rejectedError = error;
-      }
-    });
-    expect(rejectedError).toBeInstanceOf(TranslationRecoveryActionError);
-    expect(apiClient.post).not.toHaveBeenCalled();
   });
 
   it('rejects recovery actions when the backend project id conflicts with the owning project', async () => {
     const apiClient = {
       get: vi.fn().mockResolvedValue({ data: { ...recovery, project_id: 'other-project' } }),
       post: vi.fn(),
+      delete: vi.fn(),
     };
     const { result } = renderHook(() => useTranslationRecovery('project-1', { apiClient }));
 
     await waitFor(() => expect(result.current.recovery?.task_id).toBe('task-interrupted'));
     expect(result.current.canResume).toBe(false);
-    let rejectedError;
-    await act(async () => {
-      try {
-        await result.current.resume();
-      } catch (error) {
-        rejectedError = error;
-      }
-    });
-    expect(rejectedError).toBeInstanceOf(TranslationRecoveryActionError);
+    await expect(result.current.resume()).rejects.toBeInstanceOf(TranslationRecoveryActionError);
     expect(apiClient.post).not.toHaveBeenCalled();
+  });
+
+  it('stays idle when automatic recovery loading is disabled', () => {
+    const apiClient = { get: vi.fn(), post: vi.fn(), delete: vi.fn() };
+    const { result } = renderHook(() => useTranslationRecovery('project-1', {
+      apiClient,
+      autoLoad: false,
+    }));
+
+    expect(result.current.phase).toBe('idle');
+    expect(result.current.isLoading).toBe(false);
+    expect(apiClient.get).not.toHaveBeenCalled();
+  });
+
+  it('invalidates all actions after a project switch and keeps the new project response', async () => {
+    const projectBRecovery = deferred();
+    const apiClient = {
+      get: vi.fn((url) => (url.includes('project-1')
+        ? Promise.resolve({ data: recovery })
+        : projectBRecovery.promise)),
+      post: vi.fn(),
+      delete: vi.fn(),
+    };
+    const { result, rerender } = renderHook(
+      ({ projectId }) => useTranslationRecovery(projectId, { apiClient }),
+      { initialProps: { projectId: 'project-1' } },
+    );
+
+    await waitFor(() => expect(result.current.canClearCheckpoint).toBe(true));
+    rerender({ projectId: 'project-2' });
+    expect(result.current.canResume).toBe(false);
+    expect(result.current.canStartOver).toBe(false);
+    expect(result.current.canClearCheckpoint).toBe(false);
+
+    await expect(result.current.resume()).rejects.toBeInstanceOf(TranslationRecoveryActionError);
+    await expect(result.current.startOver({})).rejects.toBeInstanceOf(TranslationRecoveryActionError);
+    await expect(result.current.clearCheckpoint()).rejects.toBeInstanceOf(TranslationRecoveryActionError);
+    expect(apiClient.post).not.toHaveBeenCalled();
+    expect(apiClient.delete).not.toHaveBeenCalled();
+
+    projectBRecovery.resolve({
+      data: {
+        ...recovery,
+        task_id: 'task-project-2',
+        project_id: 'project-2',
+        allowed_actions: ['view_task'],
+      },
+    });
+    await waitFor(() => expect(result.current.recovery?.project_id).toBe('project-2'));
+  });
+
+  it('keeps an in-flight checkpoint clear bound to the project that authorized it', async () => {
+    const clearResponse = deferred();
+    const projectBRecovery = deferred();
+    const apiClient = {
+      get: vi.fn((url) => (url.includes('project-1')
+        ? Promise.resolve({ data: recovery })
+        : projectBRecovery.promise)),
+      post: vi.fn(),
+      delete: vi.fn(() => clearResponse.promise),
+    };
+    const { result, rerender } = renderHook(
+      ({ projectId }) => useTranslationRecovery(projectId, { apiClient }),
+      { initialProps: { projectId: 'project-1' } },
+    );
+
+    await waitFor(() => expect(result.current.canClearCheckpoint).toBe(true));
+    let clearPromise;
+    act(() => {
+      clearPromise = result.current.clearCheckpoint();
+    });
+    expect(apiClient.delete).toHaveBeenCalledWith('/api/projects/project-1/translation-checkpoint');
+
+    rerender({ projectId: 'project-2' });
+    clearResponse.resolve({
+      data: {
+        ...recovery,
+        checkpoint: { available: false, resumable: false },
+        allowed_actions: [],
+      },
+    });
+    await act(async () => clearPromise);
+    expect(result.current.recovery).toBeNull();
+
+    projectBRecovery.resolve({
+      data: {
+        ...recovery,
+        task_id: 'task-project-2',
+        project_id: 'project-2',
+        allowed_actions: ['view_task'],
+      },
+    });
+    await waitFor(() => expect(result.current.recovery?.project_id).toBe('project-2'));
   });
 });
