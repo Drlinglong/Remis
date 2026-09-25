@@ -121,11 +121,29 @@ For Surviving Mars, use `game_support.csv_contract` and the dynamic scan to
 confirm recognized CSV resources, entry counts, diagnostics, and runtime status.
 Only `ModItemLocTable` CSV with the declared five-column header is supported;
 IDs stay exact strings and only `Translation` is writable. Initial translation,
-incremental update, and proofreading use the existing CSV project workflow;
-the output remains local CSV files, not a separate translation Mod. FPK cannot
-be read directly and requires an editable source directory prepared with the
-official Mod Editor. The built-in Remis chat can guide only initial translation;
-use the project UI or this Agent API for incremental updates.
+incremental update, and proofreading keep using the existing CSV project
+workflow. A separate approved local-package workflow can wrap an existing
+project translation output as a translation-only Mod; it does not translate
+additional files or copy source assets. FPK cannot be read directly and
+requires an editable source directory prepared with the official Mod Editor.
+The built-in Remis chat can guide initial translation and explain this export,
+but does not execute incremental updates or package export. Use the project UI
+or this Agent API for incremental work; use the package options/plan/export API
+below or the corresponding project UI for package generation.
+
+For a separate package, call preflight, then
+`GET /api/agent/projects/{project_id}/translation-package/options`; choose an
+existing translation output and exact target language from those options.
+Create a preview with
+`POST /api/agent/projects/{project_id}/translation-package/plan`, show its
+package identity, selected output, game-language token, output files, and risk
+fields, and obtain explicit approval before
+`POST /api/agent/projects/{project_id}/translation-package` with
+`approved: true`. This is a local write only: it makes no paid provider call,
+does not overwrite an existing package, and writes outside the game directory.
+The package has a required dependency on the original Mod, contains only
+translation CSV content and Mod metadata, and is not runtime-verified. Do not
+call the standard `approve-export` deployment endpoint for this package.
 
 Published Mod Archives can be removed through the approval-gated Agent endpoint
 documented in the API reference. Archive removal deletes only regenerable

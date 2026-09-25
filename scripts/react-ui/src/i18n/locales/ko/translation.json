@@ -261,7 +261,7 @@
     "export_guidance_title": "설치 및 내보내기 안내",
     "export_guidance": {
       "independent_package": "독립 번역 모드 패키지를 사용하고 원본 모드 파일은 그대로 두세요. 번역 패키지를 활성화할 때 게임별 모드 로드 안내를 따르세요.",
-      "surviving_mars_csv": "Surviving Mars는 CSV 파일만 지원합니다. 게임에서 지원하는 CSV 절차를 사용하세요. Paradox 배포와 원본 정리는 사용할 수 없습니다."
+      "surviving_mars_csv": "Surviving Mars는 CSV 번역을 지원하며 Remis는 기존 번역 출력에서 별도의 번역 모드를 만들 수 있습니다. CSV만 지원하며 Paradox 배포와 원본 정리는 사용할 수 없습니다."
     },
     "resource_list_title": "인식된 리소스",
     "path_unknown": "경로를 사용할 수 없음",
@@ -269,6 +269,42 @@
     "diagnostics_title": "미지원 리소스 및 진단",
     "no_unsupported_diagnostics": "미지원 리소스 진단이 보고되지 않았습니다. 게임 전체를 지원한다는 뜻은 아닙니다.",
     "metadata_title": "게임 메타데이터"
+  },
+  "mars_translation_package": {
+    "title": "Surviving Mars 번역 패키지",
+    "description": "등록된 번역 출력으로 별도의 언어 모드를 만듭니다.",
+    "open": "패키지 만들기",
+    "loading": "패키지 옵션을 불러오는 중…",
+    "error_title": "패키지를 준비할 수 없습니다",
+    "errors": {
+      "stale_plan": "미리보기가 만료되었습니다. 새로 생성하세요.",
+      "approval_required": "명시적인 승인이 필요합니다.",
+      "unexpected_error": "요청에 실패했습니다. 프로젝트를 확인하고 다시 시도하세요."
+    },
+    "unsupported": "이 프로젝트에서는 번역 패키지를 만들 수 없습니다.",
+    "limitations_title": "현재 제한",
+    "output_label": "번역 출력",
+    "language_label": "대상 언어",
+    "no_outputs": "등록된 번역 출력이 없습니다.",
+    "no_languages": "사용 가능한 대상 언어가 없습니다.",
+    "source_mod_id_label": "원본 모드 ID",
+    "source_mod_title_label": "원본 모드 제목",
+    "author_label": "작성자(선택)",
+    "source_assets_notice": "패키지에는 번역된 CSV와 필수 메타데이터만 포함됩니다. 원본 모드 파일은 복사하지 않습니다.",
+    "preview": "패키지 미리보기",
+    "preview_title": "패키지 미리보기",
+    "requires_approval": "쓰기 전에 검토해야 합니다",
+    "package_summary": "{{modId}} — {{title}} · {{language}} · 파일 {{count}}개 · {{bytes}}바이트",
+    "installation_title": "설치 단계",
+    "installation_guidance": "생성된 폴더를 게임 사용자 데이터의 Mods 폴더에 넣으세요. 게임 내 모드 관리자에서 원본 모드와 번역 모드를 모두 활성화하세요.",
+    "write_approval": "생성은 검토한 패키지를 로컬에 씁니다. 원본 모드를 설치하거나 배포하거나 덮어쓰지 않습니다.",
+    "generate": "승인하고 패키지 생성",
+    "created_title": "패키지가 생성되었습니다",
+    "created_summary": "파일 {{count}}개 · {{bytes}}바이트",
+    "runtime_unverified": "게임 내에서 검증되지 않았습니다.",
+    "stale_plan": "미리보기가 만료되었습니다.",
+    "approval_required": "승인이 필요합니다.",
+    "unexpected_error": "예기치 않은 오류가 발생했습니다."
   },
   "homepage_action_card_new_project_icon": "🚀",
   "homepage_action_card_update_project_icon": "🔄",

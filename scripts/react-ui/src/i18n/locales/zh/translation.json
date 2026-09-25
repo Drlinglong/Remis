@@ -464,7 +464,7 @@
     "export_guidance_title": "安装与导出说明",
     "export_guidance": {
       "independent_package": "请使用独立翻译模组包，并保留原模组文件。启用翻译包前，请遵循对应游戏的模组加载说明。",
-      "surviving_mars_csv": "Surviving Mars 目前仅支持 CSV 文件。请使用游戏支持的 CSV 流程；不支持 Paradox 部署或清理源文件。"
+      "surviving_mars_csv": "Surviving Mars 支持 CSV 译文，Remis 可从已有翻译输出生成独立翻译包。仅限 CSV；不支持 Paradox 部署或清理源文件。"
     },
     "resource_list_title": "已识别资源",
     "path_unknown": "路径不可用",
@@ -474,6 +474,42 @@
     "metadata_title": "游戏元数据"
   },
   "game_name_eu5": "欧陆风云5",
+  "mars_translation_package": {
+    "title": "火星求生翻译包",
+    "description": "使用已登记的翻译输出创建独立语言 Mod。",
+    "open": "创建翻译包",
+    "loading": "正在读取打包选项…",
+    "error_title": "无法准备翻译包",
+    "errors": {
+      "stale_plan": "预览已过期，请重新生成预览。",
+      "approval_required": "需要明确批准后才能生成翻译包。",
+      "unexpected_error": "请求失败，请检查项目后重试。"
+    },
+    "unsupported": "此项目目前无法创建翻译包。",
+    "limitations_title": "当前限制",
+    "output_label": "翻译输出目录",
+    "language_label": "目标语言",
+    "no_outputs": "没有可用的已登记翻译输出。",
+    "no_languages": "没有可用的目标语言。",
+    "source_mod_id_label": "原 Mod ID",
+    "source_mod_title_label": "原 Mod 标题",
+    "author_label": "作者（可选）",
+    "source_assets_notice": "翻译包只包含译文 CSV 和必要元数据，不会复制原 Mod 资产。",
+    "preview": "预览翻译包",
+    "preview_title": "翻译包预览",
+    "requires_approval": "写入前需要审核",
+    "package_summary": "{{modId}} — {{title}} · {{language}} · {{count}} 个文件 · {{bytes}} 字节",
+    "installation_title": "安装步骤",
+    "installation_guidance": "将生成的文件夹放入游戏用户数据中的 Mods 文件夹，然后在游戏内 Mod 管理器中同时启用原 Mod 和翻译 Mod。",
+    "write_approval": "生成操作会在本地写入已审核的翻译包，不会安装、部署或覆盖原 Mod。",
+    "generate": "批准并生成翻译包",
+    "created_title": "翻译包已生成",
+    "created_summary": "{{count}} 个文件 · {{bytes}} 字节",
+    "runtime_unverified": "尚未在游戏中验证此翻译包。",
+    "stale_plan": "预览已过期。",
+    "approval_required": "需要明确批准。",
+    "unexpected_error": "发生意外错误。"
+  },
   "homepage_action_card_new_project_icon": "🚀",
   "homepage_action_card_update_project_icon": "🔄",
   "glossary_game": "游戏",

@@ -261,7 +261,7 @@
     "export_guidance_title": "インストールとエクスポートの案内",
     "export_guidance": {
       "independent_package": "独立した翻訳 Mod パッケージを使用し、元の Mod ファイルはそのまま残してください。翻訳パッケージを有効にする際は、各ゲームの Mod 読み込み手順に従ってください。",
-      "surviving_mars_csv": "Surviving Mars は CSV ファイルのみをサポートします。ゲームが対応する CSV 手順を使用してください。Paradox への配置と元ファイルのクリーンアップは利用できません。"
+      "surviving_mars_csv": "Surviving Mars は CSV 翻訳に対応し、Remis は既存の翻訳出力から独立した翻訳 Mod を作成できます。CSV のみ対応し、Paradox への配置と元ファイルのクリーンアップは利用できません。"
     },
     "resource_list_title": "認識済みリソース",
     "path_unknown": "パスを取得できません",
@@ -269,6 +269,42 @@
     "diagnostics_title": "未対応リソースと診断",
     "no_unsupported_diagnostics": "未対応リソースの診断はありません。ゲーム全体への対応を意味するものではありません。",
     "metadata_title": "ゲームのメタデータ"
+  },
+  "mars_translation_package": {
+    "title": "Surviving Mars 翻訳パッケージ",
+    "description": "登録済みの翻訳出力から独立した言語 Mod を作成します。",
+    "open": "パッケージを作成",
+    "loading": "パッケージ設定を読み込み中…",
+    "error_title": "パッケージを準備できません",
+    "errors": {
+      "stale_plan": "プレビューの有効期限が切れました。再作成してください。",
+      "approval_required": "明示的な承認が必要です。",
+      "unexpected_error": "リクエストに失敗しました。プロジェクトを確認して再試行してください。"
+    },
+    "unsupported": "このプロジェクトでは翻訳パッケージを作成できません。",
+    "limitations_title": "現在の制限",
+    "output_label": "翻訳出力",
+    "language_label": "対象言語",
+    "no_outputs": "登録済みの翻訳出力がありません。",
+    "no_languages": "利用できる対象言語がありません。",
+    "source_mod_id_label": "元 Mod ID",
+    "source_mod_title_label": "元 Mod タイトル",
+    "author_label": "作者（任意）",
+    "source_assets_notice": "パッケージには翻訳 CSV と必要なメタデータのみ含まれます。元 Mod のアセットはコピーされません。",
+    "preview": "内容をプレビュー",
+    "preview_title": "パッケージのプレビュー",
+    "requires_approval": "書き込み前に確認が必要です",
+    "package_summary": "{{modId}} — {{title}} · {{language}} · {{count}} ファイル · {{bytes}} バイト",
+    "installation_title": "インストール手順",
+    "installation_guidance": "生成したフォルダーをゲームのユーザーデータにある Mods フォルダーへ置き、ゲーム内の Mod 管理画面で元 Mod と翻訳 Mod の両方を有効にします。",
+    "write_approval": "生成すると確認済みパッケージをローカルに書き込みます。インストール、展開、元 Mod の上書きは行いません。",
+    "generate": "承認して生成",
+    "created_title": "パッケージを作成しました",
+    "created_summary": "{{count}} ファイル · {{bytes}} バイト",
+    "runtime_unverified": "ゲーム内での動作は未確認です。",
+    "stale_plan": "プレビューの有効期限が切れました。",
+    "approval_required": "承認が必要です。",
+    "unexpected_error": "予期しないエラーが発生しました。"
   },
   "homepage_action_card_new_project_icon": "🚀",
   "homepage_action_card_update_project_icon": "🔄",

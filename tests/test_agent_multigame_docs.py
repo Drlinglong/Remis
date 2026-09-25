@@ -17,6 +17,9 @@ def test_agent_skill_routes_through_dynamic_game_support_and_manual_install():
     assert "game_version` is only a discovery hint" in skill
     assert "source resources remain read-only" in skill
     assert "do not call" in skill and "`approve-export`" in skill
+    assert "translation-package/options" in skill
+    assert "approved: true" in skill
+    assert "does not execute incremental updates or package export" in skill
 
 
 def test_api_reference_documents_supported_formats_and_incremental_safety():
@@ -78,6 +81,28 @@ def test_surviving_mars_guides_match_the_csv_and_agent_contract():
         assert field in api
     assert "`Translation` may change" in api
     assert "Invalid/no-table scans have\nblocking diagnostics" in api
+    for endpoint in (
+        "/translation-package/options",
+        "/translation-package/plan",
+        "/translation-package",
+    ):
+        assert endpoint in api
+        assert endpoint in chinese
+        assert endpoint in english
+    assert "metadata.loctables" in api and "ModItemLocTable" in api
+    assert "required `ModDependency`" in api
+    assert "Untranslated(...)" in api
+    assert "runtime_verified: false" in api
+    assert "Schinese" in api
+    assert "metadata.loctables" in chinese and "metadata.loctables" in english
+    assert "Mod/<generated package ID>/Localization/..." in english
+    assert "Mod/<生成包ID>/Localization/..." in chinese
+    assert "Untranslated(...)" in chinese and "Untranslated(...)" in english
+    assert "49 rows" not in english and "47 行有中文译文" not in chinese
+    assert "EXOTIC APPLICATIONS" not in english + chinese
+    assert "%APPDATA%/Surviving Mars Relaunched/Mods" in english
+    assert "%APPDATA%/Surviving Mars Relaunched/Mods" in chinese
+    assert "does not call the export API" in english
 
 
 def test_user_and_developer_docs_link_to_the_single_api_contract():

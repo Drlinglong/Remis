@@ -80,6 +80,15 @@ def test_capabilities_include_detailed_project_zomboid_and_rimworld_support(clie
         assert support["capabilities"]["independent_translation_mod"] is True
         assert support["export_mode"] == "manual_install"
 
+    mars = games["surviving_mars"]["game_support"]
+    assert mars["capabilities"]["independent_translation_mod"] is True
+    assert mars["translation_package"]["supported"] is True
+    assert mars["translation_package"]["output_kind"] == "independent_translation_mod"
+    assert mars["translation_package"]["export_mode"] == "manual_install"
+    assert mars["translation_package"]["requires_original_mod"] is True
+    assert mars["translation_package"]["includes_source_assets"] is False
+    assert mars["translation_package"]["runtime_verified"] is False
+
 
 def test_get_game_support_and_explicit_inspect_are_read_only_and_game_aware(
     client, tmp_path, monkeypatch,

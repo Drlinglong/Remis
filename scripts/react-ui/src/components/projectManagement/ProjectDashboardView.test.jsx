@@ -21,6 +21,10 @@ vi.mock('../project/ProjectGameSupportPanel', () => ({
   default: ({ gameId, projectId }) => <div data-testid="game-support-panel">{gameId}:{projectId}</div>,
 }));
 
+vi.mock('../project/MarsTranslationPackagePanel', () => ({
+  default: ({ gameId, projectId }) => <div data-testid="mars-package-panel">{gameId}:{projectId}</div>,
+}));
+
 vi.mock('../project/ProjectHeader', () => ({
   default: () => <div data-testid="project-workspace-status">project status and next action</div>,
 }));
@@ -144,6 +148,14 @@ describe('ProjectDashboardView', () => {
     expect(header).toHaveTextContent('Demo Project');
     expect(screen.getByTestId('project-workspace-status')).toBeInTheDocument();
     expect(screen.getByRole('tablist', { name: 'project_management.workspace_navigation' })).toBeInTheDocument();
+  });
+
+  it('passes the active project and game into the translation package panel', () => {
+    renderDashboard({ selectedProject: {
+      project_id: 'mars-project', name: 'Mars', status: 'active', game_id: 'surviving_mars',
+    } });
+
+    expect(screen.getByTestId('mars-package-panel')).toHaveTextContent('surviving_mars:mars-project');
   });
 
   it('passes the selected project into the publishing assets panel', () => {

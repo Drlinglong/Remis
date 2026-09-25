@@ -111,14 +111,98 @@ case and multiplicity inside the tag are immutable. Invalid/no-table scans have
 blocking diagnostics; ordinary plans reject them, while dry-run remains
 available to inspect readiness and diagnostics. `runtime_verified` is false.
 This game supports initial translation, incremental update and proofreading
-through the existing CSV project workflow; it does not produce a separate
-translation Mod. The desktop Copilot only prepares initial-translation plans.
-Use the project UI or Agent API for incremental updates.
+through the existing CSV project workflow. A separate package exporter can
+wrap a selected existing translation output as a translation-only Mod; it does
+not translate more content or copy original Mod assets. The desktop Copilot
+can guide initial-translation planning and explain package export, but does not
+execute incremental updates or package export. Use the project UI or Agent API
+for incremental updates.
+
+The `game_support.translation_package` capability describes this local,
+manual-install package format: `metadata.loctables` and an `items.lua`
+`ModItemLocTable` reference the selected CSV. The package declares the source
+Mod as a required `ModDependency`; it includes no assets and remains
+`runtime_verified: false`. The original Mod must remain installed and enabled.
+The target's game-language token is returned by package `options`; use it
+exactly. In the installed Relaunched SDK, `zh-CN` maps to `Schinese`.
+The contract returns `options_endpoint`, `plan_endpoint`, and
+`export_endpoint`, so clients can discover these paths instead of constructing
+them from a hard-coded game list.
+
+### Generate a local Surviving Mars translation package
+
+This workflow wraps an already-generated project translation output. It is a
+local write, does not call a translation provider, does not overwrite an
+existing package, and does not install or publish anything. Run `preflight`
+before this workflow and obtain explicit approval before package generation.
+The Agent routes are `GET /api/agent/projects/{project_id}/translation-package/options`,
+`POST /api/agent/projects/{project_id}/translation-package/plan`, and
+`POST /api/agent/projects/{project_id}/translation-package`; GUI clients use
+the same suffixes under `/api/projects/{project_id}`.
+
+```powershell
+$projectId = 'project-id'
+$base = "http://127.0.0.1:1453/api/agent/projects/$projectId/translation-package"
+$options = Invoke-RestMethod "$base/options"
+$options | ConvertTo-Json -Depth 8
+```
+
+Choose an existing `translation_outputs[].output_folder_name` and one exact
+`languages[].code` from the options response. `languages[].game_language` is
+the game's `ModItemLocTable.Language` token. The options response also reports
+the source Mod ID/title, warnings, limitations, and runtime status.
+If a selected token has no matching language pack in the inspected local
+installation, the plan returns a warning; a recognized SDK token does not prove
+the game has that language pack installed.
+
+Create and inspect a plan; optional source metadata overrides should only be
+sent when explicitly requested or verified:
+
+```powershell
+$planBody = @{
+  output_folder_name = 'zh-CN-Example'
+  target_language = 'zh-CN'
+} | ConvertTo-Json
+$plan = Invoke-RestMethod -Method Post -Uri "$base/plan" `
+  -ContentType 'application/json' -Body $planBody
+$plan | ConvertTo-Json -Depth 10
+```
+
+Show the generated package `package.mod_id` and title, selected output/language,
+`package.files`, translated-entry count, warnings, and installation steps. The
+plan risk fields must show
+`may_use_paid_api: false`, `overwrites_existing_output: false`, and
+`exports_to_game_directory: false`; the plan requires explicit approval. Only
+after approval, submit:
+
+```powershell
+$exportBody = @{ plan_id = $plan.plan_id; approved = $true } | ConvertTo-Json
+$result = Invoke-RestMethod -Method Post -Uri $base `
+  -ContentType 'application/json' -Body $exportBody
+$result | ConvertTo-Json -Depth 10
+```
+
+The result contains the local `package_path`, generated `files`, manual
+`installation_steps`, and `runtime_verified: false`. CSV files are stored under
+package-relative `Localization/<game_language>/...` paths; `metadata.loctables`
+and `items.lua` reference `Mod/<generated_mod_id>/Localization/...` virtual
+mounted paths. The package references the original Mod as a required dependency
+and does not change the original Mod. Relaunched SDK source documents the loader contract:
+`ModItemLocTable.md.html`, `Mod.lua` (`UpdateLocTables` and
+`ModsLoadLocTables`), `ModItem.lua` (`GetAllLanguages`), and `localization.lua`
+(language-token mapping). `ModDependency` defaults `required` to true and
+major/minor versions to zero; keep those version requirements at zero so an
+unrelated small version change does not pin the translation package. Copy the
+generated Mod directory into the game's user Mods folder, then enable both Mods
+and select the matching game language.
+This guidance follows the SDK code; Remis has not verified the generated Mod
+in a live game. Hard-coded `Untranslated(...)` text is outside CSV coverage.
+The GUI-compatible routes use the same contract under `/api/projects/{project_id}`.
 
 CSV output preserves source-relative paths. FPK is a compiled package and is
 not readable by the adapter; use the official Mod Editor to prepare an editable
-source directory. This adapter does not itself unpack/repack FPK or edit
-ModItem metadata.
+source directory. The exporter does not unpack/repack FPK, modify the original
+Mod or publish to Workshop.
 
 ### Initial and incremental workflows
 

@@ -14,15 +14,21 @@ def get_game_support(game_id: str) -> dict:
     formats = {
         "project_zomboid": ["Translate JSON string maps", "restricted literal Lua-table TXT"],
         "rimworld": ["Keyed", "DefInjected", "Strings", "known translatable Defs fields", "rulesStrings"],
-        "surviving_mars": ["ModItemLocTable CSV"],
+        "surviving_mars": [
+            "ModItemLocTable CSV",
+            "Independent translation-only Mod package with ModItemLocTable",
+        ],
     }
     limitations = {
         "project_zomboid": ["Unknown/nested JSON shapes and Lua expressions are diagnosed, not executed.",
                             "Hard-coded Lua strings and special media formats are not covered."],
         "rimworld": ["Unknown fields, inheritance, PatchOperation and conditional dependencies need review.",
                      "Assemblies and runtime-generated text are not executed or fully resolved."],
-        "surviving_mars": ["Reuses existing CSV translation, incremental updates and proofreading; independent translation Mod generation is not implemented.",
-                           "FPK unpacking/repacking, ModItem creation, deployment and publishing are not implemented."],
+        "surviving_mars": [
+            "Translation-only Mod packages reference the original Mod as a required dependency and include no source assets.",
+            "Package output is local and runtime-unverified; FPK unpacking/repacking, deployment and publishing are not implemented.",
+            "Hard-coded Untranslated strings are outside recognized ModItemLocTable CSV coverage.",
+        ],
     }
     special = adapter is not None or game_id == "surviving_mars"
     return {
@@ -38,6 +44,18 @@ def get_game_support(game_id: str) -> dict:
         "incremental_policy": "Compare individual source entries; Mod metadata version changes alone do not require retranslating entries.",
         "changed_translation_policy": "preserve_and_require_review" if adapter else "existing_workflow",
         "runtime_verified": False if special else None,
+        **({"translation_package": {
+            "supported": True,
+            "format": "metadata.loctables + items.lua ModItemLocTable",
+            "output_kind": "independent_translation_mod",
+            "export_mode": "manual_install",
+            "options_endpoint": "/api/agent/projects/{project_id}/translation-package/options",
+            "plan_endpoint": "/api/agent/projects/{project_id}/translation-package/plan",
+            "export_endpoint": "/api/agent/projects/{project_id}/translation-package",
+            "requires_original_mod": True,
+            "includes_source_assets": False,
+            "runtime_verified": False,
+        }} if game_id == "surviving_mars" else {}),
         **({"csv_contract": csv_contract()} if game_id == "surviving_mars" else {}),
         "source_files_read_only": True,
         "workflow_modes": ["initial", "incremental"],

@@ -48,7 +48,7 @@ def game_capabilities(game_id: str) -> dict:
     csv = game_id == "surviving_mars"
     return {
         "resource_adapter": game_id if structured else ("surviving_mars_csv" if csv else "paradox"),
-        "independent_translation_mod": structured,
+        "independent_translation_mod": structured or csv,
         "paradox_deployment": not (structured or csv),
         "source_cleanup": not (structured or csv),
         "runtime_verified": False if structured or csv else None,

@@ -24,8 +24,13 @@ def test_static_support_is_allowlisted_and_states_three_game_boundaries():
     assert pz["incremental_policy"] and rimworld["incremental_policy"]
     assert pz["runtime_verified"] is False
     assert rimworld["runtime_verified"] is False
-    assert mars["formats"] == ["ModItemLocTable CSV"]
+    assert "ModItemLocTable CSV" in mars["formats"]
     assert mars["output_kind"] == "csv_files"
+    assert mars["capabilities"]["independent_translation_mod"] is True
+    assert mars["translation_package"]["supported"] is True
+    assert mars["translation_package"]["output_kind"] == "independent_translation_mod"
+    assert mars["translation_package"]["export_mode"] == "manual_install"
+    assert "translation-package/plan" in mars["translation_package"]["plan_endpoint"]
     assert "CSV" in AGENT_OPS_SUMMARY
     assert "游戏内验收" in AGENT_OPS_SUMMARY
 

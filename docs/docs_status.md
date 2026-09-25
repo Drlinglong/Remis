@@ -26,7 +26,7 @@
 
 多游戏用户指南 `docs/zh/user-guides/multi-game-localization.md` 是桌面 Help Copilot 的 `user-help` 入口；Agent 的唯一 API 规范仍是 `.agents/skills/remis-agent/references/api-workflow.md`，本地游戏支持以运行时 `game_support` 响应为准。当前格式证据和离线/运行时边界见 `docs/zh/developer/multi-game-adapters.md` 与相邻游戏证据笔记；这些开发笔记不进入普通用户答疑语料。
 
-Surviving Mars 专属中文指南 `docs/zh/user-guides/surviving-mars.md` 是该游戏 CSV 工作流的用户与桌面 Help Copilot 入口；English companion 位于 `docs/en/user-guides/surviving-mars.md`。支持五列表头和具体 CSV 不变量由运行时 `game_support.csv_contract` 提供；不要在其它指南维护第二份易漂移的字段表。指南区分桌面聊天可协助初次翻译与项目界面/Agent API 的增量更新。
+Surviving Mars 专属中文指南 `docs/zh/user-guides/surviving-mars.md` 是该游戏 CSV 与独立翻译 Mod 本地导出工作流的用户和桌面 Help Copilot 入口；English companion 位于 `docs/en/user-guides/surviving-mars.md`。支持五列表头和 CSV 不变量由运行时 `game_support.csv_contract` 提供；独立包 API 由 `game_support.translation_package` 提供 endpoints 和边界。不要在其它指南维护第二份易漂移的字段表。指南区分桌面聊天只协助初次翻译/解释导出、项目界面或 Agent API 支持增量与独立包的边界。
 
 [3.2.1 更新日志](zh/developer/release-v3.2.1.md) 是当前未发布开发记录的唯一入口：
 `status: draft`，`audience: developer`，`copilot_scope: excluded`，

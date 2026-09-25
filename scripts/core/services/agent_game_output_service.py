@@ -6,6 +6,7 @@ import os
 import stat
 from pathlib import Path
 from typing import Iterable
+from urllib.parse import quote
 
 from scripts.core.game_adapters.workflow_bridge import MANIFEST, safe_output
 
@@ -73,6 +74,8 @@ def preview_game_output(
     candidates = [item for item in candidates if item is not None]
     if game_id == "surviving_mars":
         local_files = _mars_files(candidates)
+        project_id = project.get("project_id") or project.get("id")
+        package_url = f"/api/agent/projects/{quote(str(project_id), safe='')}/translation-package"
         return {
             "game_id": game_id,
             "export_mode": "local_files",
@@ -83,6 +86,8 @@ def preview_game_output(
             "target_path": None,
             "requires_approval": False,
             "allowed_actions": ["inspect_local_output"] if local_files else [],
+            **({"translation_package": {"supported": True, "options_url": package_url + "/options",
+                                        "plan_url": package_url + "/plan"}} if project_id else {}),
         }
 
     packages = _structured_packages(game_id, candidates)

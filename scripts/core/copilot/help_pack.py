@@ -153,7 +153,7 @@ HELP_SKILLS: dict[str, dict[str, Any]] = {
     },
     "surviving_mars": {
         "title": "火星求生重制版本地化",
-        "description": "Surviving Mars / Relaunched 的 CSV 本地化、校验和输出路径。",
+        "description": "Surviving Mars / Relaunched 的 CSV 本地化，以及从已有译文生成本地独立翻译 Mod。",
         "resources": ("zh/user-guides/surviving-mars.md",),
     },
     "multi_game_localization": {
@@ -225,7 +225,8 @@ AGENT_OPS_SUMMARY = """
 - Project Zomboid 与 RimWorld 使用各自的独立翻译 Mod/包工作流；不得描述为 Paradox 部署或清理流程。
 - 两款结构化游戏按资源条目识别与增量比较；只说明扫描器识别的资源范围，不能称为游戏内容覆盖率。
 - 新游戏资源格式尚未经过游戏内验收，`runtime_verified=false`；不能承诺游戏中可加载或全部文本均被覆盖。
-- Surviving Mars / Relaunched 当前限定为 ModItemLocTable CSV；不支持生成独立翻译 Mod。不得把 CSV 能力泛化到其他游戏。
+- Surviving Mars / Relaunched 的现有翻译范围是扫描到的 ModItemLocTable CSV；独立翻译 Mod 导出只包装已有目标语言 CSV 输出，不会翻译额外源文或覆盖 Untranslated(...) 硬编码文本。不得把此能力泛化到其他游戏。
+- 火星独立包是本地轻量 Mod：metadata.loctables 与 items.lua 中的 ModItemLocTable 引用所选 CSV，并通过 required ModDependency 依赖原 Mod；不复制资产、不覆盖原 Mod、不部署或发布，runtime_verified=false。按 game_support.translation_package 暴露的 options/plan/export endpoints 引导 Codex 调用；桌面聊天只可说明 GUI/API 操作，不可声称已自动导出。
 - 火星专属问题先读取 surviving_mars 指南和 game_support.csv_contract；只写 Translation，保留 ID、其他列与标签参数。FPK 不能直接导入，应先用官方 Mod Editor 获取可编辑源目录。
 - 增量模式不支持 checkpoint 恢复；中断后需要从归档基线重新创建计划。项目级问题必须调用只读支持检查，并据其资源与诊断回答。
 - 内置 Copilot 目前只可生成初次翻译工作流；可以说明增量能力，但不能声称聊天能够创建或启动增量任务。

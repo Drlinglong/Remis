@@ -392,7 +392,7 @@
     "export_guidance_title": "Install and export guidance",
     "export_guidance": {
       "independent_package": "Use an independent translation mod package and keep the original mod files in place. Follow the game’s mod-loading guidance when enabling the translation package.",
-      "surviving_mars_csv": "Surviving Mars support produces CSV files only. Use the game’s supported CSV workflow; Paradox deployment and source cleanup are unavailable."
+      "surviving_mars_csv": "Surviving Mars supports CSV translation files and Remis can package an independent translation mod from an existing translation output. CSV only; Paradox deployment and source cleanup are unavailable."
     },
     "resource_list_title": "Recognized resources",
     "path_unknown": "Path unavailable",
@@ -400,6 +400,42 @@
     "diagnostics_title": "Unsupported resources and diagnostics",
     "no_unsupported_diagnostics": "No unsupported-resource diagnostics were reported. This does not imply full game coverage.",
     "metadata_title": "Game metadata"
+  },
+  "mars_translation_package": {
+    "title": "Surviving Mars translation package",
+    "description": "Build a separate language mod from a registered translation output.",
+    "open": "Create package",
+    "loading": "Loading package options…",
+    "error_title": "Could not prepare package",
+    "errors": {
+      "stale_plan": "The preview is out of date. Create a new preview.",
+      "approval_required": "The package requires explicit approval.",
+      "unexpected_error": "The request failed. Check the project and try again."
+    },
+    "unsupported": "This project cannot create a translation package.",
+    "limitations_title": "Current limits",
+    "output_label": "Translation output",
+    "language_label": "Target language",
+    "no_outputs": "No registered translation outputs are available.",
+    "no_languages": "No target languages are available.",
+    "source_mod_id_label": "Original mod ID",
+    "source_mod_title_label": "Original mod title",
+    "author_label": "Author (optional)",
+    "source_assets_notice": "The package includes translated CSV files and required metadata only. Original mod assets are not copied.",
+    "preview": "Preview package",
+    "preview_title": "Package preview",
+    "requires_approval": "Review required before writing",
+    "package_summary": "{{modId}} — {{title}} · {{language}} · {{count}} files · {{bytes}} bytes",
+    "installation_title": "Installation steps",
+    "installation_guidance": "Place the generated folder in the game’s user Mods folder. In the in-game Mod Manager, enable both the source mod and this translation mod.",
+    "write_approval": "Generating writes the reviewed package locally. It does not install, deploy, or overwrite the source mod.",
+    "generate": "Approve and generate package",
+    "created_title": "Package created",
+    "created_summary": "{{count}} files · {{bytes}} bytes",
+    "runtime_unverified": "The package has not been verified in-game.",
+    "stale_plan": "Preview is out of date.",
+    "approval_required": "Approval is required.",
+    "unexpected_error": "An unexpected error occurred."
   },
   "homepage_action_card_new_project_icon": "🚀",
   "homepage_action_card_update_project_icon": "🔄",

@@ -256,7 +256,7 @@
     "export_guidance_title": "Kurulum ve dışa aktarma yönergeleri",
     "export_guidance": {
       "independent_package": "Bağımsız bir çeviri modu paketi kullanın ve özgün mod dosyalarını yerinde bırakın. Çeviri paketini etkinleştirirken oyunun mod yükleme yönergelerini izleyin.",
-      "surviving_mars_csv": "Surviving Mars yalnızca CSV dosyalarını destekler. Oyunun desteklediği CSV akışını kullanın; Paradox dağıtımı ve kaynak temizliği kullanılamaz."
+      "surviving_mars_csv": "Surviving Mars CSV çevirilerini destekler ve Remis mevcut çeviri çıktısından ayrı bir çeviri modu oluşturabilir. Yalnızca CSV; Paradox dağıtımı ve kaynak temizliği kullanılamaz."
     },
     "resource_list_title": "Tanınan kaynaklar",
     "path_unknown": "Yol kullanılamıyor",
@@ -264,6 +264,42 @@
     "diagnostics_title": "Desteklenmeyen kaynaklar ve tanılama",
     "no_unsupported_diagnostics": "Desteklenmeyen kaynak tanılaması bildirilmedi. Bu, oyunun tamamen desteklendiği anlamına gelmez.",
     "metadata_title": "Oyun üst verileri"
+  },
+  "mars_translation_package": {
+    "title": "Surviving Mars çeviri paketi",
+    "description": "Kayıtlı çeviri çıktısından ayrı bir dil modu oluşturur.",
+    "open": "Paket oluştur",
+    "loading": "Paket seçenekleri yükleniyor…",
+    "error_title": "Paket hazırlanamadı",
+    "errors": {
+      "stale_plan": "Önizleme güncel değil. Yeni bir önizleme oluşturun.",
+      "approval_required": "Açık onay gerekiyor.",
+      "unexpected_error": "İstek başarısız oldu. Projeyi kontrol edip yeniden deneyin."
+    },
+    "unsupported": "Bu proje çeviri paketi oluşturamıyor.",
+    "limitations_title": "Geçerli sınırlar",
+    "output_label": "Çeviri çıktısı",
+    "language_label": "Hedef dil",
+    "no_outputs": "Kayıtlı çeviri çıktısı bulunamadı.",
+    "no_languages": "Kullanılabilir hedef dil yok.",
+    "source_mod_id_label": "Kaynak mod kimliği",
+    "source_mod_title_label": "Kaynak mod başlığı",
+    "author_label": "Yazar (isteğe bağlı)",
+    "source_assets_notice": "Paket yalnızca çevrilmiş CSV dosyalarını ve gerekli üst verileri içerir. Kaynak mod dosyaları kopyalanmaz.",
+    "preview": "Paketi önizle",
+    "preview_title": "Paket önizlemesi",
+    "requires_approval": "Yazmadan önce inceleme gerekir",
+    "package_summary": "{{modId}} — {{title}} · {{language}} · {{count}} dosya · {{bytes}} bayt",
+    "installation_title": "Kurulum adımları",
+    "installation_guidance": "Oluşturulan klasörü oyunun kullanıcı verilerindeki Mods klasörüne yerleştirin. Oyun içi mod yöneticisinde hem kaynak modu hem de çeviri modunu etkinleştirin.",
+    "write_approval": "Oluşturma, incelenen paketi yerel olarak yazar. Kaynak modu kurmaz, dağıtmaz veya üzerine yazmaz.",
+    "generate": "Onayla ve paketi oluştur",
+    "created_title": "Paket oluşturuldu",
+    "created_summary": "{{count}} dosya · {{bytes}} bayt",
+    "runtime_unverified": "Paket oyunda doğrulanmadı.",
+    "stale_plan": "Önizleme güncel değil.",
+    "approval_required": "Onay gerekiyor.",
+    "unexpected_error": "Beklenmeyen bir hata oluştu."
   },
   "homepage_action_card_new_project_icon": "🚀",
   "homepage_action_card_update_project_icon": "🔄",

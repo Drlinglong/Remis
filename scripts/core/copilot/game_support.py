@@ -31,6 +31,7 @@ _PUBLIC_SUPPORT_FIELDS = (
     "incremental_checkpoint_resume_supported",
     "terminology",
     "csv_contract",
+    "translation_package",
 )
 
 

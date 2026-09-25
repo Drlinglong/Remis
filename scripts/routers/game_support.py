@@ -2,7 +2,7 @@
 from fastapi import APIRouter, HTTPException
 from pathlib import Path
 
-from scripts.core.game_adapters.project_support import inspect_support
+from scripts.core.services.game_support_service import inspect_game_support
 from scripts.core.game_adapters.registry import resource_adapter
 from scripts.shared.services import project_manager
 
@@ -14,8 +14,8 @@ async def project_game_support(project_id: str, game_version: str | None = None)
     project = await project_manager.get_project(project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    return inspect_support(project["game_id"], project["source_path"],
-                           project.get("source_language", "en"), game_version)
+    return inspect_game_support(project["game_id"], project["source_path"],
+                                project.get("source_language", "en"), game_version)
 
 
 @router.get("/api/projects/{project_id}/game-resources/{file_id}/preview")

@@ -118,10 +118,12 @@ per target language, and export preview lists existing packages for manual
 installation with `validation_scope: "artifact_presence_only"`.
 Even an explicitly approved `approve-export` request returns
 `409 unsupported_game_deployment` for these games and Surviving Mars; it does
-not deploy them. Surviving Mars supports the existing
-ModItemLocTable CSV initial-translation, incremental-update, and proofreading
-workflow and previews local CSV files; it does not generate a separate
-translation Mod. Runtime loading is unverified for these adapters.
+not deploy them. Surviving Mars supports the existing ModItemLocTable CSV
+initial-translation, incremental-update, and proofreading workflow. A separate
+approval-gated translation-package API can wrap an existing CSV output as a
+local lightweight Mod; it does not call a translation provider, copy original
+Mod assets, install, publish, or cover hard-coded `Untranslated(...)` strings.
+Runtime loading is unverified for these adapters.
 
 See the [Agent API reference](../../../.agents/skills/remis-agent/references/api-workflow.md)
 for response fields and the [multi-game guide](../../zh/user-guides/multi-game-localization.md)

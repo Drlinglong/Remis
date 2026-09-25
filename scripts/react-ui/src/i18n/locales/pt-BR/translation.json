@@ -256,7 +256,7 @@
     "export_guidance_title": "Orientações de instalação e exportação",
     "export_guidance": {
       "independent_package": "Use um pacote de mod de tradução independente e mantenha os arquivos do mod original no lugar. Siga as orientações do jogo para carregar mods ao ativar o pacote de tradução.",
-      "surviving_mars_csv": "Surviving Mars oferece suporte somente a arquivos CSV. Use o fluxo CSV aceito pelo jogo; a implantação Paradox e a limpeza da origem não estão disponíveis."
+      "surviving_mars_csv": "Surviving Mars aceita traduções CSV e o Remis pode criar um mod de tradução separado a partir de uma saída existente. Somente CSV; a implantação Paradox e a limpeza da origem não estão disponíveis."
     },
     "resource_list_title": "Recursos reconhecidos",
     "path_unknown": "Caminho indisponível",
@@ -264,6 +264,42 @@
     "diagnostics_title": "Recursos não compatíveis e diagnósticos",
     "no_unsupported_diagnostics": "Nenhum diagnóstico de recurso não compatível foi informado. Isso não significa cobertura completa do jogo.",
     "metadata_title": "Metadados do jogo"
+  },
+  "mars_translation_package": {
+    "title": "Pacote de tradução de Surviving Mars",
+    "description": "Cria um mod de idioma separado a partir de uma saída de tradução registrada.",
+    "open": "Criar pacote",
+    "loading": "Carregando opções do pacote…",
+    "error_title": "Não foi possível preparar o pacote",
+    "errors": {
+      "stale_plan": "A prévia expirou. Crie uma nova.",
+      "approval_required": "O pacote exige aprovação explícita.",
+      "unexpected_error": "A solicitação falhou. Verifique o projeto e tente novamente."
+    },
+    "unsupported": "Este projeto não pode criar um pacote de tradução.",
+    "limitations_title": "Limitações atuais",
+    "output_label": "Saída da tradução",
+    "language_label": "Língua desejada",
+    "no_outputs": "Nenhuma saída de tradução registrada está disponível.",
+    "no_languages": "Não há idiomas de destino disponíveis.",
+    "source_mod_id_label": "ID do mod original",
+    "source_mod_title_label": "Título do mod original",
+    "author_label": "Nome do autor (opcional)",
+    "source_assets_notice": "O pacote contém apenas CSVs traduzidos e metadados necessários. Os arquivos do mod original não são copiados.",
+    "preview": "Prévia do pacote",
+    "preview_title": "Prévia do pacote",
+    "requires_approval": "Revisão necessária antes de gravar",
+    "package_summary": "{{modId}} — {{title}} · {{language}} · {{count}} arquivos · {{bytes}} bytes",
+    "installation_title": "Etapas de instalação",
+    "installation_guidance": "Coloque a pasta gerada na pasta Mods dos dados do jogo. No gerenciador de mods do jogo, ative tanto o mod original quanto este mod de tradução.",
+    "write_approval": "A geração grava localmente o pacote revisado. Não instala, publica nem sobrescreve o mod original.",
+    "generate": "Aprovar e gerar pacote",
+    "created_title": "Pacote criado",
+    "created_summary": "{{count}} arquivos · {{bytes}} bytes",
+    "runtime_unverified": "O pacote não foi verificado no jogo.",
+    "stale_plan": "A prévia expirou.",
+    "approval_required": "É necessária aprovação.",
+    "unexpected_error": "Ocorreu um erro inesperado."
   },
   "homepage_action_card_new_project_icon": "🚀",
   "homepage_action_card_update_project_icon": "🔄",

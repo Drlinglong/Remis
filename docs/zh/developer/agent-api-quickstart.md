@@ -77,7 +77,7 @@ flowchart TD
 `POST /api/agent/jobs/plan` 支持 `workflow: "initial"`（默认）和
 `workflow: "incremental"`。增量流程比较已识别的条目；仅版本号或路径变化不会触发整批重译。原文变化时保留已有译文并标记待复核，`needs_review` 在人工确认前不算已解决。`dry_run` 只检查就绪状态，不执行条目差异计算。Project Zomboid 和 RimWorld 当前不支持增量 checkpoint 恢复或自定义套壳语言；请重新创建增量计划。
 
-Project Zomboid 支持 JSON 字符串映射及受限的字面量 Lua 表 TXT。RimWorld 支持 Keyed、DefInjected、Strings、规则目录明确列出的 Def 可翻译字段和 `rulesStrings`。这表示适配器能识别这些格式，不代表覆盖 Mod 的所有文件；未知字段及依赖运行时的内容会产生诊断或交由人工复核。源文件只读；每个目标语言生成独立包，导出预览只列出现有本地产物供手动安装。预览的 `validation_scope` 是 `artifact_presence_only`，不代表游戏运行时已验证。对于以明确批准方式调用的导出请求，这两款游戏和 Surviving Mars 会返回 `409 unsupported_game_deployment`。Surviving Mars 沿用现有 ModItemLocTable CSV 初次翻译、增量更新和校对流程并预览本地 CSV，不生成独立翻译 Mod。
+Project Zomboid 支持 JSON 字符串映射及受限的字面量 Lua 表 TXT。RimWorld 支持 Keyed、DefInjected、Strings、规则目录明确列出的 Def 可翻译字段和 `rulesStrings`。这表示适配器能识别这些格式，不代表覆盖 Mod 的所有文件；未知字段及依赖运行时的内容会产生诊断或交由人工复核。源文件只读；每个目标语言生成独立包，导出预览只列出现有本地产物供手动安装。预览的 `validation_scope` 是 `artifact_presence_only`，不代表游戏运行时已验证。对于以明确批准方式调用的 Paradox 导出请求，这三款游戏均返回 `409 unsupported_game_deployment`。Surviving Mars 沿用现有 ModItemLocTable CSV 初次翻译、增量更新和校对流程；另可用 translation-package options/plan/export API 把已有 CSV 译文生成本地独立轻量包，须审批且不会自动安装、发布或复制原 Mod 资产。硬编码 `Untranslated(...)` 文本不在 CSV 覆盖范围内，包的 `runtime_verified` 为 false。
 
 详细响应字段见 [Agent API 技术参考](../../../.agents/skills/remis-agent/references/api-workflow.md)，玩家说明见[多游戏本地化指南](../user-guides/multi-game-localization.md)。
 

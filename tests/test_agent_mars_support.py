@@ -218,6 +218,8 @@ def test_copilot_reads_mars_csv_contract_and_dedicated_help_guide():
     assert support["csv_contract"]["id_policy"].startswith("ASCII decimal")
     assert support["csv_contract"]["compressed_packages_supported"] is False
     assert support["runtime_verified"] is False
+    assert support["translation_package"]["supported"] is True
+    assert support["translation_package"]["requires_original_mod"] is True
 
     help_pack._read_allowlisted_doc.cache_clear()
     guides = help_pack.read_help_skills(["surviving_mars"])
@@ -225,6 +227,8 @@ def test_copilot_reads_mars_csv_contract_and_dedicated_help_guide():
     assert guides[0]["path"] == "zh/user-guides/surviving-mars.md"
     assert "ModItemLocTable" in guides[0]["content"]
     assert "ModContent.fpk" in guides[0]["content"]
+    assert "translation-package/plan" in guides[0]["content"]
+    assert "Untranslated(...)" in guides[0]["content"]
 
 
 @pytest.fixture

@@ -1,8 +1,6 @@
 # 多游戏本地化适配与离线验收
 
-本轮在 `codex/multi-game-adapters` 上增加 Project Zomboid 和 RimWorld，基线为
-`283b55912a5e4393e25eb7b8c8f193f2b634b2ab`。现有 Surviving Mars Relaunched CSV
-提交 `2721c9ba` 已包含在基线中。本轮复用其 CSV 能力，不生成新的火星独立翻译 Mod。
+本轮在既有 Project Zomboid、RimWorld 和 Surviving Mars Relaunched CSV 支持上，补充 Mars 从现有翻译输出生成独立本地轻量翻译 Mod 的受审批工作流。基线中的 CSV 工作流仍保留。该包通过 SDK `metadata.loctables` 与 `ModItemLocTable` 格式引用已有译文，并将原 Mod 设为必需依赖；不复制资产、不覆盖原 Mod、不自动安装/发布，且没有游戏内运行时验证。
 
 ## 支持范围
 
@@ -10,7 +8,7 @@
 | --- | --- | --- | --- |
 | Project Zomboid | Translate 目录的字符串值 JSON、安全 Lua-table TXT；common/版本目录；单 Mod 的 Workshop 容器 | 目标语言资源、独立 mod.info、原 Mod 的 require 依赖 | 不执行 Lua；复杂表达式、未知 JSON 形状和多 Mod 容器报诊断；不翻译硬编码脚本文字 |
 | RimWorld | Keyed、DefInjected、Strings；Defs 中显式规则支持的可翻译字段和 rulesStrings；版本目录与 LoadFolders 证据 | Languages/目标游戏语言目录、独立 About.xml、原 packageId 依赖与 loadAfter | 不执行程序集或 PatchOperation；继承和依赖条件不能离线完整展开；未知字段、条件和混合 XML 内容显示诊断 |
-| Surviving Mars Relaunched | 现有 ModItemLocTable CSV | 保留现有 Translation 列写回 | 独立翻译 Mod 的生成留给以后 |
+| Surviving Mars Relaunched | 现有 ModItemLocTable CSV | 原有 CSV 流程；可从已有目标语言 CSV 输出生成轻量翻译 Mod | 需要原 Mod 作为 required dependency；不复制资产、不修改原 Mod、不部署/发布；游戏内加载未验证 |
 | P 社游戏 | 现有 localization/localisation 解析与工作流 | 现有产物 | 回归原有路径与语义 token 保护 |
 
 版本号用于说明证据与选择有效目录。Mod 元数据版本变化不会使所有条目重新翻译；已知规则
@@ -172,6 +170,10 @@ API dry-run 仍可读取诊断。输出预览只列出能通过现有 CSV 表结
 无法创建的目录 symlink 样例。架构 guard、compileall 通过，未修改前端组件或增加状态/effects。
 
 ## 本地提交记录
+
+火星独立翻译 Mod 已在后续工作中实现；现行接口、SDK 加载依据和真实项目验收见
+[独立翻译包记录](mars-translation-package-evidence.md)。上方“火星 CSV 的 Agent 适配补充”
+保留的是当时仅处理 CSV 的阶段性范围，不代表当前功能仍缺少包生成。
 
 - `da262d50` — `feat(localization): add extensible PZ and RimWorld workflows`
 - `8c6e4c0e` — `feat(ui): integrate multi-game project support and recovery guards`
