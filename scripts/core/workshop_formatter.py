@@ -4,11 +4,21 @@ Core module for formatting Steam Workshop descriptions.
 import os
 import requests
 import datetime
-from scripts.utils import logger
+import logging
 from scripts.config.prompts import STEAM_BBCODE_PROMPT_TEMPLATE
 from scripts.app_settings import LANGUAGES
 from scripts.core.glossary_manager import glossary_manager
 from scripts.core.api_handler import get_handler
+
+logger = logging.getLogger(__name__)
+
+
+class WorkshopFormattingUnavailableError(RuntimeError):
+    """Raised when the selected provider cannot run the formatting request."""
+
+
+class WorkshopFormattingError(RuntimeError):
+    """Raised when the provider fails while formatting a description."""
 
 
 def get_workshop_item_details(item_id: str) -> str | None:
@@ -37,7 +47,7 @@ def get_workshop_item_details(item_id: str) -> str | None:
                 data['response']['publishedfiledetails'][0].get('result') == 1):
 
             description = data['response']['publishedfiledetails'][0].get('description', '')
-            logger.success(f"Successfully fetched description for item {item_id}.")
+            logger.info(f"Successfully fetched description for item {item_id}.")
             return description
         else:
             error_details = data.get('response', 'No response data')
@@ -107,7 +117,7 @@ def format_description_with_ai(
             target_lang_code=target_language
         )
         final_text = injected_text
-        logger.success("Glossary injection complete.")
+        logger.info("Glossary injection complete.")
     else:
         final_text = full_text_to_process
 
@@ -119,17 +129,29 @@ def format_description_with_ai(
     # --- 4. Call Selected AI Provider ---
     try:
         handler = get_handler(selected_provider)
-        if not handler or not handler.client:
-            logger.error(f"Failed to get a configured handler for '{selected_provider}'.")
-            return f"[AI Formatting Skipped - Handler for '{selected_provider}' Not Configured]"
-
+    except Exception as exc:
+        raise WorkshopFormattingUnavailableError(
+            f"Provider '{selected_provider}' could not be initialized."
+        ) from exc
+    if not handler or not handler.client:
+        logger.error(f"Failed to get a configured handler for '{selected_provider}'.")
+        raise WorkshopFormattingUnavailableError(
+            f"Provider '{selected_provider}' is not configured."
+        )
+    try:
         logger.info(f"Sending combined text to '{selected_provider}' for formatting...")
         response = handler.get_response(prompt)
-        logger.success(f"Successfully received formatted BBCode from '{selected_provider}'.")
-        return response
-    except Exception as e:
-        logger.error(f"An error occurred during AI description formatting with '{selected_provider}': {e}")
-        return f"[AI Formatting Failed with {selected_provider}: {e}]"
+        logger.info(f"Successfully received formatted BBCode from '{selected_provider}'.")
+    except Exception as exc:
+        logger.error(f"An error occurred during AI description formatting with '{selected_provider}': {exc}")
+        raise WorkshopFormattingError(
+            f"Provider '{selected_provider}' failed to format the description."
+        ) from exc
+    if not isinstance(response, str) or not response.strip():
+        raise WorkshopFormattingError(
+            f"Provider '{selected_provider}' returned an empty description."
+        )
+    return response
 
 
 def archive_generated_description(project_id: str, bbcode_content: str, workshop_id: str) -> str | None:
@@ -151,7 +173,7 @@ def archive_generated_description(project_id: str, bbcode_content: str, workshop
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(bbcode_content)
 
-        logger.success(f"Successfully archived generated description to: {file_path}")
+        logger.info(f"Successfully archived generated description to: {file_path}")
         return file_path
     except IOError as e:
         logger.error(f"Failed to write archive file: {e}")

@@ -16,9 +16,10 @@ from scripts.core.services.initial_translation_snapshot_service import (
 from scripts.core.services.initial_translation_run_service import (
     build_run_plan,
     create_translation_handler,
-    language_output_folder_name,
+    resource_output_folder,
     resolve_provider_model,
 )
+from scripts.core.services.translation_task_runtime import get_output_folder_names
 from scripts.core.services.initial_translation_language_service import run_language_translation
 from scripts.core.services.initial_translation_workspace_service import (
     clean_source_directory,
@@ -149,7 +150,12 @@ def _run_language_targets(
     )
     for target_lang in target_languages:
         language_folder = (
-            language_output_folder_name(mod_name, target_lang)
+            get_output_folder_names(
+                mod_name,
+                [target_lang],
+                project_id,
+                game_profile,
+            )[0]
             if mars_language_outputs else output_folder_name
         )
         language_output_path = (
@@ -265,11 +271,34 @@ def _resolve_run_identity(
     return identity, resolved_task_id, resolved_run_id
 
 
-def _build_run_plan(mod_name: str, target_languages: list[dict], game_profile: dict, run_id: str):
-    from scripts.core.services.initial_translation_run_service import resource_output_folder
-    run_plan = build_run_plan(mod_name, target_languages)
-    output_folder = resource_output_folder(run_plan.output_folder_name, game_profile, run_id)
-    return run_plan, output_folder, run_plan.primary_target_lang
+def _build_run_plan(
+    mod_name: str,
+    target_languages: list[dict],
+    project_id: Optional[str] = None,
+    recovery_identity: Optional[dict] = None,
+    game_profile: Optional[dict] = None,
+    run_id: Optional[str] = None,
+):
+    recovery_output = str((recovery_identity or {}).get("output_dir") or "").strip()
+    output_folder_name = (
+        os.path.basename(os.path.normpath(recovery_output))
+        if recovery_output
+        else None
+    )
+    run_plan = build_run_plan(
+        mod_name,
+        target_languages,
+        project_id=project_id,
+        output_folder_name=output_folder_name,
+    )
+    resolved_output_folder = run_plan.output_folder_name
+    if not recovery_output and game_profile and run_id:
+        resolved_output_folder = resource_output_folder(
+            resolved_output_folder,
+            game_profile,
+            run_id,
+        )
+    return run_plan, resolved_output_folder, run_plan.primary_target_lang
 
 
 def _unpack_prepared_run(prepared: PreparedTranslationRun, recovery_identity: dict):
@@ -283,6 +312,17 @@ def _unpack_prepared_run(prepared: PreparedTranslationRun, recovery_identity: di
         prepared.source_root,
         prepared.source_snapshot_hash,
         prepared.effective_chunk_size,
+    )
+
+
+def _outcome_from_translation(source_result, reference_metrics, context_selection):
+    return InitialTranslationOutcome(
+        status="partial_failed" if source_result.issues else "completed",
+        issue_count=len(source_result.issues),
+        recovered_entry_count=source_result.recovered_entry_count,
+        dropped_file_count=source_result.dropped_file_count,
+        reference_metrics=tuple(reference_metrics),
+        context_metadata=context_selection.metadata,
     )
 
 
@@ -311,7 +351,14 @@ def run(
     recovery_identity, task_id, run_id = _resolve_run_identity(
         recovery_identity, task_id, run_id, progress_callback
     )
-    run_plan, output_folder_name, primary_target_lang = _build_run_plan(mod_name, target_languages, game_profile, run_id)
+    run_plan, output_folder_name, primary_target_lang = _build_run_plan(
+        mod_name,
+        target_languages,
+        project_id,
+        recovery_identity,
+        game_profile,
+        run_id,
+    )
     logging.info(i18n.t("start_workflow",
                  workflow_name=i18n.t("workflow_initial_translate_name"),
                  mod_name=mod_name))
@@ -390,22 +437,14 @@ def run(
         last_target_lang,
         output_folder_name,
         mod_context,
-        game_profile,
+        ({**game_profile, "_output_project_id": project_id} if project_id else game_profile),
         output_dir_path,
         selected_provider,
         resolved_model_name,
         target_languages,
         project_id,
     )
-    status = "partial_failed" if source_result.issues else "completed"
-    return InitialTranslationOutcome(
-        status=status,
-        issue_count=len(source_result.issues),
-        recovered_entry_count=source_result.recovered_entry_count,
-        dropped_file_count=source_result.dropped_file_count,
-        reference_metrics=tuple(reference_metrics),
-        context_metadata=context_selection.metadata,
-    )
+    return _outcome_from_translation(source_result, reference_metrics, context_selection)
 
 
 def discover_files(mod_name: str, game_profile: dict, source_lang: dict, override_path: Optional[str] = None) -> List[dict]:

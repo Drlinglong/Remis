@@ -3,11 +3,12 @@ from unittest.mock import AsyncMock, MagicMock
 from types import SimpleNamespace
 
 import pytest
+from fastapi import BackgroundTasks
 from fastapi.testclient import TestClient
 
 from scripts.routers import translation, translation_recovery
 from scripts.core.provider_errors import ProviderFatalError
-from scripts.schemas.translation import InitialTranslationRequest
+from scripts.schemas.translation import InitialTranslationRequest, TranslationRequestV2
 from scripts.shared.state import tasks
 from scripts.shared import task_state
 from scripts.web_server import app
@@ -33,6 +34,56 @@ def test_status_payload_is_trimmed_without_mutating_task_log():
     assert len(payload["log"]) == 100
     assert payload["log"][0] == "line-20"
     assert len(tasks["task-1"]["log"]) == 120
+
+
+def _legacy_translation_request(project_path: str) -> TranslationRequestV2:
+    return TranslationRequestV2(
+        project_path=project_path,
+        game_profile_id="stellaris",
+        source_lang_code="en",
+        target_lang_codes=["zh-CN"],
+        api_provider="mock",
+    )
+
+
+@pytest.mark.asyncio
+async def test_translate_v2_invalid_path_does_not_admit_task(monkeypatch, tmp_path):
+    monkeypatch.setattr(translation, "resolve_runtime_or_400", lambda *_args: object())
+    monkeypatch.setattr(translation, "provider_task_fields", lambda _runtime: {})
+
+    with pytest.raises(translation.HTTPException) as error:
+        await translation.start_translation_v2(
+            BackgroundTasks(),
+            _legacy_translation_request(str(tmp_path / "missing")),
+        )
+
+    assert error.value.status_code == 400
+    assert tasks == {}
+
+
+@pytest.mark.asyncio
+async def test_translate_v2_copy_failure_does_not_admit_task(monkeypatch, tmp_path):
+    source = tmp_path / "incoming" / "mod"
+    source.mkdir(parents=True)
+    managed = tmp_path / "managed"
+    managed.mkdir()
+    monkeypatch.setattr(translation, "SOURCE_DIR", str(managed))
+    monkeypatch.setattr(translation, "resolve_runtime_or_400", lambda *_args: object())
+    monkeypatch.setattr(translation, "provider_task_fields", lambda _runtime: {})
+    monkeypatch.setattr(
+        translation.legacy_translation_start_service.shutil,
+        "copytree",
+        MagicMock(side_effect=OSError("copy failed")),
+    )
+
+    with pytest.raises(translation.HTTPException) as error:
+        await translation.start_translation_v2(
+            BackgroundTasks(),
+            _legacy_translation_request(str(source)),
+        )
+
+    assert error.value.status_code == 500
+    assert tasks == {}
 
 
 def test_run_translation_workflow_v2_success_uses_shared_task_state(monkeypatch):

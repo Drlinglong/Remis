@@ -19,6 +19,29 @@ class InvalidSteamWorkshopSequenceError(RuntimeError):
     """Raised when legacy rows violate the positive sequence contract."""
 
 
+class InvalidSteamWorkshopForeignKeyError(RuntimeError):
+    """Raised when legacy Workshop assets reference missing parent rows."""
+
+
+def _require_valid_foreign_keys(connection: sqlite3.Connection) -> None:
+    violations = connection.execute(
+        f"PRAGMA foreign_key_check({_TABLE_NAME})"
+    ).fetchall()
+    if violations:
+        table, row_id, parent, foreign_key_id = violations[0]
+        raise InvalidSteamWorkshopForeignKeyError(
+            "Cannot finalize Steam Workshop asset integrity: "
+            f"{table} row {row_id} references missing {parent} "
+            f"through foreign key {foreign_key_id}."
+        )
+
+
+def validate_steam_workshop_foreign_keys(db_path: str) -> None:
+    """Fail closed when an already-migrated asset table contains orphan rows."""
+    with sqlite3.connect(db_path) as connection:
+        _require_valid_foreign_keys(connection)
+
+
 def _has_positive_sequence_constraint(connection: sqlite3.Connection) -> bool:
     row = connection.execute(
         "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?",
@@ -36,6 +59,7 @@ def enforce_steam_workshop_sequence_constraint(db_path: str) -> None:
     connection = sqlite3.connect(db_path)
     try:
         if _has_positive_sequence_constraint(connection):
+            _require_valid_foreign_keys(connection)
             return
         invalid = connection.execute(
             f"SELECT version_id, sequence FROM {_TABLE_NAME} WHERE sequence <= 0 LIMIT 1"
@@ -103,6 +127,7 @@ def enforce_steam_workshop_sequence_constraint(db_path: str) -> None:
             ON steam_workshop_asset_versions (status, created_at DESC)
             """
         )
+        _require_valid_foreign_keys(connection)
         connection.commit()
     except Exception:
         connection.rollback()

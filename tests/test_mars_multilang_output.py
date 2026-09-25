@@ -70,10 +70,23 @@ def test_mars_batch_dispatch_keeps_checkpoint_root_separate_from_language_output
 
     initial_translate._run_language_targets(**shared)
 
-    assert [call["output_folder_name"] for call in calls] == ["fr-prepared", "de-prepared"]
+    expected_names = [
+        translation_task_runtime.get_output_folder_names(
+            "prepared", [language], "project-1", MARS_PROFILE
+        )[0]
+        for language in (FRENCH, GERMAN)
+    ]
+    other_project_names = [
+        translation_task_runtime.get_output_folder_names(
+            "prepared", [language], "project-2", MARS_PROFILE
+        )[0]
+        for language in (FRENCH, GERMAN)
+    ]
+    assert expected_names != other_project_names
+    assert [call["output_folder_name"] for call in calls] == expected_names
     assert [call["output_dir_path"] for call in calls] == [
-        os.path.join(str(tmp_path), "fr-prepared"),
-        os.path.join(str(tmp_path), "de-prepared"),
+        os.path.join(str(tmp_path), folder_name)
+        for folder_name in expected_names
     ]
     assert [call["target_lang"]["_checkpoint_output_dir_path"] for call in calls] == [
         shared["output_dir_path"], shared["output_dir_path"],

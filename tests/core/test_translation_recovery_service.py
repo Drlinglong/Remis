@@ -594,6 +594,34 @@ async def test_resume_idempotency_uses_recovery_lineage_for_top_level_task(monke
     assert result["status"] == "running"
 
 
+def test_same_named_projects_receive_distinct_checkpoint_output_directories(tmp_path):
+    roots = [tmp_path / "first" / "same-mod", tmp_path / "second" / "same-mod"]
+    recoveries = []
+    for index, source_root in enumerate(roots, start=1):
+        source_root.mkdir(parents=True)
+        (source_root / "localization.yml").write_text("l_english:\n", encoding="utf-8")
+        project_id = f"project-{index}"
+        request = SimpleNamespace(
+            resume_from_task_id=None,
+            project_id=project_id,
+            model_dump=lambda mode=None, value=project_id: {
+                "project_id": value,
+                "target_lang_codes": ["zh-CN"],
+            },
+        )
+        _, recovery = prepare_initial_recovery(
+            request=request,
+            project={"source_path": str(source_root)},
+            task_id=f"task-{index}",
+            target_languages=[{"code": "zh-CN", "folder_prefix": "zh-CN-"}],
+        )
+        recoveries.append(recovery)
+
+    assert recoveries[0]["output_dir"] != recoveries[1]["output_dir"]
+    assert "project-1" in recoveries[0]["output_dir"]
+    assert "project-2" in recoveries[1]["output_dir"]
+
+
 def test_continuation_rejects_provider_runtime_drift(tmp_path):
     repository = _repository(tmp_path)
     previous_repository = task_state.get_repository()

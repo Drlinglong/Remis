@@ -1,5 +1,7 @@
 import os
 
+import pytest
+
 from scripts.core.services import initial_translation_postprocess_service as postprocess_service
 
 
@@ -93,3 +95,62 @@ def test_finalize_language_run_resolves_tags_and_saves_tracker(monkeypatch, tmp_
     assert run_calls[0][1]["dynamic_valid_tags"] == ["tag_a"]
     assert run_calls[0][0][0] == "MyMod"
     assert run_calls[0][0][4] == "zh-CN-MyMod"
+
+
+def test_run_post_processing_fails_closed_when_validation_does_not_complete(
+    monkeypatch,
+    tmp_path,
+):
+    import scripts.core.post_processing_manager as post_processing_module
+
+    class FailedPostProcessingManager:
+        def __init__(self, *_args, **_kwargs):
+            pass
+
+        def run_validation(self, *_args, **_kwargs):
+            return False
+
+    monkeypatch.setattr(post_processing_module, "PostProcessingManager", FailedPostProcessingManager)
+    monkeypatch.setattr(postprocess_service, "DEST_DIR", str(tmp_path / "dest"))
+
+    with pytest.raises(
+        postprocess_service.PostProcessingValidationError,
+        match="did not complete",
+    ):
+        postprocess_service.run_post_processing(
+            mod_name="MyMod",
+            game_profile={"id": "vic3"},
+            target_lang={"code": "zh-CN"},
+            source_lang={"code": "en"},
+            output_folder_name="zh-CN-MyMod",
+            proofreading_tracker=FakeTracker(),
+        )
+
+
+def test_finalize_language_run_does_not_save_progress_after_validation_failure(
+    monkeypatch,
+    tmp_path,
+):
+    tracker = FakeTracker()
+    monkeypatch.setattr(postprocess_service, "SOURCE_DIR", str(tmp_path / "source"))
+    monkeypatch.setattr(postprocess_service, "resolve_dynamic_valid_tags", lambda *_args: [])
+    monkeypatch.setattr(
+        postprocess_service,
+        "run_post_processing",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            postprocess_service.PostProcessingValidationError("validator unavailable")
+        ),
+    )
+
+    with pytest.raises(postprocess_service.PostProcessingValidationError):
+        postprocess_service.finalize_language_run(
+            "MyMod",
+            {"id": "vic3"},
+            {"code": "zh-CN"},
+            {"code": "en"},
+            "zh-CN-MyMod",
+            tracker,
+            None,
+        )
+
+    assert tracker.saved is False
