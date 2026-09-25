@@ -251,6 +251,7 @@ export function useTranslationRecovery(projectId, {
     canClearCheckpoint: recoveryMatchesProject
       && isRecoveryActionAllowed(activeRecovery, TRANSLATION_RECOVERY_ACTIONS.CLEAR),
     loadRecovery,
+    refresh: loadRecovery,
     resume,
     startOver,
     clearCheckpoint,

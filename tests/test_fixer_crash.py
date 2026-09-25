@@ -11,6 +11,7 @@ def test_fixer_uses_handler_and_returns_structured_response():
 
     file_task = MagicMock(spec=FileTask)
     file_task.target_lang = {"name": "Russian", "code": "ru"}
+    file_task.game_profile = {"format_adapter_id": "generic"}
 
     batch_task = MagicMock(spec=BatchTask)
     batch_task.file_task = file_task

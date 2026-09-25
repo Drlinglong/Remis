@@ -183,6 +183,18 @@ def _entry_rows(entries: dict[str, dict[str, Any]], translations: dict[str, str]
     surviving_mars_csv.parse_text(rendered)
     return rendered
 
+
+def _add_source_copy_file(
+    generated: dict[str, bytes], relative: str, content: bytes, source_paths: set[str],
+) -> None:
+    """Reject exact and Windows-casefold output collisions before package assembly."""
+    folded = relative.casefold()
+    if folded in source_paths:
+        raise MarsDeliveryError(f"Generated localization path would overwrite a source asset: {relative}")
+    if any(existing.casefold() == folded for existing in generated):
+        raise MarsDeliveryError(f"Generated localization paths collide on Windows: {relative}")
+    generated[relative] = content
+
 def _optional_source_tables(source: Path) -> dict[str, Any]:
     try:
         return package._discover_source_tables(source)
@@ -362,6 +374,7 @@ def _build_plan(
     generated: dict[str, bytes] = {}
     table_registrations: list[dict[str, str]] = []
     source_tables = _optional_source_tables(source)
+    source_paths = {relative.casefold() for relative, _, _, _ in source_files}
     source_table_ids: set[str] = set()
     for _, (_, _, document) in source_tables.items():
         source_table_ids.update(entry.key for entry in document.entries)
@@ -392,10 +405,12 @@ def _build_plan(
             writer = csv.writer(output, lineterminator=source_doc.line_ending)
             writer.writerows(rows)
             relative_target = f"{OUTPUT_SUBDIR}/{language}/{relative}"
-            generated[relative_target] = output.getvalue().encode("utf-8")
+            _add_source_copy_file(generated, relative_target, output.getvalue().encode("utf-8"), source_paths)
             table_registrations.append({"language": language, "path": relative_target})
         relative = f"{OUTPUT_SUBDIR}/{package._language(code)}/RemisLua.csv"
-        generated[relative] = _entry_rows(entries, values, code_translation_ids).encode("utf-8")
+        _add_source_copy_file(
+            generated, relative, _entry_rows(entries, values, code_translation_ids).encode("utf-8"), source_paths
+        )
         table_registrations.append({"language": language, "path": relative})
     try:
         _rewrite_owned_lua_namespace(source_files, rewritten, source_id, delivery_id)

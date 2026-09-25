@@ -46,12 +46,14 @@ def test_player_guide_distinguishes_help_and_incremental_workflows():
     guide = _read("docs/zh/user-guides/multi-game-localization.md")
     assert "展示初次翻译计划供用户审批" in guide
     assert 'Agent API 的 `workflow: "incremental"`' in guide
-    assert "ModItemLocTable CSV 初次翻译、增量更新和校对流程" in guide
+    assert "沿用 ModItemLocTable CSV 初次翻译和增量流程" in guide
+    assert "隔离准备项目" in guide and "多语言本地交付" in guide
 
 
 def test_surviving_mars_guides_match_the_csv_and_agent_contract():
     chinese = _read("docs/zh/user-guides/surviving-mars.md")
     english = _read("docs/en/user-guides/surviving-mars.md")
+    english_flat = " ".join(english.split())
     api = _read(".agents/skills/remis-agent/references/api-workflow.md")
     for guide in (chinese, english):
         assert "ID,Text,Translation,VoiceActor,Context" in guide
@@ -102,7 +104,10 @@ def test_surviving_mars_guides_match_the_csv_and_agent_contract():
     assert "EXOTIC APPLICATIONS" not in english + chinese
     assert "%APPDATA%/Surviving Mars Relaunched/Mods" in english
     assert "%APPDATA%/Surviving Mars Relaunched/Mods" in chinese
-    assert "does not call the export API" in english
+    assert "当前此游戏的项目界面尚无专用可视化校对工作区" in chinese
+    assert "预览通过后生成" in chinese
+    assert "does not yet provide a dedicated visual proofreading workspace" in english_flat
+    assert "review the preview before approving local output creation" in english_flat
 
 
 def test_user_and_developer_docs_link_to_the_single_api_contract():

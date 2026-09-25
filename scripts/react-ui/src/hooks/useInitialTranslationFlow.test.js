@@ -1,8 +1,10 @@
 import { act, renderHook } from '@testing-library/react';
+import { createElement, StrictMode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import api from '../utils/api';
 import translationService from '../services/translationService';
+import notificationService from '../services/notificationService';
 import { useInitialTranslationFlow } from './useInitialTranslationFlow';
 
 vi.mock('../utils/api', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
@@ -258,6 +260,57 @@ describe('useInitialTranslationFlow reference gate', () => {
     expect(setTaskId).toHaveBeenLastCalledWith('task-resumed');
   });
 
+  it('does not apply a late resume response after switching projects', async () => {
+    api.get.mockResolvedValue({ data: {
+      task_id: 'task-project-a',
+      project_id: 'project-a',
+      checkpoint: { available: true, resumable: true, revision: 7 },
+      allowed_actions: ['resume_task'],
+    } });
+    let resolveResume;
+    api.post.mockImplementation(() => new Promise((resolve) => { resolveResume = resolve; }));
+    const setTaskId = vi.fn();
+    const setActive = vi.fn();
+    const { result, rerender } = renderHook(
+      ({ projectId }) => useInitialTranslationFlow({
+        config: { languages: [] },
+        notificationStyle: {},
+        selectedProject: { game_id: 'victoria3', label: 'Demo', source_language: 'en' },
+        selectedProjectId: projectId,
+        setActive,
+        setIsProcessing: vi.fn(),
+        setStatus: vi.fn(),
+        setTaskId,
+        setTranslationDetails: vi.fn(),
+        resumeEnabled: true,
+      }),
+      {
+        initialProps: { projectId: 'project-a' },
+        wrapper: ({ children }) => createElement(StrictMode, null, children),
+      },
+    );
+
+    await act(async () => result.current.handleStartClick({
+      ...values,
+      reference_reuse_enabled: false,
+    }));
+    let resumePromise;
+    act(() => { resumePromise = result.current.handleResume(); });
+    rerender({ projectId: 'project-b' });
+    resolveResume({ data: {
+      task_id: 'task-resumed-project-a',
+      project_id: 'project-a',
+      status: 'queued',
+    } });
+    await act(async () => resumePromise);
+
+    expect(api.post).toHaveBeenCalledWith('/api/tasks/task-project-a/resume', {
+      expected_checkpoint_revision: 7,
+    });
+    expect(setTaskId).not.toHaveBeenCalled();
+    expect(setActive).not.toHaveBeenCalled();
+  });
+
   it('forces a fresh run when checkpoint resume is disabled', async () => {
     const { result } = renderHook(() => useInitialTranslationFlow({
       config: { languages: [] },
@@ -285,14 +338,15 @@ describe('useInitialTranslationFlow reference gate', () => {
     );
   });
 
-  it('starts fresh when backend recovery discovery fails', async () => {
+  it('does not start a new translation when backend recovery discovery fails', async () => {
     api.get.mockRejectedValue(new Error('recovery unavailable'));
+    const setActive = vi.fn();
     const { result } = renderHook(() => useInitialTranslationFlow({
       config: { languages: [] },
       notificationStyle: {},
       selectedProject: { game_id: 'victoria3', label: 'Demo', source_language: 'en' },
       selectedProjectId: 'project-1',
-      setActive: vi.fn(),
+      setActive,
       setIsProcessing: vi.fn(),
       setStatus: vi.fn(),
       setTaskId: vi.fn(),
@@ -306,9 +360,56 @@ describe('useInitialTranslationFlow reference gate', () => {
       use_resume: true,
     }));
 
-    expect(api.post).toHaveBeenCalledWith(
-      '/api/translate/start',
-      expect.objectContaining({ use_resume: false }),
+    expect(api.post).not.toHaveBeenCalledWith('/api/translate/start', expect.anything());
+    expect(setActive).not.toHaveBeenCalled();
+    expect(notificationService.error).toHaveBeenCalledWith(
+      'Failed to get task status.',
+      {},
     );
+  });
+
+  it('ignores a previous project recovery response after switching projects', async () => {
+    let resolvePreviousProject;
+    api.get.mockImplementation((url) => (
+      url.includes('project-a')
+        ? new Promise((resolve) => { resolvePreviousProject = resolve; })
+        : Promise.resolve({ data: { checkpoint: null, allowed_actions: [] } })
+    ));
+    const setActive = vi.fn();
+    const { result, rerender } = renderHook(
+      ({ projectId }) => useInitialTranslationFlow({
+        config: { languages: [] },
+        notificationStyle: {},
+        selectedProject: { game_id: 'victoria3', label: 'Demo', source_language: 'en' },
+        selectedProjectId: projectId,
+        setActive,
+        setIsProcessing: vi.fn(),
+        setStatus: vi.fn(),
+        setTaskId: vi.fn(),
+        setTranslationDetails: vi.fn(),
+        resumeEnabled: true,
+      }),
+      { initialProps: { projectId: 'project-a' } },
+    );
+
+    let startPromise;
+    act(() => {
+      startPromise = result.current.handleStartClick({
+        ...values,
+        reference_reuse_enabled: false,
+      });
+    });
+    rerender({ projectId: 'project-b' });
+    resolvePreviousProject({ data: {
+      task_id: 'task-project-a',
+      project_id: 'project-a',
+      checkpoint: { available: true, resumable: true },
+      allowed_actions: ['resume_task'],
+    } });
+    await act(async () => startPromise);
+
+    expect(result.current.resumeModalOpen).toBe(false);
+    expect(api.post).not.toHaveBeenCalled();
+    expect(setActive).not.toHaveBeenCalled();
   });
 });

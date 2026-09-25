@@ -110,6 +110,8 @@ reports runtime verification as false.
 
 In one multilingual export, select all completed language outputs, such as `zh-CN`, `fr`, and `de`, to include them in the same Mod. Prepared outputs such as `fr-prepared` and `de-prepared` are durable translation working files; they are not `installedMods` and should not be discarded as temporary folders. Publish the complete source copy manually with the game's own Mod Editor. After the first publish, bind your own Workshop item ID in Project Management under Internationalized Mod Delivery. Later exports carry that ID, and uploading through Mod Editor updates the same item. Do not bind the original author's ID; Remis never uploads automatically. The panel currently does not offer changing or clearing a saved binding.
 
+Reuse one Remis project for each source Mod's additional languages and publication identity: add new language outputs to that project and export them together. A complete copy keeps a stable in-game Mod ID for the same source Mod; creating another project does not create another in-game identity, and the new project has a separate publication binding. Do not use duplicate projects to build or publish a second copy of the same source Mod, since the packages would share an in-game Mod ID while keeping separate publication identities.
+
 **Delivery modes:**
 
 | Mode | Contents | Enable in game |

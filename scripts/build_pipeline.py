@@ -14,8 +14,14 @@ from pathlib import Path
 
 try:
     from scripts.build_profile import PROFILES, write_profile_manifest
+    from scripts.build_fpk_smoke import PYINSTALLER_FPK_ARGS, verify_frozen_fpk_support
+    PYINSTALLER_GAME_ADAPTER_ARGS = "--collect-submodules scripts.core.game_adapters"
+    PYINSTALLER_GAME_VALIDATOR_ARGS = "--hidden-import scripts.utils.surviving_mars_validator"
 except ModuleNotFoundError:
     from build_profile import PROFILES, write_profile_manifest
+    from build_fpk_smoke import PYINSTALLER_FPK_ARGS, verify_frozen_fpk_support
+    PYINSTALLER_GAME_ADAPTER_ARGS = "--collect-submodules scripts.core.game_adapters"
+    PYINSTALLER_GAME_VALIDATOR_ARGS = "--hidden-import scripts.utils.surviving_mars_validator"
 
 MIN_GOOGLE_GENAI_VERSION = (2, 18, 0)
 STEAM_WORKSHOP_DEMO_WORKSPACE_ID = "7e492e06-823d-4343-998e-f121db6e0ee1"
@@ -88,7 +94,6 @@ PYINSTALLER_AI_ARGS = (
     "--collect-data genai_prices "
     "--copy-metadata genai_prices"
 )
-
 
 def _sanitize_demo_json(value):
     if isinstance(value, dict):
@@ -285,7 +290,7 @@ def _verify_copilot_registration(port, *, enabled, request_timeout_seconds=15):
         )
 
 
-def verify_frozen_backend(executable, profile, timeout_seconds=90):
+def verify_frozen_backend(executable, profile, timeout_seconds=90, env_python=None):
     """Fail the release build if the packaged backend cannot serve its health API."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
         probe.bind(("127.0.0.1", 0))
@@ -293,6 +298,7 @@ def verify_frozen_backend(executable, profile, timeout_seconds=90):
 
     env = os.environ.copy()
     env.pop("REMIS_BUILD_CHANNEL", None)
+    env.pop("REMIS_APP_DATA_DIR", None)
     env["REMIS_BACKEND_PORT"] = str(port)
     smoke_appdata = tempfile.mkdtemp(prefix="remis-frozen-smoke-")
     env["APPDATA"] = smoke_appdata
@@ -345,6 +351,7 @@ def verify_frozen_backend(executable, profile, timeout_seconds=90):
                             enabled=profile.copilot_enabled,
                         )
                         _verify_frozen_steam_workshop_demo(port)
+                        verify_frozen_fpk_support(port, env_python or sys.executable)
                         print(f"[SUCCESS] Packaged backend health check passed on port {port}.")
                         return
             except (urllib.error.URLError, TimeoutError, OSError):
@@ -477,6 +484,57 @@ def copy_nsis_artifact(project_root, src_tauri_dir, tauri_config, target_triple,
         f"({os.path.getsize(dst_file)/1024/1024:.2f} MB)"
     )
     return dst_file
+
+
+def phonetic_package_data_args(conda_env_path):
+    package_data = (
+        ("jamo", "data", "jamo/data"),
+        ("pykakasi", "data", "pykakasi/data"),
+        ("pypinyin", "", "pypinyin"),
+    )
+    arguments = []
+    for package, subdirectory, bundle_path in package_data:
+        source_path = os.path.join(
+            conda_env_path,
+            "Lib",
+            "site-packages",
+            package,
+            *([subdirectory] if subdirectory else []),
+        )
+        if os.path.exists(source_path):
+            arguments.append(f'--add-data "{source_path};{bundle_path}"')
+        else:
+            print(f"[WARNING] {package} data not found in build environment at {source_path}")
+    return " ".join(arguments)
+
+
+def pyinstaller_command(env_pyinstaller, add_data_args, web_server_script):
+    return (
+        f'"{env_pyinstaller}" --clean --onefile --name web_server '
+        f'--hidden-import uvicorn --hidden-import fastapi --hidden-import pydantic '
+        f'--hidden-import psutil --hidden-import aiosqlite '
+        f'--hidden-import scripts.hooks '
+        f'--hidden-import scripts.hooks.file_parser_hook '
+        f'--hidden-import scripts.config.prompts '
+        f'{PYINSTALLER_FPK_ARGS} '
+        f'{PYINSTALLER_GAME_ADAPTER_ARGS} '
+        f'{PYINSTALLER_GAME_VALIDATOR_ARGS} '
+        f'--hidden-import google.genai --hidden-import openai '
+        f'{PYINSTALLER_AI_ARGS} '
+        f'--hidden-import pypinyin --hidden-import pypinyin.seg --hidden-import pypinyin.style '
+        f'--hidden-import pykakasi --hidden-import jaconv '
+        f'--hidden-import jamo --hidden-import pkg_resources.py2_warn '
+        f'{add_data_args} '
+        f'"{web_server_script}"'
+    )
+
+
+def run_frozen_backend_smoke(target_path, profile, env_python):
+    try:
+        verify_frozen_backend(target_path, profile, env_python=env_python)
+    except RuntimeError as exc:
+        print(f"[ERROR] {exc}")
+        sys.exit(1)
 
 
 def main(argv=None):
@@ -619,48 +677,12 @@ def main(argv=None):
         f' --add-data "{staged_demo_root / "my_translation"};my_translation"'
     )
     
-    # Find jamo path dynamically from the target conda env
-    jamo_data = os.path.join(conda_env_path, "Lib", "site-packages", "jamo", "data")
-    if os.path.exists(jamo_data):
-        add_data_args += f' --add-data "{jamo_data};jamo/data"'
-    else:
-        print(f"[WARNING] jamo data not found in {CONDA_ENV_NAME} env at {jamo_data}")
-
-    # [NEW] Add pykakasi data
-    pykakasi_data = os.path.join(conda_env_path, "Lib", "site-packages", "pykakasi", "data")
-    if os.path.exists(pykakasi_data):
-        add_data_args += f' --add-data "{pykakasi_data};pykakasi/data"'
-    else:
-        print(f"[WARNING] pykakasi data not found in {CONDA_ENV_NAME} env at {pykakasi_data}")
-
-    # [NEW] Add pypinyin package (including dictionaries)
-    pypinyin_root = os.path.join(conda_env_path, "Lib", "site-packages", "pypinyin")
-    if os.path.exists(pypinyin_root):
-         # Include the whole package to ensure all json/db files are present
-         add_data_args += f' --add-data "{pypinyin_root};pypinyin"'
-    else:
-         print(f"[WARNING] pypinyin root not found in {CONDA_ENV_NAME} env at {pypinyin_root}")
+    add_data_args += " " + phonetic_package_data_args(conda_env_path)
 
     # Use the env's PyInstaller directly so only packages in local_factory are bundled.
     # This avoids pulling in torch/scipy/sklearn etc. from base or other envs.
-    pyinstaller_cmd = (
-        f'"{env_pyinstaller}" --clean --onefile --name web_server '
-        f'--hidden-import uvicorn --hidden-import fastapi --hidden-import pydantic '
-        f'--hidden-import psutil --hidden-import aiosqlite '
-        f'--hidden-import scripts.hooks '
-        f'--hidden-import scripts.hooks.file_parser_hook '
-        f'--hidden-import scripts.config.prompts '
-        # AI SDKs
-        f'--hidden-import google.genai --hidden-import openai '
-        f'{PYINSTALLER_AI_ARGS} '
-        # Phonetics libraries used inside functions (PyInstaller can't detect these statically)
-        f'--hidden-import pypinyin --hidden-import pypinyin.seg --hidden-import pypinyin.style '
-        f'--hidden-import pykakasi --hidden-import jaconv '
-        f'--hidden-import jamo --hidden-import pkg_resources.py2_warn ' # py2_warn is sometimes needed for pkg_resources
-        f'{add_data_args} '
-        f'"{web_server_script}"'
-    )
-    
+    pyinstaller_cmd = pyinstaller_command(env_pyinstaller, add_data_args, web_server_script)
+
     run_command(pyinstaller_cmd, cwd=project_root)
 
     # Step 3: Tauri Sidecar Naming Compliance
@@ -706,11 +728,7 @@ def main(argv=None):
     shutil.copy2(target_path, root_target_path)
 
     print_step("Step 3.5: Smoke Test Frozen Backend")
-    try:
-        verify_frozen_backend(target_path, profile)
-    except RuntimeError as exc:
-        print(f"[ERROR] {exc}")
-        sys.exit(1)
+    run_frozen_backend_smoke(target_path, profile, env_python)
 
     # Step 4: Frontend Build & Tauri Build
     print_step("Step 4: Frontend Build & Tauri Build")

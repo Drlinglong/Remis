@@ -2,7 +2,7 @@
   "name": "frontend",
   "private": true,
   "version": "3.2.1",
-  "releaseDate": "2026-09-11",
+  "releaseDate": "2026-09-25",
   "type": "module",
   "engines": {
     "node": ">=22.22.0 <23"

@@ -21,8 +21,8 @@ vi.mock('../project/ProjectGameSupportPanel', () => ({
   default: ({ gameId, projectId }) => <div data-testid="game-support-panel">{gameId}:{projectId}</div>,
 }));
 
-vi.mock('../project/MarsTranslationPackagePanel', () => ({
-  default: ({ gameId, projectId }) => <div data-testid="mars-package-panel">{gameId}:{projectId}</div>,
+vi.mock('../project/MarsPipelineDelivery', () => ({
+  default: ({ gameId, projectId }) => <div data-testid="mars-pipeline-delivery">{gameId}:{projectId}</div>,
 }));
 
 vi.mock('../project/ProjectHeader', () => ({
@@ -150,12 +150,12 @@ describe('ProjectDashboardView', () => {
     expect(screen.getByRole('tablist', { name: 'project_management.workspace_navigation' })).toBeInTheDocument();
   });
 
-  it('passes the active project and game into the translation package panel', () => {
+  it('passes the active project and game into the Mars pipeline delivery panel', () => {
     renderDashboard({ selectedProject: {
       project_id: 'mars-project', name: 'Mars', status: 'active', game_id: 'surviving_mars',
     } });
 
-    expect(screen.getByTestId('mars-package-panel')).toHaveTextContent('surviving_mars:mars-project');
+    expect(screen.getByTestId('mars-pipeline-delivery')).toHaveTextContent('surviving_mars:mars-project');
   });
 
   it('passes the selected project into the publishing assets panel', () => {

@@ -209,6 +209,20 @@ def test_source_copy_accepts_source_without_any_localization_csv(tmp_path):
     assert any(item["path"] == "Localization/Schinese/RemisLua.csv" for item in preview["files"])
 
 
+def test_source_copy_rejects_generated_localization_path_that_casefold_collides_with_source(tmp_path):
+    source = _source(tmp_path / "source")
+    collision = source / "localization" / "french" / "remislua.csv"
+    collision.parent.mkdir(parents=True)
+    with collision.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.writer(handle, lineterminator="\r\n")
+        writer.writerow(surviving_mars_csv.HEADER)
+        writer.writerow(["123456", "Existing <em>text</em>", "", "", "collision fixture"])
+    manifest, translations = _prepared(source)
+
+    with pytest.raises(MarsDeliveryError, match="overwrite a source asset"):
+        inspect_delivery(source, manifest, translations, "source_copy")
+
+
 @pytest.mark.parametrize("mode", ["source_copy", "text_only"])
 def test_three_languages_are_registered_in_one_mod_package(tmp_path, mode):
     source = _source(tmp_path / "source")

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The formal release path for the 3.2.0 Windows application is the Tauri NSIS
+The formal release path for the 3.2.1 Windows application is the Tauri NSIS
 installer built by `scripts/build_pipeline.py`. The older
 `archive/build_release_scripts/build_release.bat` remains only for the
 historical portable ZIP format and must not be used to produce the current EXE
@@ -78,7 +78,7 @@ in `archive/release_notes/README.md`.
 
 ## Usage
 
-## Tauri installer data policy for the 3.2.0 desktop release
+## Tauri installer data policy for the 3.2.1 desktop release
 
 The current Tauri installer is built by `scripts/build_pipeline.py`. First-run
 database setup has three layers:
@@ -126,7 +126,7 @@ python scripts/build_pipeline.py --channel stable
 The pipeline uses the `local_factory` Conda environment, freezes and health-
 checks the Python sidecar, builds the frontend, and then runs the Tauri build.
 The stable NSIS installer is copied to
-`archive/release/stable/remis-mod-factory_3.2.0_x64-setup.exe`. Use
+`archive/release/stable/remis-mod-factory_3.2.1_x64-setup.exe`. Use
 `--channel agent-preview` only when intentionally producing the isolated
 `3.2.0-agent-preview.1` preview installer.
 

@@ -2,7 +2,7 @@
 
 ## 概述
 
-3.2.0 Windows 正式发布使用 `scripts/build_pipeline.py` 构建 Tauri NSIS
+3.2.1 Windows 正式发布使用 `scripts/build_pipeline.py` 构建 Tauri NSIS
 安装包。`archive/build_release_scripts/build_release.bat` 只保留用于历史便携
 ZIP 格式；当前 EXE 发版不能使用它。
 
@@ -70,7 +70,7 @@ python -m pytest -q tests/test_release_metadata.py
 
 ## 使用方法
 
-## 3.2.0 Tauri 桌面安装包的数据规则
+## 3.2.1 Tauri 桌面安装包的数据规则
 
 当前 Tauri 桌面安装包由 `scripts/build_pipeline.py` 构建。数据库初始化分成三层：
 
@@ -112,7 +112,7 @@ python scripts/build_pipeline.py --channel stable
 
 流水线使用 `local_factory` Conda 环境，冻结并健康检查 Python sidecar，构建前端，
 最后执行 Tauri 打包。stable NSIS 安装包会复制到：
-`archive/release/stable/remis-mod-factory_3.2.0_x64-setup.exe`。只有明确要生成隔离的
+`archive/release/stable/remis-mod-factory_3.2.1_x64-setup.exe`。只有明确要生成隔离的
 `3.2.0-agent-preview.1` 预览安装包时，才使用 `--channel agent-preview`。
 
 ### 历史便携 ZIP（`build_release.bat`）

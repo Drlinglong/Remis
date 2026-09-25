@@ -21,3 +21,7 @@ renames it into the requested destination only after every file is written.
 The default limits are defined by `ArchiveLimits`; unsupported flags and
 malformed paths fail closed. See [FORMAT.md](FORMAT.md) for supported format
 details and limits.
+
+The standalone community repository is [Drlinglong/remis-fpk](https://github.com/Drlinglong/remis-fpk).
+It packages the same parser under the `remis_fpk` import name; this vendored Remis
+copy retains `tools.remis_fpk` for application compatibility.

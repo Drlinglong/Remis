@@ -4,6 +4,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from scripts import build_pipeline
+from scripts import build_fpk_smoke
+from scripts.core.mars_pipeline.prepare_source import analyze_source
+from tools.remis_fpk import extract_archive, inspect_archive
 
 
 def test_parse_version_stops_after_non_numeric_segment():
@@ -48,6 +51,30 @@ def test_ensure_min_google_genai_accepts_supported_version(capsys):
     assert "version OK: 2.18.0" in captured.out
 
 
+def test_pyinstaller_explicitly_collects_fpk_and_zstandard_modules():
+    assert build_pipeline.PYINSTALLER_FPK_ARGS.split() == [
+        "--collect-submodules", "zstandard",
+        "--hidden-import", "tools.remis_fpk",
+        "--hidden-import", "tools.remis_fpk.reader",
+        "--hidden-import", "tools.remis_fpk.extraction",
+        "--hidden-import", "zstandard",
+    ]
+    assert build_pipeline.PYINSTALLER_GAME_ADAPTER_ARGS == (
+        "--collect-submodules scripts.core.game_adapters"
+    )
+    assert build_pipeline.PYINSTALLER_GAME_VALIDATOR_ARGS == (
+        "--hidden-import scripts.utils.surviving_mars_validator"
+    )
+    command = build_pipeline.pyinstaller_command(
+        "K:/env/Scripts/pyinstaller.exe", "--add-data \"source;target\"", "scripts/web_server.py"
+    )
+    assert "--collect-submodules scripts.core.game_adapters" in command
+    assert "--hidden-import scripts.utils.surviving_mars_validator" in command
+    assert "--collect-submodules scripts.utils" not in command
+    assert "--collect-submodules zstandard" in command
+    assert "--hidden-import tools.remis_fpk" in command
+
+
 def test_verify_frozen_backend_fails_when_packaged_process_exits():
     process = MagicMock()
     process.poll.return_value = 1
@@ -63,7 +90,8 @@ def test_verify_frozen_backend_fails_when_packaged_process_exits():
         )
 
 
-def test_verify_frozen_backend_accepts_healthy_packaged_process():
+def test_verify_frozen_backend_accepts_healthy_packaged_process(monkeypatch):
+    monkeypatch.setenv("REMIS_APP_DATA_DIR", "C:/private-daily-data")
     process = MagicMock()
     process.poll.side_effect = [None, None]
     response = MagicMock()
@@ -78,7 +106,9 @@ def test_verify_frozen_backend_accepts_healthy_packaged_process():
         "scripts.build_pipeline._verify_copilot_registration"
     ) as verify_copilot, patch(
         "scripts.build_pipeline._verify_frozen_steam_workshop_demo"
-    ) as verify_demo, patch("scripts.build_pipeline.subprocess.run") as run:
+    ) as verify_demo, patch(
+        "scripts.build_pipeline.verify_frozen_fpk_support"
+    ) as verify_fpk, patch("scripts.build_pipeline.subprocess.run") as run:
         response.read.return_value = json.dumps({
             "build_channel": "stable",
             "app_data_dir": "C:/smoke/RemisModFactory",
@@ -87,14 +117,20 @@ def test_verify_frozen_backend_accepts_healthy_packaged_process():
             "C:/release/web_server.exe",
             build_pipeline.PROFILES["stable"],
             timeout_seconds=1,
+            env_python="K:/env/python.exe",
         )
 
+    assert "REMIS_APP_DATA_DIR" not in popen.call_args.kwargs["env"]
     assert verify_copilot.call_count == 1
     assert verify_copilot.call_args.kwargs == {"enabled": True}
     assert verify_copilot.call_args.args[0] == int(
         popen.call_args.kwargs["env"]["REMIS_BACKEND_PORT"]
     )
     verify_demo.assert_called_once()
+    verify_fpk.assert_called_once_with(
+        int(popen.call_args.kwargs["env"]["REMIS_BACKEND_PORT"]),
+        "K:/env/python.exe",
+    )
     assert popen.call_args.kwargs["stdout"] is not build_pipeline.subprocess.PIPE
     assert popen.call_args.kwargs["stderr"] is build_pipeline.subprocess.STDOUT
     run.assert_called_once_with(
@@ -103,6 +139,67 @@ def test_verify_frozen_backend_accepts_healthy_packaged_process():
         capture_output=True,
         text=True,
     )
+
+
+def test_frozen_fpk_smoke_posts_synthetic_fixture_and_checks_inventory(tmp_path):
+    response = MagicMock()
+    response.__enter__.return_value = response
+    response.read.return_value = json.dumps({
+        "mod_id": "remis-build-smoke",
+        "file_count": 1,
+        "entry_count": 0,
+    }).encode("utf-8")
+
+    with patch(
+        "scripts.build_pipeline.Path.home", return_value=tmp_path
+    ), patch(
+        "scripts.build_fpk_smoke._synthetic_fpk_smoke_archive"
+    ) as make_fixture, patch(
+        "scripts.build_pipeline.urllib.request.urlopen", return_value=response
+    ) as urlopen:
+        build_pipeline.verify_frozen_fpk_support(1453, "K:/env/python.exe")
+
+    make_fixture.assert_called_once()
+    assert make_fixture.call_args.args[0] == "K:/env/python.exe"
+    request = urlopen.call_args.args[0]
+    assert request.full_url.endswith("/api/mars-pipeline/prepare/plan")
+    assert request.get_method() == "POST"
+    assert json.loads(request.data.decode("utf-8"))["delivery_mode"] == "text_only"
+    assert not make_fixture.call_args.args[1].exists()
+
+
+def test_frozen_fpk_smoke_rejects_missing_zstd_inventory(tmp_path):
+    response = MagicMock()
+    response.__enter__.return_value = response
+    response.read.return_value = json.dumps({
+        "mod_id": "remis-build-smoke",
+        "file_count": 0,
+        "entry_count": 0,
+    }).encode("utf-8")
+
+    with patch(
+        "scripts.build_pipeline.Path.home", return_value=tmp_path
+    ), patch(
+        "scripts.build_fpk_smoke._synthetic_fpk_smoke_archive"
+    ), patch(
+        "scripts.build_pipeline.urllib.request.urlopen", return_value=response
+    ), pytest.raises(RuntimeError, match="unexpected synthetic Mod inventory"):
+        build_pipeline.verify_frozen_fpk_support(1453, "K:/env/python.exe")
+
+
+def test_synthetic_fpk_fixture_round_trips_zstd_and_mod_metadata(tmp_path):
+    archive = tmp_path / "synthetic-smoke.fpk"
+    build_fpk_smoke._synthetic_fpk_smoke_archive(build_pipeline.sys.executable, archive)
+
+    inventory = inspect_archive(archive)
+    extracted = tmp_path / "extracted"
+    extract_archive(archive, extracted, expected_sha256=inventory["archive_sha256"])
+    manifest = analyze_source(extracted)
+
+    assert inventory["file_count"] == 1
+    assert inventory["files"][0]["codec"] == "zstd"
+    assert manifest["mod_id"] == "remis-build-smoke"
+    assert manifest["entries"] == {}
 
 
 @pytest.mark.parametrize(

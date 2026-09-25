@@ -4,6 +4,8 @@ import json
 import re
 from pathlib import Path
 
+from scripts.build_profile import PROFILES, STABLE_CHANNEL
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -72,6 +74,7 @@ def test_release_version_metadata_stays_in_sync():
 
     assert {
         "scripts/app_settings.py": backend_version,
+        "scripts/build_profile.py stable": PROFILES[STABLE_CHANNEL].version,
         "scripts/react-ui/package.json": package_json["version"],
         "scripts/react-ui/package-lock.json": package_lock["version"],
         "scripts/react-ui/package-lock.json packages['']": package_lock["packages"][""][
@@ -82,6 +85,7 @@ def test_release_version_metadata_stays_in_sync():
         "scripts/react-ui/src-tauri/Cargo.lock": cargo_lock_version,
     } == {
         "scripts/app_settings.py": backend_version,
+        "scripts/build_profile.py stable": backend_version,
         "scripts/react-ui/package.json": backend_version,
         "scripts/react-ui/package-lock.json": backend_version,
         "scripts/react-ui/package-lock.json packages['']": backend_version,

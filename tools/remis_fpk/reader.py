@@ -179,11 +179,26 @@ def _load(path: Path, limits: ArchiveLimits) -> tuple[bytes, list[dict[str, Any]
     source = supplied.resolve(strict=True)
     if not source.is_file():
         raise ArchiveError("archive path must be a regular non-link file")
-    size = source.stat().st_size
-    if size < 32 or size > limits.archive_bytes:
+    try:
+        before = source.stat()
+    except OSError as error:
+        raise ArchiveError("archive could not be inspected") from error
+    size = before.st_size
+    if not stat.S_ISREG(before.st_mode) or size < 32 or size > limits.archive_bytes:
         raise ArchiveError("archive size is outside configured limits")
-    data = source.read_bytes()
-    if len(data) != size or data[:4] != _MAGIC:
+    try:
+        with source.open("rb") as stream:
+            opened = os.fstat(stream.fileno())
+            data = stream.read(limits.archive_bytes + 1)
+            after = os.fstat(stream.fileno())
+    except OSError as error:
+        raise ArchiveError("archive could not be read") from error
+    identity_before = (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns)
+    identity_opened = (opened.st_dev, opened.st_ino, opened.st_size, opened.st_mtime_ns)
+    identity_after = (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns)
+    if (len(data) != size or len(data) > limits.archive_bytes
+            or identity_before != identity_opened or identity_opened != identity_after
+            or data[:4] != _MAGIC):
         raise ArchiveError("archive is truncated or has invalid FLPK magic")
     header_size, version, index_base, reserved, index_size, root_size, alignment = struct.unpack_from("<7I", data, 4)
     if (header_size != 32 or version != 1 or index_base != 32 or reserved != 0

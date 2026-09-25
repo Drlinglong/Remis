@@ -87,7 +87,7 @@ PROJECT_DISPLAY_NAME = "蕾姆丝计划 - Project Remis "
 VERSION = "3.2.1"
 if BUILD_PROFILE.channel == "agent-preview":
     VERSION = BUILD_PROFILE.version
-LAST_UPDATE_DATE = "2026-09-11"
+LAST_UPDATE_DATE = "2026-09-25"
 COPYRIGHT = "© 2026 Project Remis Team"
 
 # --- 项目信息显示配置 --------------------------------------------
