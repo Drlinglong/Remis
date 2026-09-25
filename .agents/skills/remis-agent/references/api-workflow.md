@@ -224,6 +224,21 @@ The in-product desktop chat currently guides initial translation only. Use the
 project UI or this Agent API with `workflow: "incremental"` for incremental
 updates; do not infer chat execution support from API support.
 
+### Save approved proofreading edits
+
+Use the Agent aliases when an Agent is saving user-approved proofreading
+changes; do not call the GUI-only route or write files directly. Fetch the
+current document with `GET /api/agent/proofread/{project_id}/{file_id}`, retain
+its `document_revision`, and present edits for explicit user approval. Submit
+the approved entries and any structure patches through
+`POST /api/agent/proofread/save` with `approved: true` and that non-empty value
+as `base_revision`. A changed target returns HTTP 409
+`proofreading_revision_conflict`; reload and review the new document before
+trying again. The route delegates to the existing proofreading service so its
+archive synchronization and rollback behavior remain in effect. Agent saves
+are restricted to files currently indexed as `translation` in the requested
+project; source files and IDs not belonging to that project are rejected.
+
 `game_support` is dynamic policy data. Prefer the latest capabilities, inspect,
 plan and job responses over a hard-coded local format list.
 

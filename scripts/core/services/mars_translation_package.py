@@ -251,6 +251,11 @@ def _localized_csv(
                 f"Source columns changed for ID {key} in {relative_path}."
             )
         translated = target_row[2]
+        if surviving_mars_csv.compare_newlines(source_row[1], translated).is_mismatch:
+            raise TranslationPackageError(
+                f"CSV line breaks differ for ID {key} in {relative_path}; "
+                "preserve real line breaks instead of literal backslash-n text."
+            )
         if translated.strip():
             tag_mismatch = surviving_mars_csv.compare_tags(source_row[1], translated)
             if tag_mismatch.is_mismatch:

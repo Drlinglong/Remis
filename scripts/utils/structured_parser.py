@@ -14,7 +14,13 @@ T = TypeVar('T', bound=BaseModel)
 
 from scripts.utils.text_clean import restore_special_tokens
 
-def parse_response(response_text: str, pydantic_model: Type[T] = TranslationResponse, target_lang: str = "en") -> T | None:
+def parse_response(
+    response_text: str,
+    pydantic_model: Type[T] = TranslationResponse,
+    target_lang: str = "en",
+    *,
+    preserve_newlines: bool = False,
+) -> T | None:
     """
     Parses an LLM response string into a Pydantic model using a robust,
     layered approach that handles both direct JSON arrays (for TranslationResponse)
@@ -66,7 +72,10 @@ def parse_response(response_text: str, pydantic_model: Type[T] = TranslationResp
         # Post-processing: Restore special tokens (Newlines and Quotes)
         if pydantic_model is TranslationResponse and hasattr(model_instance, 'translations'):
             model_instance.translations = [
-                restore_special_tokens(t, target_lang) for t in model_instance.translations
+                restore_special_tokens(
+                    t, target_lang, preserve_newlines=preserve_newlines
+                )
+                for t in model_instance.translations
             ]
 
         return model_instance

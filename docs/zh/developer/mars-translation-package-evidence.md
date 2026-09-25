@@ -68,3 +68,27 @@ Python 架构检查和 compileall 通过。浏览器确认 1 个 CSV/49 条、�
 ProjectDashboardView 从 199 增至 205 行，不增加 state/effect；新增组件均 25–69 行。
 useTranslationPackage 145 行，包含一个聚合 state、一个请求序号 ref、一个可取消请求 effect；
 面板仅有 opened 状态。API 状态和并发归属在 hook，传输在 service，展示分为表单、预览和结果组件。
+
+## 用户实机反馈与换行修复（2026-09-25）
+
+用户安装后通过截图确认该独立包能够加载并显示中文，同时报告描述中的字面 `\n`。
+复核源表发现 3 条包含真实换行；既有译文中 2 条变成了字面转义，另 1 条的分段被模型省略。
+问题发生在共享文本恢复层：`restore_special_tokens` 原先无条件使用 Paradox 的 `\\n`
+写法，CSV writer 只是原样保存。此前的标签和列一致性检查没有覆盖段落结构。
+
+新增显式换行恢复策略，火星批量、单条和修复路径使用真实 LF；Paradox 默认行为保持不变。
+不全局解码字面 `\n`，防止修改原文有意表达的反斜杠序列。CSV 校验器和包生成检查原译文
+的连续换行结构及新增字面转义；缺失分段不能再被视为通过格式检查。
+
+用户明确批准后，通过受批准与 revision 约束的 Agent 校对保存接口修正 3 个 ID：
+`471437516394`、`790136912627`、`286511341322`。随后读取校对结果，确认当前译文与
+归档基线同时更新；仅换行改变，其他 46 条、正文、标签和非 Translation 列均未改动。
+重新经标准 API 导出并替换已安装翻译 Mod 的 CSV：真实 LF 共 11 个，字面 `\n` 为 0，
+新包共 13,196 bytes。原游戏 Mod 与 Remis 源副本未修改，旧 CSV 备份在忽略的
+`.runtime/newline-fix-backups/20260925T034223Z/`，附 verification.json。
+没有再次调用翻译模型；修复后的分段效果仍需用户重新加载游戏确认。
+
+本次回归 145 passed、2 skipped（Windows symlink 权限），架构检查和 compileall 通过。
+Agent 保存复用既有写回与归档同步，额外要求批准、非空文件 revision，且只接受项目内的
+translation 文件。没有新增前端状态或组件。Reflexion batch 修复函数的解析职责提取为 helper，
+低于 120 行后同步移除旧架构例外。

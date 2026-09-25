@@ -1,5 +1,5 @@
-from typing import List, Optional
-from pydantic import BaseModel, Field, field_validator
+from typing import List, Literal, Optional
+from pydantic import BaseModel, Field, field_validator, model_validator
 from scripts.schemas.common import LanguageCode
 
 class ProofreadingEntry(BaseModel):
@@ -29,3 +29,16 @@ class SaveProofreadingRequest(BaseModel):
         if isinstance(v, str):
             return LanguageCode.from_str(v)
         return v
+
+
+class AgentSaveProofreadingRequest(SaveProofreadingRequest):
+    """Agent saves require explicit approval and optimistic concurrency data."""
+
+    approved: Literal[True]
+    base_revision: str = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def require_nonblank_revision(self):
+        if not self.base_revision.strip():
+            raise ValueError("base_revision must not be blank")
+        return self

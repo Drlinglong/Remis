@@ -199,6 +199,16 @@ def test_generator_change_invalidates_preview_even_when_inputs_are_unchanged(tmp
     assert not destination.exists()
 
 
+@pytest.mark.parametrize("translated", [r"段落一\n\n段落二", "段落一段落二"])
+def test_package_preview_rejects_escaped_or_missing_paragraph_breaks(tmp_path, translated):
+    source, translations = _inputs(tmp_path, tables={
+        "ModTexts.csv": [["123", "First\n\nSecond", "", "", "Description"]],
+    })
+    _write_csv(translations / "ModTexts.csv", [["123", "First\n\nSecond", translated, "", "Description"]])
+    with pytest.raises(package.TranslationPackageError, match="CSV line breaks differ for ID 123"):
+        package.inspect_package_inputs(source, translations, "zh-CN")
+
+
 def test_multiple_recognized_csvs_are_registered_and_other_reports_are_ignored(tmp_path):
     source, translations = _inputs(
         tmp_path,

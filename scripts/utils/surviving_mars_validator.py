@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from scripts.core.surviving_mars_csv import compare_tags
+from scripts.core.surviving_mars_csv import compare_newlines, compare_tags
 
 
 def build_validator():
@@ -30,12 +30,23 @@ def build_validator():
         ):
             if source_text is None:
                 return []
+            issues = []
+            newlines = compare_newlines(source_text, text)
+            if newlines.is_mismatch:
+                issues.append(ValidationResult(
+                    is_valid=False, level=ValidationLevel.ERROR,
+                    message="Surviving Mars CSV line breaks do not match the source",
+                    code="validation_surviving_mars_newline_mismatch",
+                    details=(f"Expected newline runs: {newlines.source_runs}; actual: "
+                             f"{newlines.translation_runs}; unexpected literal escapes: {newlines.unexpected_escaped}"),
+                    line_number=line_number, text_sample=text[:100],
+                ))
             mismatch = compare_tags(source_text, text)
             if not mismatch.is_mismatch:
-                return []
+                return issues
             missing = ", ".join(mismatch.missing) or "none"
             unexpected = ", ".join(mismatch.unexpected) or "none"
-            return [ValidationResult(
+            issues.append(ValidationResult(
                 is_valid=False,
                 level=ValidationLevel.ERROR,
                 message="Surviving Mars localization tags do not match",
@@ -48,6 +59,7 @@ def build_validator():
                 },
                 line_number=line_number,
                 text_sample=text[:100],
-            )]
+            ))
+            return issues
 
     return SurvivingMarsValidator()

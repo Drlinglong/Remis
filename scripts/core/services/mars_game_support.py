@@ -16,6 +16,7 @@ def csv_contract() -> dict:
         "preserved_columns": ["ID", "Text", "VoiceActor", "Context"],
         "id_policy": "ASCII decimal string; preserve leading zeros and exact identity",
         "tag_policy": "Preserve exact tag spelling, parameters, case and multiplicity",
+        "newline_policy": "Preserve real CSV cell line breaks and paragraph separator runs; do not write Paradox-style literal backslash-n escapes.",
         "encoding": "UTF-8", "preserve_relative_paths": True,
         "compressed_packages_supported": False,
     }

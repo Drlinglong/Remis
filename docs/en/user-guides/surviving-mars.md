@@ -23,6 +23,12 @@ Output keeps the CSV's source-relative path and filename. It uses UTF-8 and writ
 
 ## Generate an independent translation Mod from existing translations
 
+Paragraph separators must be real line breaks inside CSV cells, not the literal
+backslash and letter n (`\n`). Remis restores newlines according to the Mars
+format and checks paragraph separator runs. Lost breaks or newly introduced
+literal newline escapes block package export. Intentional literal sequences in
+the source are preserved instead of being globally decoded.
+
 The exporter wraps an already-generated target-language CSV output. It does not translate additional content or copy scripts, images, or other assets from the original Mod. Use the project's local export action when available, or follow the API reference:
 
 1. Call preflight before each new workflow, then read `GET /api/agent/projects/{project_id}/translation-package/options`. Choose an existing output from `translation_outputs` and a target from `languages`; `game_language` is the token for the generated ModItem.

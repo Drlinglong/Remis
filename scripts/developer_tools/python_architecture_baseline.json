@@ -16,7 +16,6 @@
   },
   "function_line_exceptions": {
     "scripts/build_pipeline.py::main": 252,
-    "scripts/core/agents/fix_agent.py::ReflexionFixAgent.fix_batch_loop": 130,
     "scripts/core/copilot/service.py::run_copilot_chat": 290,
     "scripts/core/db_initializer.py::fix_demo_paths": 127,
     "scripts/core/db_migrations.py::_migration_009_add_model_arena_history": 144,

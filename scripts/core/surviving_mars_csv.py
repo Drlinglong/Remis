@@ -77,6 +77,31 @@ class CsvTagMismatch:
         return bool(self.missing or self.unexpected)
 
 
+@dataclass(frozen=True)
+class CsvNewlineMismatch:
+    """CSV values require real line breaks, independently of file line endings."""
+
+    source_runs: tuple[int, ...]
+    translation_runs: tuple[int, ...]
+    unexpected_escaped: int
+
+    @property
+    def is_mismatch(self) -> bool:
+        return self.source_runs != self.translation_runs or self.unexpected_escaped > 0
+
+
+def compare_newlines(source_text: str, translated_text: str) -> CsvNewlineMismatch:
+    """Compare explicit paragraph separators without decoding literal escapes."""
+    def runs(value: str) -> tuple[int, ...]:
+        normalized = value.replace("\r\n", "\n").replace("\r", "\n")
+        return tuple(len(run) for run in re.findall(r"\n+", normalized))
+
+    return CsvNewlineMismatch(
+        source_runs=runs(source_text), translation_runs=runs(translated_text),
+        unexpected_escaped=max(0, translated_text.count("\\n") - source_text.count("\\n")),
+    )
+
+
 def _read_utf8(path: Path) -> str:
     with path.open("r", encoding="utf-8-sig", newline="") as handle:
         return handle.read()

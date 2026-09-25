@@ -26,6 +26,10 @@ ID,Text,Translation,VoiceActor,Context
 
 ## 输出和游戏使用
 
+段落换行必须保存为 CSV 单元格内的真实换行，不能写成反斜杠和字母 n 组成的 `\n`。
+Remis 按火星格式还原换行，并检查原文与译文的分段结构；丢失分段或新增字面换行转义会阻断独立包导出。
+原文中有意使用的字面 `\n` 不会被全局替换；这种文本与真正的换行分别处理。
+
 输出会保留 CSV 相对于项目根目录的路径和原文件名，不会创建 Paradox 风格的 `l_english` 目录或重命名文件。输出文件使用 UTF-8，并且只写入第三列 `Translation`。
 
 在原 Mod 中，ModItem 的 `Filename` 指向 CSV，`Language` 决定它在哪个游戏语言下加载。若使用游戏尚未支持的语言制作汉化表，按官方 ModTools 文档在原 ModItem 中手动将 `Language` 设为 English，并在游戏中运行 English。这是游戏侧设置，不是 Agent 的 `custom_lang_config` 套壳能力。Remis 不修改原 Mod；独立翻译包会在自己的包目录生成注册文件和 `ModItemLocTable`，不会上传 Workshop。

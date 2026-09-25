@@ -145,6 +145,14 @@ The package has a required dependency on the original Mod, contains only
 translation CSV content and Mod metadata, and is not runtime-verified. Do not
 call the standard `approve-export` deployment endpoint for this package.
 
+For Agent-driven proofreading, use `GET /api/agent/proofread/{project_id}/{file_id}`
+and `POST /api/agent/proofread/save`. Preserve `document_revision`, obtain
+explicit approval for the exact edits, and send `approved: true` plus the
+non-empty revision as `base_revision`; on a revision conflict, reload and
+re-review before saving. This route delegates to Remis's proofreading service
+and archive synchronization, and accepts only project-indexed translation
+files (never source files or files from another project).
+
 Published Mod Archives can be removed through the approval-gated Agent endpoint
 documented in the API reference. Archive removal deletes only regenerable
 context releases, drafts, evidence aggregates, and analysis checkpoints. It
