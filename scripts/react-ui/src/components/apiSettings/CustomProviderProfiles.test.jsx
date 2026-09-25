@@ -159,6 +159,40 @@ describe('CustomProviderProfiles', () => {
         expect(payload).not.toHaveProperty('api_key');
     });
 
+    it('normalizes an unmapped legacy profile off and saves the remaining provider settings', async () => {
+        const legacy = {
+            ...profile,
+            selected_model: 'gpt-6-luna',
+            reasoning: {
+                supported: true,
+                builtin_enabled: true,
+                selected_preset: 'high',
+                custom_parameters: { reasoning: { effort: 'low' } },
+            },
+            reasoning_models: {},
+        };
+        api.get.mockResolvedValue({ data: [legacy] });
+        renderProfiles();
+        await screen.findAllByText('Provider A');
+        fireEvent.click(screen.getByRole('button', { name: 'custom_profiles_edit' }));
+
+        const reasoningToggle = screen.getByRole('switch');
+        expect(reasoningToggle).not.toBeChecked();
+        expect(reasoningToggle).toBeDisabled();
+        expect(screen.getByRole('button', { name: 'save' })).toBeEnabled();
+        fireEvent.click(screen.getByRole('button', { name: 'save' }));
+
+        await waitFor(() => expect(api.patch).toHaveBeenCalledWith(
+            '/api/providers/profiles/profile-provider-a',
+            expect.objectContaining({
+                selected_model: 'gpt-6-luna',
+                reasoning_builtin_enabled: false,
+                reasoning_preset: 'high',
+                custom_parameters: { reasoning: { effort: 'low' } },
+            }),
+        ));
+    });
+
     it('adds a local draft without calling a non-CRUD selection endpoint', async () => {
         renderProfiles();
         await screen.findAllByText('Provider A');

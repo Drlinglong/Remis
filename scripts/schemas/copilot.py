@@ -144,4 +144,4 @@ class CopilotSettingsUpdate(BaseModel):
     provider: str = Field(..., min_length=1)
     model: str = Field(..., min_length=1)
     reasoning_enabled: bool = False
-    reasoning_preset: Literal["minimal", "low", "medium", "high", "xhigh", "max"] = "medium"
+    reasoning_preset: Literal["none", "minimal", "low", "medium", "high", "xhigh", "max"] = "medium"

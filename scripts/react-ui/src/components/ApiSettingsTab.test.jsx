@@ -179,4 +179,85 @@ describe('ApiSettingsTab Stability', () => {
             }));
         });
     });
+
+    it('normalizes saved reasoning off for an unmapped model and still saves custom JSON', async () => {
+        api.get.mockResolvedValue({
+            data: [{
+                id: 'openai',
+                name: 'OpenAI',
+                selected_model: 'gpt-6-luna',
+                available_models: ['gpt-6-luna'],
+                reasoning: {
+                    supported: true,
+                    builtin_enabled: true,
+                    selected_preset: 'high',
+                    custom_parameters: { reasoning: { effort: 'low' } },
+                },
+                reasoning_models: {
+                    'gpt-5.6-luna': { presets: { low: { reasoning_effort: 'low' } } },
+                },
+            }],
+        });
+        api.post.mockResolvedValue({ data: { status: 'success' } });
+
+        renderWithProvider(<ApiSettingsTab />);
+        await screen.findByText('OpenAI');
+        fireEvent.click(screen.getByRole('button', { name: 'settings_api_label_configure' }));
+
+        const reasoningToggle = screen.getByRole('switch');
+        expect(reasoningToggle).not.toBeChecked();
+        expect(reasoningToggle).toBeDisabled();
+        expect(screen.getByRole('button', { name: 'save' })).toBeEnabled();
+        fireEvent.click(screen.getByRole('button', { name: 'save' }));
+
+        await waitFor(() => {
+            expect(api.post).toHaveBeenCalledWith('/api/providers/config', expect.objectContaining({
+                provider_id: 'openai',
+                selected_model: 'gpt-6-luna',
+                reasoning_builtin_enabled: false,
+                reasoning_preset: 'high',
+                custom_parameters: { reasoning: { effort: 'low' } },
+            }));
+        });
+    });
+
+    it('clears built-in reasoning when a manually entered model has no mapping without changing the preset', async () => {
+        api.get.mockResolvedValue({
+            data: [{
+                id: 'openai',
+                name: 'OpenAI',
+                selected_model: 'mapped-model',
+                custom_models: [],
+                available_models: ['mapped-model'],
+                reasoning: {
+                    supported: true,
+                    builtin_enabled: true,
+                    selected_preset: 'high',
+                    custom_parameters: { reasoning: { exclude: true } },
+                },
+                reasoning_models: {
+                    'mapped-model': { presets: { high: { reasoning_effort: 'high' } } },
+                },
+            }],
+        });
+        api.post.mockResolvedValue({ data: { status: 'success' } });
+
+        renderWithProvider(<ApiSettingsTab />);
+        await screen.findByText('OpenAI');
+        fireEvent.click(screen.getByRole('button', { name: 'settings_api_label_configure' }));
+        const modelsInput = screen.getAllByLabelText('api_models_label').find((element) => element.tagName === 'INPUT');
+        fireEvent.change(modelsInput, { target: { value: 'gpt-6-luna' } });
+        fireEvent.keyDown(modelsInput, { key: 'Enter', code: 'Enter' });
+        expect(screen.getByRole('button', { name: 'save' })).toBeEnabled();
+        fireEvent.click(screen.getByRole('button', { name: 'save' }));
+
+        await waitFor(() => {
+            expect(api.post).toHaveBeenCalledWith('/api/providers/config', expect.objectContaining({
+                selected_model: 'gpt-6-luna',
+                reasoning_builtin_enabled: false,
+                reasoning_preset: 'high',
+                custom_parameters: { reasoning: { exclude: true } },
+            }));
+        });
+    });
 });

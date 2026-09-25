@@ -7,6 +7,8 @@ import pytest
 from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
 from scripts.web_server import app
+from scripts.app_settings import API_PROVIDERS as BUILTIN_CATALOG
+from scripts.core.reasoning_policy import resolve_reasoning_parameters
 
 
 MOCK_API_PROVIDERS = {
@@ -118,6 +120,25 @@ class TestPostApiKeys:
 class TestPostProviderConfig:
     """回归测试：POST /api/providers/config"""
 
+    @pytest.mark.parametrize("provider_id", sorted(BUILTIN_CATALOG))
+    def test_every_provider_accepts_manual_model_with_vendor_reasoning_defaults(
+        self, mock_config_env, provider_id,
+    ):
+        mock_config_env.get_value.return_value = {
+            provider_id: {"reasoning_builtin_enabled": True},
+        }
+        with patch("scripts.routers.config.API_PROVIDERS", BUILTIN_CATALOG):
+            response = TestClient(app).post("/api/providers/config", json={
+                "provider_id": provider_id, "selected_model": "manual-future-model",
+            })
+
+        assert response.status_code == 200
+        saved = mock_config_env.set_value.call_args.args[1][provider_id]
+        assert saved["reasoning_builtin_enabled"] is False
+        effective = dict(BUILTIN_CATALOG[provider_id], **saved)
+        effective["default_model"] = saved["selected_model"]
+        assert resolve_reasoning_parameters(effective).parameters == {}
+
     def test_rejects_local_openai_endpoint_url(self, mock_config_env):
         client = TestClient(app)
         response = client.post("/api/providers/config", json={
@@ -198,6 +219,51 @@ class TestPostProviderConfig:
         assert response.status_code == 400
         assert "no verified" in response.json()["detail"]
         mock_config_env.set_value.assert_not_called()
+
+    @pytest.mark.parametrize("change_model", [True, False])
+    def test_unknown_model_disables_inherited_reasoning_without_losing_custom_json(
+        self, mock_config_env, change_model,
+    ):
+        mock_config_env.get_value.return_value = {"gemini": {
+            "selected_model": "gemini-1.5-pro" if change_model else "custom-gemini",
+            "reasoning_builtin_enabled": True,
+            "custom_parameters": {"temperature": 0.3},
+        }}
+        payload = {"provider_id": "gemini"}
+        if change_model:
+            payload["selected_model"] = "custom-gemini"
+        response = TestClient(app).post("/api/providers/config", json=payload)
+
+        assert response.status_code == 200
+        saved = mock_config_env.set_value.call_args.args[1]["gemini"]
+        assert saved["selected_model"] == "custom-gemini"
+        assert saved["reasoning_builtin_enabled"] is False
+        assert saved["custom_parameters"] == {"temperature": 0.3}
+        # Validation works on a copy; failed or partial updates cannot mutate storage.
+        assert mock_config_env.get_value.return_value["gemini"]["reasoning_builtin_enabled"] is True
+
+    def test_known_model_preserves_inherited_reasoning(self, mock_config_env):
+        mock_config_env.get_value.return_value = {"gemini": {
+            "selected_model": "gemini-1.5-pro",
+            "reasoning_builtin_enabled": True,
+        }}
+        response = TestClient(app).post("/api/providers/config", json={
+            "provider_id": "gemini", "prompt_prefix": "Translate faithfully",
+        })
+
+        assert response.status_code == 200
+        saved = mock_config_env.set_value.call_args.args[1]["gemini"]
+        assert saved["reasoning_builtin_enabled"] is True
+
+    def test_new_manual_model_does_not_inherit_provider_reasoning_default(self, mock_config_env):
+        with patch.dict(MOCK_API_PROVIDERS["gemini"]["reasoning"], {"default_enabled": True}):
+            response = TestClient(app).post("/api/providers/config", json={
+                "provider_id": "gemini", "selected_model": "custom-gemini",
+            })
+
+        assert response.status_code == 200
+        saved = mock_config_env.set_value.call_args.args[1]["gemini"]
+        assert saved["reasoning_builtin_enabled"] is False
 
     def test_rejects_custom_parameters_that_replace_messages(self, mock_config_env):
         client = TestClient(app)

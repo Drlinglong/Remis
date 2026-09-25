@@ -327,6 +327,12 @@ def update_provider_config(payload: UpdateProviderConfigRequest):
         if key in current_overrides[provider_id]
     })
     resolution = resolve_reasoning_parameters(effective_config)
+    if not resolution.supported and payload.reasoning_builtin_enabled is None:
+        # A model-only update must not inherit an unusable reasoning toggle.
+        # Explicit requests to enable an unverified mapping still fail below.
+        current_overrides[provider_id]["reasoning_builtin_enabled"] = False
+        effective_config["reasoning_builtin_enabled"] = False
+        resolution = resolve_reasoning_parameters(effective_config)
     if resolution.builtin_enabled and not resolution.supported:
         raise HTTPException(
             status_code=400,

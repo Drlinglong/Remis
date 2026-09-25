@@ -221,6 +221,12 @@ class CustomProviderProfileService:
 
         effective = dict(current or {})
         effective.update({key: value for key, value in values.items() if key != "api_key"})
+        adapter = self.adapter_catalog.get(CUSTOM_ADAPTER_ID, {}) or {}
+        mappings = (adapter.get("reasoning") or {}).get("models") or {}
+        if "reasoning_builtin_enabled" not in values and not isinstance(
+            mappings.get(effective.get("selected_model")), dict,
+        ):
+            effective["reasoning_builtin_enabled"] = values["reasoning_builtin_enabled"] = False
         self._validate_reasoning(effective)
         return values
 

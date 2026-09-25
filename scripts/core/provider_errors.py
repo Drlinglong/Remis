@@ -152,3 +152,14 @@ def classify_provider_fatal_error(
         status_code=status_code,
         reason_code=_reason_code(status_code, error_code, normalized_message),
     )
+
+
+def raise_safe_provider_fatal_error(error: BaseException, *, provider: str) -> None:
+    """Strip provider response bodies before logging or propagating fatal errors."""
+    fatal = classify_provider_fatal_error(error, provider=provider)
+    if fatal is not None:
+        message = provider_failure_task_fields(fatal)["attention_reason"]
+        raise ProviderFatalError(
+            message, provider=fatal.provider, status_code=fatal.status_code,
+            reason_code=fatal.reason_code,
+        ) from None

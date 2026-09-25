@@ -1,9 +1,13 @@
 # scripts/core/openai_handler.py
-import openai
 from openai import OpenAI
 
 from scripts.app_settings import get_api_key
 from scripts.core.base_handler import BaseApiHandler
+from scripts.core.provider_errors import raise_safe_provider_fatal_error
+
+
+_GPT6_MODELS = {"gpt-6-astra", "gpt-6-sol", "gpt-6-luna"}
+
 
 class OpenAIHandler(BaseApiHandler):
     """OpenAI API Handler子类"""
@@ -53,26 +57,17 @@ class OpenAIHandler(BaseApiHandler):
             )
             self._record_model_response(response)
             return response.choices[0].message.content.strip()
-        except openai.NotFoundError as e:
-            # 捕获 404 错误 (Model Not Found) - 特别针对本地 LLM 用户
-            error_msg = str(e)
-            hint = f"OpenAI API Error (404 Not Found): {error_msg}. "
-            
-            # 尝试判断是否是本地环境
-            base_url = str(client.base_url)
-            if "localhost" in base_url or "127.0.0.1" in base_url:
-                 hint += f"由于您使用的是本地服务器 ({base_url})，请务必检查模型 '{model_name}' 是否已加载/安装。"
-            else:
-                 hint += f"请检查模型 '{model_name}' 是否存在且您有权访问。"
-            
-            self.logger.error(hint)
-            raise ValueError(hint) from e
         except Exception as e:
+            raise_safe_provider_fatal_error(e, provider=self.provider_name)
             self.logger.exception(f"OpenAI API call failed: {e}")
             # 重新引发异常，让基类的重试逻辑捕获
             raise
 
-    def generate_with_messages(self, messages: list[dict], temperature: float = 0.7) -> str:
+    def generate_with_messages(
+        self,
+        messages: list[dict],
+        temperature: float = 0.7,
+    ) -> str:
         """
         Supports chat-like interaction for NeologismMiner.
         """
@@ -83,13 +78,19 @@ class OpenAIHandler(BaseApiHandler):
             request_kwargs = {
                 "model": model_name,
                 "messages": messages,
-                "temperature": temperature,
             }
+            reasoning_parameters = self._reasoning_request_parameters()
+            if (
+                model_name not in _GPT6_MODELS
+                or reasoning_parameters.get("reasoning_effort") == "none"
+            ):
+                request_kwargs["temperature"] = temperature
             response = self.client.chat.completions.create(
                 **self._apply_reasoning_to_openai_kwargs(request_kwargs)
             )
             self._record_model_response(response)
             return response.choices[0].message.content.strip()
         except Exception as e:
+            raise_safe_provider_fatal_error(e, provider=self.provider_name)
             self.logger.exception(f"OpenAI chat generation failed: {e}")
             raise
