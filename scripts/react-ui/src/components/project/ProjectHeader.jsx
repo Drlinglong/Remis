@@ -21,6 +21,7 @@ import surfaceStyles from './ProjectDetailSurfaces.module.css';
 import headerStyles from './ProjectHeader.module.css';
 import { getProjectPrimaryAction } from '../../utils/projectPrimaryAction';
 import { formatLocalizedDateTime, getResolvedInterfaceLocale } from '../../utils/localizedDateTime';
+import { allowsParadoxDeployment } from '../../utils/gameSupportPolicy';
 import { DeployModals } from '../deploy/DeployModals';
 
 const ProjectHeader = ({
@@ -39,7 +40,9 @@ const ProjectHeader = ({
     const validationIssues = Number(projectDetails.validation?.issues_count || 0);
     const releaseReady = Boolean(projectDetails.has_available_translation) && validationIssues === 0;
     const primaryAction = getProjectPrimaryAction(projectDetails);
+    const canUseParadoxActions = allowsParadoxDeployment(projectDetails.game_id);
     const canDeployAvailableTranslation = projectDetails.status === 'active'
+        && canUseParadoxActions
         && Boolean(projectDetails.has_available_translation)
         && validationIssues === 0;
     const showDirectDeployAlongsidePrimary = canDeployAvailableTranslation
@@ -132,16 +135,20 @@ const ProjectHeader = ({
                                     <Menu.Item leftSection={<IconDatabaseCog size={16} />} onClick={onRepairMetadata} disabled={repairingMetadata}>
                                         {t('project_management.repair_metadata', 'Repair Metadata')}
                                     </Menu.Item>
-                                    <Menu.Item leftSection={<IconRocket size={16} />} onClick={handleOpenDeployModal}>
-                                        {t('button_auto_deploy')}
-                                    </Menu.Item>
+                                    {canUseParadoxActions && (
+                                        <Menu.Item leftSection={<IconRocket size={16} />} onClick={handleOpenDeployModal}>
+                                            {t('button_auto_deploy')}
+                                        </Menu.Item>
+                                    )}
                                     <Menu.Divider />
                                     <Menu.Item color="orange" leftSection={<IconArchive size={16} />} onClick={() => handleStatusChange('archived')}>
                                         {t('project_management.archive_project')}
                                     </Menu.Item>
-                                    <Menu.Item color="red" leftSection={<IconTrash size={16} />} onClick={handleOpenCleanModal}>
-                                        {t('button_clean_fake_loc')}
-                                    </Menu.Item>
+                                    {canUseParadoxActions && (
+                                        <Menu.Item color="red" leftSection={<IconTrash size={16} />} onClick={handleOpenCleanModal}>
+                                            {t('button_clean_fake_loc')}
+                                        </Menu.Item>
+                                    )}
                                     <Menu.Item color="red" leftSection={<IconTrash size={16} />} onClick={onDeleteForever}>
                                         {t('project_management.delete_project')}
                                     </Menu.Item>
@@ -183,7 +190,7 @@ const ProjectHeader = ({
                     </Group>
                     <Progress value={translated} mt="xs" size="sm" radius="xl" />
                     <Text size="xs" c="dimmed" mt="xs">
-                        {t('project_management.overview.to_be_proofread')}: {overview.toBeProofread || 0}%
+                        {t('project_management.overview.to_be_proofread')}: {projectDetails.has_available_translation ? (overview.toBeProofread || 0) : 0}%
                     </Text>
                 </Card>
                 <Card
@@ -228,7 +235,7 @@ const ProjectHeader = ({
                         : t('project_history.no_archive_data', 'No archive data')}
                 </Text>
             </Group>
-            <DeployModals deployActions={deployActions} />
+            {canUseParadoxActions && <DeployModals deployActions={deployActions} />}
         </Paper>
     );
 };

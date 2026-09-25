@@ -191,11 +191,20 @@ class ParallelProcessor:
 
             total_batches = len(batch_tasks)
             completed_batches = 0
+            cancellation_error = None
             
             for future in concurrent.futures.as_completed(future_to_batch):
                 batch_task = future_to_batch[future]
                 try:
                     processed_task, warnings = future.result()
+                except ProcessingCancelledError as exc:
+                    # A fatal batch sets abort_event; already-queued batches then
+                    # report cancellation too. Keep inspecting futures so the
+                    # originating ProviderFatalError cannot be masked by ordering.
+                    abort_event.set()
+                    if cancellation_error is None:
+                        cancellation_error = exc
+                    continue
                 except ProviderFatalError:
                     abort_event.set()
                     self._cancel_pending(future_to_batch)
@@ -211,6 +220,9 @@ class ParallelProcessor:
                         progress_callback(completed_batches, total_batches)
                     except Exception as e:
                         self.logger.error(f"Error in progress callback: {e}")
+
+            if cancellation_error is not None:
+                raise cancellation_error
 
         if any(task.failed for task in batch_results.values()):
             failed_count = sum(1 for task in batch_results.values() if task.failed)
@@ -267,6 +279,8 @@ class ParallelProcessor:
             return future.result()
         except ProcessingCancelledError:
             raise
+        except concurrent.futures.CancelledError as exc:
+            raise ProcessingCancelledError("Translation cancelled by user.") from exc
         except ProviderFatalError:
             raise
         except Exception as e:
@@ -369,6 +383,75 @@ class ParallelProcessor:
             self._cancel_pending(pending_futures)
             raise
 
+    def _resolve_stream_done_futures(
+        self,
+        done: Any,
+        future_to_info: dict,
+        abort_event: threading.Event,
+        should_cancel: Optional[Callable[[], bool]],
+    ) -> Tuple[list, Optional[ProcessingCancelledError]]:
+        resolved = []
+        cancellation_error = None
+        for future in done:
+            if should_cancel and should_cancel():
+                abort_event.set()
+                self._cancel_pending(future_to_info)
+                raise ProcessingCancelledError("Translation cancelled by user.")
+            file_identity, batch_index, batch_task = future_to_info.pop(future)
+            try:
+                processed_task, warnings = self._resolve_stream_batch_future(
+                    future,
+                    batch_task,
+                    batch_task.file_task.filename,
+                    batch_index,
+                    abort_event,
+                    future_to_info,
+                )
+            except ProcessingCancelledError as exc:
+                if cancellation_error is None:
+                    cancellation_error = exc
+                continue
+            resolved.append((file_identity, batch_index, processed_task, warnings))
+        return resolved, cancellation_error
+
+    def _record_stream_batch(
+        self,
+        file_identity: str,
+        batch_index: int,
+        processed_task: BatchTask,
+        warnings: List[Dict[str, Any]],
+        progress_callback: Optional[Callable[[BatchTask], None]],
+        file_buffers: Dict[str, Dict[int, BatchTask]],
+        file_batch_counts: Dict[str, int],
+        file_warning_buffers: Dict[str, List[Dict[str, Any]]],
+    ) -> Optional[Tuple[FileTask, List[str], List[Dict[str, Any]], bool]]:
+        self._notify_batch_progress(progress_callback, processed_task)
+        if file_identity not in file_buffers:
+            return None
+        file_buffers[file_identity][batch_index] = processed_task
+        if warnings:
+            file_warning_buffers.setdefault(file_identity, []).extend(warnings)
+        if len(file_buffers[file_identity]) != file_batch_counts[file_identity]:
+            return None
+
+        sorted_batches = [
+            file_buffers[file_identity][index]
+            for index in range(file_batch_counts[file_identity])
+        ]
+        file_task = sorted_batches[0].file_task
+        translated_texts = []
+        failed = False
+        for batch in sorted_batches:
+            failed = failed or batch.failed or batch.fell_back_to_source
+            translated_texts.extend(batch.translated_texts or [])
+        file_warnings = file_warning_buffers.get(file_identity, [])
+        if failed:
+            self.logger.error(f"File {file_task.filename} incomplete or failed.")
+        del file_buffers[file_identity]
+        del file_batch_counts[file_identity]
+        file_warning_buffers.pop(file_identity, None)
+        return file_task, translated_texts, file_warnings, failed
+
     def process_files_stream(
         self,
         file_tasks_generator: Any, # Iterator[FileTask]
@@ -427,6 +510,7 @@ class ParallelProcessor:
             
             iterator = iter(file_tasks_generator)
             done_consuming = False
+            stream_cancellation_error = None
             
             while not done_consuming or future_to_info:
                 if should_cancel and should_cancel():
@@ -454,58 +538,31 @@ class ParallelProcessor:
                         timeout=0.25,
                         return_when=concurrent.futures.FIRST_COMPLETED
                     )
-                    
-                    for future in done:
-                        if should_cancel and should_cancel():
-                            abort_event.set()
-                            self._cancel_pending(future_to_info)
-                            raise ProcessingCancelledError("Translation cancelled by user.")
-                        file_identity, batch_index, batch_task = future_to_info.pop(future)
+                    resolved, cancellation_error = self._resolve_stream_done_futures(
+                        done, future_to_info, abort_event, should_cancel
+                    )
+                    if cancellation_error and stream_cancellation_error is None:
+                        stream_cancellation_error = cancellation_error
+                        # Stop consuming/submitting new files, but drain every
+                        # already-submitted future to preserve a later fatal error.
+                        done_consuming = True
+                    for file_identity, batch_index, processed_task, warnings in resolved:
                         pending_batches_count -= 1
-                        warnings = []
-                        
-                        processed_task, warnings = self._resolve_stream_batch_future(
-                            future, batch_task, batch_task.file_task.filename,
-                            batch_index, abort_event, future_to_info)
+                        result = self._record_stream_batch(
+                            file_identity,
+                            batch_index,
+                            processed_task,
+                            warnings,
+                            batch_progress_callback,
+                            file_buffers,
+                            file_batch_counts,
+                            file_warning_buffers,
+                        )
+                        if result is not None:
+                            yield result
 
-                        self._notify_batch_progress(batch_progress_callback, processed_task)
-
-                        if file_identity not in file_buffers:
-                            continue
-
-                        file_buffers[file_identity][batch_index] = processed_task
-                        if warnings:
-                            file_warning_buffers.setdefault(file_identity, []).extend(warnings)
-                        
-                        # Check if file is complete (all batches accounted for, even if failed)
-                        if len(file_buffers[file_identity]) == file_batch_counts[file_identity]:
-                            # Assemble file
-                            sorted_batches = [file_buffers[file_identity][i] for i in range(file_batch_counts[file_identity])]
-                            
-                            # Get the FileTask from the first batch (all batches share the same FileTask reference)
-                            # We need this to return the full context (original lines, etc.)
-                            file_task_ref = sorted_batches[0].file_task
-                            
-                            full_translated_texts = []
-                            file_failed = False
-                            
-                            for task in sorted_batches:
-                                if task.failed or task.fell_back_to_source:
-                                    file_failed = True
-                                full_translated_texts.extend(task.translated_texts or [])
-
-                            file_warnings = file_warning_buffers.get(file_identity, [])
-                            
-                            if file_failed:
-                                self.logger.error(f"File {file_task_ref.filename} incomplete or failed.")
-                                yield (file_task_ref, full_translated_texts, file_warnings, True) # Fourth item is 'failed' flag
-                            else:
-                                yield (file_task_ref, full_translated_texts, file_warnings, False)
-                            
-                            # Cleanup
-                            del file_buffers[file_identity]
-                            del file_batch_counts[file_identity]
-                            file_warning_buffers.pop(file_identity, None)
+            if stream_cancellation_error is not None:
+                raise stream_cancellation_error
 
     def _collect_file_results(
         self,
@@ -544,6 +601,9 @@ class ParallelProcessor:
                 file_translated_texts.extend(task.translated_texts)
 
             if file_failed or len(file_translated_texts) != len(file_task.texts_to_translate):
+                from scripts.core.game_adapters.registry import resource_adapter
+                if resource_adapter(file_task.game_profile):
+                    raise RuntimeError(f"Incomplete game resource translation: {file_task.filename}")
                 self.logger.error(f"File translation failed for {file_task.filename}, using fallback.")
                 file_results[file_task.filename] = file_task.texts_to_translate
             else:

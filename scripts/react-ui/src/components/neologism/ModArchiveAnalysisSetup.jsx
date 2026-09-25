@@ -30,7 +30,7 @@ import {
     ANALYSIS_SCOPES,
     getStatusTone,
 } from './modArchiveModel';
-import { TARGET_LANGUAGE_OPTIONS } from './useModArchiveAnalysis';
+import { TARGET_LANGUAGE_OPTIONS } from './modArchiveLanguages';
 import styles from './ModArchive.module.css';
 
 const translateStatus = (t, category, code) => {

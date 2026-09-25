@@ -18,7 +18,12 @@ import { IconEdit, IconKey, IconPlus, IconServer, IconTrash, IconRobot } from '@
 import { notifications } from '@mantine/notifications';
 import { useTranslation } from 'react-i18next';
 import ProviderReasoningSettings from './ProviderReasoningSettings';
-import { parseCustomParameters } from './reasoningForm';
+import {
+    isReasoningSelectionValid,
+    parseCustomParameters,
+    selectReasoningModel,
+    shouldEnableBuiltinReasoning,
+} from './reasoningForm';
 import {
     useCustomProviderProfiles,
 } from './useCustomProviderProfiles';
@@ -36,14 +41,17 @@ const profileToForm = (profile) => ({
     selectedModel: profile.selected_model || '',
     promptPrefix: profile.prompt_prefix || '',
     systemPromptSuffix: profile.system_prompt_suffix || '',
-    reasoningBuiltinEnabled: Boolean(profile.reasoning?.builtin_enabled ?? profile.reasoning_builtin_enabled),
+    reasoningBuiltinEnabled: Boolean(
+        (profile.reasoning?.builtin_enabled ?? profile.reasoning_builtin_enabled)
+        && profile.reasoning_models?.[profile.selected_model],
+    ),
     reasoningPreset: profile.reasoning?.selected_preset || profile.reasoning_preset || 'medium',
     customParametersText: Object.keys(profile.reasoning?.custom_parameters || profile.custom_parameters || {}).length
         ? JSON.stringify(profile.reasoning?.custom_parameters || profile.custom_parameters, null, 2)
         : '',
 });
 
-const formToPayload = (form) => {
+const formToPayload = (form, reasoningModels = {}) => {
     const payload = {
         display_name: form.displayName.trim() || 'Custom Provider',
         models: form.models,
@@ -51,7 +59,7 @@ const formToPayload = (form) => {
         selected_model: form.selectedModel.trim(),
         prompt_prefix: form.promptPrefix,
         system_prompt_suffix: form.systemPromptSuffix,
-        reasoning_builtin_enabled: form.reasoningBuiltinEnabled,
+        reasoning_builtin_enabled: shouldEnableBuiltinReasoning(form, reasoningModels),
         reasoning_preset: form.reasoningPreset,
         custom_parameters: parseCustomParameters(form.customParametersText),
     };
@@ -149,15 +157,7 @@ const CustomProviderProfileCard = ({
                         data={availableModels.map((model) => ({ value: model, label: model }))}
                         value={form.selectedModel}
                         onChange={(value) => {
-                            const capability = profile.reasoning_models?.[value];
-                            const presets = Object.keys(capability?.presets || {});
-                            onChange({
-                                selectedModel: value || '',
-                                reasoningBuiltinEnabled: capability ? form.reasoningBuiltinEnabled : false,
-                                reasoningPreset: presets.includes(form.reasoningPreset)
-                                    ? form.reasoningPreset
-                                    : (presets[0] || 'medium'),
-                            });
+                            onChange(selectReasoningModel(form, value, profile.reasoning_models));
                         }}
                         searchable
                         clearable
@@ -167,10 +167,13 @@ const CustomProviderProfileCard = ({
                     <TagsInput
                         label={t('api_models_label', 'Custom Models')}
                         value={form.models}
-                        onChange={(models) => onChange({
-                            models,
-                            selectedModel: form.selectedModel || models[0] || '',
-                        })}
+                        onChange={(models) => {
+                            const selectedModel = form.selectedModel || models[0] || '';
+                            onChange({
+                                ...selectReasoningModel(form, selectedModel, profile.reasoning_models),
+                                models,
+                            });
+                        }}
                         placeholder={t('api_models_placeholder', 'Type and press Enter to add models')}
                     />
                     <Divider label={t('api_prompt_controls_label', 'Prompt Controls')} labelPosition="center" />
@@ -196,7 +199,11 @@ const CustomProviderProfileCard = ({
                         <Button
                             size="xs"
                             loading={submitting}
-                            disabled={!apiUrlValid || !form.selectedModel.trim()}
+                            disabled={
+                                !apiUrlValid
+                                || !form.selectedModel.trim()
+                                || !isReasoningSelectionValid(form, profile.reasoning_models)
+                            }
                             onClick={onSave}
                         >
                             {t('save')}
@@ -338,10 +345,10 @@ const CustomProviderProfiles = ({ onDirtyChange = noop, discardToken = 0 }) => {
         setSubmittingId(profile.profile_id);
         try {
             if (profile.isDraft) {
-                await createProfile(formToPayload(form));
+                await createProfile(formToPayload(form, profile.reasoning_models));
                 setDrafts((current) => current.filter((item) => item.profile_id !== profile.profile_id));
             } else {
-                await updateProfile(profile.profile_id, formToPayload(form));
+                await updateProfile(profile.profile_id, formToPayload(form, profile.reasoning_models));
             }
             setEditingId(null);
             notifications.show({

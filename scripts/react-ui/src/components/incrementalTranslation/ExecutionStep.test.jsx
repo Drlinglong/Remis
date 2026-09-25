@@ -43,4 +43,35 @@ describe('ExecutionStep workflow handoff', () => {
     expect(onViewTask).toHaveBeenCalledOnce();
     expect(onStartProofreading).toHaveBeenCalledOnce();
   });
+
+  it('presents a cancelled run as incomplete and withholds success-only actions', () => {
+    Element.prototype.scrollTo = vi.fn();
+    const openOutputFolder = vi.fn();
+    const onStartProofreading = vi.fn();
+
+    render(
+      <MantineProvider>
+        <ExecutionStep
+          progress={42}
+          executing={false}
+          progressInfo={{ stage_code: 'cancelled' }}
+          logs={[]}
+          finalSummary={{ status: 'cancelled', output_dir: 'C:/partial-output' }}
+          logViewportRef={{ current: null }}
+          logScrollRef={{ current: null }}
+          openOutputFolder={openOutputFolder}
+          handleFinish={vi.fn()}
+          completionSource="polling"
+          onStartProofreading={onStartProofreading}
+        />
+      </MantineProvider>,
+    );
+
+    expect(screen.getByRole('heading', { name: 'cancelled' })).toBeInTheDocument();
+    expect(screen.getByText('incremental_translation.task_failed_check_logs')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'button_open_folder' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'project_management.primary_continue_proofreading' })).not.toBeInTheDocument();
+    expect(openOutputFolder).not.toHaveBeenCalled();
+    expect(onStartProofreading).not.toHaveBeenCalled();
+  });
 });

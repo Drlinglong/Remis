@@ -97,6 +97,22 @@ def test_delete_selected_copilot_profile_requires_explicit_switch(profile_servic
     assert service.list_profiles()[0]["profile_id"] == created["profile_id"]
 
 
+def test_manual_model_update_disables_stale_reasoning_and_keeps_custom_parameters(profile_service):
+    service, manager = profile_service
+    created = service.create_profile(profile_payload())
+    profiles = manager.get_value(CUSTOM_PROFILES_CONFIG_KEY)
+    profiles[0]["reasoning_builtin_enabled"] = True
+    manager.set_value(CUSTOM_PROFILES_CONFIG_KEY, profiles)
+
+    updated = service.update_profile(created["profile_id"], {"selected_model": "new-manual-model"})
+
+    assert updated["reasoning_builtin_enabled"] is False
+    assert updated["custom_parameters"] == {"temperature": 0.2}
+    with pytest.raises(ValueError, match="no verified"):
+        service.update_profile(created["profile_id"], {"reasoning_builtin_enabled": True})
+    assert service.list_profiles()[0]["reasoning_builtin_enabled"] is False
+
+
 def test_legacy_provider_config_and_key_migrate_once(profile_service):
     service, manager = profile_service
     manager.set_value(

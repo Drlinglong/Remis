@@ -2,7 +2,7 @@
 
 ## 概述
 
-3.2.0 Windows 正式发布使用 `scripts/build_pipeline.py` 构建 Tauri NSIS
+3.2.1 Windows 正式发布使用 `scripts/build_pipeline.py` 构建 Tauri NSIS
 安装包。`archive/build_release_scripts/build_release.bat` 只保留用于历史便携
 ZIP 格式；当前 EXE 发版不能使用它。
 
@@ -28,8 +28,9 @@ ZIP 格式；当前 EXE 发版不能使用它。
 5. 按需继续提供兼容性、已知边界、验证和安装包信息。中英文内容必须语义一致，但
    应分别符合各自语言的自然表达。
 6. 每次发版都必须更新 `scripts/react-ui/package.json` 中的 `releaseDate`，并让它与
-   Release Note 的 `Released on YYYY-MM-DD.` 以及设置 > 版本信息 > 最后更新保持一致。
-   发布元数据测试是打包前的强制门禁。
+   当前未发布记录 `docs/zh/developer/release-vX.Y.Z.md` 以及设置 > 版本信息 > 最后更新
+   保持一致。正式发布后，归档副本使用 `Released on YYYY-MM-DD.` 记录同一日期。发布
+   元数据测试是打包前的强制门禁。
 
 推荐结构：
 
@@ -63,11 +64,13 @@ ZIP 格式；当前 EXE 发版不能使用它。
 python -m pytest -q tests/test_release_metadata.py
 ```
 
-完整且唯一的规范维护在 `archive/release_notes/README.md`。
+当前未发布记录的入口是 `docs/zh/developer/release-vX.Y.Z.md`；已发布或历史副本才进入
+`archive/release_notes/`。目录结构、Highlights 和归档规则维护在
+`archive/release_notes/README.md`。
 
 ## 使用方法
 
-## 3.2.0 Tauri 桌面安装包的数据规则
+## 3.2.1 Tauri 桌面安装包的数据规则
 
 当前 Tauri 桌面安装包由 `scripts/build_pipeline.py` 构建。数据库初始化分成三层：
 
@@ -109,7 +112,7 @@ python scripts/build_pipeline.py --channel stable
 
 流水线使用 `local_factory` Conda 环境，冻结并健康检查 Python sidecar，构建前端，
 最后执行 Tauri 打包。stable NSIS 安装包会复制到：
-`archive/release/stable/remis-mod-factory_3.2.0_x64-setup.exe`。只有明确要生成隔离的
+`archive/release/stable/remis-mod-factory_3.2.1_x64-setup.exe`。只有明确要生成隔离的
 `3.2.0-agent-preview.1` 预览安装包时，才使用 `--channel agent-preview`。
 
 ### 历史便携 ZIP（`build_release.bat`）

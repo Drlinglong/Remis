@@ -10,6 +10,9 @@ Use project context in this order:
 
 Recommended follow-up docs:
 
+- [Agent API quickstart](developer/agent-api-quickstart.md)
+- [Remis Agent Skill](../../.agents/skills/remis-agent/SKILL.md)
+- [Agent API reference](../../.agents/skills/remis-agent/references/api-workflow.md)
 - [Refactor Decision Guide (Chinese)](../zh/developer/refactor_decision_guide.md)
 - [Local CI Guide (Chinese)](../zh/developer/ci-setup.md)
 - [Documentation Status](../docs_status.md)

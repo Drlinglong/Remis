@@ -114,10 +114,15 @@ def mask_special_tokens(text: str) -> str:
     
     return text
 
-def restore_special_tokens(text: str, target_lang: str) -> str:
+def restore_special_tokens(
+    text: str,
+    target_lang: str,
+    *,
+    preserve_newlines: bool = False,
+) -> str:
     """
     Restores special tokens to their language-specific forms.
-    1. [[_NL_]] -> \\n (Escaped newline for Paradox files)
+    1. [[_NL_]] -> escaped ``\\n`` by default, or an LF when requested
     2. [[_QT_]] -> Context-aware quotes (Flip-Flop logic)
     """
     if not text:
@@ -137,11 +142,12 @@ def restore_special_tokens(text: str, target_lang: str) -> str:
     # 1. Restore Newlines
     # Paradox localization files usually expect escaped newlines (\n)
     # Clean up spaces LLM might add around newline masks FIRST
-    text = text.replace(f" {MASK_NEWLINE} ", "\\n")
-    text = text.replace(f" {MASK_NEWLINE}", "\\n")
-    text = text.replace(f"{MASK_NEWLINE} ", "\\n")
+    newline = "\n" if preserve_newlines else "\\n"
+    text = text.replace(f" {MASK_NEWLINE} ", newline)
+    text = text.replace(f" {MASK_NEWLINE}", newline)
+    text = text.replace(f"{MASK_NEWLINE} ", newline)
     # Finally replace the bare token
-    text = text.replace(MASK_NEWLINE, "\\n")
+    text = text.replace(MASK_NEWLINE, newline)
 
     # 2. Restore Quotes (Context Aware)
     if MASK_QUOTE in text:
@@ -169,6 +175,7 @@ def restore_special_tokens(text: str, target_lang: str) -> str:
     # 3. Final Safety: Escape any remaining actual newlines
     # If the LLM returned actual newlines instead of tokens, we must escape them
     # to prevent breaking the YAML-like structure.
-    text = text.replace("\n", "\\n")
+    if not preserve_newlines:
+        text = text.replace("\n", "\\n")
 
     return text

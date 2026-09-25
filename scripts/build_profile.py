@@ -28,7 +28,7 @@ PROFILES = {
     STABLE_CHANNEL: BuildProfile(
         channel=STABLE_CHANNEL,
         product_name="remis-mod-factory",
-        version="3.2.0",
+        version="3.2.1",
         identifier="com.remis.modfactory",
         app_data_folder="RemisModFactory",
         backend_port=1453,
@@ -80,6 +80,28 @@ def runtime_app_data_folder(
     if selected.channel == AGENT_PREVIEW_CHANNEL:
         return f"{selected.app_data_folder}Dev"
     return "RemisModFactoryDev"
+
+
+def resolve_app_data_dir(
+    *,
+    environ: dict[str, str] | None = None,
+    profile: BuildProfile | None = None,
+    frozen: bool | None = None,
+) -> str:
+    """Resolve writable Remis data, honoring an explicit absolute override."""
+    environment = os.environ if environ is None else environ
+    override = environment.get("REMIS_APP_DATA_DIR")
+    if override is not None:
+        candidate = os.path.expanduser(override.strip())
+        if not candidate or not os.path.isabs(candidate):
+            raise ValueError("REMIS_APP_DATA_DIR must be a non-empty absolute path.")
+        return os.path.abspath(candidate)
+
+    appdata = environment.get("APPDATA")
+    folder = runtime_app_data_folder(profile, frozen=frozen)
+    if appdata:
+        return os.path.abspath(os.path.join(appdata, folder))
+    return os.path.abspath(os.path.join(os.path.expanduser("~"), f".{folder.lower()}"))
 
 
 def write_profile_manifest(profile: BuildProfile, path: str | os.PathLike[str]) -> None:

@@ -1,5 +1,5 @@
 from typing import Any, Dict, List, Literal, Optional
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from scripts.schemas.common import LanguageCode
 from scripts.schemas.reference import ReferenceReuseConfig
 
@@ -60,10 +60,21 @@ class CheckpointStatusRequest(BaseModel):
 
 
 class CustomLangConfig(BaseModel):
-    name: str
-    code: str
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    name: str = Field(min_length=1, max_length=80)
+    code: Literal["custom"] = "custom"
     key: str
-    folder_prefix: str
+    folder_prefix: str = Field(pattern=r"^[A-Za-z][A-Za-z0-9_-]{0,38}-$")
+
+    @field_validator("key")
+    @classmethod
+    def require_supported_paradox_language_key(cls, value):
+        from scripts.app_settings import LANGUAGE_BY_PARA_KEY
+
+        if value not in LANGUAGE_BY_PARA_KEY:
+            raise ValueError("Select a supported Paradox language key for the custom language")
+        return value
 
 
 class EmbeddedWorkshopConfig(BaseModel):

@@ -17,6 +17,14 @@ vi.mock('../project/ProjectGlossaryPanel', () => ({
   default: () => <div>project glossary</div>,
 }));
 
+vi.mock('../project/ProjectGameSupportPanel', () => ({
+  default: ({ gameId, projectId }) => <div data-testid="game-support-panel">{gameId}:{projectId}</div>,
+}));
+
+vi.mock('../project/MarsPipelineDelivery', () => ({
+  default: ({ gameId, projectId }) => <div data-testid="mars-pipeline-delivery">{gameId}:{projectId}</div>,
+}));
+
 vi.mock('../project/ProjectHeader', () => ({
   default: () => <div data-testid="project-workspace-status">project status and next action</div>,
 }));
@@ -142,9 +150,32 @@ describe('ProjectDashboardView', () => {
     expect(screen.getByRole('tablist', { name: 'project_management.workspace_navigation' })).toBeInTheDocument();
   });
 
+  it('passes the active project and game into the Mars pipeline delivery panel', () => {
+    renderDashboard({ selectedProject: {
+      project_id: 'mars-project', name: 'Mars', status: 'active', game_id: 'surviving_mars',
+    } });
+
+    expect(screen.getByTestId('mars-pipeline-delivery')).toHaveTextContent('surviving_mars:mars-project');
+  });
+
   it('passes the selected project into the publishing assets panel', () => {
     renderDashboard({ activeTab: 'publishing_assets' });
 
     expect(screen.getByText('publishing assets for proj-1')).toBeInTheDocument();
+  });
+
+  it('shows game support within the existing project overview journey', () => {
+    renderDashboard({
+      selectedProject: {
+        project_id: 'rimworld-project',
+        name: 'Colony translations',
+        status: 'active',
+        game_id: 'rimworld',
+      },
+    });
+
+    expect(screen.getByText('game_name_rimworld')).toBeInTheDocument();
+    expect(screen.getByTestId('game-support-panel')).toHaveTextContent('rimworld:rimworld-project');
+    expect(screen.getByText('overview')).toBeInTheDocument();
   });
 });

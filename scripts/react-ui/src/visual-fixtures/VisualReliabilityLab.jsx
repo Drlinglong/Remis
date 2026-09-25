@@ -30,6 +30,7 @@ import RemoveModArchiveControl from '../components/neologism/RemoveModArchiveCon
 import ContextArchiveTreeVisualFixture from './ContextArchiveTreeVisualFixture';
 import HomeDashboardVisualFixture from './HomeDashboardVisualFixture';
 import JudgmentCourtVisualFixture from './JudgmentCourtVisualFixture';
+import MarsPipelineVisualFixture from './MarsPipelineVisualFixture';
 import ProjectManagementVisualFixture from './ProjectManagementVisualFixture';
 import styles from './VisualReliabilityLab.module.css';
 
@@ -276,6 +277,9 @@ export default function VisualReliabilityLab({ themeId, contract }) {
   }
   if (contract === 'judgment-court') {
     return <JudgmentCourtVisualFixture themeId={themeId} />;
+  }
+  if (contract === 'mars-pipeline') {
+    return <MarsPipelineVisualFixture />;
   }
 
   return (

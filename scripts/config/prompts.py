@@ -195,6 +195,39 @@ Translate the following list:
 {numbered_list}
 --- END OF INPUT LIST ---"""
 
+# --- Surviving Mars / Relaunched Prompts ---
+SURVIVING_MARS_PROMPT_TEMPLATE = """You are a professional game-localization translator for Surviving Mars / Relaunched. \
+Translate the following numbered list of visible localization text from {source_lang_name} to {target_lang_name}. \
+Keep the tone concise, readable, and suitable for a sci-fi colony-management game.\n"""
+
+SURVIVING_MARS_SINGLE_PROMPT_TEMPLATE = """You are a direct, one-to-one translation engine. \
+The text is from a Surviving Mars / Relaunched mod named '{mod_name}'. \
+Translate the following {task_description} from {source_lang_name} to {target_lang_name}.\n"""
+
+SURVIVING_MARS_FORMAT_PROMPT = """Output Logic:
+1. Return a single JSON array of strings matching input length exactly ({chunk_size} items).
+2. Translate only visible player-facing text; do not translate the numeric ID or CSV field names.
+3. Preserve every angle-bracket tag exactly, including its case, order, parameters, quotes, commas, and spaces. Examples: <em>, </em>, <newline>, <DisplayName>, <resource(res)>, <image UI/... 2000>.
+4. Do not add, remove, rename, or move a tag across unrelated content. Tags are runtime markup, not text to translate.
+5. Preserve any embedded line breaks and keep each returned item as one CSV field.
+6. Treat each numbered input item independently. Never resolve a token by borrowing text from another item.
+
+Examples:
+- "Build <em>faster</em>" -> "建造 <em>更快</em>"
+- "Need <resource(res)>" -> "需要 <resource(res)>"
+- "Open <ButtonA>" -> "打开 <ButtonA>"
+
+Translate the following list:
+--- INPUT LIST ---
+{numbered_list}
+--- END OF INPUT LIST ---"""
+
+
+from scripts.config.resource_game_prompts import (  # noqa: E402,F401
+    PROJECT_ZOMBOID_PROMPT_TEMPLATE, PROJECT_ZOMBOID_SINGLE_PROMPT_TEMPLATE,
+    PROJECT_ZOMBOID_FORMAT_PROMPT, RIMWORLD_PROMPT_TEMPLATE,
+    RIMWORLD_SINGLE_PROMPT_TEMPLATE, RIMWORLD_FORMAT_PROMPT,
+)
 
 # --- Fallback Prompt ---
 FALLBACK_FORMAT_PROMPT = """Output Logic:

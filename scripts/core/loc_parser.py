@@ -15,6 +15,7 @@ from scripts.core.paradox_localization_parser import (
     parse_file,
 )
 from scripts.utils import read_text_bom, write_text_bom
+from scripts.core import surviving_mars_csv
 
 
 # Kept for third-party callers and historical tests.  Production parsing uses
@@ -53,10 +54,19 @@ def _parse_json(path: Path) -> list[tuple[str, str]]:
 def parse_loc_file_report(path: Path) -> ParseReport:
     """Return canonical syntax, policy and diagnostic information for a file."""
 
+    from scripts.core.game_adapters.registry import adapter_for_path
+    adapter = adapter_for_path(path)
+    if adapter:
+        document = adapter.parse(path)
+        return ParseReport(document.entries, (), document.source_text)
+
     if path.suffix.lower() == ".json":
         # JSON is an archive interchange format, not Paradox localization
         # syntax.  Keep the old tuple API for it and expose an empty report.
         return ParseReport((), (), read_text_bom(path))
+    if surviving_mars_csv.is_table_file(path):
+        document = surviving_mars_csv.parse_file(path)
+        return ParseReport(tuple(document.entries), (), document.source_text)
     return parse_file(path)
 
 
@@ -69,17 +79,19 @@ def parse_loc_file_records(path: Path) -> tuple[LocalizationEntry, ...]:
 def parse_loc_file(path: Path) -> list[tuple[str, str]]:
     """Return eligible ``(key, value)`` tuples for legacy consumers."""
 
-    if path.suffix.lower() == ".json":
+    from scripts.core.game_adapters.registry import adapter_for_path
+    if path.suffix.lower() == ".json" and not adapter_for_path(path):
         return _parse_json(path)
-    return [(entry.key, entry.value) for entry in parse_file(path).eligible_entries]
+    return [(entry.key, entry.value) for entry in parse_loc_file_report(path).eligible_entries]
 
 
 def parse_loc_file_with_lines(path: Path) -> list[tuple[str, str, int]]:
     """Return eligible ``(key, value, one_based_line)`` tuples."""
 
-    if path.suffix.lower() == ".json":
+    from scripts.core.game_adapters.registry import adapter_for_path
+    if path.suffix.lower() == ".json" and not adapter_for_path(path):
         return [(key, value, index) for index, (key, value) in enumerate(_parse_json(path), 1)]
-    return [entry.as_legacy_tuple() for entry in parse_file(path).eligible_entries]
+    return [entry.as_legacy_tuple() for entry in parse_loc_file_report(path).eligible_entries]
 
 
 def emit_loc_file(header: str, entries: list[tuple[str, str]]) -> str:

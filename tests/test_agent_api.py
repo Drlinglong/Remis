@@ -8,8 +8,11 @@ from fastapi import BackgroundTasks, HTTPException
 from fastapi.testclient import TestClient
 
 from scripts.core.agent_service import AgentRegistry
+from scripts.core.project_manager import ProjectManager
+from scripts.core.services.file_service import FileService
 from scripts.core.services import agent_translation_plan_service
 from scripts.routers import agent as agent_router
+from scripts.routers import translation as translation_router
 from scripts.schemas.agent import (
     AgentJobPlanRequest,
     AgentJobStartRequest,
@@ -19,6 +22,13 @@ from scripts.schemas.agent import (
     AgentValidationSummary,
 )
 from scripts.shared import task_state
+
+
+@pytest.fixture(autouse=True)
+def isolate_project_lookup(monkeypatch):
+    # Job capability projection now reads its project; unit tests must not open
+    # the live development SQLite engine when they do not supply a project.
+    monkeypatch.setattr(agent_router.project_manager, "get_project", AsyncMock(return_value=None))
 
 
 @pytest.fixture
@@ -705,6 +715,64 @@ async def test_project_import_is_approval_gated(
 
     assert plan.risk["modifies_source_folder"] is False
     assert exc_info.value.detail["code"] == "approval_required"
+
+
+@pytest.mark.asyncio
+async def test_agent_project_version_survives_plan_create_and_real_discovery(
+    tmp_path, monkeypatch, isolated_registry,
+):
+    monkeypatch.setenv("REMIS_AGENT_IMPORT_ROOTS", str(tmp_path))
+    source = tmp_path / "pz-mod"
+    for branch, value in (("41.78", "Old branch"), ("42.15", "New branch")):
+        resource = source / branch / "media/lua/shared/Translate/EN/UI.json"
+        resource.parent.mkdir(parents=True)
+        resource.write_text('{"branch": "' + value + '"}\n', encoding="utf-8")
+
+    class Repository:
+        project = None
+
+        async def create_project(self, project):
+            self.project = project
+            return project
+
+        async def get_project(self, project_id):
+            return self.project
+
+        async def add_history_entry(self, **kwargs):
+            return None
+
+    repository = Repository()
+    project_manager = ProjectManager(
+        file_service=FileService(), project_repository=repository,
+        kanban_service=type("Kanban", (), {"repository": repository})(),
+        db_path=str(tmp_path / "projects.sqlite"),
+    )
+    monkeypatch.setattr(agent_router, "project_manager", project_manager)
+    monkeypatch.setattr(
+        agent_router, "_validate_agent_import_path",
+        lambda path: {"folder_path": str(Path(path).resolve())},
+    )
+    async def no_validation(project_id, **kwargs):
+        return {"summary": AgentValidationSummary()}
+    monkeypatch.setattr(agent_router, "_validation_payload", no_validation)
+
+    plan = await agent_router.plan_agent_project(AgentProjectPlanRequest(
+        name="PZ fixture", folder_path=str(source), game_id="project_zomboid",
+        source_language="en", import_mode="reference", game_version="41.78.0",
+    ))
+    assert plan.inspection["game_support"]["requested_game_version"] == "41.78.0"
+    assert [Path(item["path"]).relative_to(source).parts[0]
+            for item in plan.inspection["game_support"]["resources"]] == ["41.78"]
+
+    created = await agent_router.create_agent_project(
+        AgentProjectCreateRequest(plan_id=plan.plan_id, approved=True)
+    )
+    assert created.game_version == "41.78.0"
+    project = await project_manager.get_project(created.project_id)
+    assert translation_router._resolve_project_game_profile(project)["game_version"] == "41.78.0"
+    discovered = await project_manager.get_project_files(created.project_id)
+    assert len(discovered) == 1
+    assert Path(discovered[0]["file_path"]).relative_to(source).parts[0] == "41.78"
 
 
 @pytest.mark.asyncio

@@ -122,6 +122,34 @@ def rebuild_and_write_file(
     """
     import os
     from scripts.utils.punctuation_handler import clean_punctuation_core
+    from scripts.core.game_adapters.registry import resource_adapter
+
+    if resource_adapter(game_profile):
+        from scripts.core.game_adapters.workflow_bridge import rebuild
+        return rebuild(key_map, translated_texts, dest_dir, target_lang)
+
+    source_code = source_lang.get("code", "zh-CN")
+    target_code = target_lang.get("code", "en")
+
+    if game_profile.get("format_adapter_id") == "surviving_mars_csv":
+        from scripts.core.surviving_mars_csv import rewrite_text
+
+        cleaned_translations = []
+        for text in translated_texts:
+            cleaned = clean_punctuation_core(text, source_code, target_code)
+            cleaned_translations.append(cleaned.replace("  ", " "))
+
+        output_path = os.path.join(dest_dir, filename)
+        source_text = "".join(original_lines)
+        rewritten = rewrite_text(source_text, cleaned_translations, key_map)
+        with open(
+            output_path,
+            "w",
+            encoding=game_profile.get("encoding", "utf-8"),
+            newline="",
+        ) as handle:
+            handle.write(rewritten)
+        return output_path
     
     # 1. Determine Target Filename
     # Replace the source language key in the filename with the target language key
@@ -161,9 +189,6 @@ def rebuild_and_write_file(
     target_lang_key = target_lang.get("key", f"l_{target_lang.get('code', 'english')}")
 
     # 2. Punctuation Cleaning (Using robust handler)
-    source_code = source_lang.get("code", "zh-CN")
-    target_code = target_lang.get("code", "en")
-    
     cleaned_translations = []
     for text in translated_texts:
         # Use the centralized punctuation handler
@@ -209,6 +234,19 @@ def create_fallback_file(
     import re
 
     try:
+        if game_profile.get("format_adapter_id") == "surviving_mars_csv":
+            output_path = os.path.join(dest_dir, filename)
+            with open(source_path, "r", encoding="utf-8-sig", newline="") as source_handle:
+                content = source_handle.read()
+            with open(
+                output_path,
+                "w",
+                encoding=game_profile.get("encoding", "utf-8"),
+                newline="",
+            ) as destination_handle:
+                destination_handle.write(content)
+            return output_path
+
         # 1. Determine Target Filename (Logic consistent with rebuild_and_write_file)
         source_lang_key_clean = source_lang.get("key", "").replace(":", "").strip()
         target_lang_key_clean = target_lang.get("key", "").replace(":", "").strip()

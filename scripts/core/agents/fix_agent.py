@@ -1,13 +1,44 @@
 import asyncio
 import json
 import logging
-import re
 from typing import List, Dict, Any, Optional, Tuple
 
 from scripts.core.base_handler import BaseApiHandler
 from scripts.utils.game_format_contract import compare_format_structure
 
 logger = logging.getLogger(__name__)
+
+
+def _parse_fix_translations(raw_response: str, game_id: str) -> list[str]:
+    """Parse fixer output with format-aware newline restoration."""
+    from scripts.utils.structured_parser import parse_response
+    from scripts.core.schemas import TranslationResponse
+
+    preserve_newlines = game_id == "surviving_mars"
+    parsed = parse_response(
+        raw_response,
+        TranslationResponse,
+        "json",
+        preserve_newlines=preserve_newlines,
+    )
+    fixed_texts = parsed.translations if parsed else []
+    if fixed_texts:
+        return fixed_texts
+    try:
+        start, end = raw_response.find("["), raw_response.rfind("]")
+        fallback = json.loads(raw_response[start:end + 1]) if 0 <= start < end else []
+        if not isinstance(fallback, list) or not all(isinstance(item, str) for item in fallback):
+            return []
+        if preserve_newlines:
+            from scripts.utils.text_clean import restore_special_tokens
+            fallback = [
+                restore_special_tokens(item, "json", preserve_newlines=True)
+                for item in fallback
+            ]
+        return fallback
+    except (TypeError, ValueError):
+        return []
+
 
 class ReflexionFixAgent:
     """
@@ -174,9 +205,6 @@ class ReflexionFixAgent:
         Runs the Reflexion workflow for a FULL BATCH of issues to save time and tokens.
         """
         from scripts.utils.post_process_validator import PostProcessValidator
-        from scripts.utils.structured_parser import parse_response
-        from scripts.core.schemas import TranslationResponse
-        
         validator = PostProcessValidator()
         
         current_state = self._build_batch_states(issues, target_lang_code)
@@ -241,19 +269,7 @@ class ReflexionFixAgent:
                 # 2. Call LLM for the batch
                 raw_response = self.handler._call_api(self.handler.client, prompt)
                 
-                # Use StructuredParser to ensure we get a clean list
-                parsed = parse_response(raw_response, TranslationResponse, "json")
-                fixed_texts = parsed.translations if parsed else []
-                
-                # Fallback purely JSON loading if parse_response failed to match exact length
-                if not fixed_texts or len(fixed_texts) != len(active_indices):
-                    try:
-                        import re
-                        json_match = re.search(r'\[.*\]', raw_response, re.DOTALL)
-                        if json_match:
-                            fixed_texts = json.loads(json_match.group(0))
-                    except Exception:
-                        pass
+                fixed_texts = _parse_fix_translations(raw_response, game_id)
                 
                 if len(fixed_texts) != len(active_indices):
                     message = f"Length mismatch: Expected {len(active_indices)}, got {len(fixed_texts)}"
@@ -528,8 +544,9 @@ class ReflexionFixAgent:
         )
         try:
             raw = await self.handler.generate_response(prompt)
-            match = re.search(r"\{.*\}", raw or "", re.DOTALL)
-            parsed = json.loads(match.group(0)) if match else {}
+            text = raw or ""
+            start, end = text.find("{"), text.rfind("}")
+            parsed = json.loads(text[start:end + 1]) if 0 <= start < end else {}
         except Exception as exc:
             self.logger.warning("Semantic variation assessment failed: %s", exc)
             parsed = {}

@@ -8,14 +8,23 @@ from scripts.shared.services import project_manager
 from scripts.utils import i18n
 
 
-def sync_project_outputs(project_id: str, output_dir_path: str):
+def sync_project_outputs(project_id: str, output_dir_path: str | List[str]):
     """Register generated output folder and refresh project files."""
     try:
         logging.info(f"Automatically syncing project {project_id}...")
-        asyncio.run(project_manager.add_translation_path(project_id, output_dir_path))
+        output_paths = output_dir_path if isinstance(output_dir_path, list) else [output_dir_path]
+        for output_path in output_paths:
+            asyncio.run(project_manager.add_translation_path(project_id, output_path))
         asyncio.run(project_manager.refresh_project_files(project_id))
     except Exception as e:
         logging.error(f"Failed to auto-sync project: {e}")
+
+
+def _project_output_paths(is_batch_mode, mod_name, game_profile, target_languages, output_dir_path):
+    if is_batch_mode and game_profile.get("format_adapter_id") == "surviving_mars_csv":
+        from scripts.core.services.translation_task_runtime import get_output_directories
+        return get_output_directories(mod_name, target_languages, game_profile)
+    return output_dir_path
 
 
 def process_metadata_for_language(
@@ -27,6 +36,9 @@ def process_metadata_for_language(
     mod_context,
     game_profile,
 ):
+    from scripts.core.game_adapters.registry import resource_adapter
+    if resource_adapter(game_profile):
+        return
     try:
         asset_handler.process_metadata(
             mod_name,
@@ -116,4 +128,9 @@ def finalize_workflow_run(
     logging.info(i18n.t("translation_workflow_completed"))
     logging.info(i18n.t("output_folder_created", folder=output_folder_name))
     if project_id:
-        sync_project_outputs(project_id, output_dir_path)
+        sync_project_outputs(
+            project_id,
+            _project_output_paths(
+                is_batch_mode, mod_name, game_profile, target_languages, output_dir_path
+            ),
+        )

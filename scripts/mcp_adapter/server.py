@@ -143,6 +143,7 @@ class RemisMcpTools:
         stale_acknowledgement: dict[str, Any] | None = None,
         embedded_workshop_enabled: bool = True,
         dry_run: bool = False,
+        custom_lang_config: dict[str, str] | None = None,
     ) -> AdapterResult[TranslationPlanData]:
         """Create an expiring server plan only; does not run a model or write translation output."""
         try:
@@ -166,6 +167,7 @@ class RemisMcpTools:
                 stale_acknowledgement=stale_acknowledgement,
                 embedded_workshop_enabled=embedded_workshop_enabled,
                 dry_run=dry_run,
+                custom_lang_config=custom_lang_config,
             )
             preflight, data = await self.api.governed_request(
                 "POST",

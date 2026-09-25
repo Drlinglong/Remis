@@ -17,6 +17,7 @@ from scripts.app_settings import GAME_PROFILES
 from scripts.utils import i18n
 from scripts.utils.quote_extractor import QuoteExtractor
 from scripts.core.loc_parser import parse_loc_file, parse_loc_file_with_lines
+from scripts.core import surviving_mars_csv
 
 
 class PostProcessingManager:
@@ -113,7 +114,7 @@ class PostProcessingManager:
         if not game_id:
             return ""
         # 直接匹配：若传入已经是'1'~'5'
-        if game_id in {"1", "2", "3", "4", "5"}:
+        if game_id in {"1", "2", "3", "4", "5", "6", "7"}:
             return game_id
         # 通过 GAME_PROFILES 反查
         try:
@@ -135,6 +136,19 @@ class PostProcessingManager:
             List[str]: 文件路径列表
         """
         translated_files = []
+
+        from scripts.core.game_adapters.registry import resource_adapter
+        if resource_adapter(self.game_profile):
+            from scripts.core.game_adapters.output_records import output_files
+            return output_files(self.output_folder, target_lang["code"])
+
+        if self.game_profile.get("format_adapter_id") == surviving_mars_csv.FORMAT_ADAPTER_ID:
+            for root, _, files in os.walk(self.output_folder):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    if file.lower().endswith(".csv") and surviving_mars_csv.is_table_file(file_path):
+                        translated_files.append(file_path)
+            return translated_files
         
         # 扫描localization文件夹
         loc_folder = self.game_profile.get("source_localization_folder", "localization")
@@ -228,6 +242,16 @@ class PostProcessingManager:
         except Exception:
             rel_parts = list(target_path.parts)
 
+        if self.game_profile.get("format_adapter_id") == surviving_mars_csv.FORMAT_ADAPTER_ID:
+            candidate = self.source_root.joinpath(*rel_parts)
+            if candidate.exists():
+                return candidate
+            expected_name = Path(rel_parts[-1]).name if rel_parts else target_path.name
+            for found in self.source_root.rglob(expected_name):
+                if found.name.lower() == expected_name.lower():
+                    return found
+            return None
+
         for index, part in enumerate(rel_parts[:-1]):
             if part.lower() == target_paradox.lower():
                 rel_parts[index] = source_paradox
@@ -251,10 +275,19 @@ class PostProcessingManager:
         return None
 
     def _load_source_entries(self, target_file_path: str, target_lang: dict, source_lang: dict) -> Dict[str, str]:
+        from scripts.core.game_adapters.registry import resource_adapter
+        if resource_adapter(self.game_profile):
+            from scripts.core.game_adapters.output_records import source_values
+            return source_values(target_file_path)
         source_file = self._resolve_source_file(target_file_path, target_lang, source_lang)
         if not source_file:
             return {}
         try:
+            if self.game_profile.get("format_adapter_id") == surviving_mars_csv.FORMAT_ADAPTER_ID:
+                return {
+                    entry.key: entry.value
+                    for entry in surviving_mars_csv.entries(source_file, "Text")
+                }
             return dict(parse_loc_file(source_file))
         except Exception as e:
             self.logger.warning(f"Failed to parse source file {source_file}: {e}")
@@ -289,7 +322,13 @@ class PostProcessingManager:
 
             source_entries = self._load_source_entries(file_path, target_lang, source_lang)
             file_results = []
-            parsed_entries = parse_loc_file_with_lines(Path(file_path))
+            if self.game_profile.get("format_adapter_id") == surviving_mars_csv.FORMAT_ADAPTER_ID:
+                parsed_entries = [
+                    entry.as_legacy_tuple()
+                    for entry in surviving_mars_csv.entries(file_path, "Translation")
+                ]
+            else:
+                parsed_entries = parse_loc_file_with_lines(Path(file_path))
             if parsed_entries:
                 for key, translatable_content, line_num in parsed_entries:
                     results = self.validator.validate_entry(

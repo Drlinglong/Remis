@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <Synthetic_Title>Press {0} for {PAWN_nameDef}</Synthetic_Title>
+  <Synthetic_Nested><Inner>Nested sample</Inner></Synthetic_Nested>
+</LanguageData>

@@ -9,45 +9,21 @@ import {
     buildAnalysisPayload,
     normalizeAnalysisStatus,
 } from './modArchiveModel';
-
+import { normalizeLanguageCode, TARGET_LANGUAGE_OPTIONS } from './modArchiveLanguages';
+export { TARGET_LANGUAGE_OPTIONS } from './modArchiveLanguages';
 const API_BASE_URL = '/api';
 const BACKEND_PORT = import.meta.env.VITE_BACKEND_PORT || '1453';
 const STATUS_POLL_INTERVAL_MS = 1000;
-
-export const TARGET_LANGUAGE_OPTIONS = [
-    { value: 'zh-CN', label: 'Simplified Chinese (简体中文)' },
-    { value: 'zh-TW', label: 'Traditional Chinese (繁體中文)' },
-    { value: 'en', label: 'English' },
-    { value: 'ja', label: 'Japanese (日本語)' },
-    { value: 'ko', label: 'Korean (한국어)' },
-    { value: 'fr', label: 'French (Français)' },
-    { value: 'de', label: 'German (Deutsch)' },
-    { value: 'ru', label: 'Russian (Русский)' },
-    { value: 'es', label: 'Spanish (Español)' },
-    { value: 'pt-BR', label: 'Portuguese (Português)' },
-    { value: 'pl', label: 'Polish (Polski)' },
-    { value: 'tr', label: 'Turkish (Türkçe)' },
-];
-
-const LANGUAGE_ALIASES = {
-    english: 'en',
-    l_english: 'en',
-    chinese: 'zh-CN',
-    simp_chinese: 'zh-CN',
-    l_simp_chinese: 'zh-CN',
-    zh: 'zh-CN',
-    'zh-cn': 'zh-CN',
-    zh_cn: 'zh-CN',
-    pt: 'pt-BR',
-    'pt-br': 'pt-BR',
-    pt_br: 'pt-BR',
-};
-
-export const normalizeLanguageCode = (value) => {
-    const normalized = (value || '').trim().toLowerCase();
-    return LANGUAGE_ALIASES[normalized] || normalized;
-};
-
+const ACTIVE_TASK_STATUSES = new Set(['starting', 'running', 'queued']);
+const TERMINAL_TASK_STATUSES = new Set([
+    'completed',
+    'failed',
+    'cancelled',
+    'canceled',
+    'interrupted',
+    'partial_failed',
+]);
+const isAbortError = (error) => error?.name === 'AbortError' || error?.code === 'ERR_CANCELED';
 const getSocketErrorStatus = (message) => normalizeAnalysisStatus({
     status: 'running',
     error: message,
@@ -101,6 +77,8 @@ export const useModArchiveAnalysis = ({
     const reconnectTimerRef = useRef(null);
     const connectSocketRef = useRef(null);
     const terminalHandledRef = useRef(false);
+    const generationRef = useRef(0);
+    const statusRef = useRef(null);
 
     useEffect(() => {
         const provider = providers.find((item) => item.value === apiProvider);
@@ -122,6 +100,7 @@ export const useModArchiveAnalysis = ({
             reconnectTimerRef.current = null;
         }
         if (wsRef.current) {
+            wsRef.current.onmessage = null;
             wsRef.current.onclose = null;
             wsRef.current.onerror = null;
             wsRef.current.close();
@@ -129,23 +108,58 @@ export const useModArchiveAnalysis = ({
         }
     }, []);
 
-    const applyStatus = useCallback((rawStatus, notifyComplete = true) => {
-        const normalized = normalizeAnalysisStatus(rawStatus);
+    const applyStatus = useCallback((rawStatus, {
+        generation = generationRef.current,
+        projectId = selectedProjectRef.current,
+        taskId = null,
+        notifyComplete = true,
+    } = {}) => {
+        if (
+            generation !== generationRef.current
+            || projectId !== selectedProjectRef.current
+        ) return null;
+
+        const normalizedStatus = normalizeAnalysisStatus(rawStatus);
+        if (taskId && normalizedStatus.taskId && normalizedStatus.taskId !== taskId) return null;
+        const normalized = normalizedStatus.taskId || !taskId
+            ? normalizedStatus
+            : { ...normalizedStatus, taskId };
+        const current = statusRef.current;
+        const sameTask = Boolean(
+            current?.taskId
+            && normalized.taskId
+            && current.taskId === normalized.taskId
+        );
+        if (
+            sameTask
+            && TERMINAL_TASK_STATUSES.has(current.status)
+            && !TERMINAL_TASK_STATUSES.has(normalized.status)
+        ) return current;
+
+        statusRef.current = normalized;
         setStatus(normalized);
         callbacksRef.current.onMiningStatusChange?.(normalized);
-        if (!['completed', 'failed'].includes(normalized.status) || terminalHandledRef.current) return;
+        if (!TERMINAL_TASK_STATUSES.has(normalized.status) || terminalHandledRef.current) {
+            return normalized;
+        }
         terminalHandledRef.current = true;
         closeMiningSocket();
         if (normalized.status === 'completed' && notifyComplete) {
             callbacksRef.current.onMiningComplete?.(normalized);
         }
+        return normalized;
     }, [closeMiningSocket]);
 
-    const updateStatusFromTask = useCallback((taskData) => {
-        applyStatus(taskData);
-    }, [applyStatus]);
-
-    const connectMiningSocket = useCallback((taskId, attempt = 0) => {
+    const connectMiningSocket = useCallback((
+        taskId,
+        attempt = 0,
+        generation = generationRef.current,
+        projectId = selectedProjectRef.current,
+    ) => {
+        if (
+            generation !== generationRef.current
+            || projectId !== selectedProjectRef.current
+        ) return;
         closeMiningSocket();
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const backendHost = `127.0.0.1:${BACKEND_PORT}`;
@@ -154,33 +168,36 @@ export const useModArchiveAnalysis = ({
 
         socket.onmessage = (event) => {
             try {
-                updateStatusFromTask(JSON.parse(event.data));
+                applyStatus(JSON.parse(event.data), { generation, projectId, taskId });
             } catch (error) {
                 console.error('Failed to parse Mod Archive status message', error);
                 socket.close();
             }
         };
         socket.onerror = () => {
-            setStatus((current) => {
-                const next = getSocketErrorStatus(
-                    translate('mod_archive.analysis.websocket_failed'),
-                );
-                const merged = { ...next, ...current, error: next.error };
-                callbacksRef.current.onMiningStatusChange?.(merged);
-                return merged;
-            });
+            const next = getSocketErrorStatus(
+                translate('mod_archive.analysis.websocket_failed'),
+            );
+            applyStatus(
+                { ...next, ...statusRef.current, task_id: taskId, error: next.error },
+                { generation, projectId, taskId },
+            );
             socket.close();
         };
         socket.onclose = () => {
             if (wsRef.current === socket) wsRef.current = null;
-            if (terminalHandledRef.current) return;
+            if (
+                terminalHandledRef.current
+                || generation !== generationRef.current
+                || projectId !== selectedProjectRef.current
+            ) return;
             const nextAttempt = attempt + 1;
             const delay = Math.min(1000 * (2 ** attempt), 5000);
             reconnectTimerRef.current = window.setTimeout(() => {
-                connectSocketRef.current?.(taskId, nextAttempt);
+                connectSocketRef.current?.(taskId, nextAttempt, generation, projectId);
             }, delay);
         };
-    }, [closeMiningSocket, translate, updateStatusFromTask]);
+    }, [applyStatus, closeMiningSocket, translate]);
 
     useEffect(() => {
         connectSocketRef.current = connectMiningSocket;
@@ -188,48 +205,73 @@ export const useModArchiveAnalysis = ({
 
     useEffect(() => {
         const taskId = status?.taskId;
-        const isActive = ['starting', 'running', 'queued'].includes(status?.status);
+        const isActive = ACTIVE_TASK_STATUSES.has(status?.status);
         if (!taskId || !isActive) return undefined;
 
+        const generation = generationRef.current;
+        const projectId = selectedProjectRef.current;
         let cancelled = false;
+        let inFlight = false;
+        const controller = new AbortController();
         const pollStatus = async () => {
+            if (inFlight) return;
+            inFlight = true;
             try {
-                const response = await api.get(`${API_BASE_URL}/status/${encodeURIComponent(taskId)}`);
-                if (!cancelled) applyStatus(response.data);
+                const response = await api.get(
+                    `${API_BASE_URL}/status/${encodeURIComponent(taskId)}`,
+                    { signal: controller.signal },
+                );
+                if (!cancelled) {
+                    applyStatus(response.data, { generation, projectId, taskId });
+                }
             } catch (error) {
-                if (!cancelled) console.error('Failed to poll Mod Archive task status', error);
+                if (!cancelled && !isAbortError(error)) {
+                    console.error('Failed to poll Mod Archive task status', error);
+                }
+            } finally {
+                inFlight = false;
             }
         };
         const intervalId = window.setInterval(pollStatus, STATUS_POLL_INTERVAL_MS);
         return () => {
             cancelled = true;
+            controller.abort();
             window.clearInterval(intervalId);
         };
     }, [applyStatus, status?.status, status?.taskId]);
 
-    const fetchMiningStatus = useCallback(async (projectId) => {
+    const fetchMiningStatus = useCallback(async (projectId, { generation, signal } = {}) => {
         try {
             const response = await api.get(
                 `${API_BASE_URL}/neologisms/status/${encodeURIComponent(projectId)}`,
+                { signal },
             );
-            applyStatus(response.data || { status: 'idle' }, false);
-            const normalized = normalizeAnalysisStatus(response.data || { status: 'idle' });
+            const normalized = applyStatus(
+                response.data || { status: 'idle' },
+                { generation, projectId, notifyComplete: false },
+            );
+            if (!normalized) return;
             if (normalized.analysisScope && (
                 allowArchiveAnalysis || normalized.analysisScope === ANALYSIS_SCOPES.TERMS_ONLY
             )) setAnalysisScope(normalized.analysisScope);
-            if (['starting', 'running', 'queued'].includes(normalized.status) && normalized.taskId) {
+            if (ACTIVE_TASK_STATUSES.has(normalized.status) && normalized.taskId) {
                 terminalHandledRef.current = false;
-                connectSocketRef.current?.(normalized.taskId);
+                connectSocketRef.current?.(normalized.taskId, 0, generation, projectId);
             }
         } catch (error) {
+            if (isAbortError(error) || signal?.aborted) return;
             console.error('Failed to restore Mod Archive status', error);
-            setLoadError(translate('mod_archive.analysis.status_load_failed'));
+            if (
+                generation === generationRef.current
+                && projectId === selectedProjectRef.current
+            ) setLoadError(translate('mod_archive.analysis.status_load_failed'));
         }
     }, [allowArchiveAnalysis, applyStatus, translate]);
 
-    const fetchProjects = useCallback(async () => {
+    const fetchProjects = useCallback(async ({ signal } = {}) => {
         try {
-            const response = await api.get(`${API_BASE_URL}/projects`);
+            const response = await api.get(`${API_BASE_URL}/projects`, { signal });
+            if (signal?.aborted) return;
             const projectList = normalizeArrayPayload(
                 response.data,
                 ['projects', 'items', 'data', 'results'],
@@ -244,14 +286,16 @@ export const useModArchiveAnalysis = ({
                 callbacksRef.current.onSelectedProjectChange?.(options[0].value);
             }
         } catch (error) {
+            if (isAbortError(error) || signal?.aborted) return;
             console.error('Failed to fetch Mod Archive projects', error);
             setLoadError(translate('mod_archive.analysis.projects_load_failed'));
         }
     }, [translate]);
 
-    const fetchConfig = useCallback(async () => {
+    const fetchConfig = useCallback(async ({ signal } = {}) => {
         try {
-            const response = await api.get(`${API_BASE_URL}/config`);
+            const response = await api.get(`${API_BASE_URL}/config`, { signal });
+            if (signal?.aborted) return;
             const configuredProviders = normalizeArrayPayload(
                 response.data,
                 ['api_providers', 'providers', 'items', 'data', 'results'],
@@ -263,44 +307,67 @@ export const useModArchiveAnalysis = ({
                     : configuredProviders[0]?.value || current
             ));
         } catch (error) {
+            if (isAbortError(error) || signal?.aborted) return;
             console.error('Failed to fetch provider configuration', error);
             setLoadError(translate('mod_archive.analysis.config_load_failed'));
         }
     }, [translate]);
 
-    const fetchFiles = useCallback(async (projectId) => {
+    const fetchFiles = useCallback(async (projectId, { generation, signal } = {}) => {
         try {
             const response = await api.get(
                 `${API_BASE_URL}/neologisms/mining-files/${encodeURIComponent(projectId)}`,
+                { signal },
             );
+            if (
+                signal?.aborted
+                || generation !== generationRef.current
+                || projectId !== selectedProjectRef.current
+            ) return;
             setFiles(normalizeArrayPayload(response.data, ['files', 'items', 'data', 'results']));
         } catch (error) {
+            if (isAbortError(error) || signal?.aborted) return;
             console.error('Failed to fetch Mod Archive source files', error);
-            setLoadError(translate('mod_archive.analysis.files_load_failed'));
+            if (
+                generation === generationRef.current
+                && projectId === selectedProjectRef.current
+            ) setLoadError(translate('mod_archive.analysis.files_load_failed'));
         }
     }, [translate]);
 
     useEffect(() => {
-        fetchProjects();
-        fetchConfig();
+        const controller = new AbortController();
+        fetchProjects({ signal: controller.signal });
+        fetchConfig({ signal: controller.signal });
+        return () => controller.abort();
     }, [fetchConfig, fetchProjects]);
 
     useEffect(() => {
+        generationRef.current += 1;
+        const generation = generationRef.current;
+        const controller = new AbortController();
         terminalHandledRef.current = false;
+        statusRef.current = null;
         setWorkflowError(null);
         setLoadError(null);
         setSelectedFiles([]);
         setStatus(null);
+        setScanning(false);
         closeMiningSocket();
         if (selectedProject) {
-            fetchFiles(selectedProject);
-            fetchMiningStatus(selectedProject);
+            fetchFiles(selectedProject, { generation, signal: controller.signal });
+            fetchMiningStatus(selectedProject, { generation, signal: controller.signal });
         } else {
             setFiles([]);
         }
+        return () => controller.abort();
     }, [closeMiningSocket, fetchFiles, fetchMiningStatus, selectedProject]);
 
-    useEffect(() => () => closeMiningSocket(), [closeMiningSocket]);
+    useEffect(() => () => {
+        generationRef.current += 1;
+        statusRef.current = null;
+        closeMiningSocket();
+    }, [closeMiningSocket]);
 
     const currentProject = projects.find((project) => project.value === selectedProject);
     const availableTargetLanguages = useMemo(
@@ -325,9 +392,11 @@ export const useModArchiveAnalysis = ({
             || !apiProvider
             || !targetLang
             || normalizeLanguageCode(targetLang) === currentProject?.sourceLanguage
-            || ['starting', 'running', 'queued'].includes(status?.status)
+            || ACTIVE_TASK_STATUSES.has(status?.status)
         ) return;
 
+        const generation = generationRef.current;
+        const projectId = selectedProject;
         setScanning(true);
         setWorkflowError(null);
         terminalHandledRef.current = false;
@@ -350,14 +419,25 @@ export const useModArchiveAnalysis = ({
                 total_files: response.data?.total_files || selectedFiles.length || files.length,
                 analysis_scope: effectiveAnalysisScope,
             });
+            if (
+                generation !== generationRef.current
+                || projectId !== selectedProjectRef.current
+            ) return;
+            statusRef.current = initialStatus;
             setStatus(initialStatus);
             callbacksRef.current.onMiningStatusChange?.(initialStatus);
-            if (initialStatus.taskId) connectMiningSocket(initialStatus.taskId);
+            if (initialStatus.taskId) {
+                connectMiningSocket(initialStatus.taskId, 0, generation, projectId);
+            }
             notifications.show({
                 title: translate('mod_archive.analysis.start_analysis'),
                 message: translate('mod_archive.analysis.started_message'),
             });
         } catch (error) {
+            if (
+                generation !== generationRef.current
+                || projectId !== selectedProjectRef.current
+            ) return;
             const message = error?.response?.data?.detail || translate('mod_archive.analysis.start_failed');
             setWorkflowError(message);
             notifications.show({
@@ -365,7 +445,10 @@ export const useModArchiveAnalysis = ({
                 message,
             });
         } finally {
-            setScanning(false);
+            if (
+                generation === generationRef.current
+                && projectId === selectedProjectRef.current
+            ) setScanning(false);
         }
     }, [
         effectiveAnalysisScope,

@@ -2,7 +2,7 @@ import pytest
 
 from scripts.core.copilot import settings
 from scripts.routers import copilot as copilot_router
-from scripts.schemas.copilot import CopilotChatMessage, CopilotChatRequest
+from scripts.schemas.copilot import CopilotChatMessage, CopilotChatRequest, CopilotSettingsUpdate
 
 
 @pytest.fixture
@@ -42,6 +42,23 @@ def test_unverified_reasoning_mapping_is_rejected(config_store):
             model="local-model",
             reasoning_enabled=True,
             reasoning_preset="medium",
+        )
+
+
+@pytest.mark.parametrize("model", ["gpt-6-luna", "gpt-6-sol"])
+def test_gpt6_none_effort_can_be_saved_through_settings_schema(config_store, model):
+    request = CopilotSettingsUpdate(
+        provider="openai", model=model, reasoning_enabled=True, reasoning_preset="none",
+    )
+    saved = settings.update_copilot_settings(**request.model_dump())
+    assert saved["reasoning"]["mapping_preview"] == {"reasoning_effort": "none"}
+
+
+def test_gpt6_astra_rejects_none_effort(config_store):
+    with pytest.raises(ValueError, match="strength is not supported"):
+        settings.update_copilot_settings(
+            provider="openai", model="gpt-6-astra", reasoning_enabled=True,
+            reasoning_preset="none",
         )
 
 

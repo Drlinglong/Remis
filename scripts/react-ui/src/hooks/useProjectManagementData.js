@@ -4,6 +4,7 @@ import configService from '../services/configService';
 import projectService from '../services/projectService';
 import { usePersistentState } from './usePersistentState';
 import { normalizeArrayPayload } from '../utils/payload';
+import { getSupportedLanguageCodes } from '../utils/initialTranslation';
 
 const buildProjectDetails = ({ archiveInfo, config, files, project, projectId, validationStatus }) => {
   const totalLines = files.reduce((acc, file) => acc + (file.line_count || 0), 0);
@@ -74,10 +75,13 @@ export function useProjectManagementData() {
     try {
       const response = await configService.getConfig();
       if (response.data?.game_profiles) {
-        setAvailableGames(Object.values(response.data.game_profiles).map((profile) => ({
-          value: profile.id,
-          label: profile.name,
-        })));
+        setAvailableGames(Object.values(response.data.game_profiles).map((profile) => {
+          return {
+            value: profile.id,
+            label: profile.name,
+            supported_language_codes: getSupportedLanguageCodes(profile, response.data.languages),
+          };
+        }));
       }
       if (response.data?.languages) {
         setAvailableLanguages(Object.values(response.data.languages).map((language) => ({

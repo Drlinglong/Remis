@@ -39,6 +39,38 @@ def test_development_app_data_is_isolated_by_channel():
     assert build_profile.runtime_app_data_folder(preview, frozen=True) == "RemisAgentPreview"
 
 
+def test_explicit_app_data_directory_is_absolute_and_does_not_create_it(tmp_path):
+    override = tmp_path / "runtime-data"
+
+    resolved = build_profile.resolve_app_data_dir(
+        environ={"REMIS_APP_DATA_DIR": str(override)}
+    )
+
+    assert resolved == str(override)
+    assert not override.exists()
+
+
+def test_relative_app_data_override_is_rejected():
+    try:
+        build_profile.resolve_app_data_dir(
+            environ={"REMIS_APP_DATA_DIR": ".runtime"}
+        )
+    except ValueError as error:
+        assert "absolute path" in str(error)
+    else:
+        raise AssertionError("relative app-data overrides must fail closed")
+
+
+def test_default_app_data_directory_remains_profile_based(tmp_path):
+    resolved = build_profile.resolve_app_data_dir(
+        environ={"APPDATA": str(tmp_path)},
+        profile=build_profile.PROFILES["stable"],
+        frozen=False,
+    )
+
+    assert resolved == str(tmp_path / "RemisModFactoryDev")
+
+
 def test_profile_manifest_contains_the_shared_channel(tmp_path):
     path = tmp_path / "missing-parent" / "build_profile.json"
     build_profile.write_profile_manifest(build_profile.PROFILES["agent-preview"], path)

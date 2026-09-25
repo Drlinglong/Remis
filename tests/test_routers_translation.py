@@ -3,11 +3,12 @@ from unittest.mock import AsyncMock, MagicMock
 from types import SimpleNamespace
 
 import pytest
+from fastapi import BackgroundTasks
 from fastapi.testclient import TestClient
 
 from scripts.routers import translation, translation_recovery
 from scripts.core.provider_errors import ProviderFatalError
-from scripts.schemas.translation import InitialTranslationRequest
+from scripts.schemas.translation import InitialTranslationRequest, TranslationRequestV2
 from scripts.shared.state import tasks
 from scripts.shared import task_state
 from scripts.web_server import app
@@ -33,6 +34,152 @@ def test_status_payload_is_trimmed_without_mutating_task_log():
     assert len(payload["log"]) == 100
     assert payload["log"][0] == "line-20"
     assert len(tasks["task-1"]["log"]) == 120
+
+
+def _legacy_translation_request(project_path: str) -> TranslationRequestV2:
+    return TranslationRequestV2(
+        project_path=project_path,
+        game_profile_id="stellaris",
+        source_lang_code="en",
+        target_lang_codes=["zh-CN"],
+        api_provider="mock",
+    )
+
+
+@pytest.mark.parametrize(
+    "custom_config",
+    [
+        {"name": "Alienese", "code": "custom", "key": "l_english", "folder_prefix": "../escape-"},
+        {"name": "Alienese", "code": "../../outside", "key": "l_english", "folder_prefix": "AL-"},
+        {"name": "Alienese", "code": "custom", "key": "../../outside", "folder_prefix": "AL-"},
+    ],
+)
+def test_translate_v2_rejects_unsafe_custom_language_configuration(tmp_path, custom_config):
+    response = TestClient(app).post("/api/translate_v2", json={
+        "project_path": str(tmp_path),
+        "game_profile_id": "stellaris",
+        "source_lang_code": "en",
+        "target_lang_codes": ["custom"],
+        "api_provider": "mock",
+        "custom_lang_config": custom_config,
+    })
+
+    assert response.status_code == 422
+    assert tasks == {}
+
+
+@pytest.mark.parametrize(
+    "custom_config",
+    [
+        {"name": "Alienese", "code": "custom", "key": "l_english", "folder_prefix": "AL-"},
+        {"name": "繁體中文", "code": "custom", "key": "l_simp_chinese", "folder_prefix": "zh-TW-"},
+    ],
+)
+def test_custom_language_schema_keeps_supported_shell_languages(custom_config):
+    request = TranslationRequestV2(
+        project_path="C:/source/mod",
+        game_profile_id="stellaris",
+        source_lang_code="en",
+        target_lang_codes=["custom"],
+        api_provider="mock",
+        custom_lang_config=custom_config,
+    )
+
+    assert request.custom_lang_config.name == custom_config["name"]
+
+
+@pytest.mark.asyncio
+async def test_translate_v2_invalid_path_does_not_admit_task(monkeypatch, tmp_path):
+    monkeypatch.setattr(translation, "resolve_runtime_or_400", lambda *_args: object())
+    monkeypatch.setattr(translation, "provider_task_fields", lambda _runtime: {})
+
+    with pytest.raises(translation.HTTPException) as error:
+        await translation.start_translation_v2(
+            BackgroundTasks(),
+            _legacy_translation_request(str(tmp_path / "missing")),
+        )
+
+    assert error.value.status_code == 400
+    assert tasks == {}
+
+
+@pytest.mark.asyncio
+async def test_translate_v2_rejects_filesystem_root_without_touching_managed_sources(
+    monkeypatch, tmp_path,
+):
+    managed = tmp_path / "managed"
+    protected = managed / "ExistingMod"
+    protected.mkdir(parents=True)
+    sentinel = protected / "keep.txt"
+    sentinel.write_text("preserve", encoding="utf-8")
+    monkeypatch.setattr(translation, "SOURCE_DIR", str(managed))
+    monkeypatch.setattr(translation, "resolve_runtime_or_400", lambda *_args: object())
+    monkeypatch.setattr(translation, "provider_task_fields", lambda _runtime: {})
+
+    with pytest.raises(translation.HTTPException) as error:
+        await translation.start_translation_v2(
+            BackgroundTasks(),
+            _legacy_translation_request(str(tmp_path.anchor)),
+        )
+
+    assert error.value.status_code == 400
+    assert "filesystem root" in error.value.detail
+    assert sentinel.read_text(encoding="utf-8") == "preserve"
+    assert tasks == {}
+
+
+@pytest.mark.asyncio
+async def test_translate_v2_refuses_to_overwrite_same_named_managed_source(
+    monkeypatch, tmp_path,
+):
+    incoming = tmp_path / "incoming" / "ExistingMod"
+    incoming.mkdir(parents=True)
+    (incoming / "incoming.txt").write_text("new", encoding="utf-8")
+    managed = tmp_path / "managed"
+    protected = managed / "ExistingMod"
+    protected.mkdir(parents=True)
+    sentinel = protected / "keep.txt"
+    sentinel.write_text("preserve", encoding="utf-8")
+    monkeypatch.setattr(translation, "SOURCE_DIR", str(managed))
+    monkeypatch.setattr(translation, "resolve_runtime_or_400", lambda *_args: object())
+    monkeypatch.setattr(translation, "provider_task_fields", lambda _runtime: {})
+
+    with pytest.raises(translation.HTTPException) as error:
+        await translation.start_translation_v2(
+            BackgroundTasks(),
+            _legacy_translation_request(str(incoming)),
+        )
+
+    assert error.value.status_code == 400
+    assert "already exists" in error.value.detail
+    assert sentinel.read_text(encoding="utf-8") == "preserve"
+    assert not (protected / "incoming.txt").exists()
+    assert tasks == {}
+
+
+@pytest.mark.asyncio
+async def test_translate_v2_copy_failure_does_not_admit_task(monkeypatch, tmp_path):
+    source = tmp_path / "incoming" / "mod"
+    source.mkdir(parents=True)
+    managed = tmp_path / "managed"
+    managed.mkdir()
+    monkeypatch.setattr(translation, "SOURCE_DIR", str(managed))
+    monkeypatch.setattr(translation, "resolve_runtime_or_400", lambda *_args: object())
+    monkeypatch.setattr(translation, "provider_task_fields", lambda _runtime: {})
+    monkeypatch.setattr(
+        translation.legacy_translation_start_service.shutil,
+        "copytree",
+        MagicMock(side_effect=OSError("copy failed")),
+    )
+
+    with pytest.raises(translation.HTTPException) as error:
+        await translation.start_translation_v2(
+            BackgroundTasks(),
+            _legacy_translation_request(str(source)),
+        )
+
+    assert error.value.status_code == 500
+    assert tasks == {}
 
 
 def test_run_translation_workflow_v2_success_uses_shared_task_state(monkeypatch):
@@ -62,6 +209,35 @@ def test_run_translation_workflow_v2_success_uses_shared_task_state(monkeypatch)
     assert task["output_dirs"]
     assert any("completed successfully" in line for line in task["log"])
     run_workflow.assert_called_once()
+
+
+def test_run_translation_workflow_v2_uses_project_runtime_version(monkeypatch):
+    task_state.create_task("task-pz-version", status="pending")
+    monkeypatch.setattr(translation.i18n, "load_language", MagicMock())
+    run_workflow = MagicMock()
+    monkeypatch.setattr(translation.initial_translate, "run", run_workflow)
+
+    translation.run_translation_workflow_v2(
+        "task-pz-version", "PZ fixture", "project_zomboid", "en", ["zh-CN"],
+        "gemini", "", [], None, False, game_version="41.78.0",
+    )
+
+    assert run_workflow.call_args.kwargs["game_profile"]["game_version"] == "41.78.0"
+
+
+def test_project_translation_enqueue_passes_persisted_game_version():
+    background = MagicMock()
+    request = InitialTranslationRequest(
+        project_id="project-pz", source_lang_code="en", target_lang_codes=["zh-CN"],
+    )
+
+    translation._enqueue_project_translation(
+        background, "task-pz", "PZ fixture",
+        {"game_id": "project_zomboid", "game_version": "41.78.0"},
+        request, provider_runtime=None, recovery={},
+    )
+
+    assert background.add_task.call_args.kwargs["game_version"] == "41.78.0"
 
 
 def test_run_translation_workflow_v2_preserves_partial_failed_outcome(monkeypatch):

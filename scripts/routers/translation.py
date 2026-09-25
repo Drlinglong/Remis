@@ -1,6 +1,5 @@
 import os
 import uuid
-import shutil
 import logging
 import traceback
 from typing import List, Optional
@@ -28,6 +27,7 @@ from scripts.app_settings import (
 )
 from scripts.core.services.reference_reuse_preview_service import ReferenceReusePreviewService
 from scripts.core.services.translation_progress_callback import build_translation_progress_callback
+from scripts.core.services.game_language_policy import validate_target_language_codes
 from scripts.core.services.initial_translation_start_service import (
     ProjectTranslationLockError,
     create_initial_translation_task,
@@ -35,10 +35,11 @@ from scripts.core.services.initial_translation_start_service import (
 from scripts.core.services.translation_task_runtime import (
     finalize_translation_task as finalize_task,
     get_output_directories as _get_output_directories,
-    get_output_folder_name as _get_output_folder_name,
     prepare_initial_recovery,
+    resolve_task_output_directories,
 )
 from scripts.core.services.translation_workflow_outcome import (
+    finalize_successful_v2_translation as _finalize_v2_success,
     history_completion_description as _history_completion_description,
     record_context_metadata as _record_context_metadata,
     workflow_outcome_values as _workflow_outcome_values,
@@ -47,6 +48,7 @@ from scripts.core.services.translation_upload_service import (
     TranslationArchiveUploadError,
     install_translation_archive,
 )
+from scripts.core.services import legacy_translation_start_service
 from scripts.workflows import initial_translate
 from scripts.utils import i18n
 from scripts.core.services.translation_context_service import context_workflow_kwargs
@@ -131,6 +133,10 @@ async def preview_reference_reuse(request: ReferenceReusePreviewRequest):
             detail="Failed to resolve game profile, source language, or target languages",
         )
     try:
+        validate_target_language_codes(game_id, [str(item["code"]) for item in target_languages])
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    try:
         _reject_source_language_targets(source_lang_code, target_languages)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -190,12 +196,20 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
             selected_provider=api_provider,
             mod_context=mod_context,
             provider_runtime=provider_runtime,
+            project_id=project_id,
             use_resume=False,
         )
 
         task_state.update_task(
             task_id,
-            fields={"output_dirs": _get_output_directories(mod_name, target_languages)},
+            fields={
+                "output_dirs": _get_output_directories(
+                    mod_name,
+                    target_languages,
+                    project_id,
+                    game_profile,
+                )
+            },
             push=False,
         )
         status, message, issue_count = _workflow_outcome_values(outcome)
@@ -233,14 +247,20 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
                 logging.error(f"Failed to log failure activity: {e}")
 
 
-def _resolve_game_profile(game_profile_id: str):
+def _resolve_game_profile(game_profile_id: str, game_version: Optional[str] = None):
     normalized_game_id = "victoria3" if game_profile_id == "vic3" else game_profile_id
     if normalized_game_id != game_profile_id:
         logging.info("Normalized game_id 'vic3' to 'victoria3'")
-    return GAME_PROFILES.get(normalized_game_id) or next(
+    profile = GAME_PROFILES.get(normalized_game_id) or next(
         (profile for profile in GAME_PROFILES.values() if profile["id"] == normalized_game_id),
         None,
     )
+    return {**profile, "game_version": game_version} if profile and game_version else profile
+
+
+def _resolve_project_game_profile(project: dict):
+    """Resolve the runtime profile with the version approved for this project."""
+    return _resolve_game_profile(str(project.get("game_id") or ""), project.get("game_version"))
 
 
 @cancellable_translation_workflow
@@ -265,7 +285,7 @@ def run_translation_workflow_v2(
     recovery_identity: Optional[dict] = None,
     stale_choice: Optional[str] = None,
     stale_acknowledgement: Optional[dict] = None,
-    provider_runtime=None,
+    provider_runtime=None, game_version: Optional[str] = None,
 ):
     i18n.load_language('en_US')
     use_resume = enforce_checkpoint_resume_policy(use_resume)
@@ -291,7 +311,7 @@ def run_translation_workflow_v2(
     )
     try:
         logging.info(f"Starting V2 Workflow for Task {task_id}"); logging.info(f"Params: game_profile_id={game_profile_id}, source={source_lang_code}, targets={target_lang_codes}")
-        game_profile = _resolve_game_profile(game_profile_id)
+        game_profile = _resolve_game_profile(game_profile_id, game_version)
         source_lang = next((lang for lang in LANGUAGES.values() if lang["code"] == source_lang_code), None)
         target_languages = _resolve_target_languages(target_lang_codes)
         logging.info(f"Resolved: GameProfile={game_profile is not None}, SourceLang={source_lang is not None}, TargetLangs={len(target_languages)}")
@@ -350,33 +370,17 @@ def run_translation_workflow_v2(
                 "stale_choice": stale_choice, "stale_acknowledgement": stale_acknowledgement,
             }, translation_context_mode=translation_context_mode),
         )
-        _record_context_metadata(task_id, outcome)
-        logging.info("Returned from initial_translate.run")
-        task_state.update_task(
+        _finalize_v2_success(
             task_id,
-            fields={
-                "output_dirs": _get_output_directories(mod_name, target_languages),
-                "reference_metrics": list(getattr(outcome, "reference_metrics", ())),
-                "checkpoint": {
-                    "available": False,
-                    "resume_supported": checkpoint_resume_enabled(),
-                    "stage": "Completed",
-                    "updated_at": task_state.utc_now_iso(),
-                },
-            },
-            push=False,
+            mod_name,
+            project_id,
+            target_languages,
+            recovery_identity,
+            game_profile,
+            outcome,
+            project_manager,
+            _run_async,
         )
-        status, message, issue_count = _workflow_outcome_values(outcome)
-        finalize_task(task_id, status, message, "Completed", issue_count)
-        if project_id:
-            try:
-                _run_async(project_manager.log_history_event(
-                    project_id=project_id,
-                    action_type='translation_workflow',
-                    description=_history_completion_description(status)
-                ))
-            except Exception as e:
-                logging.error(f"Failed to log completion activity (v2): {e}")
     except ProcessingCancelledError:
         raise
     except Exception as e:
@@ -424,6 +428,7 @@ def _enqueue_project_translation(
         embedded_workshop=request.embedded_workshop.model_dump() if request.embedded_workshop else None,
         reference_reuse=request.reference_reuse.model_dump() if request.reference_reuse else None,
         recovery_identity=recovery,
+        game_version=project.get("game_version"),
         **({"provider_runtime": provider_runtime} if provider_runtime else {}),
         **context_workflow_kwargs(request),
     )
@@ -467,17 +472,22 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
     request.translation_context_mode = context_resolution.effective_mode
     task_id = str(uuid.uuid4())
     mod_name = os.path.basename(os.path.normpath(source_path))
+    game_profile = _resolve_project_game_profile(project)
     target_languages = _resolve_requested_target_languages(
         [code.value for code in request.target_lang_codes],
         request.custom_lang_config,
     )
     try:
+        validate_target_language_codes(
+            str(project.get("game_id") or ""), [str(item["code"]) for item in target_languages]
+        )
         mod_name, recovery = prepare_initial_recovery(
             request=request,
             project=project,
             task_id=task_id,
             target_languages=target_languages,
             provider_runtime=provider_runtime,
+            game_profile=game_profile,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -525,7 +535,13 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
     # Auto-register translation path (Optimistic registration)
     # We predict the output path based on the request
     try:
-        for result_dir in _get_output_directories(mod_name, target_languages):
+        for result_dir in resolve_task_output_directories(
+            mod_name,
+            target_languages,
+            request.project_id,
+            recovery,
+            game_profile,
+        ):
             await project_manager.add_translation_path(request.project_id, result_dir)
             logging.info(f"Auto-registered translation path: {result_dir}")
     except Exception as e:
@@ -635,39 +651,30 @@ async def start_translation_v2(
     background_tasks: BackgroundTasks,
     payload: TranslationRequestV2
 ):
-    provider_runtime = resolve_runtime_or_400(payload.api_provider, payload.model_name)
-    task_id = str(uuid.uuid4())
-    task_state.create_task(
-        task_id,
-        status="pending",
-        fields={
-            "kind": "initial_translation", "title": "Mod translation",
-            "source_route": "/translation",
-            **provider_task_fields(provider_runtime),
-        },
-    )
-
-    if not os.path.exists(payload.project_path) or not os.path.isdir(payload.project_path):
-        raise HTTPException(status_code=400, detail="Invalid project path.")
-
-    mod_name = os.path.basename(payload.project_path)
-    source_path = os.path.join(SOURCE_DIR, mod_name)
-
+    target_codes = [item.value if hasattr(item, "value") else str(item)
+                    for item in payload.target_lang_codes]
+    if payload.custom_lang_config:
+        target_codes.append(str(payload.custom_lang_config.code))
     try:
-        if not payload.is_existing_source:
-            if os.path.exists(source_path):
-                shutil.rmtree(source_path)
-            shutil.copytree(payload.project_path, source_path)
-
-        task_state.update_task(
-            task_id,
-            status="starting",
-            append_log=f"Using source: '{mod_name}'",
-            push=True,
+        validate_target_language_codes(payload.game_profile_id, target_codes)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    provider_runtime = resolve_runtime_or_400(payload.api_provider, payload.model_name)
+    try:
+        task_id, mod_name = legacy_translation_start_service.prepare_legacy_translation_start(
+            payload=payload,
+            provider_fields=provider_task_fields(provider_runtime),
+            source_dir=SOURCE_DIR,
         )
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"File processing failed: {e}")
+    except legacy_translation_start_service.InvalidLegacyProjectPath as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except legacy_translation_start_service.LegacySourcePreparationError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    except task_state.TaskPersistenceError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={"code": "task_persistence_failed", "message": "The translation task could not be recorded. Retry safely."},
+        ) from exc
 
     background_tasks.add_task(
         run_translation_workflow_v2,

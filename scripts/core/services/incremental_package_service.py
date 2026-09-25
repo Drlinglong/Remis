@@ -8,6 +8,7 @@ from typing import Any, Dict, Optional
 from scripts.app_settings import DEST_DIR
 from scripts.core import asset_handler, directory_handler
 from scripts.utils.system_utils import slugify_to_ascii
+from scripts.core.game_adapters.registry import resource_adapter
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,14 @@ class IncrementalPackageService:
         clean_existing: bool = True,
     ) -> Dict[str, Any]:
         output_folder_name = output_folder_name or self.build_output_folder_name(project_name, target_lang_info)
+        if resource_adapter(game_profile):
+            from uuid import uuid4
+            from scripts.core.game_adapters.workflow_bridge import safe_output
+            output_folder_name = f"{output_folder_name}-{uuid4().hex[:8]}"
+            package_root = safe_output(Path(DEST_DIR), output_folder_name)
+            package_root.mkdir(parents=True, exist_ok=False)
+            return {"output_folder_name": output_folder_name, "package_root": package_root,
+                    "launcher_mod_path": None}
         package_root = Path(DEST_DIR) / output_folder_name
         launcher_mod_path = Path(DEST_DIR) / f"{output_folder_name}.mod"
 
@@ -73,6 +82,8 @@ class IncrementalPackageService:
         mod_context: str,
         game_profile: Dict[str, Any],
     ) -> None:
+        if resource_adapter(game_profile):
+            return
         try:
             asset_handler.process_metadata(
                 project_name,

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Alert,
   Box,
@@ -14,13 +14,21 @@ import {
 } from '@mantine/core';
 import { IconCopy, IconFolder, IconLink } from '@tabler/icons-react';
 import styles from './CreateProjectModal.module.css';
+import MarsPipelineImport from '../project/MarsPipelineImport';
+import {
+  getSourceLanguageOptions,
+  resolveSupportedSourceLanguage,
+} from '../../utils/projectLanguages';
 
-const fallbackGames = [
+const getFallbackGames = (t) => [
   { value: 'stellaris', label: 'Stellaris' },
   { value: 'hoi4', label: 'Hearts of Iron IV' },
   { value: 'vic3', label: 'Victoria 3' },
   { value: 'ck3', label: 'Crusader Kings III' },
   { value: 'eu4', label: 'Europa Universalis IV' },
+  { value: 'project_zomboid', label: t('game_name_project_zomboid', 'Project Zomboid') },
+  { value: 'rimworld', label: t('game_name_rimworld', 'RimWorld') },
+  { value: 'surviving_mars', label: 'Surviving Mars / Relaunched' },
 ];
 
 const fallbackLanguages = [
@@ -48,7 +56,30 @@ export function CreateProjectModal({
   setNewProjectSourceLang,
   t,
   onClose,
+  onPipelineCreated,
 }) {
+  const [marsImportOpened, setMarsImportOpened] = useState(false);
+  const [marsCsvMode, setMarsCsvMode] = useState(false);
+  const isMars = newProjectGame === 'surviving_mars';
+  const marsLanguageCodes = availableGames.find((game) => game.value === 'surviving_mars')
+    ?.supported_language_codes;
+  const sourceLanguageOptions = getSourceLanguageOptions(
+    availableLanguages,
+    isMars,
+    marsLanguageCodes,
+    t
+  );
+  const useFpkFlow = isMars && !marsCsvMode;
+  const handleGameChange = (gameId) => {
+    setNewProjectGame(gameId);
+    setMarsCsvMode(false);
+    if (gameId === 'surviving_mars') setMarsImportOpened(true);
+    else setMarsImportOpened(false);
+  };
+  const handlePrimaryAction = () => {
+    if (useFpkFlow) setMarsImportOpened(true);
+    else handleCreateProject();
+  };
   return (
     <Modal
       opened={opened}
@@ -73,6 +104,22 @@ export function CreateProjectModal({
           value={newProjectName}
           onChange={(event) => setNewProjectName(event.currentTarget.value)}
         />
+        <Select
+          label={t('form_label_game')}
+          data={availableGames.length > 0 ? availableGames : getFallbackGames(t)}
+          value={newProjectGame}
+          onChange={handleGameChange}
+          disabled={isCreatingProject}
+        />
+        {useFpkFlow && (
+          <Alert className={styles.importModeAlert} color="blue" variant="light">
+            <Text size="sm">{t('mars_pipeline.game_selected_help', 'Next, choose a compiled Mod archive to prepare an isolated translation project.')}</Text>
+            <Button variant="light" mt="sm" onClick={() => setMarsImportOpened(true)}>
+              {t('mars_pipeline.reopen_import', 'Reopen FPK preparation')}
+            </Button>
+          </Alert>
+        )}
+        {(!isMars || marsCsvMode) && <>
         <Group align="flex-end">
           <TextInput
             classNames={{ input: styles.modalInput }}
@@ -116,20 +163,18 @@ export function CreateProjectModal({
           </Text>
         </Alert>
         <Select
-          label={t('form_label_game')}
-          data={availableGames.length > 0 ? availableGames : fallbackGames}
-          value={newProjectGame}
-          onChange={(value) => setNewProjectGame(value)}
-          disabled={isCreatingProject}
-        />
-        <Select
           label={t('form_label_source_language')}
           description={t('form_desc_source_language')}
-          data={availableLanguages.length > 0 ? availableLanguages : fallbackLanguages}
+          data={sourceLanguageOptions.length > 0 ? sourceLanguageOptions : fallbackLanguages}
           value={newProjectSourceLang}
           onChange={(value) => setNewProjectSourceLang(value)}
           disabled={isCreatingProject}
         />
+        {isMars && <Button variant="subtle" onClick={() => {
+          setMarsCsvMode(false);
+          setMarsImportOpened(true);
+        }}>{t('mars_pipeline.open_import', 'Open FPK preparation')}</Button>}
+        </>}
         {isCreatingProject && (
           <Box>
             <Progress value={100} animated striped />
@@ -140,15 +185,29 @@ export function CreateProjectModal({
           <Text size="sm" c="yellow">{createProgressMessage}</Text>
         )}
         <Button
-          onClick={handleCreateProject}
+          onClick={handlePrimaryAction}
           fullWidth
           mt="md"
           loading={isCreatingProject}
-          disabled={!newProjectName || !newProjectPath}
+          disabled={isCreatingProject || (!useFpkFlow && (!newProjectName || !newProjectPath))}
         >
-          {isCreatingProject ? t('project_management.create_progress_title') : t('project_management.actions.create_new')}
+          {isCreatingProject ? t('project_management.create_progress_title')
+            : useFpkFlow ? t('mars_pipeline.open_import', 'Open FPK preparation') : t('project_management.actions.create_new')}
         </Button>
       </Stack>
+      <MarsPipelineImport opened={marsImportOpened} onClose={() => setMarsImportOpened(false)}
+        onUseExistingCsv={() => {
+          setNewProjectSourceLang(resolveSupportedSourceLanguage(
+            newProjectSourceLang,
+            marsLanguageCodes || []
+          ));
+          setMarsCsvMode(true);
+          setMarsImportOpened(false);
+        }}
+        name={newProjectName} onCreated={(projectId) => {
+          setMarsImportOpened(false);
+          onPipelineCreated?.(projectId);
+        }} />
     </Modal>
   );
 }

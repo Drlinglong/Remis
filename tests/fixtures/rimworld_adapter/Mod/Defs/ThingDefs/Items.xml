@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <ThingDef>
+    <defName>Synthetic_Crystal</defName>
+    <label>blue crystal</label>
+    <description>A bright mineral.</description>
+    <ingestible>
+      <ingestCommandString>Consume {0}</ingestCommandString>
+      <preferability>NeverForNutrition</preferability>
+    </ingestible>
+    <statBases><Mass>0.2</Mass></statBases>
+  </ThingDef>
+</Defs>

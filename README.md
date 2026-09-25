@@ -75,6 +75,20 @@ Project files, glossaries, checkpoints, translation history, and review state ar
   <img src="docs/assets/readme/screenshot_en1.webp" width="88%" alt="Remis desktop localization workspace">
 </p>
 
+
+## Game support in 3.2.1
+
+Surviving Mars / Relaunched now has its first stable localization workflow:
+import an FPK, translate discovered text, and export one multilingual companion
+or complete internationalized Mod copy. Workshop uploads remain manual through
+the game's Mod Editor. [Read the guide](docs/en/user-guides/surviving-mars.md).
+
+RimWorld and Project Zomboid adapters are **Preview**. Support for all three games
+will continue to expand; existing Paradox workflows remain available.
+[Release notes](docs/zh/developer/release-v3.2.1.md) ·
+[Standalone FPK extractor](https://github.com/Drlinglong/remis-fpk).
+
+
 ## See the Workflow
 
 The product story is visible in three loops: organize project state, reuse approved work when a mod changes, and repair model failures without surrendering control.
@@ -145,6 +159,8 @@ tools.
 Developer entry points:
 
 - [Agent API quickstart](docs/en/developer/agent-api-quickstart.md)
+- [Multi-game localization guide](docs/zh/user-guides/multi-game-localization.md)
+- [Surviving Mars: Relaunched guide](docs/en/user-guides/surviving-mars.md)
 - [Remis Agent Skill](.agents/skills/remis-agent/SKILL.md)
 - [OpenAI Build Week](https://openai.com/zh-Hans-CN/build-week/)
 

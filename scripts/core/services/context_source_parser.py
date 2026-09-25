@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Iterable
 
 from scripts.core.file_parser import extract_translatable_content
+from scripts.core import surviving_mars_csv
 from scripts.core.neologism_extraction import SourceItem
 from scripts.core.paradox_localization_parser import parse_text
 from scripts.core.services.source_snapshot_service import (
@@ -62,11 +63,23 @@ class ContextSourceParser:
         content = resolved.read_bytes()
         text = content.decode("utf-8-sig")
         parse_summary: dict[str, int]
-        if resolved.suffix.lower() == ".json":
+        from scripts.core.game_adapters.registry import adapter_for_path
+        adapter = adapter_for_path(resolved)
+        if adapter:
+            document = adapter.parse_text(text, resolved, {"source_root": str(source_root)})
+            raw_items = [(entry.key, entry.value) for entry in document.entries]
+            parse_summary = self._simple_parse_summary(raw_items)
+        elif resolved.suffix.lower() == ".json":
             raw_items = self._parse_json(text)
             parse_summary = self._simple_parse_summary(raw_items)
         elif resolved.suffix.lower() == ".csv":
-            raw_items = self._parse_csv(text)
+            if surviving_mars_csv.is_table_file(resolved):
+                raw_items = [
+                    (entry.key, entry.value)
+                    for entry in surviving_mars_csv.parse_text(text).entries
+                ]
+            else:
+                raw_items = self._parse_csv(text)
             parse_summary = self._simple_parse_summary(raw_items)
         else:
             _, texts, key_map = extract_translatable_content(str(resolved))

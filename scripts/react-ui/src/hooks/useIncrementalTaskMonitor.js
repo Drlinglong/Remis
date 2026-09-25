@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef } from 'react';
 
 import projectService from '../services/projectService';
+import { isTerminalTaskStatus } from '../utils/taskStatus';
+
+const normalizeTaskStatus = (status) => String(status || '').trim().toLowerCase();
+
+const isSuccessfulTaskStatus = (status) => ['completed', 'success'].includes(status);
 
 export function useIncrementalTaskMonitor({
   addLog,
@@ -49,28 +54,38 @@ export function useIncrementalTaskMonitor({
       setLogs(data.log);
     }
 
-    if (data.status === 'completed') {
+    const status = normalizeTaskStatus(data.status);
+    if (isTerminalTaskStatus(status)) {
       completionSourceRef.current = source;
       setConflictingTaskId(null);
-      console.info(`Incremental task completed via ${source}.`);
       clearTaskPolling();
 
       if (isPreScan) {
         preScanInFlightRef.current = false;
         setCurrentTaskId(null);
         setCurrentTaskMode(null);
-        setScanResults({
-          ...(data.summary || {}),
-          file_summaries: data.file_summaries || [],
-          telemetry: data.telemetry || null,
-        });
+        if (isSuccessfulTaskStatus(status)) {
+          setScanResults({
+            ...(data.summary || {}),
+            file_summaries: data.file_summaries || [],
+            telemetry: data.telemetry || null,
+          });
+        } else {
+          addLog(t('incremental_translation.task_failed_check_logs'));
+        }
         setActive(2);
         setLoading(false);
       } else {
         executionInFlightRef.current = false;
-        setFinalSummary(data);
-        addLog(t('incremental_translation.translation_completed_success'));
-        setProgress(100);
+        setFinalSummary({ ...data, status });
+        if (isSuccessfulTaskStatus(status)) {
+          console.info(`Incremental task completed via ${source}.`);
+          addLog(t('incremental_translation.translation_completed_success'));
+          setProgress(100);
+        } else {
+          console.warn(`Incremental task ended with status ${status} via ${source}.`);
+          addLog(t('incremental_translation.task_failed_check_logs'));
+        }
         setProgressInfo(data.progress || {});
         setExecuting(false);
       }
@@ -79,25 +94,6 @@ export function useIncrementalTaskMonitor({
       return;
     }
 
-    if (data.status === 'failed') {
-      completionSourceRef.current = source;
-      setConflictingTaskId(null);
-      console.warn(`Incremental task failed via ${source}.`);
-      clearTaskPolling();
-      addLog(t('incremental_translation.task_failed_check_logs'));
-
-      if (isPreScan) {
-        preScanInFlightRef.current = false;
-        setCurrentTaskId(null);
-        setCurrentTaskMode(null);
-        setLoading(false);
-      } else {
-        executionInFlightRef.current = false;
-        setExecuting(false);
-      }
-
-      closeTaskSocket();
-    }
   }, [
     addLog,
     clearTaskPolling,

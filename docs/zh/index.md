@@ -62,6 +62,7 @@
 - [Provider 配置速查](user-guides/provider-setup-index.md) - API / 本地模型总入口（客户端设置页优先）
 - [使用 Ollama 进行本地化翻译](user-guides/using_ollama.md) - Ollama 补充说明
 - [使用自定义 OpenAI API](user-guides/using_custom_openai_api.md) - 自定义接口补充说明
+- [套壳语言与项目维护](user-guides/shell-languages.md) - 独立项目建议与基线边界
 - [使用 ModelScope 与 SiliconFlow](user-guides/using_modelscope_and_siliconflow.md) - 魔搭 / 硅基流动补充说明
 - [工具：封面图生成器](user-guides/tools-thumbnail-generator.md) - 制作并下载本地化 Mod 封面
 

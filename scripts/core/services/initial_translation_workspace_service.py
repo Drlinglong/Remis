@@ -7,6 +7,7 @@ from typing import Optional, List
 from scripts.core import asset_handler, directory_handler
 from scripts.core.glossary_manager import glossary_manager
 from scripts.app_settings import SOURCE_DIR, DEST_DIR
+from scripts.core.services.translation_task_runtime import resolve_managed_output_path
 
 
 def load_glossaries_for_run(game_id: str, use_glossary: bool, selected_glossary_ids: Optional[List[int]] = None):
@@ -25,13 +26,29 @@ def load_glossaries_for_run(game_id: str, use_glossary: bool, selected_glossary_
 
 def prepare_output_workspace(mod_name: str, output_folder_name: str, game_profile: dict) -> str:
     """Create output directories and copy static assets for a run."""
+    output = resolve_managed_output_path(output_folder_name, dest_root=DEST_DIR)
+    from scripts.core.game_adapters.registry import resource_adapter
+    if resource_adapter(game_profile):
+        os.makedirs(output, exist_ok=True)
+        return output
     directory_handler.create_output_structure(mod_name, output_folder_name, game_profile)
     asset_handler.copy_assets(mod_name, output_folder_name, game_profile)
-    return os.path.join(DEST_DIR, output_folder_name)
+    return output
 
 
-def clean_source_directory(mod_name: str, override_path: Optional[str] = None):
+def clean_source_directory(
+    mod_name: str,
+    override_path: Optional[str] = None,
+    game_profile: Optional[dict] = None,
+):
     """Delete non-localization source files after setup when clean_source is enabled."""
+    from scripts.core.game_adapters.registry import resource_adapter
+    if game_profile and (resource_adapter(game_profile) or game_profile.get("format_adapter_id") == "surviving_mars_csv"):
+        logging.warning(
+            "Skipping source cleanup for Surviving Mars: ModItemLocTable files "
+            "may be located anywhere in the mod tree."
+        )
+        return
     logging.info("Cleaning source directory to save disk space (keeping only localization and metadata)...")
     mod_root_path = override_path if override_path else os.path.join(SOURCE_DIR, mod_name)
     whitelist_folders = {"localisation", "localization", "customizable_localization"}

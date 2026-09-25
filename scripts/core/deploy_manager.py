@@ -12,6 +12,12 @@ from scripts.utils import i18n
 from scripts.utils.system_utils import slugify_to_ascii
 
 logger = logging.getLogger(__name__)
+_WORKSHOP_ID_PATTERN = re.compile(r"[0-9]{1,20}\Z")
+
+
+def _validated_workshop_id(value) -> Optional[str]:
+    candidate = str(value).strip() if value is not None else ""
+    return candidate if _WORKSHOP_ID_PATTERN.fullmatch(candidate) else None
 
 class ModDeployer:
     """
@@ -163,10 +169,10 @@ class ModDeployer:
                     with open(meta_json, "r", encoding="utf-8") as f:
                         data = json.load(f)
                     if "id" in data:
-                        return str(data["id"])
+                        return _validated_workshop_id(data["id"])
                 # Victoria 3 fallback: check if directory name itself is a pure number (Workshop ID)
                 if source_path.name.isdigit():
-                    return source_path.name
+                    return _validated_workshop_id(source_path.name)
             else:
                 # Other games use descriptor.mod or *.mod files
                 descriptor_path = source_path / "descriptor.mod"
@@ -179,12 +185,15 @@ class ModDeployer:
                     with open(descriptor_path, "r", encoding="utf-8") as f:
                         content = f.read()
                     # Match remote_file_id="123456" or remote_file_id=123456
-                    match = re.search(r'remote_file_id\s*=\s*"([^"]+)"', content)
+                    match = re.search(r'remote_file_id\s*=\s*"([^"]*)"', content)
                     if match:
-                        return match.group(1)
-                    match = re.search(r'remote_file_id\s*=\s*(\d+)', content)
+                        return _validated_workshop_id(match.group(1))
+                    match = re.search(
+                        r"(?m)^\s*remote_file_id\s*=\s*([0-9]{1,20})\s*(?:#.*)?$",
+                        content,
+                    )
                     if match:
-                        return match.group(1)
+                        return _validated_workshop_id(match.group(1))
         except Exception as e:
             logger.error(f"Error reading remote_file_id: {e}")
         return None
@@ -207,9 +216,19 @@ class ModDeployer:
         # 2. Extract remote_file_id from source_path
         remote_file_id = self.get_remote_file_id(p_source, game_id)
         if workshop_root and remote_file_id:
-            target_path = Path(workshop_root) / remote_file_id
-            if target_path.exists():
-                return str(target_path)
+            try:
+                resolved_workshop_root = Path(workshop_root).resolve(strict=True)
+                target_path = resolved_workshop_root / remote_file_id
+                resolved_target = target_path.resolve(strict=True)
+                if (
+                    target_path.is_dir()
+                    and resolved_target.is_relative_to(resolved_workshop_root)
+                    and resolved_target.parent == resolved_workshop_root
+                    and resolved_target.name == remote_file_id
+                ):
+                    return str(resolved_target)
+            except (OSError, RuntimeError):
+                logger.warning("Refusing to resolve a Workshop item outside its detected root")
 
         # 3. Fallback: if project_source_path's parent is workshop root
         if workshop_root and p_source.exists():

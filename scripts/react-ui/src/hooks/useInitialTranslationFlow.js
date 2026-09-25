@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import api from '../utils/api';
 import translationService from '../services/translationService';
@@ -36,6 +36,25 @@ export function useInitialTranslationFlow({
     apiClient: api,
     autoLoad: resumeEnabled,
   });
+  const selectedProjectIdRef = useRef(selectedProjectId);
+  const mountedRef = useRef(true);
+  selectedProjectIdRef.current = selectedProjectId;
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+  useEffect(() => {
+    setResumeModalOpen(false);
+    setPendingFormValues(null);
+    setReferencePromptOpen(false);
+    setPendingReferenceValues(null);
+  }, [selectedProjectId]);
+
+  const isCurrentProject = (projectId) => (
+    mountedRef.current && selectedProjectIdRef.current === projectId
+  );
 
   const applyRecoveryTask = (response) => {
     const task = response?.task || response;
@@ -51,6 +70,7 @@ export function useInitialTranslationFlow({
   const staleContext = useStaleTranslationContextRetry();
 
   const startTranslation = async (values, { skipReferenceCheck = false } = {}) => {
+    const requestProjectId = selectedProjectId;
     const effectiveValues = resumeEnabled ? values : { ...values, use_resume: false };
     if (!selectedProjectId) {
       notificationService.error('Please select a project first.', notificationStyle);
@@ -64,6 +84,7 @@ export function useInitialTranslationFlow({
     ) {
       try {
         const response = await translationService.getReferenceLibraryStatus();
+        if (!isCurrentProject(requestProjectId)) return;
         const gameId = selectedProject?.game_id;
         const available = response.data?.libraries?.some(
           (library) => library.game_id === gameId && library.available,
@@ -74,6 +95,7 @@ export function useInitialTranslationFlow({
           return;
         }
       } catch (error) {
+        if (!isCurrentProject(requestProjectId)) return;
         console.warn('Failed to check reference library status; continuing without prompt.', error);
       }
     }
@@ -81,6 +103,7 @@ export function useInitialTranslationFlow({
     setTranslationDetails(buildTranslationDetails(effectiveValues, selectedProject, config.languages));
 
     const payload = buildTranslationPayload(effectiveValues, selectedProjectId, selectedProject);
+    if (!isCurrentProject(requestProjectId)) return;
 
     setTaskId(null);
     setStatus('pending');
@@ -88,6 +111,7 @@ export function useInitialTranslationFlow({
     setIsProcessing(true);
 
     const onSuccess = async (response) => {
+      if (!isCurrentProject(requestProjectId)) return;
       applyRecoveryTask(response.data);
       if (response.data.warning?.code === 'project_context_degraded') {
         notificationService.info(
@@ -102,6 +126,7 @@ export function useInitialTranslationFlow({
       setActive(2);
     };
     const onError = (error) => {
+      if (!isCurrentProject(requestProjectId)) return;
       const detail = error?.response?.data?.detail;
       const errorCode = typeof detail === 'object' ? detail?.code : null;
       const message = errorCode === 'duplicate_task'
@@ -120,6 +145,7 @@ export function useInitialTranslationFlow({
       onSuccess,
       onError,
       onCancel: () => {
+        if (!isCurrentProject(requestProjectId)) return;
         setTaskId(null);
         setIsProcessing(false);
         setStatus(null);
@@ -150,7 +176,9 @@ export function useInitialTranslationFlow({
     }
 
     try {
+      const requestProjectId = selectedProjectId;
       const recovery = await recoveryController.refresh();
+      if (!isCurrentProject(requestProjectId)) return;
       if (recovery?.checkpoint?.available
         && isRecoveryActionAllowed(recovery, TRANSLATION_RECOVERY_ACTIONS.RESUME)) {
         setPendingFormValues(values);
@@ -159,17 +187,24 @@ export function useInitialTranslationFlow({
         await startTranslation({ ...values, use_resume: false });
       }
     } catch (error) {
+      if (!isCurrentProject(selectedProjectId)) return;
       console.error('Failed to load translation recovery:', error);
-      await startTranslation({ ...values, use_resume: false });
+      notificationService.error(
+        t('message_error_get_status', 'Failed to get task status.'),
+        notificationStyle,
+      );
     }
   };
 
   const handleResume = async () => {
+    const actionProjectId = selectedProjectId;
     setResumeModalOpen(false);
     try {
       const response = await recoveryController.resume();
+      if (!isCurrentProject(actionProjectId)) return;
       applyRecoveryTask(response);
     } catch {
+      if (!isCurrentProject(actionProjectId)) return;
       notificationService.error('Failed to resume translation.', notificationStyle);
       setTaskId(null);
       setIsProcessing(false);
@@ -179,6 +214,7 @@ export function useInitialTranslationFlow({
   };
 
   const handleStartOver = async () => {
+    const actionProjectId = selectedProjectId;
     setResumeModalOpen(false);
     if (!pendingFormValues) {
       return;
@@ -186,8 +222,10 @@ export function useInitialTranslationFlow({
 
     try {
       const response = await recoveryController.startOver();
+      if (!isCurrentProject(actionProjectId)) return;
       applyRecoveryTask(response);
     } catch (error) {
+      if (!isCurrentProject(actionProjectId)) return;
       notificationService.error('Failed to start over.', notificationStyle);
       console.error(error);
     }

@@ -23,10 +23,11 @@ from scripts.core.context_db_migrations import CONTEXT_DB_MIGRATIONS
 from scripts.core.task_idempotency_migration import add_task_idempotency_uniqueness
 from scripts.core.steam_workshop_sequence_migration import (
     enforce_steam_workshop_sequence_constraint,
+    validate_steam_workshop_foreign_keys,
 )
 logger = logging.getLogger("remis_init")
 
-MAIN_DB_TARGET_VERSION = 25
+MAIN_DB_TARGET_VERSION = 26
 
 
 class UnsupportedDatabaseVersionError(RuntimeError):
@@ -746,6 +747,7 @@ MAIN_DB_MIGRATIONS: list[tuple[int, str, Callable[[str], None]]] = [
     (23, "add_translation_task_lifecycle", _migration_023_add_translation_task_lifecycle),
     (24, "add_task_idempotency_uniqueness", add_task_idempotency_uniqueness),
     (25, "enforce_steam_workshop_sequence", enforce_steam_workshop_sequence_constraint),
+    (26, "validate_steam_workshop_foreign_keys", validate_steam_workshop_foreign_keys),
 ]
 
 

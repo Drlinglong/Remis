@@ -5,6 +5,7 @@ set "SCRIPT_DIR=%~dp0"
 for %%I in ("%SCRIPT_DIR%..\..\..") do set "PROJECT_ROOT=%%~fI"
 set "BACKEND_LAUNCHER=%PROJECT_ROOT%\scripts\react-ui\run-backend.bat"
 set "FRONTEND_LAUNCHER=%PROJECT_ROOT%\scripts\react-ui\run-frontend.bat"
+if /i "%~1"=="--backend-only" goto backend_only
 
 ECHO =================================================================
 ECHO == Remis Project - One-Click Development Environment Launcher  ==
@@ -33,6 +34,15 @@ if errorlevel 1 (
     exit /b 1
 )
 
+if not defined REMIS_APP_DATA_DIR if exist "%PROJECT_ROOT%\.git" if not exist "%PROJECT_ROOT%\.git\NUL" set "REMIS_APP_DATA_DIR=%PROJECT_ROOT%\.runtime"
+if defined REMIS_APP_DATA_DIR (
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "if ($env:REMIS_APP_DATA_DIR -match '^[A-Za-z]:[\\/]' -or $env:REMIS_APP_DATA_DIR -match '^\\\\[^\\]+\\[^\\]+') { exit 0 }; exit 1"
+    if errorlevel 1 (
+        ECHO [ERROR] REMIS_APP_DATA_DIR must be an absolute path: "%REMIS_APP_DATA_DIR%"
+        exit /b 1
+    )
+)
+
 ECHO Project root: %PROJECT_ROOT%
 ECHO.
 
@@ -40,6 +50,7 @@ if "%REMIS_BACKEND_PORT%"=="" set "REMIS_BACKEND_PORT=1453"
 
 if /i "%~1"=="--check" (
     ECHO Target backend port: %REMIS_BACKEND_PORT%.
+    if defined REMIS_APP_DATA_DIR ECHO Runtime data directory: "%REMIS_APP_DATA_DIR%".
     ECHO [OK] Development launcher paths are valid. No process or port was changed.
     exit /b 0
 )
@@ -66,3 +77,8 @@ start "Remis Frontend" /D "%PROJECT_ROOT%" "%FRONTEND_LAUNCHER%"
 ECHO.
 ECHO This launcher window will now close.
 timeout /t 3 > nul
+exit /b 0
+
+:backend_only
+powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%start-backend-only.ps1" -ProjectRoot "%PROJECT_ROOT%"
+exit /b %ERRORLEVEL%

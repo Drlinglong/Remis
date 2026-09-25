@@ -27,6 +27,19 @@
 
 ---
 
+
+## 3.2.1 游戏支持
+
+火星求生 / 重制版现已提供首版稳定本地化流程：直接导入 FPK、翻译提取出的文本，
+再导出一个多语言纯翻译补丁或完整国际化副本。工坊上传仍通过游戏自带的 Mod Editor
+手动完成。[查看火星求生指南](zh/user-guides/surviving-mars.md)。
+
+环世界与僵尸毁灭工程适配器标为 **Preview**。后续会继续完善这三个游戏的支持，
+现有 P 社游戏流程仍然保留。
+[更新说明](zh/developer/release-v3.2.1.md) ·
+[独立 FPK 解包工具](https://github.com/Drlinglong/remis-fpk)。
+
+
 ## 核心工作流
 
 Project Remis 围绕三个核心产品工作流构建：项目管理、增量更新复用，以及面向异常本地化条目的智能修复。
@@ -136,6 +149,8 @@ Remis 是真正执行汉化的完整产品；仓库中的 Skill 负责教 Codex 
 开发者入口：
 
 - [Agent API 快速开始](zh/developer/agent-api-quickstart.md)
+- [多游戏本地化指南](zh/user-guides/multi-game-localization.md)
+- [火星求生重制版本地化](zh/user-guides/surviving-mars.md)
 - [Remis Agent Skill](../.agents/skills/remis-agent/SKILL.md)
 - 本机 OpenAPI：`http://127.0.0.1:1453/docs`
 

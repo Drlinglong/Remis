@@ -42,6 +42,15 @@ Invoke-RestMethod http://127.0.0.1:1453/api/agent/capabilities
 The capability response lists public game, language, provider, and workflow
 information. It does not expose provider credentials.
 
+For each game, read its `game_support` contract and inspect a candidate with
+`POST /api/agent/projects/inspect`, supplying `game_id`, `source_language`, and
+an optional scan-time `game_version`. The scan reports recognized-resource
+coverage and diagnostics. `game_version` on inspect is a one-time hint. Include
+a known `game_version` in `POST /api/agent/projects/plan` to bind the reviewed
+resource branch to project discovery and translation. After import,
+`GET /api/agent/projects/{project_id}/game-support` scans the current project
+source. Plans carry a `game_support` snapshot for approval review.
+
 Run `preflight` before every workflow. It performs a live latest-release check
 against the official GitHub repository and reports whether provider setup is
 missing. On a first installation, configure a cloud provider key in **Remis
@@ -92,10 +101,38 @@ Use the detailed payload and status reference in
 
 ## Current boundary
 
-In the 3.2.0 stable and Agent Preview channels, the Agent API exposes
-approval-gated translation start, checkpoint resume, repair, export, and task
-cancel operations. Cancellation is cooperative and applies only to supported
-translation task kinds; it is not an immediate process kill. Pause remains
+`POST /api/agent/jobs/plan` supports `workflow: "initial"` (the default) and
+`workflow: "incremental"`. Incremental workflows compare recognized entries;
+version and path changes alone do not require retranslating entries. Changed
+source entries keep their existing translations for review, and `needs_review`
+items remain unresolved until a person reviews them. `dry_run` checks
+readiness, not the entry diff. Incremental checkpoint resume and custom shell
+languages are unsupported for Project Zomboid and RimWorld; create a new
+incremental plan instead of requesting resume.
+
+Project Zomboid supports JSON string maps and restricted literal Lua-table TXT.
+RimWorld supports Keyed, DefInjected, Strings, known translatable Def fields,
+and `rulesStrings`. These are recognized formats, not proof of complete Mod
+coverage. Unknown fields and runtime-dependent content produce diagnostics or
+need human review. Source files stay read-only, outputs are separate packages
+per target language, and export preview lists existing packages for manual
+installation with `validation_scope: "artifact_presence_only"`.
+Even an explicitly approved `approve-export` request returns
+`409 unsupported_game_deployment` for these games and Surviving Mars; it does
+not deploy them. Surviving Mars supports the existing ModItemLocTable CSV
+initial-translation, incremental-update, and proofreading workflow. A separate
+approval-gated translation-package API can wrap an existing CSV output as a
+local lightweight Mod; it does not call a translation provider, copy original
+Mod assets, install, publish, or cover hard-coded `Untranslated(...)` strings.
+Runtime loading is unverified for these adapters.
+
+See the [Agent API reference](../../../.agents/skills/remis-agent/references/api-workflow.md)
+for response fields and the [multi-game guide](../../zh/user-guides/multi-game-localization.md)
+for player-facing limitations.
+
+The Agent API also exposes approval-gated repair, export for deployment-enabled
+games, and task cancellation. Cancellation is cooperative and only applies to
+supported task kinds; it is not an immediate process kill. Pause remains
 unsupported because the runner has no safe cooperative pause boundary.
 
 Published context releases can be read through the Agent context endpoints.

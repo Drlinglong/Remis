@@ -2,7 +2,7 @@
 
 ## Overview
 
-The formal release path for the 3.2.0 Windows application is the Tauri NSIS
+The formal release path for the 3.2.1 Windows application is the Tauri NSIS
 installer built by `scripts/build_pipeline.py`. The older
 `archive/build_release_scripts/build_release.bat` remains only for the
 historical portable ZIP format and must not be used to produce the current EXE
@@ -34,9 +34,10 @@ Every release note must be written for ordinary users first and technical reader
    needed. Keep English and Chinese equivalent in meaning while writing each
    naturally.
 6. Update `releaseDate` in `scripts/react-ui/package.json`, use the same date in
-   the release note's `Released on YYYY-MM-DD.` line, and confirm Settings >
-   Version Info > Last Updated displays it. The release metadata test is a
-   mandatory pre-package gate.
+   the current unreleased record at `docs/zh/developer/release-vX.Y.Z.md`, and
+   confirm Settings > Version Info > Last Updated displays it. After release,
+   an archived copy records the same date in its `Released on YYYY-MM-DD.` line.
+   The release metadata test is a mandatory pre-package gate.
 
 Recommended structure:
 
@@ -70,12 +71,14 @@ Before packaging, run:
 python -m pytest -q tests/test_release_metadata.py
 ```
 
-The canonical and complete convention is maintained in
-`archive/release_notes/README.md`.
+The current unreleased record belongs under `docs/zh/developer/`; only
+published or historical copies belong under `archive/release_notes/`. The
+archive directory's structure, Highlights, and promotion rules are maintained
+in `archive/release_notes/README.md`.
 
 ## Usage
 
-## Tauri installer data policy for the 3.2.0 desktop release
+## Tauri installer data policy for the 3.2.1 desktop release
 
 The current Tauri installer is built by `scripts/build_pipeline.py`. First-run
 database setup has three layers:
@@ -123,7 +126,7 @@ python scripts/build_pipeline.py --channel stable
 The pipeline uses the `local_factory` Conda environment, freezes and health-
 checks the Python sidecar, builds the frontend, and then runs the Tauri build.
 The stable NSIS installer is copied to
-`archive/release/stable/remis-mod-factory_3.2.0_x64-setup.exe`. Use
+`archive/release/stable/remis-mod-factory_3.2.1_x64-setup.exe`. Use
 `--channel agent-preview` only when intentionally producing the isolated
 `3.2.0-agent-preview.1` preview installer.
 

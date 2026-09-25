@@ -101,7 +101,15 @@ class TranslationFixerAgent:
             
             try:
                 raw_response = self.handler._call_api(self.handler.client, prompt)
-                fixed_texts = parse_response(raw_response, TranslationResponse, task.file_task.target_lang["code"])
+                fixed_texts = parse_response(
+                    raw_response,
+                    TranslationResponse,
+                    task.file_task.target_lang["code"],
+                    preserve_newlines=(
+                        task.file_task.game_profile.get("format_adapter_id")
+                        == "surviving_mars_csv"
+                    ),
+                )
                 
                 if fixed_texts and len(fixed_texts.translations) == len(task.texts):
                     # We have a valid structural response, but is it ACTUALLY fixed?

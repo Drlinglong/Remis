@@ -1,5 +1,7 @@
 import os
 
+import pytest
+
 from scripts.core.parallel_types import FileTask
 from scripts.core.paradox_localization_parser import parse_text
 from scripts.core.services import initial_translation_file_service as file_service
@@ -89,6 +91,27 @@ def test_build_dest_dir_uses_relative_file_path_across_drives(monkeypatch):
     )) == os.path.normpath(
         r"J:\V3_Mod_Localization_Factory\translated_mods\zh-CN-MyMod\localization\simp_chinese"
     )
+
+
+@pytest.mark.parametrize(
+    ("output_folder", "target_lang", "game_profile"),
+    [
+        ("../outside", {"key": "l_simp_chinese"}, {"source_localization_folder": "localization"}),
+        ("safe-output", {"key": "l_../../"}, {"source_localization_folder": "localization"}),
+        ("safe-output", {"code": "../outside"}, {"id": "rimworld"}),
+    ],
+)
+def test_build_dest_dir_rejects_unsafe_output_components(
+    monkeypatch, tmp_path, output_folder, target_lang, game_profile
+):
+    source_root = str(tmp_path / "source")
+    monkeypatch.setattr(file_service, "SOURCE_DIR", source_root)
+    monkeypatch.setattr(file_service, "DEST_DIR", str(tmp_path / "dest"))
+
+    with pytest.raises(ValueError, match="safe|unsafe|outside"):
+        file_service.build_dest_dir(
+            _file_task(source_root), target_lang, output_folder, game_profile
+        )
 
 
 def test_handle_empty_file_writes_fallback_and_tracks_file(monkeypatch, tmp_path):

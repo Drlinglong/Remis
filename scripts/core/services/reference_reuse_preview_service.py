@@ -19,7 +19,11 @@ class ReferenceReusePreviewService:
         target_languages: List[Dict[str, Any]],
         localization_path: str | None = None,
     ) -> Dict[str, Any]:
-        source_files = IncrementalSnapshotService().build_snapshot(source_path, source_lang)
+        source_files = IncrementalSnapshotService().build_snapshot(
+            source_path,
+            source_lang,
+            game_profile=game_profile,
+        )
         matches: List[Dict[str, Any]] = []
         language_metrics: List[Dict[str, Any]] = []
         total_source_entries = sum(len(item["parsed_entries"]) for item in source_files)

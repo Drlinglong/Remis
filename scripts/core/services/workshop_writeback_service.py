@@ -123,8 +123,13 @@ def resolve_output_translation_target(
     return _resolve_existing_candidate(allowed_root / relative_path, [allowed_root])
 
 
-def apply_translation_fix_to_file(file_path: Path, key_to_fix: str, new_value: str) -> bool:
+def apply_translation_fix_to_file(file_path: Path, key_to_fix: str, new_value: str,
+                                 game_id: str | None = None,
+                                 target_lang: str | None = None) -> bool:
     try:
+        if game_id in {"project_zomboid", "rimworld"}:
+            from scripts.core.game_adapters.repair import apply_fix
+            return apply_fix(file_path, game_id, key_to_fix, new_value, target_lang)
         with open(file_path, "r", encoding="utf-8-sig", newline="") as handle:
             source_text = handle.read()
         report = parse_text(source_text)
@@ -148,8 +153,12 @@ def apply_translation_fix_to_file(file_path: Path, key_to_fix: str, new_value: s
         return False
 
 
-def _read_translation_value(file_path: Path, key_to_find: str) -> Optional[str]:
+def _read_translation_value(file_path: Path, key_to_find: str,
+                            game_id: str | None = None) -> Optional[str]:
     try:
+        if game_id in {"project_zomboid", "rimworld"}:
+            from scripts.core.game_adapters.repair import read_value
+            return read_value(file_path, game_id, key_to_find)
         entries = dict(parse_loc_file(file_path))
     except Exception as exc:
         logger.error("Failed to parse workshop translation file %s: %s", file_path, exc)
@@ -238,12 +247,12 @@ def apply_validated_workshop_fix_to_path(
     except OSError as exc:
         return False, "snapshot_failure", f"Could not snapshot target before write: {exc}"
 
-    if not apply_translation_fix_to_file(target_path, key, suggested_fix):
+    if not apply_translation_fix_to_file(target_path, key, suggested_fix, game_id, target_lang):
         restored = _restore_file(target_path, original_bytes)
         reason = "writeback_failure" if restored else "rollback_failure"
         return False, reason, "Failed to write suggested fix; original file was restored." if restored else "Write and rollback both failed."
 
-    current_value = _read_translation_value(target_path, key)
+    current_value = _read_translation_value(target_path, key, game_id)
     if current_value == suggested_fix:
         validation_errors = _validation_errors(game_id, key, source_str, current_value, target_lang)
         if not validation_errors:

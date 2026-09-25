@@ -17,6 +17,7 @@ from scripts.schemas.config import (
 from scripts.app_settings import config_manager
 from scripts.utils.system_utils import sanitize_for_json
 from scripts.core.services.custom_provider_profile_service import CustomProviderProfileService
+from scripts.core.services.game_language_policy import supported_language_codes
 from scripts.core.reasoning_policy import (
     describe_reasoning_settings,
     resolve_reasoning_parameters,
@@ -111,8 +112,10 @@ def get_config():
             "has_key": profile["has_key"],
         })
 
+    game_profiles = {key: {**profile, "supported_language_codes": supported_language_codes(profile["id"])}
+                     for key, profile in GAME_PROFILES.items()}
     return sanitize_for_json({
-        "game_profiles": GAME_PROFILES,
+        "game_profiles": game_profiles,
         "languages": LANGUAGES,
         "api_providers": api_providers_list,
         "profiles": profiles,
@@ -327,6 +330,12 @@ def update_provider_config(payload: UpdateProviderConfigRequest):
         if key in current_overrides[provider_id]
     })
     resolution = resolve_reasoning_parameters(effective_config)
+    if not resolution.supported and payload.reasoning_builtin_enabled is None:
+        # A model-only update must not inherit an unusable reasoning toggle.
+        # Explicit requests to enable an unverified mapping still fail below.
+        current_overrides[provider_id]["reasoning_builtin_enabled"] = False
+        effective_config["reasoning_builtin_enabled"] = False
+        resolution = resolve_reasoning_parameters(effective_config)
     if resolution.builtin_enabled and not resolution.supported:
         raise HTTPException(
             status_code=400,

@@ -111,7 +111,10 @@ describe('MiningDashboard', () => {
 
     expect(await screen.findByText('schema failed')).toBeInTheDocument();
     expect(startButton).toBeEnabled();
-    expect(api.get).toHaveBeenCalledWith('/api/neologisms/status/project-1');
+    expect(api.get).toHaveBeenCalledWith(
+      '/api/neologisms/status/project-1',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
     expect(api.get.mock.calls.filter(([url]) => url === '/api/neologisms/status/project-1')).toHaveLength(1);
   });
 

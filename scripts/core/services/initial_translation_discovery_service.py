@@ -4,6 +4,8 @@ import re
 from typing import Optional
 
 from scripts.app_settings import SOURCE_DIR
+from scripts.core import surviving_mars_csv
+from scripts.core.game_adapters.registry import resource_adapter
 
 
 def discover_localizable_files(
@@ -19,6 +21,14 @@ def discover_localizable_files(
     """
     source_loc_folder = game_profile["source_localization_folder"]
     mod_root_path = override_path if override_path else os.path.join(source_dir, mod_name)
+
+    if resource_adapter(game_profile):
+        from scripts.core.game_adapters.workflow_bridge import discover_files
+        return discover_files(mod_root_path, game_profile, source_lang)
+
+    if game_profile.get("format_adapter_id") == surviving_mars_csv.FORMAT_ADAPTER_ID:
+        return _discover_surviving_mars_csv_files(mod_root_path)
+
     source_loc_path = os.path.join(mod_root_path, source_loc_folder)
     cust_loc_root = os.path.join(mod_root_path, "customizable_localization")
 
@@ -37,6 +47,30 @@ def discover_localizable_files(
     if not discovered_files:
         _log_missing_source_language_diagnostics(search_paths, source_lang, lang_key)
 
+    return discovered_files
+
+
+def _discover_surviving_mars_csv_files(mod_root_path: str) -> list[dict]:
+    """Discover ModItemLocTable files independent of Paradox language folders."""
+
+    discovered_files = []
+    for root, _, files in os.walk(mod_root_path):
+        for filename in files:
+            if not filename.lower().endswith(".csv"):
+                continue
+            file_path = os.path.join(root, filename)
+            if not surviving_mars_csv.is_table_file(file_path):
+                continue
+            discovered_files.append(
+                {
+                    "path": file_path,
+                    "file_path": os.path.relpath(file_path, mod_root_path).replace(os.sep, "/"),
+                    "filename": filename,
+                    "root": root,
+                    "is_custom_loc": False,
+                    "loc_root": mod_root_path,
+                }
+            )
     return discovered_files
 
 
