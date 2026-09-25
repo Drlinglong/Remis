@@ -31,9 +31,12 @@ def sync_project_file_status(project_id: str, source_file_path: str):
 
 def build_dest_dir(file_task: FileTask, target_lang: dict, output_folder_name: str, game_profile: dict) -> str:
     """Build the destination directory while preserving module and language-folder structure."""
+    from scripts.core.services.translation_task_runtime import resolve_managed_output_path
     from scripts.core.game_adapters.registry import resource_adapter
     if resource_adapter(game_profile):
-        return os.path.join(DEST_DIR, output_folder_name, target_lang["code"])
+        return resolve_managed_output_path(
+            output_folder_name, target_lang["code"], dest_root=DEST_DIR
+        )
     known_lang_folders = set()
     for lang_def in LANGUAGES.values():
         if "name_en" in lang_def:
@@ -51,16 +54,18 @@ def build_dest_dir(file_task: FileTask, target_lang: dict, output_folder_name: s
             # ModItemLocTable files are selected by the mod's Lua
             # ``Language`` property, not by a Paradox language directory or
             # filename suffix. Preserve the source-relative CSV path.
-            return os.path.join(DEST_DIR, output_folder_name, *dir_parts)
+            return resolve_managed_output_path(
+                output_folder_name, *dir_parts, dest_root=DEST_DIR
+            )
 
         if file_task.is_custom_loc:
             rel_after_custom_root = dir_parts[1:] if dir_parts and dir_parts[0].lower() == "customizable_localization" else dir_parts
-            return os.path.join(
-                DEST_DIR,
+            return resolve_managed_output_path(
                 output_folder_name,
                 "customizable_localization",
                 target_folder,
                 *rel_after_custom_root,
+                dest_root=DEST_DIR,
             )
 
         replaced_lang_folder = False
@@ -81,17 +86,19 @@ def build_dest_dir(file_task: FileTask, target_lang: dict, output_folder_name: s
         if not replaced_lang_folder:
             dir_parts.insert(0, target_folder)
 
-        return os.path.join(DEST_DIR, output_folder_name, *dir_parts)
+        return resolve_managed_output_path(
+            output_folder_name, *dir_parts, dest_root=DEST_DIR
+        )
 
     if file_task.is_custom_loc:
         cust_loc_root = os.path.join(SOURCE_DIR, file_task.mod_name, "customizable_localization")
         rel = os.path.relpath(file_task.root, cust_loc_root)
-        return os.path.join(
-            DEST_DIR,
+        return resolve_managed_output_path(
             output_folder_name,
             "customizable_localization",
             target_lang["key"][2:],
             rel,
+            dest_root=DEST_DIR,
         )
 
     if file_task.loc_root:
@@ -109,7 +116,9 @@ def build_dest_dir(file_task: FileTask, target_lang: dict, output_folder_name: s
         new_rel_path = os.path.join(*parts)
         mod_root = os.path.join(SOURCE_DIR, file_task.mod_name)
         module_rel_path = os.path.relpath(file_task.loc_root, mod_root)
-        return os.path.join(DEST_DIR, output_folder_name, module_rel_path, new_rel_path)
+        return resolve_managed_output_path(
+            output_folder_name, module_rel_path, new_rel_path, dest_root=DEST_DIR
+        )
 
     source_loc_folder = game_profile["source_localization_folder"]
     source_loc_path = os.path.join(SOURCE_DIR, file_task.mod_name, source_loc_folder)
@@ -126,7 +135,9 @@ def build_dest_dir(file_task: FileTask, target_lang: dict, output_folder_name: s
     else:
         rel = os.path.join(target_lang["key"][2:], rel)
 
-    return os.path.join(DEST_DIR, output_folder_name, source_loc_folder, rel)
+    return resolve_managed_output_path(
+        output_folder_name, source_loc_folder, rel, dest_root=DEST_DIR
+    )
 
 
 def handle_empty_file(

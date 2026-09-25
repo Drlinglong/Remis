@@ -1,6 +1,8 @@
 import json
 import os
 import logging
+import stat
+from pathlib import Path
 from typing import Dict, Any, List
 from scripts.app_settings import relativize_path, resolve_path
 
@@ -17,8 +19,21 @@ class ProjectJsonManager:
         self.json_path = os.path.join(project_root, '.remis_project.json')
         self._ensure_json_exists()
 
+    def _assert_sidecar_path(self):
+        """The chosen project root is user-owned; its sidecar cannot redirect writes."""
+        path = Path(self.json_path)
+        if path.is_symlink():
+            raise ValueError("Project sidecar cannot be a symbolic link")
+        if path.exists():
+            info = path.lstat()
+            if not stat.S_ISREG(info.st_mode) or getattr(info, "st_file_attributes", 0) & 0x400:
+                raise ValueError("Project sidecar must be a regular, non-redirected file")
+        if path.resolve().parent != Path(self.project_root).resolve():
+            raise ValueError("Project sidecar must remain inside its selected project")
+
     def _ensure_json_exists(self):
         """Creates the JSON file with default structure if it doesn't exist."""
+        self._assert_sidecar_path()
         if not os.path.exists(self.json_path):
             default_data = {
                 "version": "1.0",
@@ -35,6 +50,7 @@ class ProjectJsonManager:
 
     def _load_json(self) -> Dict[str, Any]:
         try:
+            self._assert_sidecar_path()
             with open(self.json_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
                 if "config" in data and "translation_dirs" in data["config"]:
@@ -47,6 +63,7 @@ class ProjectJsonManager:
 
     def _save_json(self, data: Dict[str, Any]):
         try:
+            self._assert_sidecar_path()
             save_data = data.copy()
             if "config" in save_data and "translation_dirs" in save_data["config"]:
                 save_data["config"] = save_data["config"].copy()
@@ -54,6 +71,7 @@ class ProjectJsonManager:
                 save_data["config"]["translation_dirs"] = relativized_dirs
 
             os.makedirs(os.path.dirname(self.json_path), exist_ok=True)
+            self._assert_sidecar_path()
             with open(self.json_path, 'w', encoding='utf-8') as f:
                 json.dump(save_data, f, indent=4, ensure_ascii=False)
         except Exception as e:

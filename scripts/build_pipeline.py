@@ -14,13 +14,23 @@ from pathlib import Path
 
 try:
     from scripts.build_profile import PROFILES, write_profile_manifest
+    from scripts.build_game_smoke import REQUIRED_FROZEN_GAME_ADAPTER_MODULES, verify_frozen_game_adapter_modules
     from scripts.build_fpk_smoke import PYINSTALLER_FPK_ARGS, verify_frozen_fpk_support
     PYINSTALLER_GAME_ADAPTER_ARGS = "--collect-submodules scripts.core.game_adapters"
+    PYINSTALLER_GAME_ADAPTER_FACTORY_ARGS = (
+        "--hidden-import scripts.core.game_adapters.project_zomboid "
+        "--hidden-import scripts.core.game_adapters.rimworld"
+    )
     PYINSTALLER_GAME_VALIDATOR_ARGS = "--hidden-import scripts.utils.surviving_mars_validator"
 except ModuleNotFoundError:
     from build_profile import PROFILES, write_profile_manifest
+    from build_game_smoke import REQUIRED_FROZEN_GAME_ADAPTER_MODULES, verify_frozen_game_adapter_modules
     from build_fpk_smoke import PYINSTALLER_FPK_ARGS, verify_frozen_fpk_support
     PYINSTALLER_GAME_ADAPTER_ARGS = "--collect-submodules scripts.core.game_adapters"
+    PYINSTALLER_GAME_ADAPTER_FACTORY_ARGS = (
+        "--hidden-import scripts.core.game_adapters.project_zomboid "
+        "--hidden-import scripts.core.game_adapters.rimworld"
+    )
     PYINSTALLER_GAME_VALIDATOR_ARGS = "--hidden-import scripts.utils.surviving_mars_validator"
 
 MIN_GOOGLE_GENAI_VERSION = (2, 18, 0)
@@ -518,6 +528,7 @@ def pyinstaller_command(env_pyinstaller, add_data_args, web_server_script):
         f'--hidden-import scripts.config.prompts '
         f'{PYINSTALLER_FPK_ARGS} '
         f'{PYINSTALLER_GAME_ADAPTER_ARGS} '
+        f'{PYINSTALLER_GAME_ADAPTER_FACTORY_ARGS} '
         f'{PYINSTALLER_GAME_VALIDATOR_ARGS} '
         f'--hidden-import google.genai --hidden-import openai '
         f'{PYINSTALLER_AI_ARGS} '
@@ -531,6 +542,7 @@ def pyinstaller_command(env_pyinstaller, add_data_args, web_server_script):
 
 def run_frozen_backend_smoke(target_path, profile, env_python):
     try:
+        verify_frozen_game_adapter_modules(target_path)
         verify_frozen_backend(target_path, profile, env_python=env_python)
     except RuntimeError as exc:
         print(f"[ERROR] {exc}")

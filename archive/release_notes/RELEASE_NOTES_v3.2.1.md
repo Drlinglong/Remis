@@ -1,6 +1,6 @@
 # Remis 3.2.1
 
-版本日期：2026-09-25。正式安装包以 GitHub Release 附件为准。
+发布日期：2026-09-25。正式安装包以 GitHub Release 附件为准。
 
 ## English
 
@@ -27,7 +27,7 @@
 - Introduce extensible game adapters while preserving the existing Paradox workflows and translation archive compatibility.
 - Add bounded FPK extraction, isolated preparation, source/manifest hashes, stable localization IDs, multilingual delivery validation and project-bound publication identities. The standalone extractor is also available in the public [remis-fpk repository](https://github.com/Drlinglong/remis-fpk).
 - Preserve CSV paragraph breaks and Surviving Mars runtime tags. Fix reasoning-setting transitions for manually entered models and support the GPT-6 catalog entries.
-- Integrate backend fixes for persistent project identity, resumable translation lineage, database migrations and task completion/error handling.
+- Integrate backend fixes for persistent project identity, resumable translation lineage, database migrations and task completion/error handling. Harden custom-language output paths, project sidecars and description archives; refuse destructive same-name source imports in the legacy entry point.
 - Integrate frontend guards against stale recovery and archive-analysis responses after project changes. Keep workflow state in dedicated hooks and services.
 - Retain recent dependency/security updates from the main branch. Align stable application/build version and release date, and exercise FPK decompression in the frozen-backend release smoke test.
 
@@ -56,13 +56,15 @@
 - 建立可扩展游戏适配接口，保留现有 P 社流程与翻译归档兼容性。
 - 加入有限额的 FPK 解包、隔离准备、源文件与清单哈希、稳定本地化 ID、多语言交付校验，以及绑定到项目的发布身份。解包工具也已拆分到公开的 [remis-fpk 独立仓库](https://github.com/Drlinglong/remis-fpk)。
 - 保留 CSV 段落换行和火星求生运行时标签；修复手动模型的推理设置切换，并补齐 GPT-6 模型目录。
-- 合入后端项目持久身份、翻译恢复链路、数据库迁移和任务成功/失败状态处理修复。
+- 合入后端项目持久身份、翻译恢复链路、数据库迁移和任务成功/失败状态处理修复；补强自定义语言输出路径、项目元数据和描述归档边界，拒绝旧入口破坏性覆盖同名源目录。
 - 合入前端跨项目切换后的恢复与档案分析过期响应保护；工作流状态继续由独立 hook 和服务承担。
 - 保留主分支近期依赖与安全更新；统一 stable 应用和构建版本、发布日期，并在冻结后端的发布冒烟中验证 FPK 解压。
 
 ## 发布验证记录 / Release validation
 
-- Backend: 2,196 tests passed, 11 skipped; compilation, critical Flake8 checks and the Python architecture guard passed. Frontend: 1,028 tests in 247 files passed. Website: 64 tests, lint and build passed. Frontend lint has zero errors and 13 existing warnings; production dependency audits reported zero vulnerabilities.
+- Integrated backend baseline: 2,196 tests passed, 11 skipped; compilation, critical Flake8 checks and the Python architecture guard passed. Frontend: 1,028 tests in 247 files passed. Website: 64 tests, lint and build passed. Frontend lint has zero errors and 13 existing warnings; production dependency audits reported zero vulnerabilities.
 - Five-theme visual checks passed for the Mars import workflow. The real Exotic Minerals Expanded archive was compared against 56 independently exported source files, including image resources; every file matched byte for byte. The reference Mod is not distributed with the source repository or test fixtures.
 - Frontend responsibility review: new import/delivery components are 161/111 lines and contain 1/0 state hooks and no effects. Their API/workflow hooks are 54/51 lines (1/2 state hooks, 2/1 effects). Recovery remains a dedicated 259-line hook; archive analysis grows from 417 to 500 lines without adding state/effects or another responsibility. Initial translation flow grows from 228 to 266 lines, adds no state hooks and adds two effects for mounted/project lifecycle guards. Focused recovery tests cover failed status checks, delayed responses, project changes and React StrictMode.
 - 后端、前端与网站测试均不调用付费模型。游戏内结果仅采用用户确认的火星求生中法德实测；环世界与僵尸毁灭工程仍为 Preview。
+
+- Follow-up security and frozen-module checks are documented in the [release security review](https://github.com/Drlinglong/Remis/blob/main/docs/zh/developer/release-v3.2.1-security-review.md); final CI results are attached to [PR #220](https://github.com/Drlinglong/Remis/pull/220).

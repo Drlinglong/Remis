@@ -184,8 +184,9 @@ def _decode_zstd_file(
 
 
 def _compare_reference(path: str, raw: bytes, reference_root: Path) -> dict[str, Any]:
-    candidate = reference_root.joinpath(*PurePosixPath(path).parts).resolve()
-    if not candidate.is_relative_to(reference_root):
+    resolved_root = reference_root.resolve(strict=True)
+    candidate = resolved_root.joinpath(*PurePosixPath(path).parts).resolve()
+    if not candidate.is_relative_to(resolved_root):
         raise ProbeError("reference path resolves outside the reference directory")
     if not candidate.is_file():
         return {"reference_match": "missing"}

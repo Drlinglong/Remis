@@ -90,6 +90,22 @@ def _ready_manifest() -> dict:
     }
 
 
+def test_archive_path_uses_the_canonical_allowed_parent(tmp_path, monkeypatch):
+    allowed = tmp_path / "allowed"
+    allowed.mkdir()
+    archive = allowed / "ModContent.fpk"
+    archive.write_bytes(_raw_archive())
+    monkeypatch.setattr(workflow, "_resolve_allowed_mod_folder", lambda _path: allowed)
+
+    assert workflow._archive_path(str(archive)) == archive
+
+    redirected_parent = tmp_path / "other"
+    redirected_parent.mkdir()
+    monkeypatch.setattr(workflow, "_resolve_allowed_mod_folder", lambda _path: redirected_parent)
+    with pytest.raises(ValueError, match="canonical allowed parent"):
+        workflow._archive_path(str(archive))
+
+
 @pytest.fixture
 def pipeline_store(tmp_path, monkeypatch):
     monkeypatch.setattr(store, "APP_DATA_DIR", tmp_path / "app-data")
@@ -102,7 +118,7 @@ async def test_prepare_plan_requires_approval_and_records_source_copy_choices(
 ):
     archive_path = tmp_path / "ModContent.fpk"
     archive_path.write_bytes(_raw_archive())
-    monkeypatch.setattr(workflow, "_resolve_allowed_mod_folder", lambda _path: None)
+    monkeypatch.setattr(workflow, "_resolve_allowed_mod_folder", lambda path: Path(path))
     monkeypatch.setattr(workflow, "_inspect", lambda _request: (
         {"archive_sha256": "a" * 64, "files": [{"path": "x.bin"}]}, _ready_manifest(),
     ))
@@ -166,7 +182,7 @@ async def test_prepare_stale_archive_hash_leaves_failed_receipt_without_project(
         "manifest_fingerprint": store.fingerprint(manifest), "approved_ids": ["1"],
         "name": "Mars mod",
     }
-    monkeypatch.setattr(workflow, "_resolve_allowed_mod_folder", lambda _path: None)
+    monkeypatch.setattr(workflow, "_resolve_allowed_mod_folder", lambda path: Path(path))
     monkeypatch.setattr(workflow, "_inspect", lambda _request: (
         {"archive_sha256": original_hash, "files": [{"path": "x.bin"}]}, manifest,
     ))
@@ -475,6 +491,20 @@ async def test_delivery_stale_fingerprint_does_not_build_or_persist_output(monke
 def test_run_path_rejects_non_plan_receipt_names(pipeline_store):
     with pytest.raises(ValueError, match="Invalid pipeline run identity"):
         store.run_path("../outside")
+
+
+def test_pipeline_store_rejects_redirected_appdata_root(tmp_path, monkeypatch):
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    redirected = tmp_path / "app-data"
+    try:
+        redirected.symlink_to(outside, target_is_directory=True)
+    except OSError as exc:
+        pytest.skip(f"directory symlinks are unavailable: {exc}")
+    monkeypatch.setattr(store, "APP_DATA_DIR", redirected)
+
+    with pytest.raises(ValueError, match="links or junctions"):
+        store.root()
 
 
 def test_project_receipt_returns_only_prepared_receipts_owned_by_project(pipeline_store):

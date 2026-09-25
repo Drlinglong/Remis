@@ -5,12 +5,23 @@ import os
 import requests
 import datetime
 import logging
+import re
+from pathlib import Path
 from scripts.config.prompts import STEAM_BBCODE_PROMPT_TEMPLATE
 from scripts.app_settings import LANGUAGES
 from scripts.core.glossary_manager import glossary_manager
 from scripts.core.api_handler import get_handler
 
 logger = logging.getLogger(__name__)
+_SAFE_ARCHIVE_IDENTIFIER = re.compile(r"[A-Za-z0-9_-]{1,128}\Z")
+_WINDOWS_RESERVED_NAME = re.compile(r"(?i)(con|prn|aux|nul|com[1-9]|lpt[1-9])\Z")
+
+
+def _is_safe_archive_identifier(value: str) -> bool:
+    return bool(
+        _SAFE_ARCHIVE_IDENTIFIER.fullmatch(value)
+        and not _WINDOWS_RESERVED_NAME.fullmatch(value)
+    )
 
 
 class WorkshopFormattingUnavailableError(RuntimeError):
@@ -159,22 +170,44 @@ def archive_generated_description(project_id: str, bbcode_content: str, workshop
     Saves the generated BBCode content to a file.
     """
     try:
-        project_dir = os.path.join("my_translation", project_id) if project_id else "generated_descriptions"
-        archive_dir = os.path.join(project_dir, "generated_descriptions") if project_id else project_dir
-        os.makedirs(archive_dir, exist_ok=True)
+        project_id = project_id or ""
+        archive_identifier = project_id or workshop_id
+        if not _is_safe_archive_identifier(archive_identifier):
+            logger.warning("Refusing to archive description with an unsafe identifier")
+            return None
+
+        working_root = Path.cwd().resolve()
+        relative_root = Path("my_translation") if project_id else Path("generated_descriptions")
+        archive_root = relative_root.resolve()
+        if not archive_root.is_relative_to(working_root):
+            logger.warning("Refusing to archive description outside the application workspace")
+            return None
+
+        project_dir = relative_root / project_id if project_id else relative_root
+        archive_dir = project_dir / "generated_descriptions" if project_id else project_dir
+        if not archive_dir.resolve().is_relative_to(archive_root):
+            logger.warning("Refusing to archive description through an escaping directory link")
+            return None
+        archive_dir.mkdir(parents=True, exist_ok=True)
+        if not archive_dir.resolve().is_relative_to(archive_root):
+            logger.warning("Refusing to archive description through an escaping directory link")
+            return None
 
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
 
         base_name = project_id if project_id else f"workshop_{workshop_id}"
         filename = f"{base_name}_{timestamp}.md"
 
-        file_path = os.path.join(archive_dir, filename)
+        file_path = archive_dir / filename
+        if not file_path.resolve().is_relative_to(archive_root):
+            logger.warning("Refusing to archive description outside the application workspace")
+            return None
 
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(bbcode_content)
 
         logger.info(f"Successfully archived generated description to: {file_path}")
-        return file_path
+        return str(file_path)
     except IOError as e:
         logger.error(f"Failed to write archive file: {e}")
         return None

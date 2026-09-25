@@ -46,6 +46,48 @@ def _legacy_translation_request(project_path: str) -> TranslationRequestV2:
     )
 
 
+@pytest.mark.parametrize(
+    "custom_config",
+    [
+        {"name": "Alienese", "code": "custom", "key": "l_english", "folder_prefix": "../escape-"},
+        {"name": "Alienese", "code": "../../outside", "key": "l_english", "folder_prefix": "AL-"},
+        {"name": "Alienese", "code": "custom", "key": "../../outside", "folder_prefix": "AL-"},
+    ],
+)
+def test_translate_v2_rejects_unsafe_custom_language_configuration(tmp_path, custom_config):
+    response = TestClient(app).post("/api/translate_v2", json={
+        "project_path": str(tmp_path),
+        "game_profile_id": "stellaris",
+        "source_lang_code": "en",
+        "target_lang_codes": ["custom"],
+        "api_provider": "mock",
+        "custom_lang_config": custom_config,
+    })
+
+    assert response.status_code == 422
+    assert tasks == {}
+
+
+@pytest.mark.parametrize(
+    "custom_config",
+    [
+        {"name": "Alienese", "code": "custom", "key": "l_english", "folder_prefix": "AL-"},
+        {"name": "繁體中文", "code": "custom", "key": "l_simp_chinese", "folder_prefix": "zh-TW-"},
+    ],
+)
+def test_custom_language_schema_keeps_supported_shell_languages(custom_config):
+    request = TranslationRequestV2(
+        project_path="C:/source/mod",
+        game_profile_id="stellaris",
+        source_lang_code="en",
+        target_lang_codes=["custom"],
+        api_provider="mock",
+        custom_lang_config=custom_config,
+    )
+
+    assert request.custom_lang_config.name == custom_config["name"]
+
+
 @pytest.mark.asyncio
 async def test_translate_v2_invalid_path_does_not_admit_task(monkeypatch, tmp_path):
     monkeypatch.setattr(translation, "resolve_runtime_or_400", lambda *_args: object())
@@ -58,6 +100,60 @@ async def test_translate_v2_invalid_path_does_not_admit_task(monkeypatch, tmp_pa
         )
 
     assert error.value.status_code == 400
+    assert tasks == {}
+
+
+@pytest.mark.asyncio
+async def test_translate_v2_rejects_filesystem_root_without_touching_managed_sources(
+    monkeypatch, tmp_path,
+):
+    managed = tmp_path / "managed"
+    protected = managed / "ExistingMod"
+    protected.mkdir(parents=True)
+    sentinel = protected / "keep.txt"
+    sentinel.write_text("preserve", encoding="utf-8")
+    monkeypatch.setattr(translation, "SOURCE_DIR", str(managed))
+    monkeypatch.setattr(translation, "resolve_runtime_or_400", lambda *_args: object())
+    monkeypatch.setattr(translation, "provider_task_fields", lambda _runtime: {})
+
+    with pytest.raises(translation.HTTPException) as error:
+        await translation.start_translation_v2(
+            BackgroundTasks(),
+            _legacy_translation_request(str(tmp_path.anchor)),
+        )
+
+    assert error.value.status_code == 400
+    assert "filesystem root" in error.value.detail
+    assert sentinel.read_text(encoding="utf-8") == "preserve"
+    assert tasks == {}
+
+
+@pytest.mark.asyncio
+async def test_translate_v2_refuses_to_overwrite_same_named_managed_source(
+    monkeypatch, tmp_path,
+):
+    incoming = tmp_path / "incoming" / "ExistingMod"
+    incoming.mkdir(parents=True)
+    (incoming / "incoming.txt").write_text("new", encoding="utf-8")
+    managed = tmp_path / "managed"
+    protected = managed / "ExistingMod"
+    protected.mkdir(parents=True)
+    sentinel = protected / "keep.txt"
+    sentinel.write_text("preserve", encoding="utf-8")
+    monkeypatch.setattr(translation, "SOURCE_DIR", str(managed))
+    monkeypatch.setattr(translation, "resolve_runtime_or_400", lambda *_args: object())
+    monkeypatch.setattr(translation, "provider_task_fields", lambda _runtime: {})
+
+    with pytest.raises(translation.HTTPException) as error:
+        await translation.start_translation_v2(
+            BackgroundTasks(),
+            _legacy_translation_request(str(incoming)),
+        )
+
+    assert error.value.status_code == 400
+    assert "already exists" in error.value.detail
+    assert sentinel.read_text(encoding="utf-8") == "preserve"
+    assert not (protected / "incoming.txt").exists()
     assert tasks == {}
 
 

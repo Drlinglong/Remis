@@ -62,6 +62,10 @@ def test_pyinstaller_explicitly_collects_fpk_and_zstandard_modules():
     assert build_pipeline.PYINSTALLER_GAME_ADAPTER_ARGS == (
         "--collect-submodules scripts.core.game_adapters"
     )
+    assert build_pipeline.PYINSTALLER_GAME_ADAPTER_FACTORY_ARGS.split() == [
+        "--hidden-import", "scripts.core.game_adapters.project_zomboid",
+        "--hidden-import", "scripts.core.game_adapters.rimworld",
+    ]
     assert build_pipeline.PYINSTALLER_GAME_VALIDATOR_ARGS == (
         "--hidden-import scripts.utils.surviving_mars_validator"
     )
@@ -69,10 +73,59 @@ def test_pyinstaller_explicitly_collects_fpk_and_zstandard_modules():
         "K:/env/Scripts/pyinstaller.exe", "--add-data \"source;target\"", "scripts/web_server.py"
     )
     assert "--collect-submodules scripts.core.game_adapters" in command
+    assert "--hidden-import scripts.core.game_adapters.project_zomboid" in command
+    assert "--hidden-import scripts.core.game_adapters.rimworld" in command
     assert "--hidden-import scripts.utils.surviving_mars_validator" in command
     assert "--collect-submodules scripts.utils" not in command
     assert "--collect-submodules zstandard" in command
     assert "--hidden-import tools.remis_fpk" in command
+
+
+def test_frozen_archive_verifier_accepts_required_registry_modules(monkeypatch):
+    from types import SimpleNamespace
+
+    archive = SimpleNamespace(
+        _start_offset=100,
+        toc={"PYZ.pyz": (200, 0, 0, 0, "z")},
+    )
+    pyz = SimpleNamespace(toc={
+        module: (0, "module")
+        for module in build_pipeline.REQUIRED_FROZEN_GAME_ADAPTER_MODULES
+    })
+    monkeypatch.setattr(
+        "PyInstaller.archive.readers.CArchiveReader", lambda executable: archive
+    )
+    monkeypatch.setattr(
+        "PyInstaller.archive.readers.ZlibArchiveReader",
+        lambda executable, start_offset: pyz if start_offset == 300 else None,
+    )
+
+    build_pipeline.verify_frozen_game_adapter_modules("release/web_server.exe")
+
+
+def test_frozen_archive_verifier_rejects_missing_registry_modules(monkeypatch):
+    from types import SimpleNamespace
+
+    archive = SimpleNamespace(
+        _start_offset=100,
+        toc={"PYZ.pyz": (200, 0, 0, 0, "z")},
+    )
+    pyz = SimpleNamespace(toc={
+        "scripts.core.game_adapters.registry": (0, "module"),
+    })
+    monkeypatch.setattr(
+        "PyInstaller.archive.readers.CArchiveReader", lambda executable: archive
+    )
+    monkeypatch.setattr(
+        "PyInstaller.archive.readers.ZlibArchiveReader",
+        lambda executable, start_offset: pyz,
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="scripts.core.game_adapters.project_zomboid.*scripts.core.game_adapters.rimworld",
+    ):
+        build_pipeline.verify_frozen_game_adapter_modules("release/web_server.exe")
 
 
 def test_verify_frozen_backend_fails_when_packaged_process_exits():

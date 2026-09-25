@@ -1,7 +1,6 @@
 import asyncio
 import json
 import logging
-import re
 from typing import List, Dict, Any, Optional, Tuple
 
 from scripts.core.base_handler import BaseApiHandler
@@ -26,8 +25,10 @@ def _parse_fix_translations(raw_response: str, game_id: str) -> list[str]:
     if fixed_texts:
         return fixed_texts
     try:
-        match = re.search(r'\[.*\]', raw_response, re.DOTALL)
-        fallback = json.loads(match.group(0)) if match else []
+        start, end = raw_response.find("["), raw_response.rfind("]")
+        fallback = json.loads(raw_response[start:end + 1]) if 0 <= start < end else []
+        if not isinstance(fallback, list) or not all(isinstance(item, str) for item in fallback):
+            return []
         if preserve_newlines:
             from scripts.utils.text_clean import restore_special_tokens
             fallback = [
@@ -543,8 +544,9 @@ class ReflexionFixAgent:
         )
         try:
             raw = await self.handler.generate_response(prompt)
-            match = re.search(r"\{.*\}", raw or "", re.DOTALL)
-            parsed = json.loads(match.group(0)) if match else {}
+            text = raw or ""
+            start, end = text.find("{"), text.rfind("}")
+            parsed = json.loads(text[start:end + 1]) if 0 <= start < end else {}
         except Exception as exc:
             self.logger.warning("Semantic variation assessment failed: %s", exc)
             parsed = {}

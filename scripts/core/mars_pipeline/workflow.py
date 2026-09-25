@@ -16,12 +16,14 @@ from tools.remis_fpk import extract_archive, inspect_archive
 
 def _archive_path(raw: str) -> Path:
     path = Path(raw).absolute()
-    _resolve_allowed_mod_folder(str(path.parent))
+    allowed_parent = _resolve_allowed_mod_folder(str(path.parent))
+    if path.parent != allowed_parent:
+        raise ValueError("Archive path must use its canonical allowed parent")
     if path.suffix.lower() != ".fpk" or not path.is_file() or path.is_symlink():
         raise ValueError("Choose an existing, non-symlink .fpk Mod archive")
     if path.resolve() != path:
         raise ValueError("Archive paths cannot traverse redirected directories")
-    return path
+    return allowed_parent / path.name
 
 
 def _previous(run_id: str | None) -> dict | None:

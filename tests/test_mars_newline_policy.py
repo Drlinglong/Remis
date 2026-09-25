@@ -103,3 +103,10 @@ def test_reflexion_batch_fixer_uses_game_id_for_newline_policy():
 
     assert _parse_fix_translations(response, "surviving_mars") == ["fixed\nline"]
     assert _parse_fix_translations(response, "hoi4") == [r"fixed\nline"]
+
+
+def test_fixer_fallback_rejects_unclosed_brackets_and_nontext_arrays(monkeypatch):
+    monkeypatch.setattr("scripts.utils.structured_parser.parse_response", lambda *a, **kw: None)
+    assert _parse_fix_translations("[" * 100_000, "surviving_mars") == []
+    assert _parse_fix_translations('prefix ["text"] suffix', "surviving_mars") == ["text"]
+    assert _parse_fix_translations('prefix [1, {"bad": true}] suffix', "surviving_mars") == []

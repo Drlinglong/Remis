@@ -1,3 +1,8 @@
+import json
+from pathlib import Path
+
+import pytest
+
 from scripts.core import deploy_manager as deploy_module
 from scripts.core.deploy_manager import ModDeployer
 
@@ -77,6 +82,94 @@ def test_detect_steam_workshop_path_prefers_project_source_inside_workshop(tmp_p
     result = deployer.detect_steam_workshop_path("victoria3", str(mod_root))
 
     assert result == str(workshop_root)
+
+
+def test_get_remote_file_id_accepts_numeric_ids_and_rejects_path_values(tmp_path):
+    deployer = ModDeployer()
+    mod_root = tmp_path / "mod"
+    mod_root.mkdir()
+    descriptor = mod_root / "descriptor.mod"
+
+    descriptor.write_text('remote_file_id="1234567890"\n', encoding="utf-8")
+    assert deployer.get_remote_file_id(mod_root, "stellaris") == "1234567890"
+
+    descriptor.write_text('remote_file_id="../outside"\n', encoding="utf-8")
+    assert deployer.get_remote_file_id(mod_root, "stellaris") is None
+    descriptor.write_text('remote_file_id=1234567890/../../outside\n', encoding="utf-8")
+    assert deployer.get_remote_file_id(mod_root, "stellaris") is None
+
+
+def test_get_remote_file_id_rejects_non_numeric_victoria3_metadata(tmp_path):
+    deployer = ModDeployer()
+    mod_root = tmp_path / "mod"
+    metadata = mod_root / ".metadata"
+    metadata.mkdir(parents=True)
+    (metadata / "metadata.json").write_text(
+        json.dumps({"id": "../outside"}), encoding="utf-8"
+    )
+
+    assert deployer.get_remote_file_id(mod_root, "victoria3") is None
+
+
+def test_locate_original_workshop_mod_keeps_numeric_child_inside_workshop_root(tmp_path):
+    deployer = ModDeployer()
+    workshop_root = (
+        tmp_path / "steamapps" / "workshop" / "content"
+        / deployer.GAME_APPIDS["victoria3"]
+    )
+    source_path = workshop_root / "local-copy"
+    source_path.mkdir(parents=True)
+    metadata = source_path / ".metadata"
+    metadata.mkdir()
+    (metadata / "metadata.json").write_text(json.dumps({"id": "123456"}), encoding="utf-8")
+    workshop_mod = workshop_root / "123456"
+    workshop_mod.mkdir()
+
+    assert deployer.locate_original_workshop_mod(str(source_path), "victoria3") == str(
+        workshop_mod.resolve()
+    )
+
+
+def test_locate_original_workshop_mod_preserves_selected_local_mod_fallback(tmp_path):
+    deployer = ModDeployer()
+    local_mod = tmp_path / "user-selected-mod"
+    local_mod.mkdir()
+    (local_mod / "descriptor.mod").write_text(
+        'remote_file_id="../outside"\n', encoding="utf-8"
+    )
+
+    assert deployer.locate_original_workshop_mod(str(local_mod), "stellaris") == str(
+        local_mod
+    )
+
+
+def test_locate_original_workshop_mod_rejects_symlinked_numeric_child(tmp_path, monkeypatch):
+    deployer = ModDeployer()
+    workshop_root = (
+        tmp_path / "steamapps" / "workshop" / "content"
+        / deployer.GAME_APPIDS["victoria3"]
+    )
+    source_path = workshop_root / "local-copy"
+    source_path.mkdir(parents=True)
+    metadata = source_path / ".metadata"
+    metadata.mkdir()
+    (metadata / "metadata.json").write_text(json.dumps({"id": "123456"}), encoding="utf-8")
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    target = workshop_root / "123456"
+    target.mkdir()
+    original_resolve = Path.resolve
+
+    def resolve_with_external_link(path, *args, **kwargs):
+        if path == target:
+            return outside
+        return original_resolve(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "resolve", resolve_with_external_link)
+
+    assert deployer.locate_original_workshop_mod(str(source_path), "victoria3") == str(
+        source_path
+    )
 
 
 def test_deploy_rejects_output_path_traversal(tmp_path, monkeypatch):

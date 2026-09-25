@@ -29,12 +29,31 @@ def prepare_legacy_translation_start(
         raise InvalidLegacyProjectPath("Invalid project path.")
 
     mod_name = os.path.basename(os.path.normpath(project_path))
-    source_path = os.path.join(source_dir, mod_name)
+    if not mod_name or mod_name in {".", ".."}:
+        raise InvalidLegacyProjectPath("Select a specific project folder, not a filesystem root.")
+
+    source_root = os.path.abspath(source_dir)
+    source_path = os.path.abspath(os.path.join(source_root, mod_name))
+    try:
+        destination_root = os.path.normcase(source_root)
+        destination_path = os.path.normcase(source_path)
+        if (
+            destination_path == destination_root
+            or os.path.commonpath([destination_root, destination_path]) != destination_root
+        ):
+            raise InvalidLegacyProjectPath("Project folder name is not a safe managed path.")
+    except ValueError as exc:
+        raise InvalidLegacyProjectPath("Project folder name is not a safe managed path.") from exc
+
     try:
         if not payload.is_existing_source:
-            if os.path.exists(source_path):
-                shutil.rmtree(source_path)
+            if os.path.lexists(source_path):
+                raise InvalidLegacyProjectPath(
+                    "A managed source folder with this name already exists; choose it as the existing source or rename the imported folder."
+                )
             shutil.copytree(project_path, source_path)
+    except InvalidLegacyProjectPath:
+        raise
     except Exception as exc:
         raise LegacySourcePreparationError("File processing failed.") from exc
 

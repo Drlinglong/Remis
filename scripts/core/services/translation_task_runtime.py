@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import os
+import ntpath
 from hashlib import sha256
+from pathlib import Path
 from typing import Any, Optional
 
 from scripts.app_settings import DEST_DIR, GAME_PROFILES, GAME_PROFILES_BY_ID
@@ -26,14 +28,59 @@ def _project_output_suffix(project_id: Optional[str]) -> str:
     return f"--{normalized[:32]}-{digest}"
 
 
+def resolve_managed_output_path(
+    output_folder_name: str,
+    *relative_parts: str,
+    dest_root: Optional[str] = None,
+) -> str:
+    """Build a Remis output path and reject traversal or symlink escapes."""
+    folder_name = os.fspath(output_folder_name)
+    if (
+        not folder_name
+        or folder_name in {".", ".."}
+        or any(separator in folder_name for separator in ("/", "\\", ":"))
+        or ntpath.splitdrive(folder_name)[0]
+    ):
+        raise ValueError("Translation output folder must be a single safe path component")
+
+    root_path = os.fspath(dest_root if dest_root is not None else DEST_DIR)
+    resolved_root = Path(root_path).resolve()
+    output_root = (resolved_root / folder_name).resolve()
+    if output_root.parent != resolved_root:
+        raise ValueError("Translation output folder resolves outside the managed output root")
+
+    candidate = output_root
+    for part in relative_parts:
+        text = os.fspath(part)
+        components = text.replace("\\", "/").split("/")
+        if (
+            not text
+            or os.path.isabs(text)
+            or ntpath.isabs(text)
+            or ntpath.splitdrive(text)[0]
+            or ":" in text
+            or any(component == ".." for component in components)
+        ):
+            raise ValueError("Translation output path contains an unsafe component")
+        candidate = candidate / text
+
+    if not candidate.resolve().is_relative_to(output_root):
+        raise ValueError("Translation output path resolves outside its managed folder")
+    return os.path.join(root_path, folder_name, *(os.fspath(part) for part in relative_parts))
+
+
 def get_output_folder_name(mod_name: str, target_lang: dict, project_id: Optional[str] = None) -> str:
     prefix = target_lang.get("folder_prefix", f"{target_lang.get('code', 'unknown')}-")
-    return f"{prefix}{slugify_to_ascii(mod_name)}{_project_output_suffix(project_id)}"
+    folder_name = f"{prefix}{slugify_to_ascii(mod_name)}{_project_output_suffix(project_id)}"
+    resolve_managed_output_path(folder_name)
+    return folder_name
 
 
 def _language_output_folder_name(mod_name: str, target_lang: dict) -> str:
     prefix = target_lang.get("folder_prefix", f"{target_lang.get('code', 'unknown')}-")
-    return f"{prefix}{slugify_to_ascii(mod_name)}"
+    folder_name = f"{prefix}{slugify_to_ascii(mod_name)}"
+    resolve_managed_output_path(folder_name)
+    return folder_name
 
 
 def get_output_folder_names(
@@ -71,7 +118,7 @@ def get_output_directories(
     game_profile: Optional[dict] = None,
 ) -> list[str]:
     return [
-        os.path.join(DEST_DIR, folder_name)
+        resolve_managed_output_path(folder_name)
         for folder_name in get_output_folder_names(
             mod_name,
             target_languages,
