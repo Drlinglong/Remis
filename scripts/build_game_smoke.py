@@ -26,5 +26,3 @@ def verify_frozen_game_adapter_modules(executable):
             "Packaged backend is missing game adapter modules: " + ", ".join(missing)
         )
     print("[SUCCESS] Packaged backend contains all registry game adapter modules.")
-
-
