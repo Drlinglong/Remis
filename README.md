@@ -6,8 +6,8 @@
   <h3>The operating system for AI localization.</h3>
 
   <p>
-    An open-source, AI-native desktop system that turns Paradox mod files into
-    glossary-aware, validated, reviewable localization.
+    An open-source, AI-native desktop system for glossary-aware, validated,
+    reviewable game-mod localization.
   </p>
 
   <p>
@@ -57,6 +57,23 @@ Project files, glossaries, checkpoints, translation history, and review state ar
   <a href="https://drlinglong.github.io/Remis/codex/"><strong>Use with an AI Agent</strong></a>
 </p>
 
+<p align="center"><strong>Supported game formats</strong></p>
+<table align="center">
+  <tr>
+    <td align="center"><a href="https://store.steampowered.com/app/529340/"><img src="docs/assets/games/victoria-3.jpg" width="48" alt="Victoria 3"></a><br><sub>Victoria 3</sub></td>
+    <td align="center"><a href="https://store.steampowered.com/app/281990/"><img src="docs/assets/games/stellaris.jpg" width="48" alt="Stellaris"></a><br><sub>Stellaris</sub></td>
+    <td align="center"><a href="https://store.steampowered.com/app/236850/"><img src="docs/assets/games/europa-universalis-iv.jpg" width="48" alt="Europa Universalis IV"></a><br><sub>Europa Universalis IV</sub></td>
+    <td align="center"><a href="https://store.steampowered.com/app/394360/"><img src="docs/assets/games/hearts-of-iron-iv.jpg" width="48" alt="Hearts of Iron IV"></a><br><sub>Hearts of Iron IV</sub></td>
+    <td align="center"><a href="https://store.steampowered.com/app/1158310/"><img src="docs/assets/games/crusader-kings-iii.jpg" width="48" alt="Crusader Kings III"></a><br><sub>Crusader Kings III</sub></td>
+    <td align="center"><a href="https://store.steampowered.com/app/3450310/"><img src="docs/assets/games/europa-universalis-v.jpg" width="48" alt="Europa Universalis V"></a><br><sub>Europa Universalis V</sub></td>
+  </tr>
+  <tr>
+    <td align="center" colspan="2"><a href="https://store.steampowered.com/app/3215050/"><img src="docs/assets/games/surviving-mars-relaunched.jpg" width="48" alt="Surviving Mars: Relaunched"></a><br><sub>Surviving Mars: Relaunched · Stable</sub></td>
+    <td align="center" colspan="2"><a href="https://store.steampowered.com/app/294100/"><img src="docs/assets/games/rimworld.jpg" width="48" alt="RimWorld"></a><br><sub>RimWorld · Preview</sub></td>
+    <td align="center" colspan="2"><a href="https://store.steampowered.com/app/108600/"><img src="docs/assets/games/project-zomboid.jpg" width="48" alt="Project Zomboid"></a><br><sub>Project Zomboid · Preview</sub></td>
+  </tr>
+</table>
+
 <p align="center">
   <a href="https://drlinglong.github.io/Remis/codex/" title="Use Remis with Codex"><img src="docs/assets/readme/chatgpt-mark-light.png" height="28" alt="ChatGPT / Codex"></a>
   &nbsp;&nbsp;
@@ -83,8 +100,9 @@ import an FPK, translate discovered text, and export one multilingual companion
 or complete internationalized Mod copy. Workshop uploads remain manual through
 the game's Mod Editor. [Read the guide](docs/en/user-guides/surviving-mars.md).
 
-RimWorld and Project Zomboid adapters are **Preview**. Support for all three games
-will continue to expand; existing Paradox workflows remain available.
+RimWorld and Project Zomboid adapters are **Preview**, and their generated
+packages have not been validated in-game. Existing Paradox workflows remain
+available. These labels describe adapter maturity, not complete mod coverage.
 [Release notes](docs/zh/developer/release-v3.2.1.md) ·
 [Standalone FPK extractor](https://github.com/Drlinglong/remis-fpk).
 

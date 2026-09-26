@@ -19,7 +19,26 @@
 
 </div>
 
-> **告别复制粘贴，拥抱自动化。** 一款为 P社游戏 Mod 打造的 AI 驱动本地化桌面应用，让翻译不再成为门槛。
+> **告别复制粘贴，拥抱自动化。** 一款面向多款游戏 Mod 的 AI 驱动本地化桌面应用，让翻译不再成为门槛。
+
+<p align="center"><strong>支持的游戏格式</strong></p>
+<table align="center">
+  <tr>
+    <td align="center"><a href="https://store.steampowered.com/app/529340/"><img src="assets/games/victoria-3.jpg" width="48" alt="维多利亚3 Victoria 3"></a><br><sub>维多利亚3</sub></td>
+    <td align="center"><a href="https://store.steampowered.com/app/281990/"><img src="assets/games/stellaris.jpg" width="48" alt="群星 Stellaris"></a><br><sub>群星</sub></td>
+    <td align="center"><a href="https://store.steampowered.com/app/236850/"><img src="assets/games/europa-universalis-iv.jpg" width="48" alt="欧陆风云4 Europa Universalis IV"></a><br><sub>欧陆风云4</sub></td>
+    <td align="center"><a href="https://store.steampowered.com/app/394360/"><img src="assets/games/hearts-of-iron-iv.jpg" width="48" alt="钢铁雄心4 Hearts of Iron IV"></a><br><sub>钢铁雄心4</sub></td>
+    <td align="center"><a href="https://store.steampowered.com/app/1158310/"><img src="assets/games/crusader-kings-iii.jpg" width="48" alt="十字军之王3 Crusader Kings III"></a><br><sub>十字军之王3</sub></td>
+    <td align="center"><a href="https://store.steampowered.com/app/3450310/"><img src="assets/games/europa-universalis-v.jpg" width="48" alt="欧陆风云5 Europa Universalis V"></a><br><sub>欧陆风云5</sub></td>
+  </tr>
+  <tr>
+    <td align="center" colspan="2"><a href="https://store.steampowered.com/app/3215050/"><img src="assets/games/surviving-mars-relaunched.jpg" width="48" alt="火星求生重制版 Surviving Mars Relaunched"></a><br><sub>火星求生重制版 · 稳定版</sub></td>
+    <td align="center" colspan="2"><a href="https://store.steampowered.com/app/294100/"><img src="assets/games/rimworld.jpg" width="48" alt="环世界 RimWorld"></a><br><sub>环世界 · 预览</sub></td>
+    <td align="center" colspan="2"><a href="https://store.steampowered.com/app/108600/"><img src="assets/games/project-zomboid.jpg" width="48" alt="僵尸毁灭工程 Project Zomboid"></a><br><sub>僵尸毁灭工程 · 预览</sub></td>
+  </tr>
+</table>
+
+现有 Paradox 游戏工作流继续支持。火星求生重制版已提供首版稳定本地化流程；环世界和僵尸毁灭工程适配器尚未经过游戏内验证。以上状态仅表示适配器成熟度，不代表完整覆盖所有 Mod。
 
 <p align="center">
   <img src="assets/readme/screenshot_cn1.webp" width="80%" alt="主界面预览">
@@ -34,8 +53,7 @@
 再导出一个多语言纯翻译补丁或完整国际化副本。工坊上传仍通过游戏自带的 Mod Editor
 手动完成。[查看火星求生指南](zh/user-guides/surviving-mars.md)。
 
-环世界与僵尸毁灭工程适配器标为 **Preview**。后续会继续完善这三个游戏的支持，
-现有 P 社游戏流程仍然保留。
+环世界与僵尸毁灭工程适配器标为 **Preview**，生成包尚未经过游戏内验证；现有 P 社游戏流程仍然保留。游戏状态不代表完整覆盖所有 Mod。
 [更新说明](zh/developer/release-v3.2.1.md) ·
 [独立 FPK 解包工具](https://github.com/Drlinglong/remis-fpk)。
 
