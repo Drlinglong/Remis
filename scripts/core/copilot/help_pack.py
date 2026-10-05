@@ -154,7 +154,8 @@ HELP_SKILLS: dict[str, dict[str, Any]] = {
     "surviving_mars": {
         "title": "火星求生重制版本地化",
         "description": "如何汉化火星求生 Mod：导入 Workshop 的 ModContent.fpk、隔离准备、翻译、多语言文本补丁或完整副本、本机安装及使用游戏 Mod Editor 手动上传工坊。",
-        "resources": ("zh/user-guides/surviving-mars.md",),
+        "resources": ("zh/user-guides/surviving-mars.md",
+                      "zh/user-guides/surviving-mars-mod-editor-upload-preflight.md"),
     },
     "multi_game_localization": {
         "title": "多游戏本地化支持范围",
