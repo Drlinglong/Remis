@@ -9,6 +9,7 @@
 - 修复首次初始化对已有示例、翻译与归档的覆盖；JSON 路径重定位只处理声明的路径字段，保留用户文本。
 - 归档持久化失败明确报告，完成检查点在归档成功后更新；数据库迁移 27 统一 fresh / v26 升级的 Workshop parent 外键约束，孤儿数据需人工处理。
 - 零文件校验返回失败，避免将缺失输出视为通过。
+- 合集在导出过程中被另一客户端编辑或删除时，回滚回执并删除本次新包、释放计划；已有包保持完整。
 - 优化火星求生重制版源语言与资源选择、翻译伙伴项目、CSV 写回和 FPK 资源边界；改进 Agent 增量预览与发布说明。
 - 加入同一游戏翻译合集：选择各项目输出、预览冲突、审批本地导出、保留独立回执与发布身份；导出不代表游戏加载或 Workshop 上传成功。
 - 补充公开模型代号，保留原默认模型。
@@ -17,12 +18,12 @@
 
 ## 验证
 
-- 后端全量：2357 passed / 19 skipped，134.36 秒；跳过项为环境/外部样本依赖和平台能力限制。
-- 桌面：253 文件、1047 测试通过；locale consistency 与 text encoding integrity 通过。
+- 后端全量：2361 passed / 19 skipped，221.79 秒；跳过项为环境/外部样本依赖和平台能力限制。
+- 桌面：254 文件、1050 测试通过；locale consistency 与 text encoding integrity 通过。
 - 网站：64 测试、lint 与 build 通过。
 - Python compileall、致命语法/名称 lint、架构守卫与 git diff --check 通过。
 - 桌面 lint：0 errors / 13 个既有 warnings，未增加超限模块。
-- Axios 1.20.0 / brace-expansion 5.0.12 定向安全更新，npm audit 全量 0 vulnerabilities；桌面 1047 项复跑通过。
+- Axios 1.20.0 / brace-expansion 5.0.12 定向安全更新，npm audit 全量 0 vulnerabilities；桌面 1050 项最终复跑通过。
 - Rust cargo fmt --check 与正式 Tauri 编译通过。
 - 正式 stable 构建：PyInstaller、冻结后端健康/适配器/FPK 冒烟、Vite、Tauri/NSIS 通过；种子数据只从仓库已审阅 assets 导出。
 - 初轮失败保留记录：后端 3 处文档/模型/资源上限契约未同步、桌面 2 处 locale 缺失，修正后全量复跑通过。
@@ -30,15 +31,15 @@
 
 ## 安装包
 
-`remis-mod-factory_3.2.2_x64-setup.exe`，45,013,958 字节。
+`remis-mod-factory_3.2.2_x64-setup.exe`，45,015,101 字节。
 
-SHA256：`e573ebe1559d94bd5cc3802a72a8b46d083c652ec7f95c2787ceb6bcddbc0dcd`。
+SHA256：`197f739ee72578eb70df8a4292600ddaa96dd9a4f9cdb0dd565b1c8467b7965a`。
 
 本地包位于 `archive/release/stable/`，与 SHA256SUMS 一同保留，均不进入 Git 源码提交。
 
 ## 架构复核
 
-合集请求状态集中于 `useTranslationCollections`（285 行，10 state / 1 effect），新显示组件 32–55 行；本轮修复未增加 state/effect。Mars import 176 行、ProjectManagement 207 行，工作流与显示继续分离。数据库初始化 520→466 行、归档管理 867→803 行，架构例外同步收紧；取消恢复 service 186 行、portable inventory 244 行。新增真实 Modal 延迟响应、取消/回执、Paradox 运行时资源及 FPK 边界回归。
+合集主 hook `useTranslationCollections` 从 285→142 行，负责组合、CRUD、选择和发布元数据编辑；请求生命周期、项目选项缓存、导出/历史分别提取为 59、50、60 行的独立控制器。总 state 保持 10，effect 从 1 拆为 2，新增独立 effect 管理关闭、重开及卸载失效；API/工作流状态与 32–55 行显示组件分离。新增 3 项控制器回归覆盖旧请求报错、选项归属和失效计划，原有 Modal/异步回归保留。Mars import 176 行、ProjectManagement 207 行。数据库初始化 520→466 行、归档管理 867→803 行，架构例外同步收紧；取消恢复 service 186 行、portable inventory 244 行。回执仓储 110→112 行，新增 4 项独立客户端编辑/删除和服务清理回归。
 
 ## English release notes
 
@@ -48,6 +49,7 @@ SHA256：`e573ebe1559d94bd5cc3802a72a8b46d083c652ec7f95c2787ceb6bcddbc0dcd`。
 - Reject validation runs with no recognized output files.
 - Improve Surviving Mars: Relaunched source selection, companion projects, CSV writeback, FPK handling and incremental Agent previews.
 - Add project-owned translation collection previews, conflict checks, approved local exports and export history. Local export is not in-game or Workshop-upload verification.
+- Atomically reject export receipts for concurrently edited or deleted collections; remove only the failed new package and release its plan.
 - Add reviewed public model identifiers without changing defaults.
 
 Multi-game support first shipped in v3.2.1. OpenRouter Batch API is outside this release.
@@ -64,4 +66,4 @@ CodeQL 首轮 19 条路径 taint 告警促成以上两项真实边界修复。�
 
 主代理直接执行 10 组 traversal 和 5 组语言攻击输入，均被拒绝；正常路径通过。合集 junction/cancel/receipt 聚焦测试 28 passed/2 skips；增量路径/API/preview/MVP 28 passed/5 skips。详细逐告警依据保留在本轮巡检证据中。
 
-最终 Windows CI 首轮：2370 passed / 5 skipped / 18 subtests passed，唯一失败为 unittest 临时 root 的 RUNNER~1 短路径与解析后的 runneradmin 长路径字符串比较。测试期望已按生产规范 resolve 后严格比较目标路径，未放宽 hydration 的保护；源码与安装包不变。
+Windows CI 曾发现 RUNNER~1 短路径与 runneradmin 长路径的测试断言差异；期望已按生产规范 resolve 后严格比较目标路径。后续并发回执和控制器修复已重新全量验证并重建安装包，最终远程检查状态见 PR #222。
