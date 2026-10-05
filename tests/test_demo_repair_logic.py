@@ -4,6 +4,7 @@ import shutil
 import sqlite3
 import tempfile
 import unittest
+from pathlib import Path
 
 from scripts.core.db_initializer import fix_demo_paths, hydrate_json_configs
 
@@ -125,7 +126,8 @@ class TestDemoRepairLogic(unittest.TestCase):
         with open(config_path, "r", encoding="utf-8") as handle:
             hydrated = json.load(handle)
 
-        normalized_root = self.test_dir.replace("\\", "/")
+        # Hydration resolves the root; Windows CI may expose TEMP through an 8.3 alias.
+        normalized_root = Path(self.test_dir).resolve().as_posix()
         self.assertEqual(hydrated["source_path"], f"{normalized_root}/demos/sample_mod")
         self.assertIn(f"{normalized_root}/my_translation/en-Test_Project_Remis_Vic3", hydrated["translation_dirs"])
         self.assertIn(f"{normalized_root}/my_translation/zh-CN-Test_Project_Remis_stellaris", hydrated["translation_dirs"])

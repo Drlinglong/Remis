@@ -5,6 +5,7 @@ import {
 } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import { useMarsPipelineImport } from '../../hooks/useMarsPipelineImport';
+import MarsSourceSelection from './MarsSourceSelection';
 import modalStyles from '../projectManagement/CreateProjectModal.module.css';
 import styles from './MarsPipelineImport.module.css';
 
@@ -32,7 +33,11 @@ function ModeRecommendation({ plan, mode, t }) {
         count: plan.selected_entry_count,
       })}</Text>
       {hasHardcoded && <Text size="sm" mt="xs">
-        {mode === 'source_copy'
+        {plan.requires_source_review
+          ? t('mars_pipeline.source_review_help', '{{count}} dynamic candidates are not evidence of missing translations. Check their variables and mappings before choosing a delivery mode.', {
+            count: plan.hardcoded_entry_count,
+          })
+          : mode === 'source_copy'
           ? t('mars_pipeline.full_copy_recommendation', '{{count}} text candidates are embedded in Lua. A complete copy includes all assets and is recommended so these strings can be translated in context.', {
             count: plan.hardcoded_entry_count,
           })
@@ -51,10 +56,18 @@ function ModeRecommendation({ plan, mode, t }) {
   );
 }
 
-export default function MarsPipelineImport({ opened, onClose, onCreated, name, onUseExistingCsv, controller }) {
+const fallbackLanguageOptions = [
+  ['en', 'English'], ['zh-CN', 'Simplified Chinese'], ['fr', 'French'], ['de', 'German'],
+  ['es', 'Spanish (Spain)'], ['pl', 'Polish'], ['pt-BR', 'Portuguese (Brazil)'], ['ru', 'Russian'], ['tr', 'Turkish'],
+];
+
+export default function MarsPipelineImport({ opened, onClose, onCreated, name, sourceLanguage,
+  languageOptions = [], onUseExistingCsv, controller }) {
   const { t } = useTranslation();
-  const hookFlow = useMarsPipelineImport(onCreated, name);
+  const hookFlow = useMarsPipelineImport(onCreated, name, sourceLanguage || '');
   const flow = controller || hookFlow;
+  const resolvedLanguages = languageOptions.length ? languageOptions
+    : fallbackLanguageOptions.map(([value, label]) => ({ value, label }));
   const [reviewSelection, setReviewSelection] = useState([]);
   const pending = flow.plan?.review_items || [];
   const browseArchive = async () => {
@@ -70,7 +83,8 @@ export default function MarsPipelineImport({ opened, onClose, onCreated, name, o
         title: modalStyles.modalTitle, body: modalStyles.modalBody, close: modalStyles.modalClose,
       }}>
       <Stack gap="md" data-remis-surface="paper" className={styles.importSurface}>
-        <Text size="sm">{t('mars_pipeline.import_help', 'Remis extracts the complete FPK into an isolated project and reads English source text. It leaves the archive and installed Mods unchanged.')}</Text>
+        <Text size="sm">{t('mars_pipeline.import_help', 'Remis extracts the complete FPK into an isolated project. It leaves the archive and installed Mods unchanged.')}</Text>
+        <MarsSourceSelection flow={flow} languageOptions={resolvedLanguages} t={t} />
         <Group align="flex-end">
           <TextInput classNames={{ input: modalStyles.modalInput }}
             label={t('mars_pipeline.archive_path', 'ModContent.fpk path')} value={flow.path}
@@ -101,7 +115,7 @@ export default function MarsPipelineImport({ opened, onClose, onCreated, name, o
         </Accordion>
         {flow.error && <Alert color="red" role="alert">{flow.error}</Alert>}
         <Group>
-          <Button variant="light" loading={flow.busy} disabled={!flow.path || !name?.trim()}
+          <Button variant="light" loading={flow.busy} disabled={!flow.path || !name?.trim() || !flow.sourceLanguage}
             onClick={() => flow.preview()}>{t('mars_pipeline.inspect', 'Inspect archive and text')}</Button>
           <Button variant="subtle" disabled={flow.busy} onClick={onUseExistingCsv}>
             {t('mars_pipeline.use_csv_folder', 'Use an existing editable CSV folder instead')}
@@ -147,7 +161,8 @@ export default function MarsPipelineImport({ opened, onClose, onCreated, name, o
           </Accordion.Item>
         </Accordion>}
         {flow.plan && <Group justify="flex-end">
-          <Button disabled={flow.busy || pending.length > 0} onClick={flow.execute}>
+          <Button disabled={flow.busy || pending.length > 0
+            || (flow.plan.source_blockers || []).length > 0} onClick={flow.execute}>
             {t('mars_pipeline.prepare', 'Create isolated translation project')}
           </Button>
         </Group>}

@@ -71,7 +71,11 @@ def get_game_support(game_id: str) -> dict:
             "identity_policy": "Review candidates and persist a language-independent manifest before allocating numeric localization IDs.",
         }} if game_id == "surviving_mars" else {}),
         **({"source_pipeline": {
-            "supported": True, "source_language": "en", "runtime_verified": False,
+            "supported": True, "source_language": None, "runtime_verified": False,
+            "source_language_required": True,
+            "source_columns": ["Text", "Translation"],
+            "source_table_policy": "Select an inspected archive-relative CSV for Translation source; no mixed-language fallback.",
+            "source_selection_fields": ["source_language", "source_table", "source_column"],
             "prepare_plan_endpoint": "/api/agent/mars-pipeline/prepare/plan",
             "prepare_endpoint": "/api/agent/mars-pipeline/prepare",
             "run_endpoint": "/api/agent/mars-pipeline/runs/{run_id}",

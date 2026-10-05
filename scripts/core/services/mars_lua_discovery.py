@@ -18,6 +18,7 @@ import re
 DEFAULT_MAX_BYTES = 8 * 1024 * 1024
 DEFAULT_MAX_CANDIDATES = 2000
 _LONG_BRACKET_OPEN = re.compile(r"\[(=*)\[")
+_TAG_ONLY_CONTROL_TEXT = re.compile(r"\s*(?:<(?:countdown|newline|left)>\s*)+\Z", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -329,6 +330,8 @@ def scan_lua_text(
             except ValueError as exc:
                 literal = False
                 reason = str(exc)
+        if literal and text is not None and _TAG_ONLY_CONTROL_TEXT.fullmatch(text):
+            continue
         if not literal and reason is None:
             reason = "argument is a table or expression, or the call has multiple arguments"
         binding = _binding_before(tokens, index)

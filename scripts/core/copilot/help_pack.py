@@ -65,7 +65,7 @@ HELP_SKILLS: dict[str, dict[str, Any]] = {
     },
     "incremental_translation": {
         "title": "增量翻译",
-        "description": "Mod 更新后只翻新增内容、归档基线和增量翻译流程。",
+        "description": "Mod 更新后的无费用增量预览、归档基线、原文与待复核范围；帮助模式只引导，不执行预览或翻译。",
         "resources": ("zh/user-guides/incremental-update.md",),
     },
     "import_translation": {
@@ -154,12 +154,18 @@ HELP_SKILLS: dict[str, dict[str, Any]] = {
     "surviving_mars": {
         "title": "火星求生重制版本地化",
         "description": "如何汉化火星求生 Mod：导入 Workshop 的 ModContent.fpk、隔离准备、翻译、多语言文本补丁或完整副本、本机安装及使用游戏 Mod Editor 手动上传工坊。",
-        "resources": ("zh/user-guides/surviving-mars.md",),
+        "resources": ("zh/user-guides/surviving-mars.md",
+                      "zh/user-guides/surviving-mars-mod-editor-upload-preflight.md"),
     },
     "multi_game_localization": {
         "title": "多游戏本地化支持范围",
         "description": "Project Zomboid、RimWorld 与火星求生重制版的格式、独立包和支持边界。",
         "resources": ("zh/user-guides/multi-game-localization.md",),
+    },
+    "translation_collections": {
+        "title": "多 Mod 翻译合集",
+        "description": "把同一游戏的多个已有项目组成独立合集，选择成员译文、检查更新和冲突、绑定自己的工坊编号，预览并导出多语言包。区分火星条件加载 Mod 与其他游戏的成员分目录分发包。",
+        "resources": ("zh/user-guides/translation-collections.md",),
     },
     "shell_languages": {
         "title": "套壳语言与项目维护",
@@ -229,7 +235,9 @@ AGENT_OPS_SUMMARY = """
 - Surviving Mars / Relaunched 的现有翻译范围是扫描到的 ModItemLocTable CSV；独立翻译 Mod 导出只包装已有目标语言 CSV 输出，不会翻译额外源文或覆盖 Untranslated(...) 硬编码文本。不得把此能力泛化到其他游戏。
 - 火星已有 CSV 项目的轻量包通过 game_support.translation_package 导出：metadata.loctables 与 items.lua 中的 ModItemLocTable 引用所选 CSV，并依赖原 Mod。FPK 准备项目的两种交付使用 source_pipeline；两条流程都只生成本地包。桌面聊天只可说明 GUI/API 操作，不可声称已自动导出。
 - 火星专属问题先读取 surviving_mars 指南及 game_support.csv_contract/source_pipeline。CSV 只写 Translation，保留 ID、其他列与标签参数。FPK 可经独立准备流程隔离解包全部资产，复核 Lua 候选后创建普通 CSV 项目；通过 GUI 或 Agent API 操作，不要求用户手点导出 CSV。
-- 普通支持扫描的 hardcoded_lua 仍只列候选；完整准备流程另有持久化 manifest、稳定 ID 和批准的源码改写。常规界面提供 text_only（只含翻译文本，需同时启用原 Mod）和 source_copy（完整国际化副本，含全部资产，停用原 Mod 和旧翻译补丁）。存在硬编码候选时推荐完整副本。overlay 是需复核运行时绑定的高级 API，不是常规第三种部署方式。
+- 普通支持扫描的 hardcoded_lua 仍只列候选；完整准备流程另有持久化 manifest、稳定 ID 和批准的源码改写。常规界面提供 text_only（只含翻译文本，需同时启用原 Mod）和 source_copy（完整国际化副本，含全部资产，停用原 Mod 和旧翻译补丁）。确认有无法用已有 ID 覆盖的自然语言硬编码后才推荐完整副本。overlay 是需复核运行时绑定的高级 API，不是常规第三种部署方式。
+- FPK 准备必须指定实际源语言，不能固定英语或从 English.csv 文件名猜测。Text 可为作者原文（如西语），Translation 才是现有英文译文；可显式选择源表与 Translation 列，预览样例和 source_blockers，缺项不混用其他语言补齐。原包及原始 Lua/CSV 不改动。
+- Untranslated 不等于漏翻：纯 <countdown> 是变量，<newline><left> 是布局控制，应原样保留；含自然语言的标签文本仍需翻译。动态地名回退先追踪返回值与已有 T(id, text)/CSV 的映射，不因存在兜底分支就认定必须做完整副本。
 - 用户问“如何进行火星求生的 Mod”时读取 surviving_mars 帮助。原始输入为已下载的原作者 ModContent.fpk，不是工坊网页 URL 或已发布的汉化副本。新 FPK 项目必须先打开“创建项目 → 火星求生”的独立准备窗口；聊天不能把 FPK 当普通文件夹直接提交新建翻译工作流。准备成功后，使用返回的项目 ID 再规划初次翻译。
 - fr-prepared、de-prepared 等是项目保留的语言工作输出，不是安装包或可随手删除的临时文件。FPK 项目导出时选择多个目标语言输出，生成同一个 Mod 包中的 Localization/Schinese、French、German 等语言表；以 API 返回的 package_path 为安装/发布来源。
 - 本机安装：将完整导出包放到 %APPDATA%/Surviving Mars Relaunched/Mods/<output_mod_id>/，metadata.lua 直接在该目录内，不要多套一层包目录。不要覆盖 Steam 缓存。按 text_only/source_copy 的启用规则选择 Mod，在游戏设置切换语言并重启验证。
@@ -237,6 +245,7 @@ AGENT_OPS_SUMMARY = """
 - 格式标签/换行自动校验与人工校对页面是两回事。火星专用校对界面尚未完善，不引导用户依赖它完成流程；看到格式问题时核对记录所指的文件、语言和当前导出，不把旧工作目录的问题等同于最新包的问题。
 - 增量模式不支持 checkpoint 恢复；中断后需要从归档基线重新创建计划。项目级问题必须调用只读支持检查，并据其资源与诊断回答。
 - 内置 Copilot 目前只可生成初次翻译工作流；可以说明增量能力，但不能声称聊天能够创建或启动增量任务。
+- 用户询问多 Mod 翻译合集时先读取 translation_collections 指南。引导到项目管理的翻译合集入口；成员各自翻译与增量更新，合集负责选择已有输出、预览、独立发布身份和合包。外部 Agent 使用 /api/agent/translation-collections；内置聊天不能直接创建、修改或导出合集，不要把合集请求转成初次翻译任务。
 用户询问首次汉化或表达模糊意向时，先问用户希望「手动操作指导」还是「由 Agent 规划」。在用户明确选择 Agent 规划之前，不要建议 start_localization_workflow。
 选择手动操作时，解释流程并建议安全的页面导航 action；不要建议 start_localization_workflow。
 选择 Agent 规划后，必须先通过自然对话收齐规划输入。资料不完整时只追问缺失项，suggested_actions 必须为空。

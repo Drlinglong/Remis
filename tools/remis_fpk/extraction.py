@@ -38,10 +38,9 @@ def _write_files(stage: Path, entries: list[dict[str, Any]], data: bytes,
         if entry["kind"] == "directory":
             target.mkdir(parents=True, exist_ok=True)
             continue
-        raw = _payload_for_extraction(data, entry, index_end, limits)
+        raw = _payload_for_extraction(data, entry, index_end, limits,
+                                      limits.total_output_bytes - total)
         total += len(raw)
-        if total > limits.total_output_bytes:
-            raise ArchiveError("total extracted bytes exceed configured limit")
         target.parent.mkdir(parents=True, exist_ok=True)
         with target.open("xb") as stream:
             stream.write(raw)

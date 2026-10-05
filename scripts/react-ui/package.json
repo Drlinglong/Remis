@@ -1,8 +1,8 @@
 {
   "name": "frontend",
   "private": true,
-  "version": "3.2.1",
-  "releaseDate": "2026-09-25",
+  "version": "3.2.2",
+  "releaseDate": "2026-10-05",
   "type": "module",
   "engines": {
     "node": ">=22.22.0 <23"
@@ -35,7 +35,7 @@
     "@tauri-apps/plugin-dialog": "~2.7.1",
     "@tauri-apps/plugin-log": "~2.9.0",
     "@tauri-apps/plugin-shell": "^2.3.5",
-    "axios": "^1.18.1",
+    "axios": "^1.20.0",
     "dayjs": "^1.11.21",
     "driver.js": "^1.7.0",
     "html2canvas": "^1.4.1",

@@ -17,7 +17,6 @@ from scripts.shared.services import project_manager
 from scripts.shared import task_state
 from scripts.core.agents.fix_agent import ReflexionFixAgent
 from scripts.core.base_handler import BaseApiHandler # For typing or creation
-
 from scripts.core.loc_parser import ENTRY_RE, parse_loc_file
 from scripts.utils.validation_logger import ValidationLogger
 from scripts.core.project_json_manager import ProjectJsonManager
@@ -35,6 +34,7 @@ from scripts.core.services.provider_runtime import ProviderRuntimeSnapshot
 from scripts.core.services.workshop_issue_export_service import WorkshopIssueExportService, resolve_dynamic_valid_tags
 from scripts.core.services.workshop_batch_result_service import finalize_batch_result
 from scripts.core.services.workshop_issue_binding_service import bind_repair_issues
+from scripts.core.services.workshop_scan_entries import validation_entries
 from scripts.core.services.workshop_writeback_service import (
     apply_translation_fix_to_file,
     apply_validated_workshop_fix as _apply_fix_with_confirmation,
@@ -790,8 +790,8 @@ async def _scan_project_issues(
             source_root=source_root,
         )
 
-        # Parse the translation file
-        entries = dict(parse_loc_file(file_path))
+        # Parse the source and target cells for the selected game format.
+        source_entries, entries = validation_entries(game_id, file_path, source_entries)
         logger.info("[AgentWorkshop] Parsed %s translation entries from %s", len(entries), rel_path)
 
         for key, value, line_number in _parse_invalid_key_entries(file_path):

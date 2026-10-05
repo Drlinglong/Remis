@@ -9,6 +9,9 @@ from scripts.schemas.agent import AgentJobPlanRequest, AgentPlanResponse
 from scripts.schemas.agent_language import language_plan_details
 from scripts.core.services.translation_context_readiness_service import TranslationContextModeResolution
 from scripts.core.services.translation_recovery_service import TranslationRecoveryService
+from scripts.core.services.agent_incremental_plan_service import (
+    preview_for_request, bind_incremental_preview, create_incremental_dry_plan,
+)
 
 
 @dataclass(frozen=True)
@@ -92,16 +95,17 @@ def _game_plan_support(request, plan):
     return support
 
 
-async def build_agent_translation_plan(
-    request: AgentJobPlanRequest,
-    *,
-    api_providers: dict[str, dict[str, Any]],
-    key_resolver: Callable[[str, str], str | None],
-    plan_factory: Callable[..., Awaitable[dict[str, Any]]],
-    readiness_service: Any,
-    registry: Any,
-    local_provider_ids: set[str],
-) -> AgentPlanResponse:
+async def _preview_incremental_request(request):
+    if request.workflow != "incremental":
+        return None
+    _game_plan_support(request, {})
+    try:
+        return await preview_for_request(request)
+    except (ValueError, FileNotFoundError) as exc:
+        raise AgentTranslationPlanError(400, "incremental_preview_invalid", str(exc)) from exc
+
+
+def _require_provider(request, api_providers, key_resolver):
     provider = api_providers.get(request.api_provider)
     if provider is None:
         raise AgentTranslationPlanError(400, "invalid_provider", "Unknown API provider")
@@ -116,6 +120,22 @@ async def build_agent_translation_plan(
                 "know what an API key is, explain it before continuing."
             ),
         )
+
+
+async def build_agent_translation_plan(
+    request: AgentJobPlanRequest,
+    *,
+    api_providers: dict[str, dict[str, Any]],
+    key_resolver: Callable[[str, str], str | None],
+    plan_factory: Callable[..., Awaitable[dict[str, Any]]],
+    readiness_service: Any,
+    registry: Any,
+    local_provider_ids: set[str],
+) -> AgentPlanResponse:
+    preview = await _preview_incremental_request(request)
+    if preview is not None and request.dry_run:
+        return create_incremental_dry_plan(request, preview, registry)
+    _require_provider(request, api_providers, key_resolver)
     try:
         plan = await plan_factory(
             project_id=request.project_id,
@@ -146,6 +166,8 @@ async def build_agent_translation_plan(
             message,
         ) from exc
 
+    if preview is not None:
+        bind_incremental_preview(plan, preview)
     game_support = _game_plan_support(request, plan)
     execution_args = {**plan["execution_args"], "workflow": request.workflow}
     execution_args.setdefault("translation_context_mode", request.translation_context_mode)
@@ -206,7 +228,8 @@ async def build_agent_translation_plan(
         summary=summary,
         allowed_actions=["start_dry_run"] if request.dry_run else ["approve_start"],
         context_readiness=context_readiness,
-        translation={**language_plan_details(execution_args), "workflow": request.workflow},
+        translation={**language_plan_details(execution_args), "workflow": request.workflow,
+                     **({"incremental_preview": preview} if preview is not None else {})},
         game_support=game_support,
         expires_at=record["expires_at"],
     )

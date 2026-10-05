@@ -122,7 +122,8 @@ def _overlay_metadata_items(
 
 
 def _text_only_metadata_items(
-    translation_id: str, source_id: str, title: str, tables: list[dict[str, str]]
+    translation_id: str, source_id: str, title: str, tables: list[dict[str, str]],
+    conditional_loader: bool = False,
 ) -> tuple[str, str]:
     """Register CSV tables in a separate Mod that depends on the source Mod."""
     meta = ["return PlaceObj('ModDef', {", f"  'title', {package._lua_string(title)},",
@@ -130,8 +131,12 @@ def _text_only_metadata_items(
             "  'optional_mod', true,", "  'dependencies', {", "    PlaceObj('ModDependency', {",
             f"      'id', {package._lua_string(source_id)},",
             f"      'title', {package._lua_string(source_id)},", "      'required', true,",
-            "    }),", "  },", "  'loctables', {"]
+            "    }),", "  },"]
     items = ["return {"]
+    if conditional_loader:
+        meta.extend(["  'code', {", "    'Code/RemisOptionalLocalization.lua',", "  },"])
+        items.extend(["  PlaceObj('ModItemCode', {", "    'name', 'RemisOptionalLocalization',", "  }),"])
+    meta.append("  'loctables', {")
     for table in tables:
         mounted = f"Mod/{translation_id}/{table['path']}"
         meta.append(f"    {{ filename = {package._lua_string(mounted)}, language = {package._lua_string(table['language'])} }},")

@@ -68,7 +68,7 @@ class IncrementalBuildService:
             canonical_entries = fd.get("canonical_entries", ())
 
             ai_results = translated_results.get(fd["file_path"] if structured else filename, [])
-            if structured and len(ai_results) != len(delta_indices):
+            if (structured or is_surviving_mars) and len(ai_results) != len(delta_indices):
                 raise ValueError(f"Incomplete incremental translations for {fd['file_path']}")
             for delta_idx, trans_text in zip(delta_indices, ai_results):
                 full_entries[delta_idx]["translation"] = trans_text
@@ -89,6 +89,8 @@ class IncrementalBuildService:
                 }
                 if structured:
                     rebuild_key_map[index].update(fd.get("adapter_key_map", {}).get(index, {}))
+                elif is_surviving_mars:
+                    rebuild_key_map[index]["row_index"] = rebuild_key_map[index]["entry"].row_index
 
             try:
                 if structured and rebuild_key_map:
@@ -125,7 +127,7 @@ class IncrementalBuildService:
                 written_files.append(out_path)
             except Exception as e:
                 logger.error(f"Failed to rebuild file {filename}: {e}")
-                if structured:
+                if structured or is_surviving_mars:
                     raise
 
             archive_files_data.append({

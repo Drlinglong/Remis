@@ -290,6 +290,27 @@ def rewrite_text(
     return output.getvalue()
 
 
+def replace_translation(source_text: str, key: str, translated_text: str) -> str:
+    """Replace one row's Translation cell while preserving the other columns."""
+    document = parse_text(source_text)
+    rows = [list(row) for row in document.rows]
+    matches = [
+        row_index
+        for row_index, row in enumerate(rows)
+        if row_index > document.header_row_index and row and row[0] == key
+    ]
+    if len(matches) != 1:
+        raise SurvivingMarsCsvError(
+            f"Expected one row for ID {key!r}; found {len(matches)}"
+        )
+
+    rows[matches[0]][HEADER.index("Translation")] = str(translated_text)
+    output = io.StringIO(newline="")
+    writer = csv.writer(output, lineterminator=document.line_ending)
+    writer.writerows(rows)
+    return output.getvalue()
+
+
 def compare_tags(source_text: str, target_text: str) -> CsvTagMismatch:
     """Compare exact ``<...>`` tag identity and multiplicity.
 

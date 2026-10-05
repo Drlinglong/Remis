@@ -405,7 +405,7 @@ class ArchiveManager:
                     entry_file_path = self._normalize_archive_file_path(
                         file_data.get('file_path') or file_data.get('filename', 'unknown')
                     )
-                    source_entries.append((version_id, entry_key, text.rstrip('\r\n'), entry_file_path))
+                    source_entries.append((version_id, entry_key, text, entry_file_path))
 
             # Ensure file_path column exists
             cursor.execute("PRAGMA table_info(source_entries)")
@@ -422,75 +422,11 @@ class ArchiveManager:
             self.connection.rollback()
             return None
 
-    def archive_translated_results(self, version_id: int, file_results: Dict[str, Any], all_files_data: List[Dict], target_lang_code: str):
-        """阶段三: 将指定语言的翻译结果存入或更新到数据库"""
-        if not self.connection or not version_id: return
+    def archive_translated_results(self, version_id: int, file_results: Dict[str, Any], all_files_data: List[Dict], target_lang_code: str) -> int:
+        """Persist one language or raise; return the committed row count."""
+        from scripts.core.archive_result_persistence import persist_archive_results
 
-        cursor = self.connection.cursor()
-        try:
-            upsert_data = []
-
-            for filename, translated_texts in file_results.items():
-                normalized_filename = self._normalize_archive_file_path(filename)
-                file_data = next(
-                    (
-                        fd for fd in all_files_data
-                        if self._normalize_archive_file_path(fd.get('file_path') or fd.get('filename')) == normalized_filename
-                        or self._normalize_archive_file_path(fd.get('filename')) == normalized_filename
-                    ),
-                    None
-                )
-                if not file_data or not translated_texts: continue
-
-                km = file_data.get('archive_key_map', file_data.get('key_map', {}))
-                archive_file_path = self._normalize_archive_file_path(
-                    file_data.get('file_path') or file_data.get('filename', '')
-                )
-                for idx, translated_text in enumerate(translated_texts):
-                    if isinstance(km, dict):
-                        key_info = km.get(idx)
-                    elif isinstance(km, list) and idx < len(km):
-                        key_info = km[idx]
-                    else:
-                        key_info = None
-                    
-                    # Extract the actual key string
-                    entry_key = key_info.get('key_part', '').strip() if isinstance(key_info, dict) else str(key_info if key_info is not None else idx)
-                    
-                    # Normalize: ensure no trailing colon (consistency)
-                    if entry_key.endswith(":"):
-                        entry_key = entry_key[:-1].strip()
-                
-                    # Find source entry
-                    file_path_candidates = self._build_file_path_candidates(archive_file_path)
-                    row = self._find_source_entry_id(cursor, version_id, entry_key, file_path_candidates)
-                    
-                    # [FALLBACK] If not found and key has :version, try without version (for legacy compatibility)
-                    if not row and ":" in entry_key:
-                        pure_key = entry_key.split(':')[0]
-                        row = self._find_source_entry_id(cursor, version_id, pure_key, file_path_candidates)
-
-                    if row:
-                        source_entry_id = row['source_entry_id']
-                        upsert_data.append((source_entry_id, target_lang_code, translated_text))
-
-            if not upsert_data:
-                return
-
-            cursor.executemany("""
-                INSERT INTO translated_entries (source_entry_id, language_code, translated_text)
-                VALUES (?, ?, ?)
-                ON CONFLICT(source_entry_id, language_code) DO UPDATE SET
-                translated_text = excluded.translated_text,
-                last_translated_at = CURRENT_TIMESTAMP
-            """, upsert_data)
-
-            self.connection.commit()
-            logging.info(i18n.t("log_info_archived_updated_translations", count=len(upsert_data), lang_code=target_lang_code))
-
-        except Exception as e:
-            logging.error(i18n.t("log_error_db_archive_results", lang_code=target_lang_code, error=e))
-            self.connection.rollback()
+        return persist_archive_results(self, version_id, file_results, all_files_data, target_lang_code)
 
     # --- New Methods for Project/Proofreading Flow ---
 
@@ -687,7 +623,7 @@ class ArchiveManager:
             
             results.append({
                 "key": lookup_key, # Return normalized key
-                "original": original.rstrip('\r\n') if original else "",
+                "original": original if original is not None else "",
                 "translation": translation,
                 "file_path": s_row["file_path"] or ""
             })
@@ -766,7 +702,7 @@ class ArchiveManager:
                 return None
             return {
                 "key": row["entry_key"],
-                "original": row["source_text"].rstrip('\r\n') if row["source_text"] else "",
+                "original": row["source_text"] if row["source_text"] is not None else "",
                 "file_path": row["file_path"] or "",
             }
         except Exception as e:

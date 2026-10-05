@@ -48,6 +48,18 @@ def test_read_projects(mock_project_manager):
     mock_project_manager.get_projects.assert_called_once()
 
 
+def test_upload_translations_exposes_archive_write_failure(mock_project_manager):
+    failure = {
+        "status": "error", "code": "archive_write_failed",
+        "message": "Translation archive write failed; the source snapshot was retained.",
+        "version_id": 1, "archived_languages": 0,
+    }
+    mock_project_manager.upload_project_translations.return_value = failure
+    response = TestClient(app).post("/api/project/proj-1/upload-translations")
+    assert response.status_code == 500
+    assert response.json() == {"detail": failure}
+
+
 def test_refresh_returns_transient_manifest(mock_project_manager):
     client = TestClient(app)
     response = client.post("/api/project/proj-1/refresh")

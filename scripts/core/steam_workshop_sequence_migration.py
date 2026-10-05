@@ -24,6 +24,15 @@ class InvalidSteamWorkshopForeignKeyError(RuntimeError):
 
 
 def _require_valid_foreign_keys(connection: sqlite3.Connection) -> None:
+    orphan = connection.execute(
+        f"SELECT child.version_id FROM {_TABLE_NAME} child "
+        f"LEFT JOIN {_TABLE_NAME} parent ON parent.version_id = child.parent_version_id "
+        "WHERE child.parent_version_id IS NOT NULL AND parent.version_id IS NULL LIMIT 1"
+    ).fetchone()
+    if orphan:
+        raise InvalidSteamWorkshopForeignKeyError(
+            f"Steam Workshop version {orphan[0]!r} references a missing parent version."
+        )
     violations = connection.execute(
         f"PRAGMA foreign_key_check({_TABLE_NAME})"
     ).fetchall()
@@ -53,12 +62,19 @@ def _has_positive_sequence_constraint(connection: sqlite3.Connection) -> bool:
     return "check(sequence>0)" in normalized
 
 
+def _has_parent_foreign_key(connection: sqlite3.Connection) -> bool:
+    return any(
+        row[2:5] == (_TABLE_NAME, "parent_version_id", "version_id")
+        for row in connection.execute(f"PRAGMA foreign_key_list({_TABLE_NAME})")
+    )
+
+
 def enforce_steam_workshop_sequence_constraint(db_path: str) -> None:
     """Rebuild the version table so every managed DB enforces sequence > 0."""
 
     connection = sqlite3.connect(db_path)
     try:
-        if _has_positive_sequence_constraint(connection):
+        if _has_positive_sequence_constraint(connection) and _has_parent_foreign_key(connection):
             _require_valid_foreign_keys(connection)
             return
         invalid = connection.execute(
@@ -69,6 +85,8 @@ def enforce_steam_workshop_sequence_constraint(db_path: str) -> None:
                 "Cannot enforce positive Steam Workshop asset sequences: "
                 f"version {invalid[0]!r} has sequence {invalid[1]!r}."
             )
+
+        _require_valid_foreign_keys(connection)
 
         connection.execute("PRAGMA foreign_keys=OFF")
         connection.execute("BEGIN IMMEDIATE")

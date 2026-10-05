@@ -7,6 +7,7 @@ from typing import Dict, Any, List, Optional
 
 from scripts.core.project_json_manager import ProjectJsonManager
 from scripts.core.archive_manager import archive_manager
+from scripts.core.archive_result_persistence import ArchivePersistenceError
 from scripts.core.loc_parser import parse_loc_file_report
 from scripts.core import surviving_mars_csv
 from scripts.schemas.common import LanguageCode
@@ -28,6 +29,10 @@ KNOWN_LANGUAGE_FOLDERS = {
     "korean",
     "turkish",
 }
+
+
+def _raise_translation_walk_error(error):
+    raise error
 
 
 @dataclass(frozen=True)
@@ -113,7 +118,7 @@ class TranslationArchiveService:
             return {"status": "warning", "message": "No source files found to archive."}
 
         scanned_translations = None
-        if adapter and translation_dirs:
+        if translation_dirs:
             try:
                 scanned_translations = self._scan_translation_dirs(
                     source_files_data, source_path, translation_dirs, paradox_source_lang, game_id=game_id)
@@ -136,18 +141,19 @@ class TranslationArchiveService:
                 "version_id": version_id,
             }
 
-        file_results, match_count = scanned_translations or self._scan_translation_dirs(
-            source_files_data=source_files_data,
-            source_path=source_path,
-            translation_dirs=translation_dirs,
-            paradox_source_lang=paradox_source_lang,
-            game_id=game_id,
-        )
+        file_results, match_count = scanned_translations
 
         archived_languages = 0
         for lang_iso, results in file_results.items():
             if results:
-                self.archive_manager.archive_translated_results(version_id, results, source_files_data, lang_iso)
+                try:
+                    self.archive_manager.archive_translated_results(version_id, results, source_files_data, lang_iso)
+                except ArchivePersistenceError:
+                    return {
+                        "status": "error", "code": "archive_write_failed",
+                        "message": "Translation archive write failed; the source snapshot was retained.",
+                        "version_id": version_id, "archived_languages": archived_languages,
+                    }
                 archived_languages += 1
 
         if match_count == 0:
@@ -320,6 +326,9 @@ class TranslationArchiveService:
         paradox_source_lang: str,
         game_id: str = "",
     ) -> tuple[Dict[str, Dict[str, List[str]]], int]:
+        for directory in translation_dirs:
+            if not os.path.isdir(directory):
+                raise ValueError(f"Translation directory not found: {directory}")
         from scripts.core.game_adapters.registry import resource_adapter
         if resource_adapter(game_id):
             from scripts.core.game_adapters.archive_bridge import scan_translations
@@ -339,11 +348,7 @@ class TranslationArchiveService:
         match_count = 0
 
         for trans_dir in translation_dirs:
-            if not os.path.isdir(trans_dir):
-                logger.warning(f"Translation directory not found: {trans_dir}")
-                continue
-
-            for root, _, files in os.walk(trans_dir):
+            for root, _, files in os.walk(trans_dir, onerror=_raise_translation_walk_error):
                 for file_name in files:
                     if game_id == "surviving_mars" and not file_name.lower().endswith(".csv"):
                         continue
@@ -364,16 +369,13 @@ class TranslationArchiveService:
                         else:
                             report = parse_loc_file_report(full_path)
                             if report.diagnostics:
-                                logger.error(
-                                    "Skipping translation file with canonical parse errors %s: %s",
-                                    full_path,
-                                    ", ".join(d.code for d in report.diagnostics),
+                                raise ValueError(
+                                    f"Invalid translation file {full_path}: "
+                                    + ", ".join(d.code for d in report.diagnostics)
                                 )
-                                continue
                             entries = [(entry.key, entry.value) for entry in report.eligible_entries]
                     except Exception as e:
-                        logger.error(f"Failed to parse translation file {full_path}: {e}")
-                        continue
+                        raise ValueError(f"Failed to parse translation file {full_path}") from e
 
                     if not entries:
                         continue

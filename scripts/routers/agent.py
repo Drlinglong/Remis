@@ -38,6 +38,7 @@ from scripts.core.services.translation_context_readiness_service import (
 from scripts.core.services.validation_sidecar_service import ValidationSidecarService
 from scripts.core.services.game_support_service import get_game_support, inspect_game_support
 from scripts.core.services.agent_game_review_service import merge_game_review_payload
+from scripts.core.services.agent_job_execution_service import project_job_result
 from scripts.core.services.agent_game_output_service import (
     SUPPORTED_GAME_IDS, AgentGameOutputError, filter_game_actions, guard_deployment, preview_game_output,
 )
@@ -264,7 +265,6 @@ async def _validation_payload(
 _task_output_paths = validation_projection.task_output_paths
 _normalize_status = validation_projection.normalize_status
 
-
 async def _build_job_response(job_id: str) -> AgentJobResponse:
     from scripts.core.services.agent_progress_service import project_agent_progress
     metadata = agent_registry.get_job(job_id)
@@ -295,7 +295,7 @@ async def _build_job_response(job_id: str) -> AgentJobResponse:
     project = await project_manager.get_project(project_id) if project_id else None
     validation_payload = merge_game_review_payload(validation_payload, (project or {}).get("game_id"), output_paths, DEST_DIR)
     validation = validation_payload["summary"]
-    result = live_task.get("result") or {}
+    result = project_job_result(live_task)
     agent_managed = metadata is not None
     checkpoint = live_task.get("checkpoint") or {}
     resume_supported = checkpoint.get("resume_supported")

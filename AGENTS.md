@@ -24,6 +24,39 @@ operator guide over the product; it is not the product itself.
   identity, currently quotes and escaped line breaks.
 - Leave ambiguous text for human review.
 
+## Standing authorization for Surviving Mars preparation
+
+When the user asks to localize a specified Surviving Mars Mod or create its
+translation project, that request authorizes the agent to use the existing
+`tools/remis_fpk` tooling, inspect the original FPK read-only, extract it into
+new isolated Remis storage, inspect localization and hard-coded candidates, and
+prepare/import the project through `/api/agent/mars-pipeline`. Do not ask for a
+second authorization merely to use the bundled tool or unpack the archive.
+A feasibility-only request authorizes isolated inspection/extraction, but not
+creation of a translation project unless requested.
+
+Review the concrete preparation plan, preserve unresolved candidates for review,
+then send `approved: true` based on this existing task authorization. That API
+flag records authorization; it does not require another chat confirmation.
+Use the user's chosen delivery mode; if none is chosen, inspect coverage first
+and explain the resulting choice. Keep the source archive and Workshop cache
+unchanged. Normal preparation must use Remis APIs; standalone tool inspection
+or extraction into a fresh isolated diagnostic directory is also authorized,
+but must not bypass managed project state or a rejected validation.
+
+Preparation alone does not authorize charges, deployment, overwrite, or upload.
+An explicit request to translate with a named provider/model already authorizes
+that translation within the requested scope and any stated budget; carry it
+forward instead of asking the same question again. Obtain missing authorization
+only for actions genuinely outside that scope.
+
+An archive validation failure is a technical blocker, not missing permission to
+use the tool. Inspect and report the failing condition; do not disable bounds,
+skip assets silently, or claim unsupported archives are supported. Authorization
+to use the existing workflow does not itself authorize changing reader code or
+loosening validation. Treat a necessary compatibility fix as a separate code
+change, subject to the user's development scope.
+
 ## Repository workflow
 
 - Backend: Python FastAPI under `scripts/`.
