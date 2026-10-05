@@ -41,6 +41,7 @@ from scripts.core.translation_cancellation import (
 from scripts.core.feature_policy import apply_translation_request_policy
 from scripts.routers.provider_runtime import provider_task_fields, resolve_runtime_or_400
 from scripts.core.neologism_manager import neologism_manager
+from scripts.core.services.incremental_result_service import build_incremental_task_result
 from scripts.utils.system_utils import sanitize_for_json
 from scripts.utils.validation_logger import ValidationLogger
 
@@ -583,22 +584,8 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
             task_state.update_task(
                 task_id,
                 fields={
-                    "result": {
-                        "types": ["files", "change_summary", "workflow_log"],
-                        "output_paths": list(dict.fromkeys(output_paths)),
-                        "summary": (
-                            f"{len(fields['file_summaries'])} file(s) processed; "
-                            f"{fields['warning_count']} runtime warning(s)."
-                        ),
-                        "metadata": {
-                            "project_id": project_id,
-                            "summary_code": "incremental_translation_completed",
-                            "processed_file_count": len(fields["file_summaries"]),
-                            "workflow_log_paths": workflow_log_paths,
-                            "warning_count": fields["warning_count"],
-                            "source_advancement": fields["source_advancement"], "context": fields["context"],
-                        },
-                    },
+                    "result": build_incremental_task_result(
+                        project_id, fields, output_paths, workflow_log_paths, result.get("summary")),
                 },
                 push=False,
             )

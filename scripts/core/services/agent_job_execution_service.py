@@ -5,6 +5,8 @@ from scripts.schemas.translation import InitialTranslationRequest
 
 async def create_readiness_job(plan, plan_id, *, registry, project_manager, task_state):
     args = plan["execution_args"]
+    if args.get("workflow") == "incremental":
+        return create_incremental_preview_job(plan, plan_id, registry=registry, task_state=task_state)
     project = await project_manager.get_project(plan["project_id"])
     files = await project_manager.get_project_files(plan["project_id"])
     job_id = f"job_{uuid.uuid4().hex}"
@@ -26,8 +28,39 @@ async def create_readiness_job(plan, plan_id, *, registry, project_manager, task
 
 async def dispatch_translation(args, plan_id, background_tasks, initial_starter):
     if args.get("workflow") == "incremental":
+        from scripts.core.services.agent_incremental_plan_service import require_current_preview
+        await require_current_preview(args)
         from scripts.routers.projects import run_incremental_update
         from scripts.schemas.project import IncrementalUpdateRequest
         return await run_incremental_update(args["project_id"],
             IncrementalUpdateRequest(**{**args, "dry_run": False, "use_resume": False}), background_tasks)
     return await initial_starter(InitialTranslationRequest(**{**args, "idempotency_key": plan_id}), background_tasks)
+
+
+def create_incremental_preview_job(plan, plan_id, *, registry, task_state):
+    preview = plan["execution_args"]["incremental_preview"]
+    job_id = f"job_{uuid.uuid4().hex}"
+    task_state.create_task(job_id, status="completed", fields={
+        "kind": "dry_run", "agent_job_kind": "dry_run", "project_id": plan["project_id"],
+        "created_by": {"type": "remis_agent", "label": "Remis Agent"},
+        "idempotency_key": plan_id, "output_dirs": [],
+        "summary": preview["summary"],
+        "result": {"types": ["change_summary"], "output_paths": [],
+                   "summary": "Incremental entry comparison completed; no model invoked.",
+                   "metadata": {"diff_executed": True, "incremental_preview": preview}},
+    })
+    task_state.init_progress(job_id, {"percent": 100, "stage": "Incremental preview completed"})
+    registry.record_job(job_id=job_id, project_id=plan["project_id"], plan_id=plan_id,
+                        kind="dry_run", execution_args=plan["execution_args"])
+    return job_id
+
+
+def project_job_result(task):
+    """Expose persisted entry counts without making callers inspect raw tasks."""
+    result = dict(task.get("result") or {})
+    if task.get("agent_job_kind", task.get("kind")) == "incremental_translation":
+        metadata = dict(result.get("metadata") or {})
+        metadata.setdefault("entry_summary", task.get("summary") or {})
+        metadata.setdefault("file_summaries", task.get("file_summaries") or [])
+        result["metadata"] = metadata
+    return result

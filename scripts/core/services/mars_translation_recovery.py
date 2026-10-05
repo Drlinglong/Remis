@@ -74,6 +74,16 @@ def _source_table(root: Path) -> tuple[Path, bytes, surviving_mars_csv.CsvDocume
     return path, raw, document
 
 
+def _matches_archive_source(archived: str, current: str) -> bool:
+    if archived == current:
+        return True
+    # Older Remis snapshots stripped one terminal newline when saving source text.
+    # Accept only that exact legacy difference; keep the current CSV bytes for export.
+    if current.endswith("\r\n"):
+        return archived == current[:-2]
+    return current.endswith("\n") and archived == current[:-1]
+
+
 def _archive_for_language(project_id: str, source_file: Path, document: Any, language: str) -> dict[str, Any]:
     version = archive_manager.get_latest_version(project_id=project_id, language=language)
     if not version:
@@ -85,7 +95,7 @@ def _archive_for_language(project_id: str, source_file: Path, document: Any, lan
         key = str(record.get("key", ""))
         if key in translated or key not in source_by_key:
             raise RecoveryError(409, "archive_keys_mismatch", f"Archived {language} keys do not match the project source table.")
-        if record.get("original") != source_by_key[key]:
+        if not _matches_archive_source(str(record.get("original") or ""), source_by_key[key]):
             raise RecoveryError(409, "archive_source_mismatch", f"Archived source text changed for {language} key {key}.")
         value = record.get("translation")
         if not isinstance(value, str) or not value.strip():

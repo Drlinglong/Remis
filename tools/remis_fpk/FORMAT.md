@@ -20,10 +20,16 @@ frame size, window, chunk boundary, literal block length, and aggregate output
 size is checked. Any other flag, version, block size, or compression variant
 raises `ArchiveError`.
 
-The defaults cap the archive at 128 MiB, index at 8 MiB, each decoded file at
-8 MiB, total decoded output at 64 MiB, entry count at 50,000, nesting at 16,
+The defaults cap the archive at 128 MiB, index at 8 MiB,
+total decoded output at 64 MiB, entry count at 50,000, nesting at 16,
 and Zstandard windows at 1 MiB. Names must be safe Windows path components and
 unique ignoring case. Payloads may not overlap the index or one another.
+
+There is no separate default per-file cap (`file_bytes=None`). Raw files and
+declared decompressed sizes are checked against the remaining aggregate output
+budget before copying or decoding. Callers may explicitly set `file_bytes` for
+a stricter policy. Remis project preparation uses a 256 MiB aggregate budget;
+ordinary image assets above 8 MiB no longer require a custom extractor call.
 
 The implementation was compared byte-for-byte against the supplied
 `Exotic Minerals Expanded` unpacked reference: all 56 files (28 raw `0x10`

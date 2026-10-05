@@ -405,7 +405,7 @@ class ArchiveManager:
                     entry_file_path = self._normalize_archive_file_path(
                         file_data.get('file_path') or file_data.get('filename', 'unknown')
                     )
-                    source_entries.append((version_id, entry_key, text.rstrip('\r\n'), entry_file_path))
+                    source_entries.append((version_id, entry_key, text, entry_file_path))
 
             # Ensure file_path column exists
             cursor.execute("PRAGMA table_info(source_entries)")
@@ -687,7 +687,7 @@ class ArchiveManager:
             
             results.append({
                 "key": lookup_key, # Return normalized key
-                "original": original.rstrip('\r\n') if original else "",
+                "original": original if original is not None else "",
                 "translation": translation,
                 "file_path": s_row["file_path"] or ""
             })
@@ -766,7 +766,7 @@ class ArchiveManager:
                 return None
             return {
                 "key": row["entry_key"],
-                "original": row["source_text"].rstrip('\r\n') if row["source_text"] else "",
+                "original": row["source_text"] if row["source_text"] is not None else "",
                 "file_path": row["file_path"] or "",
             }
         except Exception as e:

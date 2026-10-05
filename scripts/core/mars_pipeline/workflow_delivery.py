@@ -8,6 +8,7 @@ from scripts.core import surviving_mars_csv as csv_adapter
 from scripts.core.agent_service import agent_registry
 from scripts.core.mars_pipeline import workflow_store as store
 from scripts.core.mars_pipeline.publication_identity import get_publication_binding
+from scripts.core.mars_pipeline.source_selection import translation_source
 from scripts.core.services.translation_package_workflow import (
     PackageWorkflowError, _consume, _language_options, _outputs, _project, _select_output,
 )
@@ -74,7 +75,7 @@ def _read_translations(
                     continue
                 if key in translated:
                     raise ValueError(f"Duplicate translation ID: {key}")
-                if original != entries[key]["text"]:
+                if original != translation_source(entries[key]):
                     raise ValueError(f"Translation source changed for ID {key}")
                 if not text.strip():
                     raise ValueError(f"Translation is empty for ID {key}")
@@ -95,6 +96,14 @@ def _inspect(project: dict, receipt: dict, request: dict) -> tuple[dict, dict]:
     translations = _read_translations(
         project, receipt["manifest"], request["outputs"], request.get("mode", "source_copy")
     )
+    return _inspect_with_translations(project, receipt, request, translations)
+
+
+def _inspect_with_translations(
+    project: dict, receipt: dict, request: dict, translations: dict,
+    conditional_bundle: dict | None = None,
+) -> tuple[dict, dict]:
+    from scripts.core.mars_pipeline.delivery import inspect_delivery
     metadata_overrides = request.get("metadata_overrides")
     binding = (get_publication_binding(receipt["project_id"], receipt)
                if request["mode"] == "source_copy" else None)
@@ -102,21 +111,41 @@ def _inspect(project: dict, receipt: dict, request: dict) -> tuple[dict, dict]:
         receipt["source_path"], receipt["manifest"], translations, request["mode"],
         **({"publication_binding": binding} if binding is not None else {}),
         **({"metadata_overrides": metadata_overrides} if metadata_overrides else {}),
+        **({"conditional_bundle": conditional_bundle} if conditional_bundle else {}),
     )
     if binding is not None:
         inspection["publication_binding"] = binding
     return inspection, translations
 
 
+async def _inspect_composite(project: dict, receipt: dict, request: dict) -> tuple[dict, dict, dict | None]:
+    translations = _read_translations(
+        project, receipt["manifest"], request["outputs"], request.get("mode", "source_copy")
+    )
+    bundle = None
+    if request.get("additional_project_outputs"):
+        from scripts.core.mars_pipeline.workflow_delivery_companions import build_bundle
+        bundle = await build_bundle(
+            receipt["project_id"], receipt, translations,
+            request["additional_project_outputs"], request.get("expected_companion_snapshots"),
+        )
+    inspection, translations = await asyncio.to_thread(
+        _inspect_with_translations, project, receipt, request, translations, bundle
+    )
+    return inspection, translations, bundle
+
+
 async def plan_delivery(project_id: str, request: dict) -> dict:
     project, receipt = await _context(project_id)
-    inspection, _ = await asyncio.to_thread(_inspect, project, receipt, request)
+    inspection, _, bundle = await _inspect_composite(project, receipt, request)
     record = agent_registry.create_plan(
         project_id=project_id, kind="mars_pipeline_delivery", dry_run=False,
-        execution_args={**request, "run_id": receipt["run_id"], "fingerprint": inspection["fingerprint"]},
+        execution_args={**request, "run_id": receipt["run_id"], "fingerprint": inspection["fingerprint"],
+                        "expected_companion_snapshots": (bundle or {}).get("snapshots", [])},
         inspection=inspection, summary="Build a local Mars localization delivery without changing installed Mods.",
     )
-    return {**inspection, "plan_id": record["plan_id"], "project_id": project_id,
+    return {**inspection, "additional_project_snapshots": (bundle or {}).get("snapshots", []),
+            "plan_id": record["plan_id"], "project_id": project_id,
             "requires_approval": True, "expires_at": record["expires_at"],
             "risk": {"may_use_paid_api": False, "overwrites_original": False,
                      "writes_output": True, "installs_to_game": False},
@@ -133,7 +162,11 @@ async def execute_delivery(project_id: str, plan_id: str, approved: bool) -> dic
         request = record["execution_args"]
         if request["run_id"] != receipt["run_id"]:
             raise ValueError("Prepared source changed; make a fresh preview")
-        inspection, translations = await asyncio.to_thread(_inspect, project, receipt, request)
+        if request.get("outputs"):
+            inspection, translations, bundle = await _inspect_composite(project, receipt, request)
+        else:
+            inspection, translations = await asyncio.to_thread(_inspect, project, receipt, request)
+            bundle = None
         if inspection["fingerprint"] != request["fingerprint"]:
             raise ValueError("Source, translations or publication binding changed; make a fresh preview")
         if inspection.get("status") != "ready":
@@ -144,10 +177,14 @@ async def execute_delivery(project_id: str, plan_id: str, approved: bool) -> dic
             build_options["metadata_overrides"] = request["metadata_overrides"]
         if inspection.get("publication_binding") is not None:
             build_options["publication_binding"] = inspection["publication_binding"]
+        if bundle is not None:
+            build_options["conditional_bundle"] = bundle
         result = await asyncio.to_thread(
             build_delivery, receipt["source_path"], receipt["manifest"], translations,
             destination, request["mode"], **build_options
         )
+        if bundle is not None:
+            result["additional_project_snapshots"] = bundle["snapshots"]
     except Exception:
         agent_registry.release_plan(plan_id)
         raise

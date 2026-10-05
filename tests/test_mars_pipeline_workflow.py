@@ -78,6 +78,8 @@ def _raw_archive() -> bytes:
 def _ready_manifest() -> dict:
     return {
         "mod_id": "mars-mod-1",
+        "source_selection": {"language": "es", "table": None, "column": "Text"},
+        "source_blockers": [],
         "source_fingerprint": "source-fingerprint",
         "entries": {
             "1": {"text": "Automatic text", "review_required": False, "refs": []},
@@ -109,6 +111,7 @@ def test_archive_path_uses_the_canonical_allowed_parent(tmp_path, monkeypatch):
 @pytest.fixture
 def pipeline_store(tmp_path, monkeypatch):
     monkeypatch.setattr(store, "APP_DATA_DIR", tmp_path / "app-data")
+    monkeypatch.setattr(workflow, "select_source", lambda _root, manifest, _request: manifest)
     return tmp_path / "app-data" / "mars_pipeline"
 
 
@@ -130,7 +133,7 @@ async def test_prepare_plan_requires_approval_and_records_source_copy_choices(
 
     monkeypatch.setattr(workflow.agent_registry, "create_plan", create_plan)
     result = await workflow.plan_prepare({
-        "archive_path": str(archive_path), "name": "Mars mod",
+        "archive_path": str(archive_path), "name": "Mars mod", "source_language": "es",
         "approved_ids": ["2"],
     })
 
@@ -180,7 +183,7 @@ async def test_prepare_stale_archive_hash_leaves_failed_receipt_without_project(
     execution_args = {
         "archive_path": str(archive_path), "archive_sha256": original_hash,
         "manifest_fingerprint": store.fingerprint(manifest), "approved_ids": ["1"],
-        "name": "Mars mod",
+        "name": "Mars mod", "source_language": "es",
     }
     monkeypatch.setattr(workflow, "_resolve_allowed_mod_folder", lambda path: Path(path))
     monkeypatch.setattr(workflow, "_inspect", lambda _request: (
@@ -220,15 +223,16 @@ async def test_prepare_success_persists_project_manager_project_id(
     execution_args = {
         "archive_path": str(archive_path), "archive_sha256": archive_hash,
         "manifest_fingerprint": store.fingerprint(manifest), "approved_ids": ["1", "2"],
-        "name": "Mars mod",
+        "name": "Mars mod", "source_language": "es",
     }
     monkeypatch.setattr(workflow, "_archive_path", lambda _path: archive_path)
     monkeypatch.setattr(workflow, "_consume", lambda *_args: {
         "kind": "mars_pipeline_prepare", "execution_args": execution_args,
     })
 
-    def extract_mock(_archive_path, destination, *, expected_sha256):
+    def extract_mock(_archive_path, destination, *, expected_sha256, limits):
         assert expected_sha256 == archive_hash
+        assert limits is workflow.MARS_ARCHIVE_LIMITS
         destination.mkdir(parents=True)
         (destination / "metadata.lua").write_text("return {}", encoding="utf-8")
         return {"archive_sha256": archive_hash, "files": [{"path": "metadata.lua"}]}
@@ -236,11 +240,11 @@ async def test_prepare_success_persists_project_manager_project_id(
     monkeypatch.setattr(workflow, "extract_archive", extract_mock)
     monkeypatch.setattr(workflow, "analyze_source", lambda *_args: manifest)
 
-    def prepare_mock(_source, destination, _previous, **kwargs):
-        assert kwargs == {"mode": "overlay", "approved_ids": ["1", "2"]}
+    def prepare_mock(destination, _manifest, approved_ids):
+        assert approved_ids == ["1", "2"]
         destination.mkdir(parents=True)
 
-    monkeypatch.setattr(workflow, "prepare_source", prepare_mock)
+    monkeypatch.setattr(workflow, "write_prepared_source", prepare_mock)
     created = []
 
     async def create_project_mock(**kwargs):
@@ -255,6 +259,7 @@ async def test_prepare_success_persists_project_manager_project_id(
     assert result["status"] == "prepared"
     assert result["project_id"] == "project-from-manager"
     assert created[0]["game_id"] == "surviving_mars"
+    assert created[0]["source_language"] == "es"
     assert Path(result["source_path"]).is_dir()
     assert Path(result["prepared_path"]).is_dir()
     assert store.read_receipt(plan_id)["project_id"] == "project-from-manager"
@@ -274,14 +279,14 @@ async def test_prepare_does_not_invite_duplicate_import_when_final_receipt_save_
         "kind": "mars_pipeline_prepare", "execution_args": {
             "archive_path": str(archive_path), "archive_sha256": archive_hash,
             "manifest_fingerprint": store.fingerprint(manifest), "approved_ids": ["1"],
-            "name": "Mars mod",
+            "name": "Mars mod", "source_language": "es",
         },
     })
     monkeypatch.setattr(workflow, "extract_archive", lambda _archive, destination, **_kwargs: (
         destination.mkdir(parents=True) or {"archive_sha256": archive_hash, "files": []}
     ))
     monkeypatch.setattr(workflow, "analyze_source", lambda *_args: manifest)
-    monkeypatch.setattr(workflow, "prepare_source", lambda _src, dst, *_args, **_kwargs: dst.mkdir())
+    monkeypatch.setattr(workflow, "write_prepared_source", lambda dst, *_args, **_kwargs: dst.mkdir())
     created = []
 
     async def create_project(**kwargs):
@@ -575,3 +580,30 @@ def test_corrupt_binding_blocks_inspection_without_fallback(monkeypatch):
         workflow_delivery._inspect({}, {"project_id": "project-1", "manifest": {}}, {
             "mode": "source_copy", "outputs": [],
         })
+
+
+def test_inspection_and_extraction_share_bounded_asset_profile(tmp_path, monkeypatch, pipeline_store):
+    from tools.remis_fpk import ArchiveLimits
+    archive_path = tmp_path / "ModContent.fpk"
+    archive_path.write_bytes(_raw_archive())
+    monkeypatch.setattr(workflow, "_archive_path", lambda _: archive_path)
+    monkeypatch.setattr(workflow, "analyze_source", lambda *_: _ready_manifest())
+    original_inspect, original_extract = workflow.inspect_archive, workflow.extract_archive
+    limits_seen = []
+
+    def inspect(path, *, limits):
+        limits_seen.append(limits)
+        return original_inspect(path, limits=limits)
+
+    def extract(path, destination, *, expected_sha256, limits):
+        limits_seen.append(limits)
+        return original_extract(path, destination, expected_sha256=expected_sha256, limits=limits)
+
+    monkeypatch.setattr(workflow, "inspect_archive", inspect)
+    monkeypatch.setattr(workflow, "extract_archive", extract)
+    workflow._inspect({"archive_path": str(archive_path)})
+    assert limits_seen == [workflow.MARS_ARCHIVE_LIMITS] * 2
+    assert workflow.MARS_ARCHIVE_LIMITS.total_output_bytes == 256 * 1024 * 1024
+    assert ArchiveLimits().total_output_bytes == 64 * 1024 * 1024
+    assert workflow.MARS_ARCHIVE_LIMITS.file_bytes == ArchiveLimits().file_bytes
+    assert workflow.MARS_ARCHIVE_LIMITS.archive_bytes == ArchiveLimits().archive_bytes

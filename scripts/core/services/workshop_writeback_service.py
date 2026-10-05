@@ -127,6 +127,20 @@ def apply_translation_fix_to_file(file_path: Path, key_to_fix: str, new_value: s
                                  game_id: str | None = None,
                                  target_lang: str | None = None) -> bool:
     try:
+        if game_id == "surviving_mars":
+            from scripts.core import surviving_mars_csv
+
+            original_bytes = file_path.read_bytes()
+            has_utf8_bom = original_bytes.startswith(b"\xef\xbb\xbf")
+            source_text = original_bytes.decode("utf-8-sig")
+            patched_text = surviving_mars_csv.replace_translation(
+                source_text, key_to_fix, new_value
+            )
+            output_bytes = patched_text.encode("utf-8")
+            if has_utf8_bom:
+                output_bytes = b"\xef\xbb\xbf" + output_bytes
+            file_path.write_bytes(output_bytes)
+            return True
         if game_id in {"project_zomboid", "rimworld"}:
             from scripts.core.game_adapters.repair import apply_fix
             return apply_fix(file_path, game_id, key_to_fix, new_value, target_lang)
@@ -156,6 +170,11 @@ def apply_translation_fix_to_file(file_path: Path, key_to_fix: str, new_value: s
 def _read_translation_value(file_path: Path, key_to_find: str,
                             game_id: str | None = None) -> Optional[str]:
     try:
+        if game_id == "surviving_mars":
+            from scripts.core import surviving_mars_csv
+
+            entries = surviving_mars_csv.entries(file_path, "Translation")
+            return next((entry.value for entry in entries if entry.key == key_to_find), None)
         if game_id in {"project_zomboid", "rimworld"}:
             from scripts.core.game_adapters.repair import read_value
             return read_value(file_path, game_id, key_to_find)

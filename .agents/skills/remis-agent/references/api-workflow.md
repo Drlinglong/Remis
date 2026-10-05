@@ -158,7 +158,31 @@ the user's translated copy. The built-in chat guides the preparation window;
 Codex operates the following preparation endpoints. Do not send an FPK to the
 generic folder import/translation planner.
 
+**Authorization:** a request to localize this Mod or create its translation
+project already authorizes bundled FPK inspection, isolated extraction and
+project preparation. Review the plan and submit `approved: true` under that
+existing authorization; do not ask again just to use `tools/remis_fpk` or
+unpack it. A feasibility-only request permits isolated inspection, not project
+creation. See the operator Skill's standing preparation authorization for
+scope, existing paid-translation approval, and compatibility-failure handling.
+Validation failures remain technical blockers; permission to unpack does not
+remove them.
+
 1. `POST /api/agent/mars-pipeline/prepare/plan` with `archive_path`, `name`,
+   the actual `source_language`, optional `source_table` (an inspected
+   archive-relative CSV path), and `source_column` (`Text` or `Translation`).
+   With no language selected, inspection returns samples but preparation is
+   blocked. `English.csv` may contain Spanish `Text` and English `Translation`:
+   choose `source_language: "en"`, `source_table: "Localization/English.csv"`,
+   `source_column: "Translation"` to translate from English. Review returned
+   `source_tables`, `source_selection`, `source_blockers` and diagnostics.
+   Translation-column selection requires an explicit table and nonempty values;
+   never fill gaps from a different language. Text-only selection scopes IDs to
+   that table, including CSV-only entries; report Lua IDs outside its scope.
+   Original Lua fallback text, CSV bytes and stable IDs remain unchanged; the
+   new prepared CSV uses the chosen source and the receipt records provenance.
+   Plans with source blockers have no `approve_preparation` action.
+   Other request fields are
    optional `previous_run_id`, optional reviewed `approved_ids`, and optional
    `delivery_mode` (`source_copy` or `text_only`). The
    validated FLPK v1 archive is inspected in temporary isolated storage.
@@ -172,15 +196,19 @@ generic folder import/translation planner.
 3. With user authorization, `POST /api/agent/mars-pipeline/prepare` using
    `plan_id` and `approved: true`. It rechecks the archive, extracts the
    resources selected by the delivery mode, writes a standard five-column CSV
-   and creates a normal referenced project. Preparation approval does not
-   approve translation or final delivery.
+   and creates a normal referenced project. The user's localization/project
+   request supplies preparation authorization; do not require a duplicate
+   confirmation. Preparation alone does not approve translation or delivery.
    Read the persisted receipt via `GET /api/agent/mars-pipeline/runs/{run_id}`.
    A successful result has `status: prepared`, `project_id`, source/prepared
    paths, manifest, archive hashes and allowed actions. A failed receipt is not
    a successful import. Save `run_id` for identity matching on future updates.
 4. Use the existing `/jobs/plan` and `/jobs` translation workflow, selecting
-   the user's provider/model/languages and context settings. Preparation does
-   not authorize paid translation. Check persisted job state and validation.
+   the user's provider/model/languages and context settings. Preparation alone
+   does not authorize paid translation; an explicit translation request naming
+   that provider/model already does, within its scope and stated budget. Review
+   the concrete plan and carry that approval forward. Check persisted job state
+   and validation.
 5. Read `GET /api/agent/projects/{project_id}/mars-pipeline`. Select only the
    project's own translation outputs. The normal UI offers `source_copy` and
    `text_only`; runtime `overlay` is advanced API configuration and requires a
@@ -221,10 +249,10 @@ published copy before saving it. Submit the displayed revision with
 The ID is write-once through this API; it cannot be silently replaced or
 cleared. Re-read the GET endpoint before relying on the binding.
 
-Source-copy export plans may include optional `metadata_overrides` for a
-reviewed title, `description`, `short_description`, `last_changes`, and cover
-image. Omitted text fields keep their source values, except the title retains
-the normal `[Remis i18n]` prefix. Supplying a cover requires both an absolute
+Export plans may include optional `metadata_overrides` for a reviewed title,
+`description`, `short_description`, `last_changes`, and cover image. Text-only
+packages use their generated `[Remis text]` title when no title override is
+provided; source-copy packages retain the normal `[Remis i18n]` prefix. Supplying a cover requires both an absolute
 local `cover_asset_path` and its `cover_asset_sha256`; only bounded PNG/JPEG
 assets are accepted. The preview lists the copied cover path and hash, and
 export rechecks the hash so a changed image invalidates the plan. The output
@@ -235,6 +263,18 @@ overrides only build a local package; they do not publish or install it.
 local `title`, `description`, and `last_changes` values when updating a
 Workshop item. Keep any update target bound to the user's own published copy,
 never the original author’s Workshop item.
+
+For text-only delivery, optional `additional_project_outputs` can combine
+approved keyed translations from other prepared Surviving Mars projects into
+the same package. Each entry is `{ "project_id", "language_code",
+"output_folder_name" }`; select a target language also present in the base
+project's `outputs`. Companion CSVs load only while their source Mod IDs are
+enabled. The package keeps the base Mod ID and its single required dependency.
+The preview returns `additional_project_snapshots` with each companion run,
+source fingerprint, and translation-output fingerprint; export rechecks them.
+Duplicate IDs must have identical source and target text. The package does not
+copy companion metadata, assets, or source files. Runtime activation still
+requires an in-game check.
 
 When installing a source copy, disable the original and previous translation
 patches; do not enable duplicate Mod identities. Keep the Steam archive intact.
@@ -334,10 +374,14 @@ This guidance follows the SDK code; Remis has not verified the generated Mod
 in a live game. Hard-coded `Untranslated(...)` text is outside CSV coverage.
 The GUI-compatible routes use the same contract under `/api/projects/{project_id}`.
 
-CSV output preserves source-relative paths. FPK is a compiled package and is
-not readable by the adapter; use the official Mod Editor to prepare an editable
-source directory. The exporter does not unpack/repack FPK, modify the original
-Mod or publish to Workshop.
+CSV output preserves source-relative paths. An FPK archive is not input for
+this CSV-only exporter. Route it through
+[FPK preparation](#prepare-an-fpk-and-deliver-an-internationalized-mod):
+`POST /api/agent/mars-pipeline/prepare/plan`, followed by approved preparation.
+Remis uses `tools/remis_fpk` to extract supported FLPK v1 archives into isolated
+storage; manual Mod Editor extraction is not a prerequisite. The original Mod
+remains unchanged. Final FPK repacking and Workshop upload still use the game's
+official Mod Editor.
 
 ### Initial and incremental workflows
 
@@ -349,7 +393,29 @@ move reuse is not guaranteed across games. Follow
 `game_support.incremental_policy` and `changed_translation_policy` for that
 game. Project Zomboid and RimWorld retain translations for changed source with
 `needs_review`; Surviving Mars uses its existing CSV incremental workflow.
-`dry_run: true` is a readiness check only and does not run the entry diff. Check
+Before planning, an optional zero-cost, read-only preview is available at
+`POST /api/agent/projects/{project_id}/incremental-preview` with optional
+`custom_source_path` and `target_lang_codes` (for example `["zh-CN"]`). It
+requires no provider configuration or key and does not write provider data,
+project state, archives, or outputs. It returns an aggregate `summary`, a
+`per_language` list with flat counts and per-language `deleted_entries`,
+`file_summaries` whose entries include `dirty_entries`, plus `fingerprint`,
+`source_path`, and `source_language`. Use the reviewed fingerprint as
+`expected_preview_fingerprint` in `POST /jobs/plan`; the paid plan reports
+`translation.incremental_preview`, and execution rejects a stale preview.
+`custom_source_path` lets a prepared source attach to an existing project; with
+`translation_context_mode: "none"`, reuse still compares against the project's
+archive baseline. Prefer the original author's `Text` and confirm its
+language. Use `Translation` as the source only when the user explicitly selects
+it as the translation source. An English baseline must not silently switch to
+Spanish `Text`, which would make all entries appear changed.
+
+For incremental jobs, `dry_run: true` now executes the entry diff without a
+provider call. Initial-translation `dry_run: true` remains a readiness check.
+Read `GET /api/agent/jobs/{job_id}` and inspect `result.metadata`: execution
+dry-runs expose `incremental_preview` and `diff_executed: true`; completed jobs expose
+`entry_summary` and `file_summaries`. Keep counts for source-changed entries,
+model-submitted entries, and entries requiring review distinct. Check
 `game_support.incremental_checkpoint_resume_supported`; for these adapters it
 is false, so a fresh incremental plan is required instead of checkpoint resume.
 Custom shell languages are unsupported for these adapters, including
@@ -605,6 +671,92 @@ Read the returned `translation` object before starting. The server binds this
 configuration to the plan and retains it in the persisted job and retry plan.
 Do not mix custom and standard targets or replace the actual target with `en`.
 Existing project summaries include `source_path` for authorized local inspection.
+
+## Translation collections
+
+Call preflight before each collection workflow. The desktop API uses base
+`/api/translation-collections`; the Agent mirror is
+`/api/agent/translation-collections`. Both operate on the same persisted
+collection records. A collection combines selected existing output folders
+from distinct projects of one game; it does not run translation jobs.
+
+Core routes:
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET`, `POST` | `/api/translation-collections` | List or create collections |
+| `GET`, `PUT`, `DELETE` | `/api/translation-collections/{id}` | Read, revision-guarded update, or delete a collection record |
+| `GET` | `/api/translation-collections/project-options/{project_id}` | Read project-owned output folders available for selection |
+| `POST` | `/api/translation-collections/{id}/plan` | Validate member selections and create an export preview |
+| `POST` | `/api/translation-collections/{id}/export` | Execute a previously approved local export |
+| `PUT` | `/api/translation-collections/{id}/publication` | Save the collection's own Steam publication ID |
+| `GET` | `/api/translation-collections/{id}/history` | Read persisted export receipts |
+
+Use the same suffixes under `/api/agent/translation-collections` for Agent
+operations. `POST` create accepts `game_id`, `title`, optional `description`,
+`target_languages`, and `members`. Each member contains `project_id` and
+`outputs`; each output selects a `language_code` and exact
+`output_folder_name` returned by `project-options`:
+
+```json
+{
+  "game_id": "rimworld",
+  "title": "My translated mod set",
+  "description": "Optional notes",
+  "target_languages": ["zh-CN"],
+  "members": [
+    {
+      "project_id": "project-id",
+      "outputs": [
+        {"language_code": "zh-CN", "output_folder_name": "zh-CN-output"}
+      ]
+    }
+  ]
+}
+```
+
+`PUT /{id}` accepts the same collection fields plus `expected_revision` from
+the latest read. `DELETE /{id}` requires that revision as the
+`expected_revision` query parameter. Collection IDs and generated `mod_id`
+remain stable across edits; members are references to projects, not copies.
+
+Plan with `POST /{id}/plan` and inspect `plan_id`, `inspection.mode`,
+`inspection.can_export`, diagnostics, members and fingerprint before taking an
+action. If any input changes after planning, discard the stale plan and make a
+new one. Mars incomplete or unapproved text-only outputs and hard-coded/source-
+copy gaps block export. Other games require one selected output per target
+language and report unverified translation completeness as a warning. Paradox
+global key conflicts are preview diagnostics; remove conflicting members or
+choose a compatible set before exporting. Never work around blockers by copying
+or altering a member project directly.
+
+Only after the user explicitly approves the shown local export, call
+`POST /{id}/export` with `{"plan_id":"<returned plan_id>","approved":true}`.
+Verify the persisted receipt and `package_path`. Export writes a new local
+package; it does not install it, call a translation model, or upload to Steam.
+
+Surviving Mars collections render one multilingual optional Mod. Its loader
+applies a member's selected translations only while that member Mod is enabled
+and the game language matches; keep the original Mods enabled. Mars preview
+blocks incomplete or unapproved text-only coverage, including hard-coded and
+source-copy gaps. For other games, the bundle keeps separate member directories
+and does not create one merged Mod. Portable translation completeness is
+unverified and is a warning. For Paradox games, inspect preview diagnostics for
+global localization key conflicts and the affected member pairs; separate
+directories do not make conflicting keys safe to enable together. Remove
+conflicting members or choose a compatible set before export. All outputs have
+`runtime_verified: false` and require manual installation and in-game checks.
+
+For Surviving Mars, bind publication only after the user has manually published
+their own collection in the game's Mod Editor and supplied that collection's
+Steam ID. For Paradox games, users follow each game's own Mod upload workflow;
+Remis does not provide a Paradox Mod Editor.
+`PUT /{id}/publication` requires `expected_revision`, `steam_id`, and
+`approved: true`; the approval records the identity binding only. It does not
+publish or upload files. Never use a member's or original author's Steam ID.
+
+For the user-facing flow, see
+`docs/zh/user-guides/translation-collections.md`.
 
 ## Local Steam Workshop publishing candidates
 

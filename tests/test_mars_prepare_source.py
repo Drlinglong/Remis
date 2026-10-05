@@ -114,6 +114,28 @@ def test_string_format_flags_and_escaped_percent_keep_runtime_formatting(tmp_pat
     assert entry["params"] == {"value1": 'string.format("%02d", amount)'}
 
 
+def test_tag_only_labels_are_excluded_but_tagged_prose_and_dynamic_calls_need_review(tmp_path):
+    source = tmp_path / "mod"
+    source.mkdir()
+    _add_metadata(source)
+    (source / "Code.lua").write_text(
+        'local countdown = Untranslated("<countdown>")\n'
+        'local formatting = Untranslated("<newline><left>")\n'
+        'local message = Untranslated("Wait<newline>for the <left> shuttle")\n'
+        'local dynamic = Untranslated(lugar)\n',
+        encoding="utf-8",
+    )
+
+    manifest = analyze_source(source)
+    texts = [entry["text"] for entry in manifest["entries"].values()]
+    assert "<countdown>" not in texts
+    assert "<newline><left>" not in texts
+    assert "Wait<newline>for the <left> shuttle" in texts
+    dynamic = next(entry for entry in manifest["entries"].values() if entry["text"] is None)
+    assert dynamic["kind"] == "dynamic"
+    assert dynamic["review_required"] is True
+
+
 def test_shuttle_dedup_uses_localized_label_and_recompiles_stale_profile_templates(tmp_path):
     source = tmp_path / "mod"
     source.mkdir()

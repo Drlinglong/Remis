@@ -21,7 +21,7 @@ class ArchiveLimits:
 
     archive_bytes: int = 128 * 1024 * 1024
     index_bytes: int = 8 * 1024 * 1024
-    file_bytes: int = 8 * 1024 * 1024
+    file_bytes: int | None = None
     total_output_bytes: int = 64 * 1024 * 1024
     entries: int = 50_000
     depth: int = 16
@@ -122,17 +122,22 @@ def _parse_index(
 
 
 def _decode_payload(data: bytes, entry: dict[str, Any], index_end: int,
-                    limits: ArchiveLimits, zstd: Any) -> bytes:
+                    limits: ArchiveLimits, zstd: Any, remaining_output_bytes: int) -> bytes:
     offset, size = entry["offset"], entry["size"]
-    if size <= 0 or size > limits.file_bytes or offset < index_end or offset > len(data) or size > len(data) - offset:
+    if (size < 0 or (limits.file_bytes is not None and size > limits.file_bytes)
+            or offset < index_end or offset > len(data) or size > len(data) - offset):
         raise ArchiveError(f"file payload is outside supported bounds: {entry['path']}")
+    if entry["kind"] == "raw" and size > remaining_output_bytes:
+        raise ArchiveError("total extracted bytes exceed configured limit")
     payload = data[offset:offset + size]
     if entry["kind"] == "raw":
         return payload
     if len(payload) < 16 or payload[:4] != _ZSTD_MAGIC:
         raise ArchiveError(f"invalid Zstandard container header: {entry['path']}")
     raw_size, block_size, chunk_table_offset = struct.unpack_from("<III", payload, 4)
-    if raw_size <= 0 or raw_size > limits.file_bytes or block_size != _BLOCK_BYTES:
+    if (raw_size <= 0 or raw_size > remaining_output_bytes
+            or (limits.file_bytes is not None and raw_size > limits.file_bytes)
+            or block_size != _BLOCK_BYTES):
         raise ArchiveError(f"unsupported decompressed size or block size: {entry['path']}")
     chunk_count = (raw_size + block_size - 1) // block_size
     expected_table = 12 + 4 * chunk_count
@@ -232,10 +237,9 @@ def inspect_archive(path: str | Path, *, limits: ArchiveLimits | None = None) ->
     for entry in entries:
         if entry["kind"] == "directory":
             continue
-        raw = _decode_payload(data, entry, index_end, limits, zstandard)
+        raw = _decode_payload(data, entry, index_end, limits, zstandard,
+                              limits.total_output_bytes - total)
         total += len(raw)
-        if total > limits.total_output_bytes:
-            raise ArchiveError("total extracted bytes exceed configured limit")
         files.append({**entry, "stored_size": entry["size"], "size": len(raw),
                       "raw_size": len(raw), "codec": entry["kind"],
                       "sha256": hashlib.sha256(raw).hexdigest()})
@@ -250,11 +254,11 @@ def _read_for_extraction(path: Path, limits: ArchiveLimits) -> tuple[bytes, list
 
 
 def _payload_for_extraction(data: bytes, entry: dict[str, Any], index_end: int,
-                            limits: ArchiveLimits) -> bytes:
+                            limits: ArchiveLimits, remaining_output_bytes: int) -> bytes:
     try:
         import zstandard
     except ImportError as error:
         if entry["kind"] == "zstd":
             raise ArchiveError("install the zstandard dependency to extract this archive") from error
         zstandard = None
-    return _decode_payload(data, entry, index_end, limits, zstandard)
+    return _decode_payload(data, entry, index_end, limits, zstandard, remaining_output_bytes)

@@ -376,6 +376,38 @@ def test_source_copy_metadata_overrides_add_reviewed_cover_and_preserve_author_s
     } == source_hashes
 
 
+def test_text_only_metadata_overrides_keep_base_identity_and_copy_reviewed_cover(tmp_path):
+    source = _source(tmp_path / "source")
+    manifest, translations = _prepared(source)
+    cover = tmp_path / "workshop.jpg"
+    cover_bytes = _synthetic_jpeg()
+    cover.write_bytes(cover_bytes)
+    overrides = {
+        "title": "Red Horizon + Challenge Pack",
+        "description": "[b]Reviewed description[/b]",
+        "short_description": "Reviewed short description",
+        "cover_asset_path": str(cover),
+        "cover_asset_sha256": hashlib.sha256(cover_bytes).hexdigest(),
+    }
+    preview = inspect_delivery(source, manifest, translations, "text_only", metadata_overrides=overrides)
+    destination = tmp_path / "text-only"
+    result = build_delivery(source, manifest, translations, destination, "text_only",
+                            expected_fingerprint=preview["fingerprint"], metadata_overrides=overrides)
+    metadata = (destination / "metadata.lua").read_text(encoding="utf-8")
+    cover_fact = next(item for item in preview["files"] if item["path"].endswith(".jpg"))
+
+    assert preview["status"] == "ready"
+    assert result["output_mod_id"] == preview["output_mod_id"]
+    assert f"'id', \"{preview['output_mod_id']}\"" in metadata
+    assert "'id', \"synthetic42\"" in metadata
+    assert metadata.count("PlaceObj('ModDependency'") == 1
+    assert "[b]Reviewed description[/b]" in metadata
+    assert "Reviewed short description" in metadata
+    assert "'steam_id'" not in metadata and "'pdx_id'" not in metadata
+    assert f"Mod/{preview['output_mod_id']}/{cover_fact['path']}" in metadata
+    assert (destination / cover_fact["path"]).read_bytes() == cover_bytes
+
+
 def test_source_copy_cover_snapshot_rejects_content_changes_after_preview(tmp_path):
     source = _source(tmp_path / "source")
     manifest, translations = _prepared(source)
@@ -485,3 +517,15 @@ def test_delivery_plan_accepts_bounded_metadata_and_requires_cover_snapshot_pair
             **base,
             "metadata_overrides": {"cover_asset_path": "J:/assets/cover.jpg"},
         })
+
+    companion = {"project_id": "addon", "language_code": "zh-CN",
+                 "output_folder_name": "zh-CN-addon"}
+    text_plan = DeliveryPlan(**{**base, "mode": "text_only",
+                                "additional_project_outputs": [companion],
+                                "metadata_overrides": {"title": "Text-only title"}})
+    assert text_plan.additional_project_outputs[0].project_id == "addon"
+    with pytest.raises(ValidationError):
+        DeliveryPlan(**{**base, "additional_project_outputs": [companion]})
+    with pytest.raises(ValidationError):
+        DeliveryPlan(**{**base, "mode": "text_only",
+                        "additional_project_outputs": [companion, companion]})

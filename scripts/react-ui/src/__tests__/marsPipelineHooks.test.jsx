@@ -42,7 +42,7 @@ describe('useMarsPipelineImport', () => {
   it('discards a pending preview when an import field changes', async () => {
     const request = deferred();
     service.planImport.mockReturnValue(request.promise);
-    const { result } = renderHook(() => useMarsPipelineImport(undefined, 'Example Mod'));
+    const { result } = renderHook(() => useMarsPipelineImport(undefined, 'Example Mod', 'en'));
     act(() => {
       result.current.update('path', 'ModContent.fpk');
     });
@@ -64,7 +64,7 @@ describe('useMarsPipelineImport', () => {
 
   it('sends the selected archive, prior run, and reviewed IDs in the import preview', async () => {
     service.planImport.mockResolvedValue({ data: { plan_id: 'plan-import', review_items: [] } });
-    const { result } = renderHook(() => useMarsPipelineImport(undefined, 'Example Mod'));
+    const { result } = renderHook(() => useMarsPipelineImport(undefined, 'Example Mod', 'es'));
     act(() => {
       result.current.update('path', 'ModContent.fpk');
       result.current.update('previousRun', 'plan_previous');
@@ -78,13 +78,16 @@ describe('useMarsPipelineImport', () => {
       previous_run_id: 'plan_previous',
       approved_ids: ['reviewed-id'],
       delivery_mode: 'source_copy',
+      source_language: 'es',
+      source_table: null,
+      source_column: 'Text',
     });
     expect(result.current.plan.plan_id).toBe('plan-import');
   });
 
   it('sends text-only mode and inherited project name when requested', async () => {
     service.planImport.mockResolvedValue({ data: { plan_id: 'text-only-plan', review_items: [] } });
-    const { result } = renderHook(() => useMarsPipelineImport(undefined, 'Inherited Mod Name'));
+    const { result } = renderHook(() => useMarsPipelineImport(undefined, 'Inherited Mod Name', 'fr'));
     act(() => {
       result.current.update('path', 'ModContent.fpk');
       result.current.update('deliveryMode', 'text_only');
@@ -93,8 +96,52 @@ describe('useMarsPipelineImport', () => {
     await act(async () => result.current.preview());
 
     expect(service.planImport).toHaveBeenCalledWith(expect.objectContaining({
-      name: 'Inherited Mod Name', delivery_mode: 'text_only',
+      name: 'Inherited Mod Name', delivery_mode: 'text_only', source_language: 'fr',
     }));
+  });
+
+  it('sends an explicitly selected source table and column and invalidates the old plan', async () => {
+    service.planImport.mockResolvedValue({ data: { plan_id: 'source-plan', review_items: [] } });
+    const { result } = renderHook(() => useMarsPipelineImport(undefined, 'Example Mod', 'en'));
+    act(() => {
+      result.current.update('path', 'ModContent.fpk');
+      result.current.update('sourceTable', 'Localization/English.csv');
+      result.current.update('sourceColumn', 'Translation');
+    });
+    await act(async () => result.current.preview());
+    expect(service.planImport).toHaveBeenCalledWith(expect.objectContaining({
+      source_language: 'en', source_table: 'Localization/English.csv', source_column: 'Translation',
+    }));
+    expect(result.current.plan.plan_id).toBe('source-plan');
+    act(() => result.current.update('sourceLanguage', 'de'));
+    expect(result.current.plan).toBeNull();
+  });
+
+  it('sends a null source language while allowing the backend to report the required selection', async () => {
+    service.planImport.mockResolvedValue({ data: {
+      source_blockers: [{ code: 'source_language_required', message: 'Select a source language.' }],
+      allowed_actions: [], review_items: [],
+    } });
+    const { result } = renderHook(() => useMarsPipelineImport(undefined, 'Example Mod'));
+    act(() => result.current.update('path', 'ModContent.fpk'));
+
+    await act(async () => result.current.preview());
+
+    expect(service.planImport).toHaveBeenCalledWith(expect.objectContaining({ source_language: null }));
+    expect(result.current.plan.source_blockers).toHaveLength(1);
+  });
+
+  it('refuses to execute a plan with source blockers even when allowed_actions is absent', async () => {
+    service.planImport.mockResolvedValue({ data: {
+      plan_id: 'blocked-plan', source_blockers: [{ code: 'missing_translation' }], review_items: [],
+    } });
+    const { result } = renderHook(() => useMarsPipelineImport(undefined, 'Example Mod', 'en'));
+    act(() => result.current.update('path', 'ModContent.fpk'));
+    await act(async () => result.current.preview());
+
+    await act(async () => result.current.execute());
+
+    expect(service.import).not.toHaveBeenCalled();
   });
 });
 

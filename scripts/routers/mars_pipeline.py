@@ -16,6 +16,9 @@ class PreparePlan(BaseModel):
     name: str = Field(min_length=1, max_length=240)
     previous_run_id: str | None = None
     delivery_mode: Literal["text_only", "source_copy"] = "source_copy"
+    source_language: Literal["en", "zh-CN", "fr", "de", "es", "pl", "pt-BR", "ru", "tr"] | None = None
+    source_table: str | None = Field(default=None, min_length=1, max_length=4096)
+    source_column: Literal["Text", "Translation"] = "Text"
     approved_ids: list[str] = Field(default_factory=list, max_length=2000)
 
 
@@ -29,6 +32,10 @@ class TranslationOutput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     output_folder_name: str = Field(min_length=1, max_length=255)
     language_code: str = Field(min_length=2, max_length=20)
+
+
+class AdditionalProjectOutput(TranslationOutput):
+    project_id: str = Field(min_length=1, max_length=128)
 
 
 class DeliveryMetadataOverrides(BaseModel):
@@ -51,7 +58,17 @@ class DeliveryPlan(BaseModel):
     model_config = ConfigDict(extra="forbid")
     mode: Literal["text_only", "overlay", "source_copy"]
     outputs: list[TranslationOutput] = Field(min_length=1, max_length=30)
+    additional_project_outputs: list[AdditionalProjectOutput] = Field(default_factory=list, max_length=20)
     metadata_overrides: DeliveryMetadataOverrides | None = None
+
+    @model_validator(mode="after")
+    def require_text_only_for_companions(self):
+        if self.additional_project_outputs and self.mode != "text_only":
+            raise ValueError("Additional project outputs are supported only for text-only delivery")
+        selections = [(item.project_id, item.language_code) for item in self.additional_project_outputs]
+        if len(selections) != len(set(selections)):
+            raise ValueError("Select each additional project and target language only once")
+        return self
 
 
 class PublicationBinding(BaseModel):

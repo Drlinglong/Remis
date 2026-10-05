@@ -28,14 +28,18 @@
 
 Surviving Mars 专属中文指南 `docs/zh/user-guides/surviving-mars.md` 是 CSV、隔离 FPK 准备、`text_only`/`source_copy` 对照、多语言本地交付、安装和手动发布的用户与 Help Copilot 入口；English companion 位于 `docs/en/user-guides/surviving-mars.md`。五列表头和 CSV 不变量由 `game_support.csv_contract` 提供；已有 CSV 轻量包接口由 `translation_package` 提供，完整准备/源码副本/文本包/高级运行时覆盖接口由 `source_pipeline` 提供。不要在其它指南维护第二份易漂移的字段表。桌面聊天只解释和引导；计划、审批和执行通过项目界面或 Agent API 完成。此游戏新 FPK 项目尚无专用可视化校对工作区，但格式校验和 Agent 定点读写可用。运行时覆盖不是普通 UI 选项，候选计数不代表完整覆盖，所有交付仍需游戏内验证。
 
-[3.2.1 更新日志](zh/developer/release-v3.2.1.md) 是当前未发布开发记录的唯一入口：
-`status: draft`，`audience: developer`，`copilot_scope: excluded`，
-`last_verified: 2026-09-12`。记录待发布改动、验证与已知限制，不表示已发布。
+[3.2.1 早期开发记录](zh/developer/release-v3.2.1.md) 已标记为历史材料：
+`status: historical`，`audience: developer`，`copilot_scope: excluded`，
+`last_verified: 2026-09-29`。其“未发布/不自动解包”陈述仅描述早期阶段；
+`superseded_by: zh/user-guides/surviving-mars.md`。正式发布信息见
+[v3.2.1 Release](https://github.com/Drlinglong/Remis/releases/tag/v3.2.1)。
 `archive/release_notes/` 仅保存已发布或历史版本说明；发布后是否生成归档副本必须是显式的
 文档治理步骤。
 
 | 路径 | status | audience | copilot_scope | canonical_for |
 |---|---|---|---|---|
+| `zh/developer/probably-stolen-adapter-research.md` | draft | developer, agent | excluded | Probably Stolen 格式与加载器调研、实施准备；2026-09-29 核验，未实现/未游戏测试 |
+| `zh/user-guides/translation-collections.md` | current | user | user-help | 同一游戏多个项目的合集管理、输出预览、审批、本地导出与手动 Steam 发布边界 |
 | `zh/developer/mars-lua-localization-workflow.md` | current | developer, agent | excluded | 隔离 FPK 准备、稳定 ID、复核后的源码改造、两种常规交付与高级 API 运行时覆盖；运行时需游戏验收 |
 | `zh/developer/mars-pipeline-acceptance-2026-09-25.md` | current | developer | excluded | Exotic Minerals Expanded 的本地准备、翻译校验、静态源副本验收证据及未完成的游戏验证 |
 | `zh/developer/mars-unpack-probe.md` | current | developer | excluded | 社区旧解包器探测及独立 FLPK v1 读写边界；全资源恢复证据与社区分发准备 |

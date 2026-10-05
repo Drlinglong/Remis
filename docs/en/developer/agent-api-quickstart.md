@@ -28,6 +28,13 @@ Codex discovers the repository Skill at:
 
 ## Verify the local service
 
+Before launching a development checkout, record `git rev-parse HEAD` and
+`git describe --tags --always --dirty` and compare the commit with the intended
+task baseline. A release checkout should match that release's target commit.
+The same `VERSION` string does not mean the same code. Resolve an old checkout
+without replacing another task's changes; historical notes and memories do not
+define the capabilities of newer releases.
+
 Start the installed desktop application or run
 `scripts\developer_tools\windows\run-dev.bat` from the repository root. The
 default port is `1453`; respect `REMIS_BACKEND_PORT` if the launcher reports an
@@ -106,9 +113,23 @@ Use the detailed payload and status reference in
 version and path changes alone do not require retranslating entries. Changed
 source entries keep their existing translations for review, and `needs_review`
 items remain unresolved until a person reviews them. `dry_run` checks
-readiness, not the entry diff. Incremental checkpoint resume and custom shell
-languages are unsupported for Project Zomboid and RimWorld; create a new
-incremental plan instead of requesting resume.
+readiness for initial translation; for incremental jobs it now executes the
+entry diff without a provider call. Agents can first call
+`POST /api/agent/projects/{project_id}/incremental-preview` with optional
+`custom_source_path` and `target_lang_codes` (for example `["zh-CN"]`). This
+read-only preview requires no provider or key and writes no project, archive,
+or output data. Pass its `fingerprint` as `expected_preview_fingerprint` to
+`/api/agent/jobs/plan`; execution rejects a stale preview. Source selection
+prefers the original author's `Text` and requires confirming its language.
+Use `Translation` as the source only when the user explicitly selects it.
+An English baseline must not silently switch to Spanish `Text`, which would
+make every entry appear changed. Read `GET /api/agent/jobs/{job_id}` and inspect
+`result.metadata`: completed jobs expose `entry_summary` and `file_summaries`,
+while dry-run metadata includes `incremental_preview` and `diff_executed: true`.
+Keep source-changed,
+model-submitted, and review-required counts distinct. Incremental checkpoint
+resume and custom shell languages are unsupported for Project Zomboid and
+RimWorld; create a new incremental plan instead of requesting resume.
 
 Project Zomboid supports JSON string maps and restricted literal Lua-table TXT.
 RimWorld supports Keyed, DefInjected, Strings, known translatable Def fields,

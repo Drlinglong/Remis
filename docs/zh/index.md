@@ -43,6 +43,7 @@
 ## 用户指南
 - [从零开始：第一次汉化](user-guides/getting-started.md) - 项目制正确入口（先建项目，再初次翻译）
 - [项目管理](user-guides/project-management.md) - 长期项目、路径、归档、删除与工作流入口
+- [翻译合集](user-guides/translation-collections.md) - 组合同一游戏多个项目的语言输出并生成本地交付
 - [Mod 监控](user-guides/project-tracking.md) - 监控本地化文件变化并进入增量翻译
 - [增量翻译](user-guides/incremental-update.md) - Mod 更新后复用旧译文、只翻变更
 - [导入已有译文](user-guides/import-existing-translations.md) - 半成品 / 翻译上载
@@ -78,6 +79,7 @@
 - [3.2.0 发布冒烟与风险清单](developer/release-v3.2.0-smoke-test.md) - 发版前验证、失败定位与已知边界
 
 ## 开发者文档
+- [深空当铺 Mod 本地化适配调查](developer/probably-stolen-adapter-research.md) - 2026-09-29 格式证据、交付限制与实施准备；尚未适配
 - [文档状态说明](../docs_status.md) - 当前文档入口与历史记录说明
 - [AI 智能体开发规章](../agent.md) - 已降级的兼容入口；当前规则以根目录 `AGENTS.md` 为准
 - [架构概述](developer/architecture.md) - 系统架构和设计
