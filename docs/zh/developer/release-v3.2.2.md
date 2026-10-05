@@ -17,20 +17,22 @@
 
 ## 验证
 
-- 后端全量：2343 passed / 14 skipped，171.80 秒；跳过项为环境/外部样本依赖和平台能力限制。
+- 后端全量：2357 passed / 19 skipped，134.36 秒；跳过项为环境/外部样本依赖和平台能力限制。
 - 桌面：253 文件、1047 测试通过；locale consistency 与 text encoding integrity 通过。
 - 网站：64 测试、lint 与 build 通过。
 - Python compileall、致命语法/名称 lint、架构守卫与 git diff --check 通过。
 - 桌面 lint：0 errors / 13 个既有 warnings，未增加超限模块。
+- Axios 1.20.0 / brace-expansion 5.0.12 定向安全更新，npm audit 全量 0 vulnerabilities；桌面 1047 项复跑通过。
+- Rust cargo fmt --check 与正式 Tauri 编译通过。
 - 正式 stable 构建：PyInstaller、冻结后端健康/适配器/FPK 冒烟、Vite、Tauri/NSIS 通过；种子数据只从仓库已审阅 assets 导出。
 - 初轮失败保留记录：后端 3 处文档/模型/资源上限契约未同步、桌面 2 处 locale 缺失，修正后全量复跑通过。
 - 未运行真实游戏加载、Mod Editor 上传或收费模型调用；不据离线检查声称运行时覆盖已验证。
 
 ## 安装包
 
-`remis-mod-factory_3.2.2_x64-setup.exe`，45,007,343 字节。
+`remis-mod-factory_3.2.2_x64-setup.exe`，45,013,958 字节。
 
-SHA256：`1adf58f36182aaae21df8fa493d81c3fb7cb5383197dce1def21dd9f4ba95e71`。
+SHA256：`e573ebe1559d94bd5cc3802a72a8b46d083c652ec7f95c2787ceb6bcddbc0dcd`。
 
 本地包位于 `archive/release/stable/`，与 SHA256SUMS 一同保留，均不进入 Git 源码提交。
 
@@ -49,3 +51,15 @@ SHA256：`1adf58f36182aaae21df8fa493d81c3fb7cb5383197dce1def21dd9f4ba95e71`。
 - Add reviewed public model identifiers without changing defaults.
 
 Multi-game support first shipped in v3.2.1. OpenRouter Batch API is outside this release.
+
+## 安全复核与验收边界
+
+新增增量源码目录边界检查：所选 root 可为新版独立目录或用户选定的根 junction，但目录内 manifest、资源、子目录链接/reparse 与越界路径会被拒绝。合集目录在创建前检查所有祖先；等待期间出现重定向时保留可疑目录，不通过替换后的路径清理。真实 Windows junction 回归通过；5 个文件/根 symlink 用例因本机权限跳过，Windows reparse 模拟检查通过。不能将这些检查扩张为抵御任意拥有本机文件修改权限进程的原子竞态保证。
+
+CodeQL 首轮 19 条路径 taint 告警促成以上两项真实边界修复。最终 21 条剩余告警逐项复核后标为 false positive，未关闭扫描器或放宽规则：
+
+- #197：用户明确选择源码 root 的规范化；固定 manifest 和资源读取检查位于独立 path policy。
+- #179：lstat 本身用于拒绝链接；#180–185：登记输出 ownership、实际 walk/relative_to、safe_relative、SHA256 项目目录与完整匹配语言校验。
+- #186–189、#198–206：严格 DTO/registry/UUID 与固定 Mod ID 限制目标，staging 来自服务端 mkdtemp，创建/写入/rename/cleanup 校验捕获的父目录与全部祖先。
+
+主代理直接执行 10 组 traversal 和 5 组语言攻击输入，均被拒绝；正常路径通过。合集 junction/cancel/receipt 聚焦测试 28 passed/2 skips；增量路径/API/preview/MVP 28 passed/5 skips。详细逐告警依据保留在本轮巡检证据中。
