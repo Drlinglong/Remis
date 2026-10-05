@@ -99,8 +99,10 @@ class CollectionRepository:
             summary = {key: receipt[key] for key in
                        ("plan_id", "package_path", "created_at", "collection_revision", "mode")}
             updated = {**collection, "last_export": summary}
-            db.execute("UPDATE translation_collections SET document=? WHERE collection_id=? AND revision=?",
-                       (encode(updated), collection["collection_id"], collection["revision"]))
+            cursor = db.execute("UPDATE translation_collections SET document=? WHERE collection_id=? AND revision=?",
+                                (encode(updated), collection["collection_id"], collection["revision"]))
+            if cursor.rowcount == 0:
+                raise CollectionConflict("Collection changed or was removed during export; preview again.")
         return receipt
 
     def history(self, collection_id: str) -> list[dict]:
