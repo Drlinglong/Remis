@@ -1,6 +1,7 @@
 """Collection persistence, API parity and approval/revision boundary regressions."""
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+import threading
 from unittest.mock import AsyncMock
 
 from fastapi import FastAPI
@@ -182,3 +183,88 @@ async def test_receipt_failure_rolls_back_only_new_output_then_can_retry(repo, m
     result = await service.export_collection(collection["collection_id"], plan["plan_id"], True)
     assert result["package_path"]
     assert len(repo.history(collection["collection_id"])) == 1
+
+
+@pytest.fixture
+def export_setup(repo, monkeypatch, tmp_path):
+    monkeypatch.setattr(service, "repository", repo)
+    monkeypatch.setattr(service, "APP_DATA_DIR", tmp_path)
+    monkeypatch.setattr(service, "_locks", {})
+    monkeypatch.setattr(service, "agent_registry", AgentRegistry(str(tmp_path / "agent.json")))
+    monkeypatch.setattr(packaging, "inspect_collection", AsyncMock(return_value=preview()))
+
+    async def build(_collection, destination, _fingerprint):
+        destination.mkdir(parents=True)
+        (destination / "translated.txt").write_text("translated", encoding="utf-8")
+        return {"package_path": str(destination), "mode": "mars_text_mod", "members": []}
+
+    monkeypatch.setattr(packaging, "build_collection", build)
+    return repo.create(draft())
+
+
+@pytest.mark.asyncio
+async def test_cancelled_build_releases_plan_for_retry(export_setup, monkeypatch):
+    started = asyncio.Event()
+    original_build = packaging.build_collection
+
+    async def blocked_build(*_args):
+        started.set()
+        await asyncio.Event().wait()
+
+    monkeypatch.setattr(packaging, "build_collection", blocked_build)
+    identity = export_setup["collection_id"]
+    plan = await service.plan_export(identity)
+    task = asyncio.create_task(service.export_collection(identity, plan["plan_id"], True))
+    await asyncio.wait_for(started.wait(), timeout=5)
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    monkeypatch.setattr(packaging, "build_collection", original_build)
+    assert (await service.export_collection(identity, plan["plan_id"], True))["package_path"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("commit_fails", [False, True])
+async def test_cancelled_receipt_waits_for_transaction_before_keep_or_rollback(
+    export_setup, repo, monkeypatch, tmp_path, commit_fails,
+):
+    started, finish = threading.Event(), threading.Event()
+    original_record = repo.record_export
+
+    def blocked_record(*args):
+        started.set()
+        if not finish.wait(timeout=5):
+            raise TimeoutError("Test did not release the receipt worker")
+        if commit_fails:
+            raise OSError("injected commit failure after cancellation")
+        return original_record(*args)
+
+    monkeypatch.setattr(repo, "record_export", blocked_record)
+    identity = export_setup["collection_id"]
+    plan = await service.plan_export(identity)
+    task = asyncio.create_task(service.export_collection(identity, plan["plan_id"], True))
+    try:
+        assert await asyncio.to_thread(started.wait, 5)
+        task.cancel()
+        await asyncio.sleep(0)
+        assert not task.done()
+        task.cancel()  # A second shutdown cancellation must also wait for the worker.
+        await asyncio.sleep(0)
+        assert not task.done()
+    finally:
+        finish.set()
+        with pytest.raises(asyncio.CancelledError):
+            await asyncio.wait_for(task, timeout=5)
+
+    packages = list((tmp_path / "translation_collections").rglob("translated.txt"))
+    history = repo.history(identity)
+    if commit_fails:
+        assert packages == []
+        assert history == []
+        monkeypatch.setattr(repo, "record_export", original_record)
+        assert (await service.export_collection(identity, plan["plan_id"], True))["package_path"]
+    else:
+        assert len(packages) == len(history) == 1
+        assert str(packages[0].parent) == history[0]["package_path"]
+        with pytest.raises(RuntimeError, match="already been executed"):
+            service.agent_registry.consume_plan(plan["plan_id"], approved=True)

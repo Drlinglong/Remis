@@ -4,6 +4,7 @@ import csv
 import hashlib
 import json
 import struct
+from pathlib import Path
 
 import pytest
 
@@ -121,7 +122,7 @@ async def test_plan_and_execute_persist_selected_language_and_source(source, tmp
     archive.write_bytes(flat_archive(source))
     original_hash = hashlib.sha256(archive.read_bytes()).hexdigest()
     monkeypatch.setattr(store, "APP_DATA_DIR", tmp_path / "app")
-    monkeypatch.setattr(workflow, "_resolve_allowed_mod_folder", lambda _: None)
+    monkeypatch.setattr(workflow, "_resolve_allowed_mod_folder", lambda path: Path(path).resolve())
     record = {}
     plan_id = "plan_" + "a" * 32
 
@@ -154,7 +155,7 @@ async def test_source_blockers_cannot_be_executed(source, tmp_path, monkeypatch)
     archive = tmp_path / "ModContent.fpk"
     archive.write_bytes(flat_archive(source))
     monkeypatch.setattr(store, "APP_DATA_DIR", tmp_path / "app")
-    monkeypatch.setattr(workflow, "_resolve_allowed_mod_folder", lambda _: None)
+    monkeypatch.setattr(workflow, "_resolve_allowed_mod_folder", lambda path: Path(path).resolve())
     record = {}
 
     def create_plan(**kwargs):
@@ -177,7 +178,7 @@ async def test_dynamic_fallback_does_not_automatically_recommend_full_copy(sourc
     archive = tmp_path / "ModContent.fpk"
     archive.write_bytes(flat_archive(source))
     monkeypatch.setattr(store, "APP_DATA_DIR", tmp_path / "app")
-    monkeypatch.setattr(workflow, "_resolve_allowed_mod_folder", lambda _: None)
+    monkeypatch.setattr(workflow, "_resolve_allowed_mod_folder", lambda path: Path(path).resolve())
     monkeypatch.setattr(workflow.agent_registry, "create_plan", lambda **_: {
         "plan_id": "plan_" + "c" * 32, "expires_at": "later"})
     plan = await workflow.plan_prepare({**request(), "archive_path": str(archive), "name": "Review fallback"})

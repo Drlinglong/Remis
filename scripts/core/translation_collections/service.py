@@ -111,11 +111,26 @@ def _consume(plan_id: str, approved: bool) -> dict:
         raise PackageWorkflowError(409, "stale_plan", "Plan expired or was used; generate another preview.") from exc
 
 
+async def _settle_worker(operation):
+    """Finish a worker before acting on cancellation or its transaction result."""
+    worker = asyncio.create_task(operation)
+    cancellation = None
+    while not worker.done():
+        try:
+            await asyncio.shield(worker)
+        except asyncio.CancelledError as error:
+            cancellation = error
+        except Exception:
+            break
+    return worker, cancellation
+
+
 async def export_collection(collection_id: str, plan_id: str, approved: bool) -> dict:
     from .packaging import build_collection
     async with lock_for(collection_id):
         collection = await get_collection(collection_id)
         plan = _consume(plan_id, approved)
+        receipt_recorded = False
         try:
             args = plan["execution_args"]
             if plan["kind"] != "translation_collection" or args.get("collection_id") != collection_id:
@@ -126,16 +141,28 @@ async def export_collection(collection_id: str, plan_id: str, approved: bool) ->
                 raise ValueError("Invalid persisted collection identity")
             destination = Path(APP_DATA_DIR) / "translation_collections" / collection_id / plan_id / collection["mod_id"]
             result = await build_collection(collection, destination, args["fingerprint"])
+            worker, cancellation = await _settle_worker(
+                asyncio.to_thread(repository.record_export, collection, plan_id, result)
+            )
             try:
-                receipt = await asyncio.to_thread(repository.record_export, collection, plan_id, result)
+                receipt = worker.result()
             except Exception:
                 # This newly generated package has not been acknowledged to any
                 # caller. Roll it back if the receipt transaction fails, leaving
                 # every older export intact and the same preview retryable.
-                await asyncio.to_thread(_rollback_unrecorded, destination, collection_id, plan_id)
+                cleanup, cleanup_cancellation = await _settle_worker(
+                    asyncio.to_thread(_rollback_unrecorded, destination, collection_id, plan_id)
+                )
+                cleanup.result()
+                if cancellation or cleanup_cancellation:
+                    raise cancellation or cleanup_cancellation
                 raise
-        except Exception:
-            agent_registry.release_plan(plan_id)
+            receipt_recorded = True
+            if cancellation:
+                raise cancellation
+        except BaseException:
+            if not receipt_recorded:
+                agent_registry.release_plan(plan_id)
             raise
     agent_registry.record_event("translation_collection_exported", collection_id=collection_id, plan_id=plan_id)
     return {**receipt, "allowed_actions": ["inspect_local_output"], "runtime_verified": False}

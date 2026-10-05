@@ -150,10 +150,11 @@ export function useTranslationCollections(opened) {
 
   const loadProjectOptions = useCallback((projectId, force = false) => {
     if (!force && projectOptionsRef.current[projectId]) return Promise.resolve(projectOptionsRef.current[projectId]);
-    const existing = optionsInFlight.current.get(projectId);
-    if (existing) return existing;
     const life = lifeId.current;
     const selection = selectedRequestId.current;
+    const existing = optionsInFlight.current.get(projectId);
+    // A new collection must own its request even when it shares a member project.
+    if (existing?.life === life && existing.selection === selection) return existing.request;
     setOptionsLoading((current) => ({ ...current, [projectId]: true }));
     const request = api.get(`${base}/project-options/${encodeURIComponent(projectId)}`)
       .then(({ data }) => {
@@ -165,10 +166,12 @@ export function useTranslationCollections(opened) {
         return null;
       })
       .finally(() => {
-        if (optionsInFlight.current.get(projectId) === request) optionsInFlight.current.delete(projectId);
-        setOptionsLoading((current) => ({ ...current, [projectId]: false }));
+        if (optionsInFlight.current.get(projectId)?.request === request) {
+          optionsInFlight.current.delete(projectId);
+          if (isCurrent(life, selection)) setOptionsLoading((current) => ({ ...current, [projectId]: false }));
+        }
       });
-    optionsInFlight.current.set(projectId, request);
+    optionsInFlight.current.set(projectId, { life, selection, request });
     return request;
   }, [isCurrent]);
 

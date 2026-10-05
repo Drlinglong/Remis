@@ -261,7 +261,7 @@ async def build_collection(collection: dict, destination: Path, expected_fingerp
         if refreshed["fingerprint"] != expected_fingerprint:
             raise ValueError("Collection changed while files were being staged.")
         os.rename(staging, destination)
-    except Exception:
+    except BaseException:
         _remove_staging(staging, destination.parent)
         raise
     return {"package_path": str(destination), "file_count": count, "mode": inspection["mode"],

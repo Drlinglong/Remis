@@ -49,18 +49,18 @@ def tree_inventory(root: Path, game_id: str, project: dict, language: str) -> li
             runtime_keys, resource_entry_count = {}, 0
             if relative != MANIFEST and relative not in metadata_paths:
                 try:
-                    document = adapter.parse(path)
+                    entries = _runtime_entries(adapter, path)
                 except (OSError, ValueError) as error:
                     raise ValueError(f"Invalid {game_id} translation resource {relative}: {error}") from error
-                resource_entry_count = len(document.entries)
+                resource_entry_count = len(entries)
                 parsed_entry_count += resource_entry_count
                 records = supported_records.get(relative, {}).get("entries", [])
                 source_values = {str(row.get("key")): str(row.get("source", ""))
                                  for row in records if isinstance(row, dict)}
-                runtime_keys = {entry.key: {"source": _text_hash(source_values[entry.key]) if entry.key in source_values else "",
+                runtime_keys = {_runtime_key(entry): {"source": _text_hash(source_values[entry.key]) if entry.key in source_values else "",
                                             "target": _text_hash(entry.value), "path": relative}
-                                for entry in document.entries}
-                if not document.entries:
+                                for entry in entries}
+                if not entries:
                     continue
             raw = path.read_bytes()
             try:
@@ -76,6 +76,27 @@ def tree_inventory(root: Path, game_id: str, project: dict, language: str) -> li
     if not parsed_entry_count:
         raise ValueError("Selected output contains no recognized localization entries.")
     return result
+
+
+def _runtime_key(entry) -> str:
+    # Paradox numeric versions are serialization metadata, not runtime identity.
+    return getattr(entry, "base_key", entry.key)
+
+
+def _runtime_entries(adapter, path: Path) -> tuple:
+    """Inventory every runtime row, including values excluded from translation."""
+    if adapter.id == "paradox":
+        from scripts.core.paradox_localization_parser import parse_file
+        report = parse_file(path)
+        if report.diagnostics:
+            raise ValueError("; ".join(issue.code for issue in report.diagnostics))
+        entries = report.entries
+    else:
+        entries = adapter.parse(path).entries
+    keys = [_runtime_key(entry) for entry in entries]
+    if len(keys) != len(set(keys)):
+        raise ValueError("Duplicate runtime localization keys in one resource")
+    return entries
 
 
 def _game_adapter(game_id: str):

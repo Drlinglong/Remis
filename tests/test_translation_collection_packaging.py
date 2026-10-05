@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 from pathlib import Path
@@ -237,3 +238,35 @@ async def test_build_rejects_changed_preview_fingerprint_before_creating_destina
     with pytest.raises(ValueError, match="changed after preview"):
         await packaging.build_collection({}, destination, "old-preview")
     assert not destination.exists()
+
+
+@pytest.mark.asyncio
+async def test_cancelled_build_removes_written_staging(monkeypatch, tmp_path: Path):
+    staged = asyncio.Event()
+    inspection = {"can_export": True, "fingerprint": "preview", "mode": "portable_translations",
+                  "members": []}
+    calls = 0
+
+    async def inspect(_collection):
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            staged.set()
+            await asyncio.Event().wait()
+        return inspection, []
+
+    def copy(staging, *_args):
+        (staging / "translated.txt").write_text("translated", encoding="utf-8")
+        return 1
+
+    monkeypatch.setattr(packaging, "_inspect", inspect)
+    monkeypatch.setattr(packaging, "_copy_portable", copy)
+    destination = tmp_path / "package"
+    task = asyncio.create_task(packaging.build_collection({}, destination, "preview"))
+    await asyncio.wait_for(staged.wait(), timeout=5)
+    assert list(tmp_path.glob(".remis-collection-*/translated.txt"))
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    assert not destination.exists()
+    assert not list(tmp_path.glob(".remis-collection-*"))
