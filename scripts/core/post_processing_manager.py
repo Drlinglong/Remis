@@ -87,8 +87,7 @@ class PostProcessingManager:
             self.total_files = len(translated_files)
             
             if not translated_files:
-                self.logger.info(i18n.t("post_processing_no_issues"))
-                return True
+                raise ValueError("No translated files were found for final validation.")
             
             self.logger.info(i18n.t("post_processing_scanning", file_count=self.total_files))
             

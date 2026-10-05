@@ -48,6 +48,28 @@ def _file_task(source_root, **overrides):
     return FileTask(**data)
 
 
+def test_archive_failure_keeps_file_incomplete_and_propagates(monkeypatch, tmp_path):
+    from scripts.core.archive_result_persistence import ArchivePersistenceError
+    monkeypatch.setattr(file_service, "DEST_DIR", str(tmp_path / "dest"))
+    task = _file_task(str(tmp_path / "source"))
+    checkpoint = FakeCheckpoint()
+    sync_calls = []
+    monkeypatch.setattr(file_service.file_builder, "rebuild_and_write_file", lambda *_args: "output.yml")
+    monkeypatch.setattr(file_service, "sync_project_file_status", lambda *_args: sync_calls.append(True))
+    def reject_archive(*_args):
+        raise ArchivePersistenceError("injected archive failure")
+    monkeypatch.setattr(file_service.archive_manager, "archive_translated_results", reject_archive)
+    with pytest.raises(ArchivePersistenceError):
+        file_service.finalize_translated_file(
+            task, ["Target"], False,
+            {"code": "zh-CN", "key": "l_simp_chinese"}, "output",
+            {"source_localization_folder": "localization"}, FakeTracker(), checkpoint,
+            "project-1", 1, [{"filename": task.filename}],
+        )
+    assert checkpoint.completed == []
+    assert sync_calls == []
+
+
 def test_build_dest_dir_preserves_module_structure(monkeypatch, tmp_path):
     source_root = str(tmp_path / "source")
     dest_root = str(tmp_path / "dest")

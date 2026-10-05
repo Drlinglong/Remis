@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from scripts.core.archive_manager import ArchiveManager
+from scripts.core.archive_result_persistence import ArchivePersistenceError
 from scripts.core.services.translation_archive_service import TranslationArchiveService
 from scripts.core.services.incremental_snapshot_service import IncrementalSnapshotService
 
@@ -36,6 +37,73 @@ def _write_project_config(source_root: Path, translation_dirs=None):
         json.dumps({"config": {"translation_dirs": translation_dirs or []}}),
         encoding="utf-8",
     )
+
+
+def _translation_project(tmp_path):
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    _write_text(source / "localization/english/demo_l_english.yml", 'l_english:\n demo:0 "Source"\n')
+    _write_text(target / "localization/simp_chinese/demo_l_simp_chinese.yml", 'l_simp_chinese:\n demo:0 "Target"\n')
+    _write_project_config(source, [str(target)])
+    return source, target
+
+
+def test_archive_write_rejection_is_not_success(temp_archive_db, tmp_path):
+    source, _target = _translation_project(tmp_path)
+    temp_archive_db.connection.execute(
+        "CREATE TRIGGER reject_translation BEFORE INSERT ON translated_entries "
+        "BEGIN SELECT RAISE(ABORT, 'injected failure'); END"
+    )
+    temp_archive_db.connection.commit()
+    result = TranslationArchiveService(am=temp_archive_db).upload_project_translations(
+        "probe", "Probe", str(source), "en"
+    )
+    assert result["status"] == "error"
+    assert result["code"] == "archive_write_failed"
+    assert result["archived_languages"] == 0
+    assert "retained" in result["message"]
+    assert temp_archive_db.connection.execute("SELECT COUNT(*) FROM translated_entries").fetchone()[0] == 0
+
+
+@pytest.mark.parametrize("problem", ["missing", "invalid"])
+def test_translation_scan_failure_prevents_archive_mutation(temp_archive_db, tmp_path, problem):
+    source, target = _translation_project(tmp_path)
+    if problem == "missing":
+        _write_project_config(source, [str(target), str(tmp_path / "missing")])
+    else:
+        _write_text(target / "localization/simp_chinese/broken_l_simp_chinese.yml", 'l_simp_chinese:\n broken:0 "unterminated\n')
+    result = TranslationArchiveService(am=temp_archive_db).upload_project_translations(
+        "probe", "Probe", str(source), "en"
+    )
+    assert result["status"] == "error"
+    assert result["code"] == "translation_scan_failed"
+    assert temp_archive_db.connection.execute("SELECT COUNT(*) FROM source_versions").fetchone()[0] == 0
+    assert temp_archive_db.connection.execute("SELECT COUNT(*) FROM translated_entries").fetchone()[0] == 0
+
+
+def test_archive_batch_rolls_back_partial_inserts_and_raises(temp_archive_db):
+    files = [{"filename": "x.yml", "texts_to_translate": ["One", "Two"],
+              "key_map": {0: {"key_part": "one:0"}, 1: {"key_part": "two:0"}}}]
+    mod = temp_archive_db.get_or_create_mod_entry("Probe", "probe")
+    version = temp_archive_db.create_source_version(mod, files)
+    temp_archive_db.connection.execute(
+        "CREATE TRIGGER reject_second BEFORE INSERT ON translated_entries "
+        "WHEN NEW.translated_text = 'reject' BEGIN SELECT RAISE(ABORT, 'injected failure'); END"
+    )
+    temp_archive_db.connection.commit()
+    with pytest.raises(ArchivePersistenceError):
+        temp_archive_db.archive_translated_results(version, {"x.yml": ["Good", "reject"]}, files, "zh-CN")
+    assert temp_archive_db.connection.execute("SELECT COUNT(*) FROM translated_entries").fetchone()[0] == 0
+
+
+def test_archive_persistence_requires_source_entry_match(temp_archive_db):
+    files = [{"filename": "x.yml", "texts_to_translate": ["One"], "key_map": {0: {"key_part": "one:0"}}}]
+    mod = temp_archive_db.get_or_create_mod_entry("Probe", "probe")
+    version = temp_archive_db.create_source_version(mod, files)
+    bad_files = [{**files[0], "key_map": {0: {"key_part": "missing:0"}}}]
+    with pytest.raises(ArchivePersistenceError):
+        temp_archive_db.archive_translated_results(version, {"x.yml": ["Good"]}, bad_files, "zh-CN")
+    assert temp_archive_db.connection.execute("SELECT COUNT(*) FROM translated_entries").fetchone()[0] == 0
 
 
 def test_upload_rejects_mixed_invalid_source_before_archive_write(

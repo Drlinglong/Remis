@@ -11,11 +11,11 @@ from scripts.core.bundled_seed_service import (
     seed_main_database,
 )
 from scripts.core.db_migrations import migrate_main_database
+from scripts.core.demo_config_hydration import hydrate_json_configs
 
 
 init_logger = logging.getLogger("remis_init")
 init_logger.setLevel(logging.DEBUG)
-DEV_PROJECT_ROOT_PATTERN = re.compile(r"[A-Za-z]:[\\/]+[^\\/\n]*V3_Mod_Localization_Factory", re.IGNORECASE)
 
 
 def setup_init_logging():
@@ -275,7 +275,7 @@ def sync_development_demo_sources(source_mod_root, persistent_demo_root):
             continue
 
         try:
-            shutil.copytree(src_dir, dst_dir, dirs_exist_ok=True)
+            merge_missing_files(src_dir, dst_dir)
             synced = True
             init_logger.info("[INIT] Development demo synced from source_mod: %s", folder)
         except Exception as e:
@@ -322,58 +322,6 @@ def extract_bundled_demo_directory(src_dir, dst_dir, label, force=False):
     except Exception as e:
         init_logger.error("Failed to extract or fill %s: %s", label, e)
         return False
-
-
-def hydrate_json_configs(app_data_dir):
-    """Recursively finds all .remis_project.json files and fixes hardcoded paths."""
-    init_logger.info("[JSON] Hydrating .remis_project.json files (Targeted Scan)...")
-
-    app_data_root = app_data_dir.replace("\\", "/")
-    target_dirs = [
-        os.path.join(app_data_dir, "my_translation"),
-        os.path.join(app_data_dir, "demos"),
-    ]
-
-    fix_count = 0
-    for target_dir in target_dirs:
-        if not os.path.exists(target_dir):
-            continue
-
-        for root, _, files in os.walk(target_dir):
-            if ".remis_project.json" not in files:
-                continue
-
-            json_path = os.path.join(root, ".remis_project.json")
-            try:
-                with open(json_path, "r", encoding="utf-8") as f:
-                    content = f.read()
-
-                original_content = content
-                content = DEV_PROJECT_ROOT_PATTERN.sub(app_data_root, content)
-                content = content.replace("{{BUNDLED_DEMO_ROOT}}", f"{app_data_root}/demos")
-                content = content.replace("{{BUNDLED_TRANSLATION_ROOT}}", f"{app_data_root}/my_translation")
-                content = content.replace("{{DEMO_ROOT}}/demos", f"{app_data_root}/demos")
-                content = content.replace("{{DEMO_ROOT}}", app_data_root)
-
-                content = content.replace("/source_mod/", "/demos/")
-                content = content.replace("\\\\source_mod\\\\", "/demos/")
-                content = content.replace("Multilanguage-Test_Project_Remis_Vic3", "en-Test_Project_Remis_Vic3")
-                content = content.replace("zh-CN-Test_Project_Remis_Vic3", "en-Test_Project_Remis_Vic3")
-                content = content.replace(
-                    "Multilanguage-Test_Project_Remis_stellaris",
-                    "zh-CN-Test_Project_Remis_stellaris",
-                )
-                content = content.replace("\\\\", "/")
-
-                if content != original_content:
-                    with open(json_path, "w", encoding="utf-8") as f:
-                        f.write(content)
-                    fix_count += 1
-                    init_logger.info("[JSON] Fixed paths in: %s", json_path)
-            except Exception as e:
-                init_logger.error("Failed to hydrate JSON at %s: %s", json_path, e)
-
-    init_logger.info("[JSON] Hydration complete. Fixed %s config files.", fix_count)
 
 
 def extract_bundled_demo_translations(src_root, dst_root, force=False):
@@ -450,13 +398,13 @@ def initialize_database():
     if main_db_is_fresh:
         init_logger.info("[INIT] Fresh main DB detected. Building schema and importing seeds.")
 
+    run_projects_db_migrations(remis_db_path)
+
     mods_cache_path = os.path.join(app_data_dir, "mods_cache.sqlite")
     mods_cache_skeleton = os.path.join(resource_dir, "assets", "mods_cache_skeleton.sqlite")
-    if main_db_is_fresh:
+    if main_db_is_fresh and not os.path.exists(mods_cache_path):
         try:
             if os.path.exists(mods_cache_skeleton):
-                if os.path.exists(mods_cache_path):
-                    os.remove(mods_cache_path)
                 shutil.copy2(mods_cache_skeleton, mods_cache_path)
                 init_logger.info("Mods Cache Skeleton copied (AI Drafts pre-populated).")
             else:
@@ -489,17 +437,15 @@ def initialize_database():
                     init_logger.error("[CONFIG] Failed to extract %s: %s", filename, e)
 
     demo_extracted = extract_bundled_demo_directory(
-        b_demos, p_demos, "Demos", force=main_db_is_fresh
+        b_demos, p_demos, "Demos"
     )
     if not demo_extracted and not os.path.exists(b_demos):
         demo_extracted = sync_development_demo_sources(os.path.join(resource_dir, "source_mod"), p_demos)
-    trans_extracted = extract_bundled_demo_translations(b_trans, p_trans, force=main_db_is_fresh)
+    trans_extracted = extract_bundled_demo_translations(b_trans, p_trans)
 
     config_dir = app_settings.CONFIG_DIR
     bundled_config_dir = os.path.join(resource_dir, "data", "config")
     safe_extract_configs(bundled_config_dir, config_dir)
-
-    run_projects_db_migrations(remis_db_path)
 
     seed_attempted = main_db_is_fresh or not bundled_main_seed_applied(remis_db_path)
     if seed_attempted:

@@ -27,7 +27,7 @@ from scripts.core.steam_workshop_sequence_migration import (
 )
 logger = logging.getLogger("remis_init")
 
-MAIN_DB_TARGET_VERSION = 26
+MAIN_DB_TARGET_VERSION = 27
 
 
 class UnsupportedDatabaseVersionError(RuntimeError):
@@ -748,6 +748,7 @@ MAIN_DB_MIGRATIONS: list[tuple[int, str, Callable[[str], None]]] = [
     (24, "add_task_idempotency_uniqueness", add_task_idempotency_uniqueness),
     (25, "enforce_steam_workshop_sequence", enforce_steam_workshop_sequence_constraint),
     (26, "validate_steam_workshop_foreign_keys", validate_steam_workshop_foreign_keys),
+    (27, "enforce_steam_workshop_parent_foreign_key", enforce_steam_workshop_sequence_constraint),
 ]
 
 

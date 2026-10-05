@@ -154,3 +154,19 @@ def test_finalize_language_run_does_not_save_progress_after_validation_failure(
         )
 
     assert tracker.saved is False
+
+
+def test_real_empty_output_validation_does_not_mark_progress_completed(monkeypatch, tmp_path):
+    monkeypatch.setattr(postprocess_service, "DEST_DIR", str(tmp_path))
+    events = []
+    tracker = FakeTracker()
+    with pytest.raises(postprocess_service.PostProcessingValidationError):
+        postprocess_service.run_post_processing(
+            "Mod", {"id": "vic3"},
+            {"code": "zh-CN", "key": "l_simp_chinese"},
+            {"code": "en", "key": "l_english"},
+            "missing-output", tracker,
+            update_progress_callback=lambda **event: events.append(event),
+        )
+    assert events == []
+    assert tracker.attached is False

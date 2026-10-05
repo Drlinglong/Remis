@@ -275,6 +275,16 @@ def finalize_translated_file(
         })
         logging.info(i18n.t("file_build_completed", filename=os.path.basename(dest_file_path)))
 
+    if version_id and not is_failed:
+        archive_values = list(translated_texts)
+        archive_values.extend("" for _ in file_task.recovered_entries)
+        archive_manager.archive_translated_results(
+            version_id,
+            {file_task.file_path or file_task.filename: archive_values},
+            all_files_content,
+            target_lang.get("code")
+        )
+
     if not is_failed:
         # V2 checkpoints use project-relative paths. Keep the basename fallback
         # for legacy/test checkpoint adapters that do not expose V2 progress.
@@ -290,16 +300,3 @@ def finalize_translated_file(
 
     if project_id and not is_failed:
         sync_project_file_status(project_id, source_file_path)
-
-    if version_id and not is_failed:
-        try:
-            archive_values = list(translated_texts)
-            archive_values.extend("" for _ in file_task.recovered_entries)
-            archive_manager.archive_translated_results(
-                version_id,
-                {file_task.file_path or file_task.filename: archive_values},
-                all_files_content,
-                target_lang.get("code")
-            )
-        except Exception as e:
-            logging.error(f"Failed to archive results for {file_task.filename}: {e}")
