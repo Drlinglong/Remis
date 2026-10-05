@@ -6,6 +6,9 @@ from typing import Any, Callable, Dict, List, Optional
 from scripts.core.loc_parser import parse_loc_file_report
 from scripts.core import surviving_mars_csv
 from scripts.utils import read_text_bom
+from scripts.core.services.incremental_source_paths import (
+    checked_source_path, source_root, validate_source_tree, walk_source_tree,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -46,8 +49,10 @@ class IncrementalSnapshotService:
         progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
         game_profile: Optional[Dict[str, Any]] = None,
     ) -> List[Dict[str, Any]]:
+        source_path = str(source_root(source_path))
         from scripts.core.game_adapters.registry import resource_adapter
         if resource_adapter(game_profile):
+            validate_source_tree(source_path)
             from scripts.core.game_adapters.workflow_bridge import build_snapshot
             return build_snapshot(source_path, game_profile, source_lang_info, progress_callback)
         if (
@@ -61,7 +66,7 @@ class IncrementalSnapshotService:
         issues: List[Dict[str, str]] = []
         last_reported_count = -1
 
-        for root, dirs, files in os.walk(source_path):
+        for root, dirs, files in walk_source_tree(source_path):
             path_parts = [part.lower() for part in Path(root).parts]
             if "localization" in path_parts or "localisation" in path_parts:
                 current_folder = os.path.basename(root).lower()
@@ -81,7 +86,7 @@ class IncrementalSnapshotService:
                 if not self._matches_source_language(file_name, filter_lang_string):
                     continue
 
-                full_path = Path(os.path.join(root, file_name))
+                full_path = checked_source_path(Path(source_path), Path(root) / file_name)
                 relative_file_path = os.path.relpath(full_path, source_path).replace("\\", "/")
                 try:
                     report = parse_loc_file_report(full_path)
@@ -135,11 +140,11 @@ class IncrementalSnapshotService:
     ) -> List[Dict[str, Any]]:
         files_data: List[Dict[str, Any]] = []
         issues: List[Dict[str, str]] = []
-        for root, _, files in os.walk(source_path):
+        for root, _, files in walk_source_tree(source_path):
             for file_name in files:
                 if not file_name.lower().endswith(".csv"):
                     continue
-                full_path = Path(os.path.join(root, file_name))
+                full_path = checked_source_path(Path(source_path), Path(root) / file_name)
                 if not surviving_mars_csv.is_table_file(full_path):
                     continue
                 relative_file_path = os.path.relpath(full_path, source_path).replace("\\", "/")
