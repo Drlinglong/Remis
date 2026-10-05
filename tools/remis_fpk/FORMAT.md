@@ -21,14 +21,15 @@ size is checked. Any other flag, version, block size, or compression variant
 raises `ArchiveError`.
 
 The defaults cap the archive at 128 MiB, index at 8 MiB,
-total decoded output at 64 MiB, entry count at 50,000, nesting at 16,
+each decoded file and total decoded output at 128 MiB, entry count at 50,000, nesting at 16,
 and Zstandard windows at 1 MiB. Names must be safe Windows path components and
 unique ignoring case. Payloads may not overlap the index or one another.
 
-There is no separate default per-file cap (`file_bytes=None`). Raw files and
+The default per-file cap is 128 MiB. Raw files and
 declared decompressed sizes are checked against the remaining aggregate output
 budget before copying or decoding. Callers may explicitly set `file_bytes` for
-a stricter policy. Remis project preparation uses a 256 MiB aggregate budget;
+a stricter policy, or explicitly use `None` to rely on the aggregate budget.
+Remis project preparation uses a 256 MiB aggregate budget with the 128 MiB per-file cap;
 ordinary image assets above 8 MiB no longer require a custom extractor call.
 
 The implementation was compared byte-for-byte against the supplied
@@ -36,3 +37,6 @@ The implementation was compared byte-for-byte against the supplied
 PNGs and 28 `0x30` files, including six mixed-block PNGs) matched byte-for-byte.
 The emitted total was 9,714,338 bytes. That validates this sample profile;
 other versions remain unsupported until independently verified.
+
+Default size caps match the independent remis-fpk change `0d16b22d`;
+this vendored reader still supports its documented 1024-byte block profile only.

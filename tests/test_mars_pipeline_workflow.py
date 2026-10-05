@@ -604,6 +604,6 @@ def test_inspection_and_extraction_share_bounded_asset_profile(tmp_path, monkeyp
     workflow._inspect({"archive_path": str(archive_path)})
     assert limits_seen == [workflow.MARS_ARCHIVE_LIMITS] * 2
     assert workflow.MARS_ARCHIVE_LIMITS.total_output_bytes == 256 * 1024 * 1024
-    assert ArchiveLimits().total_output_bytes == 64 * 1024 * 1024
+    assert ArchiveLimits().total_output_bytes == 128 * 1024 * 1024
     assert workflow.MARS_ARCHIVE_LIMITS.file_bytes == ArchiveLimits().file_bytes
     assert workflow.MARS_ARCHIVE_LIMITS.archive_bytes == ArchiveLimits().archive_bytes

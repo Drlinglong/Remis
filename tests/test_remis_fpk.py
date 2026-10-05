@@ -56,6 +56,24 @@ class RawProfileTests(unittest.TestCase):
         path.write_bytes(data)
         return path
 
+    def test_default_file_and_total_limits_are_128_mib(self):
+        limits = ArchiveLimits()
+        self.assertEqual(limits.file_bytes, 128 * 1024 * 1024)
+        self.assertEqual(limits.total_output_bytes, limits.file_bytes)
+
+    def test_default_raw_localization_above_eight_mib_round_trips(self):
+        raw = b"ID,Text,Translation\n" + b"x" * (8 * 1024 * 1024)
+        item = record("Game.csv", 0, 0x10, len(raw))
+        data = pack_archive(record("Game.csv", 32 + len(item), 0x10, len(raw)), raw)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            archive = self.write_archive(root, data)
+            inventory = inspect_archive(archive)
+            extract_archive(archive, root / "out", expected_sha256=inventory["archive_sha256"])
+            self.assertEqual((root / "out" / "Game.csv").read_bytes(), raw)
+            with self.assertRaises(ArchiveError):
+                inspect_archive(archive, limits=ArchiveLimits(file_bytes=8 * 1024 * 1024))
+
     def test_raw_file_inventory_and_extraction_with_hash_pin(self):
         raw = b"\x89PNG\r\n\x1a\nimage"
         placeholder = record("icon.png", 0, 0x10, len(raw))
@@ -236,6 +254,21 @@ def inspect_archive_bytes(data: bytes) -> dict:
 
 @unittest.skipUnless(zstandard, "zstandard dependency is unavailable")
 class ZstandardProfileTests(unittest.TestCase):
+    def test_oversized_declared_output_is_rejected_before_decode(self):
+        container = b"ZSTD" + struct.pack("<III", 128 * 1024 * 1024 + 1, 1024, 16) + b"tiny"
+        item = record("Game.csv", 0, 0x30, len(container))
+        data = pack_archive(record("Game.csv", 32 + len(item), 0x30, len(container)), container)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            archive = root / "mod.fpk"
+            archive.write_bytes(data)
+            with patch.object(zstandard, "ZstdDecompressor", side_effect=AssertionError("must not decode")):
+                with self.assertRaisesRegex(ArchiveError, "unsupported decompressed size"):
+                    inspect_archive(archive)
+                with self.assertRaisesRegex(ArchiveError, "unsupported decompressed size"):
+                    extract_archive(archive, root / "out", expected_sha256=hashlib.sha256(data).hexdigest())
+            self.assertFalse((root / "out").exists())
+
     def test_chunked_zstd_file_round_trips(self):
         raw = b"return 'mars'"
         frame = zstandard.ZstdCompressor().compress(raw)

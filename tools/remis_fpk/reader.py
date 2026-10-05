@@ -21,8 +21,8 @@ class ArchiveLimits:
 
     archive_bytes: int = 128 * 1024 * 1024
     index_bytes: int = 8 * 1024 * 1024
-    file_bytes: int | None = None
-    total_output_bytes: int = 64 * 1024 * 1024
+    file_bytes: int | None = 128 * 1024 * 1024
+    total_output_bytes: int = 128 * 1024 * 1024
     entries: int = 50_000
     depth: int = 16
     zstd_window_bytes: int = 1024 * 1024
