@@ -55,3 +55,33 @@ def prepare_source_copy_publication(
     except (CoverAssetError, DeliveryMetadataError) as error:
         raise PublicationMetadataError(str(error)) from error
     return metadata, cover_files
+
+
+def prepare_text_only_publication(
+    metadata_raw: bytes,
+    delivery_id: str,
+    overrides: dict[str, Any] | None,
+) -> tuple[bytes, dict[str, bytes]]:
+    """Apply reviewed Workshop fields and an optional snapshotted cover."""
+    values = {key: value for key, value in dict(overrides or {}).items() if value is not None}
+    allowed = _TEXT_FIELDS | {"cover_asset_path", "cover_asset_sha256"}
+    if values.keys() - allowed:
+        raise PublicationMetadataError("Publication metadata contains unsupported fields.")
+    cover_path = values.pop("cover_asset_path", None)
+    cover_hash = values.pop("cover_asset_sha256", None)
+    if (cover_path is None) != (cover_hash is None):
+        raise PublicationMetadataError("Cover image path and SHA-256 snapshot must be supplied together.")
+    if any(not isinstance(value, str) or "\x00" in value for value in values.values()):
+        raise PublicationMetadataError("Publication text fields must be valid strings.")
+    fields = dict(values)
+    cover_files: dict[str, bytes] = {}
+    try:
+        if cover_path is not None:
+            snapshot = read_cover_snapshot(str(cover_path), str(cover_hash))
+            relative = f"Images/RemisCover-{snapshot['sha256'][:12]}{snapshot['extension']}"
+            cover_files[relative] = snapshot["data"]
+            fields["image"] = f"Mod/{delivery_id}/{relative}"
+        metadata = _override_source_copy_metadata(metadata_raw, fields)
+    except (CoverAssetError, DeliveryMetadataError) as error:
+        raise PublicationMetadataError(str(error)) from error
+    return metadata, cover_files

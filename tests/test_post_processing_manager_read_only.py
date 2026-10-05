@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from scripts.core.post_processing_manager import PostProcessingManager
+import pytest
 
 
 def test_validation_sanitization_proposal_does_not_write_file(tmp_path):
@@ -26,3 +27,16 @@ def test_validation_sanitization_proposal_does_not_write_file(tmp_path):
     )
 
     assert target_file.read_bytes() == before
+
+
+@pytest.mark.parametrize("existing", [False, True])
+def test_validation_cannot_report_success_without_scanning_files(tmp_path, existing):
+    output = tmp_path / "output"
+    if existing:
+        (output / "localization/simp_chinese").mkdir(parents=True)
+    manager = PostProcessingManager({"id": "vic3"}, str(output))
+    assert manager.run_validation(
+        {"code": "zh-CN", "key": "l_simp_chinese"},
+        {"code": "en", "key": "l_english"},
+    ) is False
+    assert manager.total_files == 0

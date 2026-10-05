@@ -11,6 +11,8 @@ from scripts.schemas.agent_language import AgentCustomLangConfig, validate_shell
 class AgentJobPlanRequest(BaseModel):
     project_id: str
     workflow: Literal["initial", "incremental"] = "initial"
+    custom_source_path: Optional[str] = None
+    expected_preview_fingerprint: Optional[str] = None
     target_lang_codes: List[LanguageCode] = Field(
         default_factory=lambda: [LanguageCode.ZH_CN]
     )
@@ -31,6 +33,8 @@ class AgentJobPlanRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_shell(self):
+        if self.workflow != "incremental" and (self.custom_source_path or self.expected_preview_fingerprint):
+            raise ValueError("New source paths and preview fingerprints require workflow=incremental")
         validate_shell_targets(
             [code.value for code in self.target_lang_codes], self.custom_lang_config,
         )

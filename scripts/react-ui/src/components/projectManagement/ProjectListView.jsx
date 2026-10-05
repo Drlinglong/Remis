@@ -31,6 +31,7 @@ export function ProjectListView({
   setViewMode,
   t,
   viewMode,
+  onOpenCollections,
 }) {
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const filteredProjects = projects.filter((project) => (
@@ -60,6 +61,11 @@ export function ProjectListView({
         </Box>
 
         <Group className={styles.headerActions} align="center" wrap="wrap">
+          {!isArchive && onOpenCollections && (
+            <Button variant="default" onClick={onOpenCollections}>
+              {t('translation_collections.open', 'Translation collections')}
+            </Button>
+          )}
           {!isArchive && (
             <Button
               id="create-project-btn"

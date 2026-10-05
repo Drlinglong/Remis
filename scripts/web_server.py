@@ -154,7 +154,7 @@ def setup_app_routers():
     from scripts.routers import (
         projects, project_watches, translation, translation_recovery, glossary, proofreading, docs, tools,
         neologism, validation, config, system, prompts,
-        agent_workshop, agent,
+        agent_workshop, agent, agent_incremental,
         tasks,
         model_arena,
         archive_ab_review,
@@ -162,10 +162,11 @@ def setup_app_routers():
     )
     from scripts.core.feature_policy import mod_archive_enabled
     
-    from scripts.routers import game_support, agent_game_support, translation_packages, mars_pipeline, mars_archive_recovery
+    from scripts.routers import game_support, agent_game_support, translation_packages, mars_pipeline, mars_archive_recovery, translation_collections
     app.include_router(game_support.router)
     app.include_router(agent_game_support.router)
     app.include_router(translation_packages.router)
+    app.include_router(translation_collections.router)
     app.include_router(mars_pipeline.router)
     app.include_router(mars_archive_recovery.router)
     app.include_router(projects.router)
@@ -190,6 +191,7 @@ def setup_app_routers():
     app.include_router(system.router)
     app.include_router(prompts.router)
     app.include_router(agent.router)
+    app.include_router(agent_incremental.router)
     app.include_router(tasks.router)
     app.include_router(model_arena.router)
     app.include_router(archive_ab_review.router)

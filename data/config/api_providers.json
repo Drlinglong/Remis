@@ -54,7 +54,9 @@
         "available_models": [
             "claude-opus-5",
             "claude-opus-4-6",
-            "claude-sonnet-5"
+            "claude-sonnet-5",
+            "claude-opus-5-5",
+            "claude-sonnet-5-5"
         ],
         "reasoning": {
             "default_enabled": false,
@@ -62,7 +64,9 @@
             "models": {
                 "claude-opus-5": {"presets": {"low": {"output_config": {"effort": "low"}}, "medium": {"output_config": {"effort": "medium"}}, "high": {"output_config": {"effort": "high"}}}, "source_url": "https://platform.claude.com/docs/en/build-with-claude/effort", "reviewed_at": "2026-08-18"},
                 "claude-opus-4-6": {"presets": {"low": {"output_config": {"effort": "low"}}, "medium": {"output_config": {"effort": "medium"}}, "high": {"output_config": {"effort": "high"}}}, "source_url": "https://platform.claude.com/docs/en/build-with-claude/effort", "reviewed_at": "2026-08-18"},
-                "claude-sonnet-5": {"presets": {"low": {"output_config": {"effort": "low"}}, "medium": {"output_config": {"effort": "medium"}}, "high": {"output_config": {"effort": "high"}}}, "source_url": "https://platform.claude.com/docs/en/build-with-claude/effort", "reviewed_at": "2026-08-18"}
+                "claude-sonnet-5": {"presets": {"low": {"output_config": {"effort": "low"}}, "medium": {"output_config": {"effort": "medium"}}, "high": {"output_config": {"effort": "high"}}}, "source_url": "https://platform.claude.com/docs/en/build-with-claude/effort", "reviewed_at": "2026-08-18"},
+                "claude-opus-5-5": {"presets": {"low": {"output_config": {"effort": "low"}}, "medium": {"output_config": {"effort": "medium"}}, "high": {"output_config": {"effort": "high"}}, "xhigh": {"output_config": {"effort": "xhigh"}}, "max": {"output_config": {"effort": "max"}}}, "source_url": "https://platform.claude.com/docs/en/build-with-claude/effort", "reviewed_at": "2026-09-30"},
+                "claude-sonnet-5-5": {"presets": {"low": {"output_config": {"effort": "low"}}, "medium": {"output_config": {"effort": "medium"}}, "high": {"output_config": {"effort": "high"}}, "xhigh": {"output_config": {"effort": "xhigh"}}, "max": {"output_config": {"effort": "max"}}}, "source_url": "https://platform.claude.com/docs/en/build-with-claude/effort", "reviewed_at": "2026-09-30"}
             }
         },
         "description_key": "api_desc_anthropic"
@@ -78,7 +82,8 @@
             "gpt-5.6-luna",
             "gpt-6-astra",
             "gpt-6-sol",
-            "gpt-6-luna"
+            "gpt-6-luna",
+            "gpt-6.1-sol"
         ],
         "reasoning": {
             "default_enabled": true,
@@ -89,7 +94,8 @@
                 "gpt-5.6-luna": {"presets": {"low": {"reasoning_effort": "low"}, "medium": {"reasoning_effort": "medium"}, "high": {"reasoning_effort": "high"}, "xhigh": {"reasoning_effort": "xhigh"}, "max": {"reasoning_effort": "max"}}, "source_url": "https://developers.openai.com/api/docs/guides/latest-model", "reviewed_at": "2026-08-18"},
                 "gpt-6-astra": {"presets": {"low": {"reasoning_effort": "low"}, "medium": {"reasoning_effort": "medium"}, "high": {"reasoning_effort": "high"}, "xhigh": {"reasoning_effort": "xhigh"}, "max": {"reasoning_effort": "max"}}, "source_url": "https://developers.openai.com/api/docs/models/gpt-6-astra", "reviewed_at": "2026-09-25"},
                 "gpt-6-sol": {"presets": {"none": {"reasoning_effort": "none"}, "low": {"reasoning_effort": "low"}, "medium": {"reasoning_effort": "medium"}, "high": {"reasoning_effort": "high"}, "xhigh": {"reasoning_effort": "xhigh"}, "max": {"reasoning_effort": "max"}}, "source_url": "https://developers.openai.com/api/docs/models/gpt-6-sol", "reviewed_at": "2026-09-25"},
-                "gpt-6-luna": {"presets": {"none": {"reasoning_effort": "none"}, "low": {"reasoning_effort": "low"}, "medium": {"reasoning_effort": "medium"}, "high": {"reasoning_effort": "high"}, "xhigh": {"reasoning_effort": "xhigh"}, "max": {"reasoning_effort": "max"}}, "source_url": "https://developers.openai.com/api/docs/models/gpt-6-luna", "reviewed_at": "2026-09-25"}
+                "gpt-6-luna": {"presets": {"none": {"reasoning_effort": "none"}, "low": {"reasoning_effort": "low"}, "medium": {"reasoning_effort": "medium"}, "high": {"reasoning_effort": "high"}, "xhigh": {"reasoning_effort": "xhigh"}, "max": {"reasoning_effort": "max"}}, "source_url": "https://developers.openai.com/api/docs/models/gpt-6-luna", "reviewed_at": "2026-09-25"},
+                "gpt-6.1-sol": {"presets": {"low": {"reasoning_effort": "low"}, "medium": {"reasoning_effort": "medium"}, "high": {"reasoning_effort": "high"}, "xhigh": {"reasoning_effort": "xhigh"}, "max": {"reasoning_effort": "max"}}, "source_url": "https://developers.openai.com/api/docs/models/gpt-6.1-sol", "reviewed_at": "2026-09-30"}
             }
         },
         "description_key": "api_desc_openai"

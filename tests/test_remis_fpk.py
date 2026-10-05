@@ -56,6 +56,24 @@ class RawProfileTests(unittest.TestCase):
         path.write_bytes(data)
         return path
 
+    def test_default_file_and_total_limits_are_128_mib(self):
+        limits = ArchiveLimits()
+        self.assertEqual(limits.file_bytes, 128 * 1024 * 1024)
+        self.assertEqual(limits.total_output_bytes, limits.file_bytes)
+
+    def test_default_raw_localization_above_eight_mib_round_trips(self):
+        raw = b"ID,Text,Translation\n" + b"x" * (8 * 1024 * 1024)
+        item = record("Game.csv", 0, 0x10, len(raw))
+        data = pack_archive(record("Game.csv", 32 + len(item), 0x10, len(raw)), raw)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            archive = self.write_archive(root, data)
+            inventory = inspect_archive(archive)
+            extract_archive(archive, root / "out", expected_sha256=inventory["archive_sha256"])
+            self.assertEqual((root / "out" / "Game.csv").read_bytes(), raw)
+            with self.assertRaises(ArchiveError):
+                inspect_archive(archive, limits=ArchiveLimits(file_bytes=8 * 1024 * 1024))
+
     def test_raw_file_inventory_and_extraction_with_hash_pin(self):
         raw = b"\x89PNG\r\n\x1a\nimage"
         placeholder = record("icon.png", 0, 0x10, len(raw))
@@ -72,6 +90,66 @@ class RawProfileTests(unittest.TestCase):
                                        expected_sha256=inventory["archive_sha256"])
             self.assertEqual((target / "icon.png").read_bytes(), raw)
             self.assertEqual(manifest["files"][0]["sha256"], hashlib.sha256(raw).hexdigest())
+
+    def test_raw_file_larger_than_legacy_limit_is_allowed_within_total_budget(self):
+        raw = b"x" * (8 * 1024 * 1024 + 1)
+        item = record("large.lua", 0, 0x10, len(raw))
+        start = 32 + len(item)
+        data = pack_archive(record("large.lua", start, 0x10, len(raw)), raw)
+        limits = ArchiveLimits(total_output_bytes=len(raw))
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            archive = self.write_archive(root, data)
+            inventory = inspect_archive(archive, limits=limits)
+            self.assertEqual(inventory["total_output_bytes"], len(raw))
+            manifest = extract_archive(archive, root / "out",
+                                       expected_sha256=inventory["archive_sha256"], limits=limits)
+            self.assertEqual((root / "out" / "large.lua").stat().st_size, len(raw))
+            self.assertEqual(manifest["files"][0]["size"], len(raw))
+
+    def test_raw_output_budget_is_checked_before_inspection_and_extraction(self):
+        first = b"1234"
+        second = b"5678"
+        first_record = record("a", 0, 0x10, len(first))
+        second_record = record("b", 0, 0x10, len(second))
+        start = 32 + len(first_record) + len(second_record)
+        index = (record("a", start, 0x10, len(first))
+                 + record("b", start + len(first), 0x10, len(second)))
+        archive_bytes = pack_archive(index, first + second)
+        limits = ArchiveLimits(total_output_bytes=7)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            archive = self.write_archive(root, archive_bytes)
+            with self.assertRaisesRegex(ArchiveError, "total extracted bytes"):
+                inspect_archive(archive, limits=limits)
+            with self.assertRaisesRegex(ArchiveError, "total extracted bytes"):
+                extract_archive(archive, root / "out", expected_sha256=hashlib.sha256(archive_bytes).hexdigest(),
+                                limits=limits)
+            self.assertFalse((root / "out").exists())
+
+    def test_empty_raw_file_is_valid_and_extracts_as_empty_file(self):
+        placeholder = record("Buildings.lua", 0, 0x10, 0)
+        index_end = 32 + len(placeholder)
+        data = pack_archive(record("Buildings.lua", index_end, 0x10, 0))
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            archive = self.write_archive(root, data)
+            inventory = inspect_archive(archive)
+            self.assertEqual(inventory["total_output_bytes"], 0)
+            self.assertEqual(inventory["files"][0]["size"], 0)
+            self.assertEqual(inventory["files"][0]["sha256"], hashlib.sha256(b"").hexdigest())
+            target = root / "out"
+            manifest = extract_archive(archive, target,
+                                       expected_sha256=inventory["archive_sha256"])
+            self.assertEqual((target / "Buildings.lua").read_bytes(), b"")
+            self.assertEqual(manifest["files"][0]["size"], 0)
+
+    def test_empty_raw_file_still_requires_valid_payload_offset(self):
+        placeholder = record("empty.lua", 0, 0x10, 0)
+        index_end = 32 + len(placeholder)
+        for offset in (0, index_end + 1):
+            with self.subTest(offset=offset), self.assertRaises(ArchiveError):
+                inspect_archive_bytes(pack_archive(record("empty.lua", offset, 0x10, 0)))
 
     def test_unknown_flags_are_rejected_without_writing(self):
         path_record = record("thing.bin", 48, 0x20, 1)
@@ -176,6 +254,21 @@ def inspect_archive_bytes(data: bytes) -> dict:
 
 @unittest.skipUnless(zstandard, "zstandard dependency is unavailable")
 class ZstandardProfileTests(unittest.TestCase):
+    def test_oversized_declared_output_is_rejected_before_decode(self):
+        container = b"ZSTD" + struct.pack("<III", 128 * 1024 * 1024 + 1, 1024, 16) + b"tiny"
+        item = record("Game.csv", 0, 0x30, len(container))
+        data = pack_archive(record("Game.csv", 32 + len(item), 0x30, len(container)), container)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            archive = root / "mod.fpk"
+            archive.write_bytes(data)
+            with patch.object(zstandard, "ZstdDecompressor", side_effect=AssertionError("must not decode")):
+                with self.assertRaisesRegex(ArchiveError, "unsupported decompressed size"):
+                    inspect_archive(archive)
+                with self.assertRaisesRegex(ArchiveError, "unsupported decompressed size"):
+                    extract_archive(archive, root / "out", expected_sha256=hashlib.sha256(data).hexdigest())
+            self.assertFalse((root / "out").exists())
+
     def test_chunked_zstd_file_round_trips(self):
         raw = b"return 'mars'"
         frame = zstandard.ZstdCompressor().compress(raw)
@@ -246,6 +339,22 @@ class ZstandardProfileTests(unittest.TestCase):
             data = pack_archive(index, container)
             with self.assertRaises(ArchiveError):
                 inspect_archive_bytes(data)
+
+    def test_empty_zstd_payload_is_rejected(self):
+        placeholder = record("empty.lua", 0, 0x30, 0)
+        index_end = 32 + len(placeholder)
+        with self.assertRaises(ArchiveError):
+            inspect_archive_bytes(pack_archive(record("empty.lua", index_end, 0x30, 0)))
+
+    def test_declared_zstd_output_above_remaining_budget_is_rejected(self):
+        container = b"ZSTD" + struct.pack("<III", 2048, 1024, 20) + b"\x14\0\0\0"
+        item = record("large.lua", 0, 0x30, len(container))
+        start = 32 + len(item)
+        with tempfile.TemporaryDirectory() as temporary:
+            archive = Path(temporary) / "sample.fpk"
+            archive.write_bytes(pack_archive(record("large.lua", start, 0x30, len(container)), container))
+            with self.assertRaisesRegex(ArchiveError, "decompressed size"):
+                inspect_archive(archive, limits=ArchiveLimits(total_output_bytes=1024))
 
 
 class RealReferenceTests(unittest.TestCase):

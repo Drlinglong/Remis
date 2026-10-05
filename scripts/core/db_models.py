@@ -159,7 +159,9 @@ class SteamWorkshopAssetVersion(SQLModel, table=True):
     sequence: int
     asset_type: str = Field(index=True)
     status: str = Field(default="candidate", index=True)
-    parent_version_id: Optional[str] = None
+    parent_version_id: Optional[str] = Field(
+        default=None, foreign_key="steam_workshop_asset_versions.version_id"
+    )
     sha256: str
     metadata_json: Dict[str, Any] = Field(
         default_factory=dict,

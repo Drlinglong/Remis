@@ -21,6 +21,24 @@ def temp_archive_db(tmp_path):
     am_module.MODS_CACHE_DB_PATH = original_path
 
 
+@pytest.mark.parametrize("ending", ["\n", "\r\n", "\n\n"])
+def test_archive_preserves_semantic_trailing_line_breaks(temp_archive_db, ending):
+    source = "Lethal to Colonists outside." + ending
+    files = [{"filename": "ModTexts.csv", "file_path": "ModTexts.csv",
+              "texts_to_translate": [source], "key_map": [{"key_part": "340253101449"}]}]
+    mod_id = temp_archive_db.get_or_create_mod_entry("Mars", "mars-newline")
+    version = temp_archive_db.create_source_version(mod_id, files)
+    temp_archive_db.archive_translated_results(version, {"ModTexts.csv": ["外出致命。" + ending]},
+                                               files, "zh-CN")
+    entries = temp_archive_db.get_entries(project_id="mars-newline", language="zh-CN")
+    assert entries[0]["original"] == source
+    assert temp_archive_db.get_source_entry(project_id="mars-newline", file_path="ModTexts.csv",
+                                            entry_key="340253101449")["original"] == source
+    diff = IncrementalDiffService()
+    assert diff.classify_entry("ModTexts.csv", "340253101449", source,
+                               diff.build_history_index(entries))[0] == "unchanged"
+
+
 def test_get_entries_prefers_most_recent_translation_baseline(temp_archive_db):
     mod_id = temp_archive_db.get_or_create_mod_entry("ArchiveMod", "archive-mod-project")
 

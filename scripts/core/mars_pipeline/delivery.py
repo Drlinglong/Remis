@@ -19,13 +19,14 @@ from scripts.core.services import mars_lua_discovery
 from scripts.core.mars_pipeline.overlay import OverlayProfileError, compile_overlay
 from scripts.core.mars_pipeline.delivery_metadata import (
     DeliveryMetadataError, _append_loc_items, _append_metadata_loctables, _overlay_metadata_items,
-    _remove_source_publication_ids, _text_only_metadata_items,
+    _remove_source_publication_ids,
     _rewrite_owned_lua_namespace, _source_copy_mod_id,
 )
 from scripts.core.mars_pipeline.publication_metadata import (
     PublicationMetadataError, prepare_source_copy_publication,
 )
 from scripts.core.mars_pipeline.delivery_identity import apply_publication_binding
+from scripts.core.mars_pipeline.source_selection import translation_source
 
 MAX_FILES = 20_000
 MAX_SOURCE_FILE_BYTES = 128 * 1024 * 1024
@@ -131,8 +132,6 @@ def _manifest_entries(manifest: dict[str, Any]) -> dict[str, dict[str, Any]]:
     for key, row in result.items():
         if not key.isascii() or not key.isdecimal() or str(row.get("id", key)) != key:
             raise MarsDeliveryError(f"Invalid stable numeric localization ID: {key!r}")
-        if not isinstance(row.get("text", row.get("source")), str):
-            raise MarsDeliveryError(f"Source English text is missing for ID {key}.")
     return result
 
 def _language_tables(
@@ -156,7 +155,9 @@ def _language_tables(
         normalized: dict[str, str] = {}
         for key in sorted(selected_ids, key=int):
             translated = values[key]
-            english = entries[key].get("text", entries[key].get("source"))
+            english = translation_source(entries[key])
+            if not isinstance(english, str) or not english.strip():
+                raise MarsDeliveryError(f"Source English text is missing for selected ID {key}.")
             if not isinstance(translated, str) or not translated.strip():
                 raise MarsDeliveryError(f"Missing translation for ID {key} in {code}.")
             if surviving_mars_csv.compare_newlines(english, translated).is_mismatch:
@@ -246,64 +247,6 @@ def _render_overlay_files(
                for key in compiled["uncovered_ids"]]
     return files, compiled, pending
 
-def _render_text_only_files(
-    entries: dict[str, dict[str, Any]], localized: dict[str, dict[str, str]],
-    selected_ids: set[str], source_id: str, title: str,
-) -> tuple[dict[str, bytes], str, set[str]]:
-    selected = selected_ids & set(entries)
-    if not selected:
-        raise MarsDeliveryError("No approved existing_t manifest IDs are available for text-only delivery.")
-    output_id = "RemisText" + hashlib.sha256(
-        f"remis-text-only\0{source_id}".encode("utf-8")
-    ).hexdigest()[:12]
-    registrations: list[dict[str, str]] = []
-    files: dict[str, bytes] = {}
-    for code, values in localized.items():
-        language = package._language(code)
-        relative = f"{OUTPUT_SUBDIR}/{language}/RemisLua.csv"
-        files[relative] = _entry_rows(entries, values, selected).encode("utf-8")
-        registrations.append({"language": language, "path": relative})
-    try:
-        metadata, items = _text_only_metadata_items(
-            output_id, source_id, f"[Remis text] {title}", registrations
-        )
-    except DeliveryMetadataError as error:
-        raise MarsDeliveryError(str(error)) from error
-    files["metadata.lua"] = metadata.encode("utf-8")
-    files["items.lua"] = items.encode("utf-8")
-    return files, output_id, selected
-
-def _build_text_only_plan(
-    source: Path, fingerprint: str, source_id: str, manifest: dict[str, Any],
-    entries: dict[str, dict[str, Any]], translations: dict[str, dict[str, str]],
-) -> dict[str, Any]:
-    pending: list[dict[str, str]] = []
-    approved_raw = manifest.get("approved_ids")
-    approved = {str(value) for value in approved_raw} if isinstance(approved_raw, list) else set()
-    if not isinstance(approved_raw, list):
-        pending.append({"id": "", "reason": "No explicit text-only approved_ids snapshot is recorded."})
-    eligible_ids = {key for key, row in entries.items() if row.get("kind") == "existing_t"}
-    selected_ids = eligible_ids & approved
-    if not selected_ids:
-        pending.append({"id": "", "reason": "No approved existing_t manifest IDs are available."})
-    localized = _language_tables(translations, entries, selected_ids)
-    output_id = "RemisText" + hashlib.sha256(
-        f"remis-text-only\0{source_id}".encode("utf-8")
-    ).hexdigest()[:12]
-    generated: dict[str, bytes] = {}
-    if selected_ids:
-        generated, output_id, selected_ids = _render_text_only_files(
-            entries, localized, selected_ids, source_id,
-            str(package.read_source_metadata(source).get("title") or source_id),
-        )
-    warnings = [{"id": key, "reason": "This hardcoded or unapproved entry is not covered by text-only delivery."}
-                for key in sorted(set(entries) - selected_ids, key=int)]
-    return {"mode": "text_only", "source_fingerprint": fingerprint, "source_id": source_id,
-            "entries": entries, "selected_ids": selected_ids, "generated": generated,
-            "pending": pending, "warnings": warnings,
-            "complete": not pending, "profile": "text_only_existing_csv-v1",
-            "runtime_verified": False, "mod_id": output_id}
-
 def _build_overlay_plan(
     source: Path, source_files: list[tuple[str, Path, int, str]], fingerprint: str,
     source_id: str, manifest: dict[str, Any], entries: dict[str, dict[str, Any]],
@@ -327,10 +270,25 @@ def _build_overlay_plan(
                 f"{source_id}\0mars-overlay-v1".encode("utf-8")
             ).hexdigest()[:12]}
 
+
+def _build_text_only_delivery(
+    source: Path, fingerprint: str, source_id: str, manifest: dict[str, Any],
+    entries: dict[str, dict[str, Any]], translations: dict[str, dict[str, str]],
+    metadata_overrides: dict[str, Any] | None, conditional_bundle: dict[str, Any] | None,
+) -> dict[str, Any]:
+    from scripts.core.mars_pipeline.text_only_delivery import build_plan
+    plan = build_plan(source, fingerprint, source_id, manifest, entries, translations,
+                      metadata_overrides, bool(conditional_bundle))
+    if conditional_bundle:
+        from scripts.core.mars_pipeline.workflow_delivery_companions import attach_bundle
+        plan = attach_bundle(plan, conditional_bundle)
+    return plan
+
 def _build_plan(
     source: Path, manifest: dict[str, Any], translations: dict[str, dict[str, str]], mode: str,
     metadata_overrides: dict[str, Any] | None = None,
     publication_binding: dict[str, Any] | None = None,
+    conditional_bundle: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     source_files = _tree_files(source)
     fingerprint = _verify_manifest(source_files, manifest)
@@ -341,12 +299,15 @@ def _build_plan(
     has_metadata_overrides = any(value is not None for value in (metadata_overrides or {}).values())
     if publication_binding is not None and mode != "source_copy":
         raise MarsDeliveryError("Publication binding applies only to source-copy delivery.")
-    if has_metadata_overrides and mode != "source_copy":
-        raise MarsDeliveryError("Publication metadata overrides are available only for source-copy delivery.")
     if mode == "text_only":
-        plan = _build_text_only_plan(source, fingerprint, source_id, manifest, entries, translations)
+        plan = _build_text_only_delivery(
+            source, fingerprint, source_id, manifest, entries, translations,
+            metadata_overrides, conditional_bundle,
+        )
         plan["source_files"] = source_files
         return plan
+    if has_metadata_overrides and mode != "source_copy":
+        raise MarsDeliveryError("Publication metadata overrides are available only for source-copy delivery.")
     if mode == "overlay":
         return _build_overlay_plan(source, source_files, fingerprint, source_id,
                                    manifest, entries, translations)
@@ -440,10 +401,12 @@ def inspect_delivery(
     source_root: Path, manifest: dict[str, Any], translations_by_language: dict[str, dict[str, str]],
     mode: str, *, metadata_overrides: dict[str, Any] | None = None,
     publication_binding: dict[str, Any] | None = None,
+    conditional_bundle: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Return a no-write delivery preview, including explicit unhandled entries."""
     source = _source_root(Path(source_root))
-    plan = _build_plan(source, manifest, translations_by_language, mode, metadata_overrides, publication_binding)
+    plan = _build_plan(source, manifest, translations_by_language, mode, metadata_overrides,
+                       publication_binding, conditional_bundle)
     file_facts = []
     for relative, content in sorted(plan["generated"].items()):
         _safe_output_relative(relative)
@@ -477,7 +440,7 @@ def inspect_delivery(
         "profile": plan["profile"],
         "localized_entry_count": len(plan["selected_ids"]),
         "languages": [{"code": code, "game_language": package._language(code),
-                       "entry_count": len(plan["selected_ids"])}
+                       "entry_count": len(plan.get("selected_ids_by_language", {}).get(code, plan["selected_ids"]))}
                       for code in sorted(translations_by_language)],
         "pending_items": plan["pending"],
         "blockers": plan["pending"],
@@ -523,18 +486,21 @@ def build_delivery(
     destination_root: Path, mode: str, *, expected_fingerprint: str | None = None,
     metadata_overrides: dict[str, Any] | None = None,
     publication_binding: dict[str, Any] | None = None,
+    conditional_bundle: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Atomically build a new delivery directory and refuse overwrite."""
     source = _source_root(Path(source_root))
     destination = Path(os.path.abspath(destination_root))
     _assert_destination(destination, source)
     preview = inspect_delivery(source, manifest, translations_by_language, mode,
-                               metadata_overrides=metadata_overrides, publication_binding=publication_binding)
+                               metadata_overrides=metadata_overrides, publication_binding=publication_binding,
+                               conditional_bundle=conditional_bundle)
     if expected_fingerprint and preview["fingerprint"] != expected_fingerprint:
         raise MarsDeliveryError("Delivery inputs changed after preview; inspect them again.")
     if preview["status"] != "ready":
         raise MarsDeliveryError("Delivery has unresolved blockers; finish review before building.")
-    plan = _build_plan(source, manifest, translations_by_language, mode, metadata_overrides, publication_binding)
+    plan = _build_plan(source, manifest, translations_by_language, mode, metadata_overrides,
+                       publication_binding, conditional_bundle)
     if destination.exists() or _is_reparse(destination):
         raise FileExistsError(f"Delivery destination already exists: {destination}")
     destination.parent.mkdir(parents=True, exist_ok=True)

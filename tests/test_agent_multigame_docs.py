@@ -43,6 +43,45 @@ def test_api_reference_documents_supported_formats_and_incremental_safety():
     assert 'workflow: "incremental"` rejects' in reference
 
 
+def test_incremental_preview_is_read_only_and_fingerprint_bound():
+    skill = _read(".agents/skills/remis-agent/SKILL.md")
+    reference = _read(".agents/skills/remis-agent/references/api-workflow.md")
+    guide = _read("docs/zh/user-guides/incremental-update.md")
+    for contents in (skill, reference, guide):
+        assert "/api/agent/projects/{project_id}/incremental-preview" in contents
+        assert "expected_preview_fingerprint" in contents
+    for contents in (reference, guide):
+        assert "Translation" in contents
+    for contents in (reference, guide):
+        assert "diff_executed: true" in contents
+        assert "file_summaries" in contents
+    assert "requires no provider" in reference
+    assert "English baseline" in reference
+    assert "original author's `Text`" in reference
+    assert "优先使用作者原始 `Text`" in guide
+    assert "source_language" in reference
+    assert "source_language" in guide
+    assert "GET /api/agent/jobs/{job_id}" in reference
+    assert "GET /api/agent/jobs/{job_id}" in guide
+    assert "西班牙语 `Text`" in guide
+    assert "不会执行增量预览或翻译" in guide
+
+
+def test_incremental_user_guide_explains_real_diff_dry_run_and_count_scopes():
+    guide = _read("docs/zh/user-guides/incremental-update.md")
+    assert "初次翻译的 `dry_run` 仍只是就绪检查" in guide
+    assert "原文变化条目" in guide
+    assert "实际提交模型条目" in guide
+    assert "待人工复核条目" in guide
+    quickstarts = (
+        _read("docs/zh/developer/agent-api-quickstart.md"),
+        _read("docs/en/developer/agent-api-quickstart.md"),
+    )
+    for contents in quickstarts:
+        assert "/api/agent/projects/{project_id}/incremental-preview" in contents
+        assert "expected_preview_fingerprint" in contents
+
+
 def test_player_guide_distinguishes_help_and_incremental_workflows():
     guide = _read("docs/zh/user-guides/multi-game-localization.md")
     assert "展示初次翻译计划供用户审批" in guide
@@ -109,6 +148,29 @@ def test_surviving_mars_guides_match_the_csv_and_agent_contract():
     assert "预览通过后生成" in chinese
     assert "does not yet provide a dedicated visual proofreading workspace" in english_flat
     assert "review the preview before approving local output creation" in english_flat
+    assert "a chat response does not perform preparation, translation, or export." in english
+
+
+def test_translation_collection_docs_discovery_and_game_boundaries():
+    guide_path = "docs/zh/user-guides/translation-collections.md"
+    guide = _read(guide_path)
+    skill = _read(".agents/skills/remis-agent/SKILL.md")
+    api = _read(".agents/skills/remis-agent/references/api-workflow.md")
+    index = _read("docs/zh/index.md")
+    status = _read("docs/docs_status.md")
+    assert guide_path in skill
+    assert "## Translation collections" in api
+    assert "translation-collections.md" in index
+    assert "zh/user-guides/translation-collections.md" in status
+    assert "only while that member Mod is enabled" in skill
+    assert "cross-member global localization key conflicts" in skill
+    assert "coverage is unverified and shown as a warning" in skill
+    assert "可选 Mod" in guide and "原 Mod 仍需启用" in guide
+    assert "Paradox 游戏" in guide and "冲突 key" in guide
+    assert "translation completeness is" in api and "a warning" in api
+    assert "other games receive" not in api
+    assert "users follow each game's own Mod upload workflow" in api
+    assert "Surviving Mars 的发布和更新" in guide
 
 
 def test_user_and_developer_docs_link_to_the_single_api_contract():
@@ -151,6 +213,7 @@ def test_updated_documentation_has_no_broken_local_markdown_links():
         "docs/en/user-guides/surviving-mars.md",
         ".agents/skills/remis-agent/SKILL.md",
         ".agents/skills/remis-agent/references/api-workflow.md",
+        "docs/zh/user-guides/translation-collections.md",
     )
     broken = []
     for relative_path in files:
@@ -163,3 +226,40 @@ def test_updated_documentation_has_no_broken_local_markdown_links():
             if not path.exists():
                 broken.append((relative_path, target))
     assert not broken
+
+
+def test_fpk_reference_does_not_redirect_preparation_to_manual_editor():
+    reference = _read(".agents/skills/remis-agent/references/api-workflow.md")
+    assert "use the official Mod Editor to prepare an editable" not in reference
+    csv_boundary = reference.split("CSV output preserves source-relative paths.", 1)[1].split("### Initial", 1)[0]
+    assert "/api/agent/mars-pipeline/prepare/plan" in csv_boundary
+    assert "tools/remis_fpk" in csv_boundary
+    assert "Final FPK repacking and Workshop upload" in csv_boundary
+
+
+def test_historical_mars_draft_and_code_version_guidance_are_explicit():
+    history = _read("docs/zh/developer/release-v3.2.1-early-development.md")
+    assert "status: historical" in history[:600]
+    assert "../user-guides/surviving-mars.md" in history[:600]
+    assert "3.2.1 未发布开发记录的唯一入口" not in _read("docs/docs_status.md")
+    for relative_path in (
+        ".agents/skills/remis-agent/SKILL.md",
+        "docs/zh/developer/agent-api-quickstart.md",
+        "docs/en/developer/agent-api-quickstart.md",
+    ):
+        assert "git rev-parse HEAD" in _read(relative_path)
+
+
+def test_mars_preparation_authorization_is_discoverable_and_bounded():
+    for relative_path in ("AGENTS.md", ".agents/skills/remis-agent/SKILL.md"):
+        text = _read(relative_path)
+        assert "Standing authorization for Surviving Mars preparation" in text
+        assert "Do not ask for a" in text and "second authorization" in text
+        assert "approved: true" in text
+        assert "technical blocker, not missing permission" in text
+        assert "does not itself authorize changing reader code" in text
+    reference = _read(".agents/skills/remis-agent/references/api-workflow.md")
+    assert "already authorizes bundled FPK inspection" in reference
+    assert "do not require a duplicate" in reference
+    assert "给 Agent 的常设授权" in _read("docs/zh/user-guides/surviving-mars.md")
+    assert "Standing authorization for agents" in _read("docs/en/user-guides/surviving-mars.md")

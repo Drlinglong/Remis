@@ -55,12 +55,13 @@ describe('Mars pipeline components', () => {
     };
 
     renderWithMantine(<CreateProjectModal {...props} />);
+    expect(useMarsPipelineImport).toHaveBeenCalledWith(expect.anything(), 'Example Mod', 'en');
     expect(screen.getByRole('button', { name: 'Open FPK preparation' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Reopen FPK preparation' })).toBeInTheDocument();
     expect(screen.queryByLabelText('Folder path')).not.toBeInTheDocument();
     expect(screen.getAllByDisplayValue('Example Mod')).toHaveLength(1);
     fireEvent.click(screen.getByRole('button', { name: 'Open FPK preparation' }));
-    expect(await screen.findByText('Remis extracts the complete FPK into an isolated project and reads English source text. It leaves the archive and installed Mods unchanged.')).toBeInTheDocument();
+    expect(await screen.findByText('Remis extracts the complete FPK into an isolated project. It leaves the archive and installed Mods unchanged.')).toBeInTheDocument();
     expect(screen.getAllByDisplayValue('Example Mod')).toHaveLength(1);
   });
 
@@ -73,10 +74,12 @@ describe('Mars pipeline components', () => {
 
     renderWithMantine(<MarsPipelineImport opened name="Example Mod" onClose={vi.fn()} />);
 
-    expect(screen.getByText('Remis extracts the complete FPK into an isolated project and reads English source text. It leaves the archive and installed Mods unchanged.')).toBeInTheDocument();
+    expect(screen.getByText('Remis extracts the complete FPK into an isolated project. It leaves the archive and installed Mods unchanged.')).toBeInTheDocument();
     expect(screen.queryByLabelText('Translation text only')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Complete translated Mod copy')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Project Name')).not.toBeInTheDocument();
+    expect(screen.getAllByLabelText('Source language').length).toBeGreaterThan(0);
+    expect(screen.getAllByLabelText('Source text column').length).toBeGreaterThan(0);
   });
 
   it('offers delivery choices only after inspection and replans automatically on a mode change', () => {
@@ -95,6 +98,40 @@ describe('Mars pipeline components', () => {
     expect(screen.getByLabelText('Complete translated Mod copy')).toBeInTheDocument();
     fireEvent.click(screen.getByLabelText('Translation text only'));
     expect(preview).toHaveBeenCalledWith([], 'text_only');
+  });
+
+  it('shows source samples and blocks creation when source selection has blockers', () => {
+    useMarsPipelineImport.mockReturnValue({
+      path: 'ModContent.fpk', name: 'Example Mod', sourceLanguage: 'en', sourceTable: 'English.csv',
+      sourceColumn: 'Translation', previousRun: '', deliveryMode: 'source_copy', busy: false, error: '',
+      approved: [], update: vi.fn(), preview: vi.fn(), execute: vi.fn(),
+      inspection: { source_tables: [{ path: 'English.csv', row_count: 2,
+        samples: [{ id: 'ITEM_1', text: 'Mineral', translation: 'Mineral en español' }] }] },
+      plan: { review_items: [], source_blockers: [{ code: 'missing_translation', message: 'A translation is missing.' }] },
+    });
+    renderWithMantine(<MarsPipelineImport opened name="Example Mod" sourceLanguage="en" onClose={vi.fn()} />);
+    expect(screen.getByText('Mineral')).toBeInTheDocument();
+    expect(screen.getByText('Mineral en español')).toBeInTheDocument();
+    expect(screen.getByText('A translation is missing.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create isolated translation project' })).toBeDisabled();
+  });
+
+  it('asks for source review without recommending a full copy for dynamic candidates', () => {
+    useMarsPipelineImport.mockReturnValue({
+      path: 'ModContent.fpk', name: 'Example Mod', sourceLanguage: 'en', sourceTable: '',
+      sourceColumn: 'Text', previousRun: '', deliveryMode: 'source_copy', busy: false, error: '',
+      approved: [], update: vi.fn(), preview: vi.fn(), execute: vi.fn(),
+      inspection: { file_count: 8, entry_count: 14, selected_entry_count: 12,
+        hardcoded_entry_count: 1, requires_source_review: true, recommended_delivery_mode: null },
+      plan: { review_items: [], file_count: 8, entry_count: 14, selected_entry_count: 12,
+        hardcoded_entry_count: 1, requires_source_review: true, recommended_delivery_mode: null },
+    });
+    renderWithMantine(<MarsPipelineImport opened name="Example Mod" sourceLanguage="en" onClose={vi.fn()} />);
+
+    expect(screen.getByText('1 dynamic candidates are not evidence of missing translations. Check their variables and mappings before choosing a delivery mode.'))
+      .toBeInTheDocument();
+    expect(screen.queryByText(/complete copy includes all assets and is recommended/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Recommended:/)).not.toBeInTheDocument();
   });
 
   it('summarizes embedded Lua coverage and keeps review candidates folded until requested', () => {

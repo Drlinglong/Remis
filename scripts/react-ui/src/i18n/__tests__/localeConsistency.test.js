@@ -92,6 +92,8 @@ const releaseDuplicateValueAllowlist = new Set([
   // BBCode is a protected technical term and can legitimately remain the
   // same in otherwise natural localized publishing copy.
   'steam_workshop.bbcode',
+  // ID is a standard identifier label; keep this exception exact.
+  'mars_pipeline.source_id',
 ]);
 
 const releaseDuplicateValueAllowlistPatterns = [

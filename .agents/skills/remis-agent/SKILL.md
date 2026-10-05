@@ -5,6 +5,16 @@ description: Operate Remis through its localhost Agent API to inspect or import 
 
 # Remis Agent Operator
 
+> Checkout notice (2026-09-29): this checkout contains older workflow code.
+> Before starting it, verify `git rev-parse HEAD` against the intended release
+> or development baseline; a matching `VERSION` string is insufficient.
+> Official v3.2.1 includes `tools/remis_fpk` and the isolated
+> `/api/agent/mars-pipeline/prepare/plan` workflow. If these are absent here,
+> use a checkout containing that code, rather than concluding that Remis needs
+> manual Mod Editor extraction. Preserve existing worktrees and their data.
+> Read the [released operator guide](https://github.com/Drlinglong/Remis/blob/v3.2.1/.agents/skills/remis-agent/SKILL.md)
+> for that workflow. Historical memories are not current feature restrictions.
+
 Treat Remis as the execution plane. Use Codex to understand intent, inspect the
 workspace, explain progress, and apply the user's authorization. Use Remis APIs
 for bulk translation and managed workflow state changes. Reading source files,
@@ -18,6 +28,39 @@ tokens, encoding and layout, verify the exact diff, and reconcile the reusable
 baseline. If synchronization is unavailable, report that the file is corrected
 but the baseline is not yet synchronized. Never expand this permission into
 bulk file translation or direct database writes.
+
+## Standing authorization for Surviving Mars preparation
+
+When the user asks to localize a specified Surviving Mars Mod or create its
+translation project, that request authorizes the agent to use the existing
+`tools/remis_fpk` tooling, inspect the original FPK read-only, extract it into
+new isolated Remis storage, inspect localization and hard-coded candidates, and
+prepare/import the project through `/api/agent/mars-pipeline`. Do not ask for a
+second authorization merely to use the bundled tool or unpack the archive.
+A feasibility-only request authorizes isolated inspection/extraction, but not
+creation of a translation project unless requested.
+
+Review the concrete preparation plan, preserve unresolved candidates for review,
+then send `approved: true` based on this existing task authorization. That API
+flag records authorization; it does not require another chat confirmation.
+Use the user's chosen delivery mode; if none is chosen, inspect coverage first
+and explain the resulting choice. Keep the source archive and Workshop cache
+unchanged. Normal preparation must use Remis APIs; standalone tool inspection
+or extraction into a fresh isolated diagnostic directory is also authorized,
+but must not bypass managed project state or a rejected validation.
+
+Preparation alone does not authorize charges, deployment, overwrite, or upload.
+An explicit request to translate with a named provider/model already authorizes
+that translation within the requested scope and any stated budget; carry it
+forward instead of asking the same question again. Obtain missing authorization
+only for actions genuinely outside that scope.
+
+An archive validation failure is a technical blocker, not missing permission to
+use the tool. Inspect and report the failing condition; do not disable bounds,
+skip assets silently, or claim unsupported archives are supported. Authorization
+to use the existing workflow does not itself authorize changing reader code or
+loosening validation. Treat a necessary compatibility fix as a separate code
+change, subject to the user's development scope.
 
 ## Explain things to players first
 
@@ -39,6 +82,13 @@ but the saved translations used by future updates have not yet been updated.
 ## Establish the local boundary
 
 1. Work only with the official repository or an installed Remis application.
+   For a development checkout, record `git rev-parse HEAD` and
+   `git describe --tags --always --dirty` before launch. Compare the actual
+   commit with the task's intended code baseline (the official release target
+   when operating a release checkout). A matching `VERSION` string is not a
+   code-version check. Resolve a wrong checkout before proceeding; do not reset
+   or replace another task's work. Historical notes and memories describe their
+   original code baseline, not the capabilities of newer releases.
 2. Start the installed application, or run
    `scripts\developer_tools\windows\run-dev.bat` from the root of a development
    checkout. Respect the Python/Conda environment chosen by that launcher.
@@ -95,8 +145,13 @@ UI; its ordinary new-project translation planner does not unpack FPKs.
 6. Create a translation plan with `POST /api/agent/jobs/plan`.
    Choose `workflow: "initial"` or `workflow: "incremental"`; omitted means
    `initial`. Incremental work compares recognized entries, not mod version
-   alone. Dry-run checks readiness only and does not calculate the incremental
-   diff. Incremental checkpoint resume is unsupported; make a fresh plan for
+   alone. For a no-cost Agent preview, call
+   `POST /api/agent/projects/{project_id}/incremental-preview` first; it
+   requires no provider and writes no project, archive, or output data. Bind
+   the reviewed preview with its `fingerprint` in
+   `expected_preview_fingerprint` when planning. Incremental `dry_run: true`
+   now executes the entry diff without a provider; initial-translation dry-run
+   remains a readiness check. Incremental checkpoint resume is unsupported; make a fresh plan for
    incremental work. Custom shell languages are limited to Paradox initial translation.
 7. Select one explicit `translation_context_mode`: `none`, `glossaries`, or
    `archive`. Never reconstruct this choice from legacy booleans.
@@ -176,7 +231,38 @@ but does not execute incremental updates or package export. Use the project UI
 or this Agent API for incremental work; use the package options/plan/export API
 below or the corresponding project UI for package generation.
 
+Translation collections combine selected output folders from multiple projects
+for the same game. Before operating one, read the user guide at
+`docs/zh/user-guides/translation-collections.md` and the exact routes in
+`references/api-workflow.md`. Collections preserve independent project and Mod
+identities. Surviving Mars exports one multilingual optional Mod that applies a
+member's selected translations only while that member Mod is enabled (and the
+game language matches); the original Mod must remain enabled. Mars requires
+complete, approved text-only coverage and blocks hard-coded/source-copy gaps.
+Other games receive separate member directories, not one merged Mod; portable
+coverage is unverified and shown as a warning. For Paradox games, preview
+cross-member global localization key conflicts and their member pairs; separate
+directories do not make conflicting keys safe to enable together, so select a
+compatible member set. Never translate, install, or publish automatically. Only
+Surviving Mars uses its game's Mod Editor for manual publication; Paradox uploads
+follow each game's own workflow.
+
 Inspect `hardcoded_lua` alongside CSV coverage. Its direct Untranslated calls
+are candidates, not proof of untranslated natural language. Preserve pure
+`<countdown>` variables and `<newline><left>` layout controls verbatim; these
+do not need translated IDs. Resource/function tags still carry semantics, and
+tagged text containing natural language remains translatable. For dynamic
+`Untranslated(lugar)` fallbacks, trace possible values and their existing
+`T(id, text)`/CSV mapping before claiming a coverage gap or requiring a full
+copy. Do not execute the Mod's Lua to do this investigation.
+
+For FPK preparation, explicitly select `source_language` and inspect source
+samples. A CSV filename is not evidence of the language in its `Text` column.
+Use `source_table` plus `source_column: "Translation"` when an existing English
+translation is the requested source; missing values block preparation instead
+of mixing languages. Read the exact request/receipt contract in the API reference.
+
+Direct Untranslated calls that remain after this classification
 are review candidates outside the translation job, not automatically included
 entries. Report literal/dynamic counts, partial scans and remaining blind spots;
 never claim whole-Mod completion from CSV success. Candidate keys are provisional,
@@ -253,6 +339,14 @@ metadata when available; otherwise ask the user. Fetch the source description,
 generate the approved localized candidate, and save/select description and cover
 versions through Remis. These operations save local candidates, not publish to
 Steam. See the API reference for endpoints and payloads.
+
+For Surviving Mars Mod uploads, keep Remis API preflight separate from the
+official Mod Editor's publish validation. Read the [Mod Editor upload
+preflight guide](../../../docs/zh/user-guides/surviving-mars-mod-editor-upload-preflight.md).
+When Chinese appears garbled in Mod Editor, identify the selected copy by its
+ASCII Mod ID and output path, not by its displayed title. The exact `Last
+Changes` error means that field is missing on the selected Mod; a successful
+Remis preflight does not mean the Mod can upload or that an upload succeeded.
 
 ## Report progress without guessing
 

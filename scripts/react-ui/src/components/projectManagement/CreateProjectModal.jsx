@@ -196,6 +196,8 @@ export function CreateProjectModal({
         </Button>
       </Stack>
       <MarsPipelineImport opened={marsImportOpened} onClose={() => setMarsImportOpened(false)}
+        sourceLanguage={resolveSupportedSourceLanguage(newProjectSourceLang, marsLanguageCodes || [])}
+        languageOptions={sourceLanguageOptions.length > 0 ? sourceLanguageOptions : fallbackLanguages}
         onUseExistingCsv={() => {
           setNewProjectSourceLang(resolveSupportedSourceLanguage(
             newProjectSourceLang,

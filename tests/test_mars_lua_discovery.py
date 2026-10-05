@@ -121,6 +121,19 @@ def test_hashes_and_candidate_identity_are_deterministic_for_source_path():
     assert first.to_dict()["classification"] == "literal"
 
 
+def test_pure_control_tags_are_not_candidates_but_semantic_tags_and_prose_are():
+    source = (
+        'Untranslated("<countdown>")\n'
+        'Untranslated("<newline><left>")\n'
+        'Untranslated("Wait <countdown> seconds")\n'
+        'Untranslated("<resource(fuel_amount)>")\n'
+    )
+    found = scan_lua_text(source)
+    assert [item.text for item in found] == [
+        "Wait <countdown> seconds", "<resource(fuel_amount)>"
+    ]
+
+
 def test_scan_file_is_utf8_strict_size_limited_and_accepts_relative_identity(tmp_path):
     source = tmp_path / "input.lua"
     source.write_bytes('local title = Untranslated("你好")'.encode("utf-8"))

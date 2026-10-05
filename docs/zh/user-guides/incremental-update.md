@@ -95,6 +95,24 @@
 3. 完成后检查输出目录、警告摘要、智能工坊导出的问题（若有）。
 4. **一键部署**（需要时 **删除假本地化**），进游戏抽查。
 
+### 3.6 Agent API：先做无费用预览
+
+使用 Codex/Agent 时，可先调用
+`POST /api/agent/projects/{project_id}/incremental-preview`，请求体例如：
+
+```json
+{
+  "custom_source_path": "D:/Mods/MyMod-new",
+  "target_lang_codes": ["zh-CN"]
+}
+```
+
+`custom_source_path` 可省略。预览不需要 Provider 或 API Key，不调用模型，也不写项目、归档或输出；它返回整体 `summary`、包含平铺计数的 `per_language` 列表（其中各语言的 `deleted_entries` 列出已删除条目）、含 `dirty_entries` 的 `file_summaries`，以及 `fingerprint`、`source_path` 和 `source_language`。检查文件级结果和计数合理后，把该 `fingerprint` 填入 `/api/agent/jobs/plan` 的 `expected_preview_fingerprint`，使后续计划对应到已审核的预览。若源码或预览已变化，执行会拒绝过期预览；请重新预览并审核。
+
+也可以用 `POST /api/agent/jobs/plan` 的增量 `dry_run: true` 做实际差异计算；这一步不调用 Provider。初次翻译的 `dry_run` 仍只是就绪检查。`GET /api/agent/jobs/{job_id}` 的 `result.metadata` 会包含 `incremental_preview` 和 `diff_executed: true`。完成的任务可从同一响应的 `result.metadata.entry_summary` 与 `result.metadata.file_summaries` 检查结果。请分开看**原文变化条目**、**实际提交模型条目**和**待人工复核条目**；它们代表不同范围，不能把源码变更数当作模型调用数。
+
+预览优先使用作者原始 `Text`，并确认该列的语言。只有用户明确选择时，才使用 `Translation` 列作为翻译源。若项目归档基线是英文，不能静默切到西班牙语 `Text`；语言切换可能使全部条目看起来都已变化。新准备的源码可通过 `custom_source_path` 附加到旧项目；即使上下文模式设为 `none`，增量复用仍使用项目归档基线。Copilot 帮助可以依据本指南解释和引导该流程，但帮助模式本身不会执行增量预览或翻译。
+
 ---
 
 ## 4. 半成品 / 别人的汉化怎么办？

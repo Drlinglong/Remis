@@ -28,6 +28,25 @@ def test_untranslated_warnings_do_not_expand_csv_translation_coverage(tmp_path):
     assert code.read_bytes() == original
 
 
+def test_pure_control_tag_calls_do_not_appear_as_hardcoded_ui_candidates(tmp_path):
+    root = source(tmp_path)
+    code = root / "Code.lua"
+    code.write_text(
+        'Untranslated("<countdown>")\n'
+        'Untranslated("<newline><left>")\n'
+        'Untranslated("Wait<newline>for the shuttle")\n'
+        'Untranslated("<resource(fuel_amount)>")\n',
+        encoding="utf-8",
+    )
+    original = code.read_bytes()
+    result = mars_game_support.inspect_csv_support(str(root))["hardcoded_lua"]
+    assert [item["text"] for item in result["candidates"]] == [
+        "Wait<newline>for the shuttle", "<resource(fuel_amount)>"
+    ]
+    assert result["candidate_count"] == 2
+    assert code.read_bytes() == original
+
+
 def test_decode_and_lexical_errors_make_lua_coverage_partial_without_blocking_csv(tmp_path):
     root = source(tmp_path)
     (root / "Bad.lua").write_bytes(b"\xff")

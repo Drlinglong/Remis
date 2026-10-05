@@ -47,7 +47,7 @@ def test_approved_provider_catalogs_and_defaults_are_locked():
         ),
         "anthropic": (
             "claude-sonnet-5",
-            ["claude-opus-5", "claude-opus-4-6", "claude-sonnet-5"],
+            ["claude-opus-5", "claude-opus-4-6", "claude-sonnet-5", "claude-opus-5-5", "claude-sonnet-5-5"],
         ),
         "openai": (
             "gpt-5.6-luna",
@@ -58,6 +58,7 @@ def test_approved_provider_catalogs_and_defaults_are_locked():
                 "gpt-6-astra",
                 "gpt-6-sol",
                 "gpt-6-luna",
+                "gpt-6.1-sol",
             ],
         ),
         "qwen": ("qwen3.8-max", ["qwen3.8-max", "qwen3.8-flash-next"]),

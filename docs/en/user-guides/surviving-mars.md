@@ -1,5 +1,32 @@
 # Surviving Mars: Relaunched localization
 
+## Standing authorization for agents
+
+Source preparation now requires an explicit language. Inspect the CSV samples:
+`English.csv` can have Spanish `Text` and English `Translation`. To translate
+from English, select that table's `Translation` column and English as the source
+language. The isolated project uses those values; original Lua/CSV and IDs stay
+unchanged. Missing selected values block preparation rather than mixing languages.
+Text-only preparation covers the selected table; diagnostics identify Lua IDs
+outside it. Pure `<countdown>` and `<newline><left>` are controls, not missing
+translations. Trace dynamic fallback mappings before requiring a full copy.
+FPK extraction no longer has an extra 8 MiB per-file cap; archive, aggregate,
+path, payload and compression validation remain enforced.
+
+Asking an agent to localize a specified Mod or create its translation project
+authorizes use of the bundled `tools/remis_fpk`, read-only source inspection,
+extraction into fresh isolated storage, candidate review and project preparation
+through Remis APIs. Review the concrete plan and submit `approved: true` using
+that existing authorization; do not ask again just to use the tool or unpack.
+A feasibility-only request permits isolated inspection, not project creation.
+Keep the source FPK and Workshop cache unchanged.
+
+Preparation alone does not authorize charges, deployment, overwrite or upload.
+Carry forward any explicit translation request naming the provider/model within
+its scope and budget. Archive bounds or format failures are technical blockers:
+diagnose them without disabling validation or silently dropping assets. Reader
+changes are separate code work governed by the user's development scope.
+
 Remis supports initial translation and incremental updates for Surviving Mars: Relaunched `ModItemLocTable` CSVs. It can also prepare a project from an original Workshop package and combine completed language outputs in one local delivery. When creating a project, select “Surviving Mars / Relaunched.” The installation paths in this guide apply to Relaunched; do not assume they apply to the legacy game.
 
 The desktop chat assistant can explain the steps, guide an initial translation, and show a plan for your approval; a chat response does not perform preparation, translation, or export. Use the project UI or Remis Agent API with `workflow: "incremental"` for incremental updates. This game's project UI does not yet provide a dedicated visual proofreading workspace. Format validation is available, and the Agent API can read a translation and save targeted edits after approval and revision checks. Built-in Agent/Codex users can follow the repository [Remis Agent Skill](../../../.agents/skills/remis-agent/SKILL.md), [API reference](../../../.agents/skills/remis-agent/references/api-workflow.md), and this guide. Use the live game-support and scan results for the current capability boundary.
@@ -9,7 +36,7 @@ The desktop chat assistant can explain the steps, guide an initial translation, 
 1. Subscribe to and download the original author's Mod. Select its local `ModContent.fpk`, normally under the chosen Steam library's `steamapps/workshop/content/<game AppID>/<original Workshop ID>/`. Do not use a web URL or your translated copy as the source.
 2. Open **Project Management → Create Project**, enter a name and select Surviving Mars. Browse to the FPK in the preparation window. Remis extracts it into isolated storage; you do not need to export CSV or Lua manually in the game editor first.
 3. Inspect candidates and choose text-only preparation or a complete internationalized copy. Prefer the complete copy for hard-coded text. Review and approve preparation, then use the returned project. Continue an existing prepared project rather than creating duplicates.
-4. Run **Initial Translation** for this project with English source, the requested target languages and provider/model. Approve the translation plan. Source updates use the incremental workflow; adding French or German does not require separate Mods.
+4. Run **Initial Translation** for this project with the confirmed source language, the requested target languages and provider/model. Approve the translation plan. Source updates use the incremental workflow; adding French or German does not require separate Mods.
 5. In **Internationalized Mod Delivery**, select all completed language outputs together, such as `zh-CN-prepared`, `fr-prepared`, and `de-prepared`. Preview and approve **one multilingual Mod package**. Keep language work files for future maintenance; install the returned package folder.
 6. Place its contents in `%APPDATA%/Surviving Mars Relaunched/Mods/<output_mod_id>/`, with `metadata.lua` directly inside. Enable a text-only package alongside the original. Enable a complete copy on its own, disabling the original and older patches. Select the language in game and restart to check it.
 7. To publish, use the **game's own Mod Editor for manual packing/upload**. After first publishing a complete copy, bind your own returned Workshop ID in its Remis project. Later exports retain that ID for manual updates. Remis does not automatically upload.
@@ -66,7 +93,7 @@ support scan only discovers candidates; the isolated FPK workflow below can
 apply explicitly reviewed, supported literal rewrites when building a complete
 source copy. Dynamic expressions, aliases, other plain Lua strings, and
 incomplete scans remain outside that rewrite boundary and require review. The
-intended multilingual workflow uses stable IDs and English fallback in code,
+intended multilingual workflow uses stable IDs and original-language fallback in code,
 with each language in CSV; see the
 [workflow design](../../zh/developer/mars-lua-localization-workflow.md).
 
@@ -96,7 +123,7 @@ Approve the reviewed candidates before preparation. Unknown aliases, complex
 dynamic expressions, internal option values, and scan blind spots remain for
 human review; candidate counts do not prove complete coverage. Keep the
 preparation run ID for future Mod updates and stable ID matching. Continue with
-the usual English-source CSV translation workflow, then select target-language
+the normal CSV workflow using the explicitly selected source language and column, then select target-language
 outputs in the project's internationalized Mod delivery panel and review the
 preview before approving local output creation.
 

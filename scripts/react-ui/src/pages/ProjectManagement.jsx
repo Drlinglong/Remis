@@ -10,6 +10,7 @@ import { ProjectDashboardView } from '../components/projectManagement/ProjectDas
 import { ProjectListView } from '../components/projectManagement/ProjectListView';
 import { useProjectManagementActions } from '../hooks/useProjectManagementActions';
 import { useProjectManagementData } from '../hooks/useProjectManagementData';
+import { TranslationCollectionsModal } from '../components/translationCollections/TranslationCollectionsModal';
 
 export default function ProjectManagement() {
   const { t } = useTranslation();
@@ -34,6 +35,7 @@ export default function ProjectManagement() {
     viewMode,
   } = useProjectManagementData();
   const [searchQuery, setSearchQuery] = useState('');
+  const [collectionsOpen, setCollectionsOpen] = useState(false);
 
   const navigate = useNavigate();
   const {
@@ -140,6 +142,7 @@ export default function ProjectManagement() {
           setViewMode={setViewMode}
           t={t}
           viewMode={viewMode}
+          onOpenCollections={() => setCollectionsOpen(true)}
         />
       )}
 
@@ -191,6 +194,13 @@ export default function ProjectManagement() {
         setEditSourceLang={setEditSourceLang}
         t={t}
         onClose={() => setManageModalOpen(false)}
+      />
+      <TranslationCollectionsModal
+        opened={collectionsOpen}
+        onClose={() => setCollectionsOpen(false)}
+        projects={projects}
+        games={availableGames}
+        languages={availableLanguages}
       />
     </>
   );
