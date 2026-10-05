@@ -63,3 +63,5 @@ CodeQL 首轮 19 条路径 taint 告警促成以上两项真实边界修复。�
 - #186–189、#198–206：严格 DTO/registry/UUID 与固定 Mod ID 限制目标，staging 来自服务端 mkdtemp，创建/写入/rename/cleanup 校验捕获的父目录与全部祖先。
 
 主代理直接执行 10 组 traversal 和 5 组语言攻击输入，均被拒绝；正常路径通过。合集 junction/cancel/receipt 聚焦测试 28 passed/2 skips；增量路径/API/preview/MVP 28 passed/5 skips。详细逐告警依据保留在本轮巡检证据中。
+
+最终 Windows CI 首轮：2370 passed / 5 skipped / 18 subtests passed，唯一失败为 unittest 临时 root 的 RUNNER~1 短路径与解析后的 runneradmin 长路径字符串比较。测试期望已按生产规范 resolve 后严格比较目标路径，未放宽 hydration 的保护；源码与安装包不变。
