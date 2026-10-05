@@ -238,7 +238,7 @@ def test_fpk_reference_does_not_redirect_preparation_to_manual_editor():
 
 
 def test_historical_mars_draft_and_code_version_guidance_are_explicit():
-    history = _read("docs/zh/developer/release-v3.2.1.md")
+    history = _read("docs/zh/developer/release-v3.2.1-early-development.md")
     assert "status: historical" in history[:600]
     assert "../user-guides/surviving-mars.md" in history[:600]
     assert "3.2.1 未发布开发记录的唯一入口" not in _read("docs/docs_status.md")

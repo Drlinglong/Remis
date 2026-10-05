@@ -28,7 +28,7 @@
 
 Surviving Mars 专属中文指南 `docs/zh/user-guides/surviving-mars.md` 是 CSV、隔离 FPK 准备、`text_only`/`source_copy` 对照、多语言本地交付、安装和手动发布的用户与 Help Copilot 入口；English companion 位于 `docs/en/user-guides/surviving-mars.md`。五列表头和 CSV 不变量由 `game_support.csv_contract` 提供；已有 CSV 轻量包接口由 `translation_package` 提供，完整准备/源码副本/文本包/高级运行时覆盖接口由 `source_pipeline` 提供。不要在其它指南维护第二份易漂移的字段表。桌面聊天只解释和引导；计划、审批和执行通过项目界面或 Agent API 完成。此游戏新 FPK 项目尚无专用可视化校对工作区，但格式校验和 Agent 定点读写可用。运行时覆盖不是普通 UI 选项，候选计数不代表完整覆盖，所有交付仍需游戏内验证。
 
-[3.2.1 早期开发记录](zh/developer/release-v3.2.1.md) 已标记为历史材料：
+[3.2.1 早期开发记录](zh/developer/release-v3.2.1-early-development.md) 已标记为历史材料：
 `status: historical`，`audience: developer`，`copilot_scope: excluded`，
 `last_verified: 2026-09-29`。其“未发布/不自动解包”陈述仅描述早期阶段；
 `superseded_by: zh/user-guides/surviving-mars.md`。正式发布信息见

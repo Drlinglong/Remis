@@ -48,6 +48,7 @@
 - [增量翻译](user-guides/incremental-update.md) - Mod 更新后复用旧译文、只翻变更
 - [导入已有译文](user-guides/import-existing-translations.md) - 半成品 / 翻译上载
 - [一键部署](user-guides/one-click-deploy.md) - 装进游戏；可选清理假本地化
+- [火星求生 Mod Editor 上传前检查](user-guides/surviving-mars-mod-editor-upload-preflight.md) - 处理中文显示乱码、Mod 副本辨认与 `Last Changes` 阻断
 - [假本地化说明](user-guides/fake-localization.md) - 假中文原理；优先内置清理，手动为备用
 - [校对](user-guides/proofreading.md) - 三栏编辑器、补丁模式、保存与验证
 - [智能工坊](user-guides/agent-workshop.md) - 扫描格式问题并用 AI 修复

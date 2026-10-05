@@ -5,6 +5,16 @@ description: Operate Remis through its localhost Agent API to inspect or import 
 
 # Remis Agent Operator
 
+> Checkout notice (2026-09-29): this checkout contains older workflow code.
+> Before starting it, verify `git rev-parse HEAD` against the intended release
+> or development baseline; a matching `VERSION` string is insufficient.
+> Official v3.2.1 includes `tools/remis_fpk` and the isolated
+> `/api/agent/mars-pipeline/prepare/plan` workflow. If these are absent here,
+> use a checkout containing that code, rather than concluding that Remis needs
+> manual Mod Editor extraction. Preserve existing worktrees and their data.
+> Read the [released operator guide](https://github.com/Drlinglong/Remis/blob/v3.2.1/.agents/skills/remis-agent/SKILL.md)
+> for that workflow. Historical memories are not current feature restrictions.
+
 Treat Remis as the execution plane. Use Codex to understand intent, inspect the
 workspace, explain progress, and apply the user's authorization. Use Remis APIs
 for bulk translation and managed workflow state changes. Reading source files,
@@ -329,6 +339,14 @@ metadata when available; otherwise ask the user. Fetch the source description,
 generate the approved localized candidate, and save/select description and cover
 versions through Remis. These operations save local candidates, not publish to
 Steam. See the API reference for endpoints and payloads.
+
+For Surviving Mars Mod uploads, keep Remis API preflight separate from the
+official Mod Editor's publish validation. Read the [Mod Editor upload
+preflight guide](../../../docs/zh/user-guides/surviving-mars-mod-editor-upload-preflight.md).
+When Chinese appears garbled in Mod Editor, identify the selected copy by its
+ASCII Mod ID and output path, not by its displayed title. The exact `Last
+Changes` error means that field is missing on the selected Mod; a successful
+Remis preflight does not mean the Mod can upload or that an upload succeeded.
 
 ## Report progress without guessing
 
