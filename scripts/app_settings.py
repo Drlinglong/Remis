@@ -84,10 +84,10 @@ BUILD_PROFILE = get_build_profile()
 # --- 项目信息 ----------------------------------------------------
 PROJECT_NAME = "Paradox Mod 本地化工厂 - Paradox Mod Localization Factory"
 PROJECT_DISPLAY_NAME = "蕾姆丝计划 - Project Remis "
-VERSION = "3.2.1"
+VERSION = "3.2.2"
 if BUILD_PROFILE.channel == "agent-preview":
     VERSION = BUILD_PROFILE.version
-LAST_UPDATE_DATE = "2026-09-25"
+LAST_UPDATE_DATE = "2026-10-05"
 COPYRIGHT = "© 2026 Project Remis Team"
 
 # --- 项目信息显示配置 --------------------------------------------

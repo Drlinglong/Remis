@@ -80,6 +80,7 @@
 - [3.2.0 发布冒烟与风险清单](developer/release-v3.2.0-smoke-test.md) - 发版前验证、失败定位与已知边界
 
 ## 开发者文档
+- [v3.2.2 发布准备与验证](developer/release-v3.2.2.md) - bugfix、QoL、火星工作流与候选安装包验证
 - [深空当铺 Mod 本地化适配调查](developer/probably-stolen-adapter-research.md) - 2026-09-29 格式证据、交付限制与实施准备；尚未适配
 - [文档状态说明](../docs_status.md) - 当前文档入口与历史记录说明
 - [AI 智能体开发规章](../agent.md) - 已降级的兼容入口；当前规则以根目录 `AGENTS.md` 为准
