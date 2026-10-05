@@ -234,14 +234,18 @@ async def build_collection(collection: dict, destination: Path, expected_fingerp
     destination = Path(os.path.abspath(destination))
     if destination.exists() or destination.is_symlink():
         raise FileExistsError(f"Collection destination already exists: {destination}")
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    cursor = destination.parent
-    while cursor != cursor.parent:
-        if _is_reparse(cursor):
-            raise ValueError("Collection destination cannot pass through a linked directory or junction.")
-        cursor = cursor.parent
-    staging = Path(tempfile.mkdtemp(prefix=".remis-collection-", dir=destination.parent))
+    expected_parent = destination.parent
+    _require_unlinked_ancestors(expected_parent)
+    resolved_parent = expected_parent.resolve()
+    if expected_parent != resolved_parent:
+        raise ValueError("Collection destination parent is redirected.")
+    expected_parent.mkdir(parents=True, exist_ok=True)
+    _require_unlinked_ancestors(expected_parent)
+    if expected_parent.resolve() != resolved_parent:
+        raise ValueError("Collection destination parent changed while being created.")
+    staging = Path(tempfile.mkdtemp(prefix=".remis-collection-", dir=expected_parent))
     try:
+        _validate_staging_location(staging, expected_parent, resolved_parent)
         if inspection["mode"] == "mars_text_mod":
             merged = {}
             current_snapshots = []
@@ -253,6 +257,7 @@ async def build_collection(collection: dict, destination: Path, expected_fingerp
             if current_snapshots != inspection["members"]:
                 raise ValueError("A Mars member changed after collection preview.")
             files = _render_mars(collection, inspection["members"], merged)
+            _validate_staging_location(staging, expected_parent, resolved_parent)
             _write_files(staging, files)
             count = len(files)
         else:
@@ -260,15 +265,35 @@ async def build_collection(collection: dict, destination: Path, expected_fingerp
         refreshed, _ = await _inspect(collection)
         if refreshed["fingerprint"] != expected_fingerprint:
             raise ValueError("Collection changed while files were being staged.")
+        _validate_staging_location(staging, expected_parent, resolved_parent)
         os.rename(staging, destination)
     except BaseException:
-        _remove_staging(staging, destination.parent)
+        _remove_staging(staging, expected_parent, resolved_parent)
         raise
     return {"package_path": str(destination), "file_count": count, "mode": inspection["mode"],
             "members": inspection["members"], "runtime_verified": False}
 
 
-def _remove_staging(staging: Path, expected_parent: Path) -> None:
-    if (staging.name.startswith(".remis-collection-") and not _is_reparse(staging)
-            and staging.parent.resolve() == expected_parent.resolve()):
-        shutil.rmtree(staging)
+def _require_unlinked_ancestors(path: Path) -> None:
+    for item in (path, *path.parents):
+        if _is_reparse(item):
+            raise ValueError("Collection destination cannot pass through a linked directory or junction.")
+
+
+def _validate_staging_location(staging: Path, expected_parent: Path, resolved_parent: Path) -> None:
+    if not staging.name.startswith(".remis-collection-") or staging.parent.absolute() != expected_parent:
+        raise ValueError("Collection staging directory is outside its captured parent.")
+    _require_unlinked_ancestors(staging)
+    resolved = staging.resolve()
+    if (expected_parent.resolve() != resolved_parent or resolved.parent != resolved_parent
+            or staging.absolute() != resolved):
+        raise ValueError("Collection staging directory was redirected.")
+
+
+def _remove_staging(staging: Path, expected_parent: Path, resolved_parent: Path) -> None:
+    try:
+        _validate_staging_location(staging, expected_parent, resolved_parent)
+    except (OSError, ValueError):
+        # Retain a suspicious path rather than deleting through a replaced ancestor.
+        return
+    shutil.rmtree(staging)
