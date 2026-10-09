@@ -47,7 +47,10 @@ def test_approved_provider_catalogs_and_defaults_are_locked():
         ),
         "anthropic": (
             "claude-sonnet-5",
-            ["claude-opus-5", "claude-opus-4-6", "claude-sonnet-5"],
+            [
+                "claude-opus-5-5", "claude-haiku-5-5", "claude-sonnet-5-5",
+                "claude-opus-5", "claude-opus-4-6", "claude-sonnet-5",
+            ],
         ),
         "openai": (
             "gpt-5.6-luna",
@@ -56,11 +59,11 @@ def test_approved_provider_catalogs_and_defaults_are_locked():
                 "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna",
             ],
         ),
-        "qwen": ("qwen3.8-max", ["qwen3.8-max", "qwen3.8-flash-next"]),
-        "grok": ("grok-4.6", ["grok-4.6"]),
+        "qwen": ("qwen3.8-max", ["qwen3.8-max", "qwen3.8-flash"]),
+        "grok": ("grok-4.6", ["grok-4.7", "grok-4.6"]),
         "deepseek": (
-            "deepseek-v4-flash",
-            ["deepseek-v4-pro", "deepseek-v4-flash"],
+            "deepseek-flash",
+            ["deepseek-v4-pro", "deepseek-flash"],
         ),
         "kimi": ("kimi-k3", ["kimi-k3", "kimi-k2.7-code"]),
         "minimax": (
@@ -82,10 +85,10 @@ def test_approved_provider_catalogs_and_defaults_are_locked():
 def test_curated_aggregator_catalogs_require_endpoint_specific_reasoning_evidence():
     expected = {
         "modelscope": (
-            "deepseek-ai/DeepSeek-V4-Flash",
+            "deepseek-ai/DeepSeek-V4.1-Flash",
             [
-                "deepseek-ai/DeepSeek-V4-Pro",
-                "deepseek-ai/DeepSeek-V4-Flash",
+                "deepseek-ai/DeepSeek-V4-Pro-0813",
+                "deepseek-ai/DeepSeek-V4.1-Flash",
             ],
         ),
         "siliconflow": (
@@ -111,12 +114,8 @@ def test_curated_aggregator_catalogs_require_endpoint_specific_reasoning_evidenc
             ],
         ),
         "nvidia": (
-            "deepseek-ai/deepseek-v4-flash",
-            [
-                "deepseek-ai/deepseek-v4-flash",
-                "deepseek-ai/deepseek-v4-pro",
-                "minimaxai/minimax-m3",
-            ],
+            "deepseek-ai/deepseek-v4.1-flash",
+            ["deepseek-ai/deepseek-v4.1-flash"],
         ),
     }
 
@@ -134,10 +133,6 @@ def test_curated_aggregator_catalogs_require_endpoint_specific_reasoning_evidenc
             elif provider_id == "openrouter" and model != "qwen/qwen3.8-max":
                 assert capability["source_url"] == "https://openrouter.ai/api/v1/models"
                 assert capability["presets"]["high"] == {"reasoning": {"effort": "high"}}
-            elif provider_id == "nvidia" and model.startswith("deepseek-ai/"):
-                assert capability["source_url"].startswith("https://docs.api.nvidia.com/nim/reference/")
-                assert tuple(capability["presets"]) == ("none", "high", "max")
-                assert capability["presets"]["high"] == {"reasoning_effort": "high"}
             else:
                 assert capability is None
 
@@ -158,7 +153,7 @@ def test_unknown_custom_model_never_receives_builtin_reasoning_parameters():
     assert resolution.parameters == {"thinking": {"type": "enabled"}}
 
 
-@pytest.mark.parametrize("model", ["qwen3.8-max"])
+@pytest.mark.parametrize("model", ["qwen3.8-max", "qwen3.8-flash"])
 def test_qwen_verified_builtin_is_a_single_thinking_toggle(model):
     config = {
         **API_PROVIDERS["qwen"],
@@ -176,14 +171,15 @@ def test_qwen_verified_builtin_is_a_single_thinking_toggle(model):
 @pytest.mark.parametrize(
     ("preset", "effort"),
     [
-        ("low", "high"),
+        ("minimal", "low"),
+        ("low", "low"),
         ("medium", "high"),
         ("high", "high"),
-        ("xhigh", "max"),
+        ("xhigh", "high"),
         ("max", "max"),
     ],
 )
-def test_deepseek_v4_reasoning_presets_match_current_official_mapping(
+def test_deepseek_current_flash_reasoning_presets_match_official_mapping(
     preset,
     effort,
 ):
@@ -198,6 +194,16 @@ def test_deepseek_v4_reasoning_presets_match_current_official_mapping(
     assert resolution.parameters == {
         "thinking": {"type": "enabled"},
         "reasoning_effort": effort,
+    }
+
+
+def test_deepseek_retained_v4_pro_preserves_its_existing_mapping():
+    config = {
+        **API_PROVIDERS["deepseek"], "default_model": "deepseek-v4-pro",
+        "reasoning_builtin_enabled": True, "reasoning_preset": "xhigh",
+    }
+    assert resolve_reasoning_parameters(config).parameters == {
+        "thinking": {"type": "enabled"}, "reasoning_effort": "max",
     }
 
 

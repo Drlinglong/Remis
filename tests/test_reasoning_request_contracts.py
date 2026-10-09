@@ -13,7 +13,9 @@ from openai import OpenAI
 from scripts.app_settings import API_PROVIDERS
 from scripts.core.api_handler import OPENAI_COMPATIBLE_PROVIDER_IDS, PROVIDER_HANDLER_CLASSES
 from scripts.core.anthropic_handler import AnthropicHandler
-from scripts.core.chat_request_policy import prepare_chat_request, prepare_model_settings
+from scripts.core.chat_request_policy import (
+    ANTHROPIC_FIXED_SAMPLING_MODELS, prepare_chat_request, prepare_model_settings,
+)
 from scripts.core.gemini_handler import GeminiHandler
 from scripts.core.openai_handler import OpenAIHandler
 from scripts.core.reasoning_policy import describe_reasoning_settings, resolve_reasoning_parameters
@@ -123,7 +125,7 @@ def test_anthropic_effort_reaches_both_request_paths(model, preset):
         body = call.kwargs["json"]
         assert body["model"] == model
         assert body["output_config"] == {"effort": preset}
-        if model in {"claude-opus-5", "claude-sonnet-5"}:
+        if model in ANTHROPIC_FIXED_SAMPLING_MODELS:
             assert "temperature" not in body
 
 
@@ -186,7 +188,7 @@ def test_kimi_k3_fixed_sampling_fields_are_removed_from_sdk_and_custom_body():
     assert request == {"model": "kimi-k3", "extra_body": {"reasoning_effort": "high"}}
 
 
-@pytest.mark.parametrize("model", ["claude-opus-5", "claude-sonnet-5", "claude-opus-4-6"])
+@pytest.mark.parametrize("model", [*sorted(ANTHROPIC_FIXED_SAMPLING_MODELS), "claude-opus-4-6"])
 def test_anthropic_sampling_constraints_keep_older_model_controls(model):
     fields = {"temperature": 0.3, "top_p": 0.7, "top_k": 2}
     request = prepare_chat_request("anthropic", {"model": model, **fields, "output_config": {"effort": "high"}})
@@ -237,6 +239,32 @@ def test_help_model_construction_retains_native_reasoning(provider_id, model, ke
     assert settings[key] == value
     if provider_id in {"openai", "kimi"}:
         assert "temperature" not in settings
+
+
+@pytest.mark.parametrize("provider_id,model", [
+    ("modelscope", "deepseek-ai/DeepSeek-V4.1-Flash"),
+    ("modelscope", "deepseek-ai/DeepSeek-V4-Pro-0813"),
+    ("nvidia", "deepseek-ai/deepseek-v4.1-flash"),
+])
+def test_migrated_gateway_models_do_not_inherit_old_reasoning_contracts(provider_id, model):
+    captured = []
+
+    def respond(request):
+        captured.append(json.loads(request.content))
+        return httpx.Response(200, json={
+            "id": "offline", "object": "chat.completion", "created": 0, "model": model,
+            "choices": [{"index": 0, "finish_reason": "stop", "message": {"role": "assistant", "content": "done"}}],
+        })
+
+    handler = make_handler(provider_id, model, "high")
+    assert handler._reasoning_request_parameters() == {}
+    with OpenAI(
+        api_key="offline-test-value", base_url="https://offline.invalid/v1",
+        http_client=httpx.Client(transport=httpx.MockTransport(respond)),
+    ) as client:
+        assert handler._call_api(client, "Translate") == "done"
+    assert captured[0]["model"] == model
+    assert not {"reasoning", "reasoning_effort", "thinking"}.intersection(captured[0])
 
 
 @pytest.mark.parametrize("enabled,effort", [(True, "high"), (False, "high"), (True, "none")])

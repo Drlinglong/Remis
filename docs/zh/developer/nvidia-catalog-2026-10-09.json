@@ -1,0 +1,14 @@
+{
+  "reviewed_at": "2026-10-09",
+  "source_url": "https://integrate.api.nvidia.com/v1/models",
+  "status": 200,
+  "model_count": 80,
+  "present_ids": [
+    "deepseek-ai/deepseek-v4.1-flash"
+  ],
+  "absent_ids": [
+    "deepseek-ai/deepseek-v4-flash",
+    "deepseek-ai/deepseek-v4-pro",
+    "minimaxai/minimax-m3"
+  ]
+}

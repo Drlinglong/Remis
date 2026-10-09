@@ -51,6 +51,9 @@
         "name": "Anthropic Claude",
         "default_model": "claude-sonnet-5",
         "available_models": [
+            "claude-opus-5-5",
+            "claude-haiku-5-5",
+            "claude-sonnet-5-5",
             "claude-opus-5",
             "claude-opus-4-6",
             "claude-sonnet-5"
@@ -59,6 +62,9 @@
             "default_enabled": false,
             "default_preset": "medium",
             "models": {
+                "claude-opus-5-5": {"presets": {"low": {"output_config": {"effort": "low"}}, "medium": {"output_config": {"effort": "medium"}}, "high": {"output_config": {"effort": "high"}}, "xhigh": {"output_config": {"effort": "xhigh"}}, "max": {"output_config": {"effort": "max"}}}, "source_url": "https://platform.claude.com/docs/en/build-with-claude/effort", "reviewed_at": "2026-10-09"},
+                "claude-haiku-5-5": {"presets": {"low": {"output_config": {"effort": "low"}}, "medium": {"output_config": {"effort": "medium"}}, "high": {"output_config": {"effort": "high"}}, "xhigh": {"output_config": {"effort": "xhigh"}}, "max": {"output_config": {"effort": "max"}}}, "source_url": "https://platform.claude.com/docs/en/build-with-claude/effort", "reviewed_at": "2026-10-09"},
+                "claude-sonnet-5-5": {"presets": {"low": {"output_config": {"effort": "low"}}, "medium": {"output_config": {"effort": "medium"}}, "high": {"output_config": {"effort": "high"}}, "xhigh": {"output_config": {"effort": "xhigh"}}, "max": {"output_config": {"effort": "max"}}}, "source_url": "https://platform.claude.com/docs/en/build-with-claude/effort", "reviewed_at": "2026-10-09"},
                 "claude-opus-5": {"presets": {"low": {"output_config": {"effort": "low"}}, "medium": {"output_config": {"effort": "medium"}}, "high": {"output_config": {"effort": "high"}}, "xhigh": {"output_config": {"effort": "xhigh"}}, "max": {"output_config": {"effort": "max"}}}, "source_url": "https://platform.claude.com/docs/en/build-with-claude/effort", "reviewed_at": "2026-10-09"},
                 "claude-opus-4-6": {"presets": {"low": {"output_config": {"effort": "low"}}, "medium": {"output_config": {"effort": "medium"}}, "high": {"output_config": {"effort": "high"}}, "max": {"output_config": {"effort": "max"}}}, "source_url": "https://platform.claude.com/docs/en/build-with-claude/effort", "reviewed_at": "2026-10-09"},
                 "claude-sonnet-5": {"presets": {"low": {"output_config": {"effort": "low"}}, "medium": {"output_config": {"effort": "medium"}}, "high": {"output_config": {"effort": "high"}}, "xhigh": {"output_config": {"effort": "xhigh"}}, "max": {"output_config": {"effort": "max"}}}, "source_url": "https://platform.claude.com/docs/en/build-with-claude/effort", "reviewed_at": "2026-10-09"}
@@ -119,7 +125,7 @@
         "default_model": "qwen3.8-max",
         "available_models": [
             "qwen3.8-max",
-            "qwen3.8-flash-next"
+            "qwen3.8-flash"
         ],
         "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
         "region": "beijing",
@@ -129,7 +135,7 @@
             "default_preset": "medium",
             "models": {
                 "qwen3.8-max": {"presets": {"high": {"enable_thinking": true}}, "source_url": "https://help.aliyun.com/en/model-studio/deep-thinking", "reviewed_at": "2026-08-18"},
-                "qwen3.8-flash-next": null
+                "qwen3.8-flash": {"presets": {"high": {"enable_thinking": true}}, "source_url": "https://help.aliyun.com/en/model-studio/deep-thinking", "reviewed_at": "2026-10-09"}
             }
         },
         "description_key": "api_desc_qwen"
@@ -140,23 +146,24 @@
         "name": "Grok (xAI)",
         "default_model": "grok-4.6",
         "available_models": [
+            "grok-4.7",
             "grok-4.6"
         ],
-        "reasoning": {"default_enabled": false, "default_preset": "medium", "models": {"grok-4.6": {"presets": {"low": {"reasoning_effort": "low"}, "medium": {"reasoning_effort": "medium"}, "high": {"reasoning_effort": "high"}, "xhigh": {"reasoning_effort": "xhigh"}}, "source_url": "https://docs.x.ai/developers/model-capabilities/text/reasoning", "reviewed_at": "2026-10-09"}}},
+        "reasoning": {"default_enabled": false, "default_preset": "medium", "models": {"grok-4.7": {"presets": {"low": {"reasoning_effort": "low"}, "medium": {"reasoning_effort": "medium"}, "high": {"reasoning_effort": "high"}, "xhigh": {"reasoning_effort": "xhigh"}}, "source_url": "https://docs.x.ai/developers/model-capabilities/text/reasoning", "reviewed_at": "2026-10-09"}, "grok-4.6": {"presets": {"low": {"reasoning_effort": "low"}, "medium": {"reasoning_effort": "medium"}, "high": {"reasoning_effort": "high"}, "xhigh": {"reasoning_effort": "xhigh"}}, "source_url": "https://docs.x.ai/developers/model-capabilities/text/reasoning", "reviewed_at": "2026-10-09"}}},
         "description_key": "api_desc_grok"
     },
     "deepseek": {
         "api_key_env": "DEEPSEEK_API_KEY",
         "base_url": "https://api.deepseek.com",
-        "default_model": "deepseek-v4-flash",
+        "default_model": "deepseek-flash",
         "available_models": [
             "deepseek-v4-pro",
-            "deepseek-v4-flash"
+            "deepseek-flash"
         ],
         "name": "DeepSeek (深度求索)",
         "reasoning": {"default_enabled": false, "default_preset": "high", "models": {
             "deepseek-v4-pro": {"presets": {"low": {"thinking": {"type": "enabled"}, "reasoning_effort": "high"}, "medium": {"thinking": {"type": "enabled"}, "reasoning_effort": "high"}, "high": {"thinking": {"type": "enabled"}, "reasoning_effort": "high"}, "xhigh": {"thinking": {"type": "enabled"}, "reasoning_effort": "max"}, "max": {"thinking": {"type": "enabled"}, "reasoning_effort": "max"}}, "source_url": "https://api-docs.deepseek.com/guides/thinking_mode", "reviewed_at": "2026-08-18"},
-            "deepseek-v4-flash": {"presets": {"low": {"thinking": {"type": "enabled"}, "reasoning_effort": "high"}, "medium": {"thinking": {"type": "enabled"}, "reasoning_effort": "high"}, "high": {"thinking": {"type": "enabled"}, "reasoning_effort": "high"}, "xhigh": {"thinking": {"type": "enabled"}, "reasoning_effort": "max"}, "max": {"thinking": {"type": "enabled"}, "reasoning_effort": "max"}}, "source_url": "https://api-docs.deepseek.com/guides/thinking_mode", "reviewed_at": "2026-08-18"}
+            "deepseek-flash": {"presets": {"minimal": {"thinking": {"type": "enabled"}, "reasoning_effort": "low"}, "low": {"thinking": {"type": "enabled"}, "reasoning_effort": "low"}, "medium": {"thinking": {"type": "enabled"}, "reasoning_effort": "high"}, "high": {"thinking": {"type": "enabled"}, "reasoning_effort": "high"}, "xhigh": {"thinking": {"type": "enabled"}, "reasoning_effort": "high"}, "max": {"thinking": {"type": "enabled"}, "reasoning_effort": "max"}}, "source_url": "https://api-docs.deepseek.com/guides/thinking_mode/", "reviewed_at": "2026-10-09"}
         }},
         "description_key": "api_desc_deepseek"
     },
@@ -204,12 +211,19 @@
     "modelscope": {
         "api_key_env": "MODELSCOPE_API_KEY",
         "base_url": "https://api-inference.modelscope.cn/v1/",
-        "default_model": "deepseek-ai/DeepSeek-V4-Flash",
+        "default_model": "deepseek-ai/DeepSeek-V4.1-Flash",
         "available_models": [
-            "deepseek-ai/DeepSeek-V4-Pro",
-            "deepseek-ai/DeepSeek-V4-Flash"
+            "deepseek-ai/DeepSeek-V4-Pro-0813",
+            "deepseek-ai/DeepSeek-V4.1-Flash"
         ],
-        "reasoning": {"default_enabled": false, "default_preset": "medium", "models": {"deepseek-ai/DeepSeek-V4-Pro": null, "deepseek-ai/DeepSeek-V4-Flash": null}},
+        "reasoning": {
+            "default_enabled": false,
+            "default_preset": "medium",
+            "models": {
+                "deepseek-ai/DeepSeek-V4-Pro-0813": null,
+                "deepseek-ai/DeepSeek-V4.1-Flash": null
+            }
+        },
         "name": "ModelScope (魔搭)",
         "description_key": "api_desc_modelscope"
     },
@@ -309,13 +323,17 @@
         "api_key_env": "NVIDIA_API_KEY",
         "name": "NVIDIA NIM",
         "base_url": "https://integrate.api.nvidia.com/v1",
-        "default_model": "deepseek-ai/deepseek-v4-flash",
+        "default_model": "deepseek-ai/deepseek-v4.1-flash",
         "available_models": [
-            "deepseek-ai/deepseek-v4-flash",
-            "deepseek-ai/deepseek-v4-pro",
-            "minimaxai/minimax-m3"
+            "deepseek-ai/deepseek-v4.1-flash"
         ],
-        "reasoning": {"default_enabled": false, "default_preset": "medium", "models": {"deepseek-ai/deepseek-v4-flash": {"presets": {"none": {"reasoning_effort": "none"}, "high": {"reasoning_effort": "high"}, "max": {"reasoning_effort": "max"}}, "source_url": "https://docs.api.nvidia.com/nim/reference/deepseek-ai-deepseek-v4-flash-infer", "reviewed_at": "2026-10-09"}, "deepseek-ai/deepseek-v4-pro": {"presets": {"none": {"reasoning_effort": "none"}, "high": {"reasoning_effort": "high"}, "max": {"reasoning_effort": "max"}}, "source_url": "https://docs.api.nvidia.com/nim/reference/deepseek-ai-deepseek-v4-pro-infer", "reviewed_at": "2026-10-09"}, "minimaxai/minimax-m3": null}},
+        "reasoning": {
+            "default_enabled": false,
+            "default_preset": "medium",
+            "models": {
+                "deepseek-ai/deepseek-v4.1-flash": null
+            }
+        },
         "description_key": "api_desc_nvidia"
     },
     "your_favourite_api": {

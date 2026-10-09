@@ -17,6 +17,9 @@ from scripts.core.services.provider_runtime import ProviderRuntimeSnapshot
     ("openrouter", "openai/gpt-6-luna", "OpenRouterProvider"),
     ("anthropic", "claude-opus-5", "AnthropicProvider"),
     ("anthropic", "claude-sonnet-5", "AnthropicProvider"),
+    ("anthropic", "claude-opus-5-5", "AnthropicProvider"),
+    ("anthropic", "claude-haiku-5-5", "AnthropicProvider"),
+    ("anthropic", "claude-sonnet-5-5", "AnthropicProvider"),
     ("gemini", "gemini-3.8-flash", "GoogleProvider"),
 ])
 @pytest.mark.asyncio

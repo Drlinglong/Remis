@@ -1,5 +1,7 @@
 # 推理预设与发送链审计（2026-10-09）
 
+本报告记录初次修复。随后用户授权的 Claude 5.5、Grok 4.7 与 Qwen/DeepSeek/ModelScope/NVIDIA 目录迁移见 [模型目录更新记录](model-catalog-update-2026-10-09.md)，其中迁移项取代本报告对应的旧目录结论。
+
 GPT-6 的根因是精确模型 ID 未进入内置能力表：即使用户选择 `high`，解析结果仍为不支持且参数为空。本次将官方确认的 GPT-6 模型加入模型目录和推理表，并修复发送链中的参数丢失及不兼容采样字段。
 
 工作树：`J:\V3_Mod_Localization_Factory-worktrees\gpt6-reasoning-presets`；分支：`codex/gpt6-reasoning-presets`；基线：`bbd61637`。主工作区已有修改保留。交付范围为本地代码、测试与审计资料；未推送、部署或执行付费模型调用。

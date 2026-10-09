@@ -15,6 +15,10 @@ OPENAI_REASONING_SAMPLING_FIELDS = {
 KIMI_K3_FIXED_FIELDS = {
     "temperature", "top_p", "n", "presence_penalty", "frequency_penalty",
 }
+ANTHROPIC_FIXED_SAMPLING_MODELS = {
+    "claude-opus-5", "claude-sonnet-5",
+    "claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5",
+}
 
 
 def prepare_chat_request(provider_id: str, kwargs: dict) -> dict:
@@ -34,7 +38,7 @@ def prepare_chat_request(provider_id: str, kwargs: dict) -> dict:
             fields = OPENAI_REASONING_SAMPLING_FIELDS
     elif provider_id == "kimi" and model == "kimi-k3":
         fields = KIMI_K3_FIXED_FIELDS
-    elif provider_id == "anthropic" and model in {"claude-opus-5", "claude-sonnet-5"}:
+    elif provider_id == "anthropic" and model in ANTHROPIC_FIXED_SAMPLING_MODELS:
         fields = {"temperature", "top_p", "top_k"}
     elif provider_id == "openrouter" and model in {
         "openai/gpt-5.6-luna", "openai/gpt-6-astra", "openai/gpt-6.1-sol",
