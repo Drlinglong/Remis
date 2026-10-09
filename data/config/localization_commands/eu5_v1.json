@@ -2,21 +2,45 @@
   "schema_version": 1,
   "game_id": "eu5",
   "sources": [
-    {"url": "https://eu5.paradoxwikis.com/Localization", "retrieved": "2026-10-10"}
+    {
+      "url": "https://eu5.paradoxwikis.com/Localization",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "kind": "vanilla",
+      "description": "English vanilla localization of Europa Universalis V (commands observed in use; meanings inferred from name and usage)",
+      "retrieved": "2026-10-10"
+    }
   ],
   "notes": [
-    {"text": "Bracketed [...] data functions are replaced at runtime. Keep them exactly, including saved-scope calls such as [SCOPE.sCountry('name').GetName] and any |modifiers.", "provenance": "wiki"},
-    {"text": "Formatting uses #tag text#! (for example #P, #N, #E, #bold, #italic); a space after the tag key is required but not shown, and no space goes before #!. Icons are @icon_key!; $key$ inserts another localization key.", "provenance": "wiki"},
-    {"text": "[concept_name|e] is a game concept link. Dropping one loses the tooltip even if the plain word is translated.", "provenance": "wiki"}
+    {
+      "text": "Bracketed [...] data functions are replaced at runtime. Keep them exactly, including saved-scope calls such as [SCOPE.sCountry('name').GetName] and any |modifiers.",
+      "provenance": "wiki"
+    },
+    {
+      "text": "Formatting uses #tag text#! (for example #P, #N, #E, #bold, #italic); a space after the tag key is required but not shown, and no space goes before #!. Icons are @icon_key!; $key$ inserts another localization key.",
+      "provenance": "wiki"
+    },
+    {
+      "text": "[concept_name|e] is a game concept link. Dropping one loses the tooltip even if the plain word is translated.",
+      "provenance": "wiki"
+    }
   ],
   "language_notes": {
     "zh-CN": [
-      {"text": "中文本地化里代词命令输出他/她；中文没有主格宾格之分，任何代词命令都可作主语或宾语。", "provenance": "user"},
-      {"text": "因中文习惯省略重复的代词命令是合理的，前提是指代仍然清楚；不要把代词命令写死成“他”或“她”。没有必要时，应尽量保持与原文相同的命令引用。", "provenance": "user"}
+      {
+        "text": "中文本地化里代词命令输出他/她；中文没有主格宾格之分，任何代词命令都可作主语或宾语。",
+        "provenance": "user"
+      },
+      {
+        "text": "因中文习惯省略重复的代词命令是合理的，前提是指代仍然清楚；不要把代词命令写死成“他”或“她”。没有必要时，应尽量保持与原文相同的命令引用。",
+        "provenance": "user"
+      }
     ]
   },
   "suffixes": {
-    "WithNoTooltip": "same value as plain text without tooltip"
+    "WithNoTooltip": "same value as plain text without tooltip",
+    "Formal": "formal form"
   },
   "modifiers": {
     "=": "always show + or - sign",
@@ -32,18 +56,144 @@
     "SCOPE": "saved-scope accessor, used as SCOPE.sCountry('name'), SCOPE.sCharacter('name') and similar"
   },
   "commands": {
-    "GetName": {"meaning": "name as a tooltipped string", "provenance": "wiki"},
-    "GetNameWithFlag": {"meaning": "country name as a tooltipped string with flag", "provenance": "wiki"},
-    "GetAdjective": {"meaning": "country adjective as a tooltipped string", "provenance": "wiki"},
-    "GetAbilityTooltipAsRuler": {"meaning": "character's ability effects if ruler", "provenance": "wiki"},
-    "GetLaw": {"meaning": "the named law as an object for further functions", "provenance": "wiki"},
-    "ScriptValue": {"meaning": "calculated value of the named script value", "provenance": "wiki"},
-    "Custom": {"meaning": "customizable localization call", "provenance": "wiki"},
-    "GetLocalVariable": {"meaning": "script variable accessor; usually followed by .GetValue", "provenance": "wiki"},
-    "GetValue": {"meaning": "numeric value of the preceding object", "provenance": "wiki"},
-    "GetFullName": {"meaning": "character's full name", "provenance": "wiki_listed"},
-    "GetHerHis": {"meaning": "pronoun her or his by gender", "provenance": "wiki_listed"},
-    "sCountry": {"meaning": "saved-scope accessor for a country saved with save_scope_as", "provenance": "wiki"},
-    "sCharacter": {"meaning": "saved-scope accessor for a character saved with save_scope_as", "provenance": "wiki"}
-  }
+    "GetName": {
+      "meaning": "name as a tooltipped string",
+      "provenance": "wiki"
+    },
+    "GetNameWithFlag": {
+      "meaning": "country name as a tooltipped string with flag",
+      "provenance": "wiki"
+    },
+    "GetAdjective": {
+      "meaning": "country adjective as a tooltipped string",
+      "provenance": "wiki"
+    },
+    "GetAbilityTooltipAsRuler": {
+      "meaning": "character's ability effects if ruler",
+      "provenance": "wiki"
+    },
+    "GetLaw": {
+      "meaning": "the named law as an object for further functions",
+      "provenance": "wiki"
+    },
+    "ScriptValue": {
+      "meaning": "calculated value of the named script value",
+      "provenance": "wiki"
+    },
+    "Custom": {
+      "meaning": "customizable localization call",
+      "provenance": "wiki"
+    },
+    "GetLocalVariable": {
+      "meaning": "script variable accessor; usually followed by .GetValue",
+      "provenance": "wiki"
+    },
+    "GetValue": {
+      "meaning": "numeric value of the preceding object",
+      "provenance": "wiki"
+    },
+    "GetFullName": {
+      "meaning": "character's full name",
+      "provenance": "wiki_listed"
+    },
+    "GetHerHis": {
+      "meaning": "pronoun her or his by gender",
+      "provenance": "wiki_listed"
+    },
+    "sCountry": {
+      "meaning": "saved-scope accessor for a country saved with save_scope_as",
+      "provenance": "wiki"
+    },
+    "sCharacter": {
+      "meaning": "saved-scope accessor for a character saved with save_scope_as",
+      "provenance": "wiki"
+    },
+    "GetSheHe": {
+      "meaning": "pronoun she or he by gender",
+      "provenance": "vanilla"
+    },
+    "GetHeShe": {
+      "meaning": "pronoun he or she by gender",
+      "provenance": "vanilla"
+    },
+    "GetHerHim": {
+      "meaning": "pronoun her or him by gender",
+      "provenance": "vanilla"
+    },
+    "GetHimHer": {
+      "meaning": "pronoun him or her by gender",
+      "provenance": "vanilla"
+    },
+    "GetHisHer": {
+      "meaning": "pronoun his or her by gender",
+      "provenance": "vanilla"
+    },
+    "GetHerselfHimself": {
+      "meaning": "reflexive pronoun herself or himself by gender",
+      "provenance": "vanilla"
+    },
+    "GetEstateName": {
+      "meaning": "name of an estate in this government",
+      "provenance": "vanilla"
+    },
+    "GetLongName": {
+      "meaning": "long name of the country",
+      "provenance": "vanilla"
+    },
+    "GetShortName": {
+      "meaning": "short name of the country",
+      "provenance": "vanilla"
+    },
+    "GetFlavorRank": {
+      "meaning": "the country's flavoured rank word (for example kingdom, empire, republic)",
+      "provenance": "vanilla"
+    },
+    "GetRulerTitle": {
+      "meaning": "title of the ruler",
+      "provenance": "vanilla"
+    },
+    "GetCourtTitle": {
+      "meaning": "title of a court position",
+      "provenance": "vanilla"
+    },
+    "GetLeaderTitle": {
+      "meaning": "title of the leader",
+      "provenance": "vanilla"
+    },
+    "GetLastName": {
+      "meaning": "character's last name",
+      "provenance": "vanilla"
+    },
+    "GetGodName": {
+      "meaning": "name of a god",
+      "provenance": "vanilla"
+    },
+    "GetIcon": {
+      "meaning": "icon of the object",
+      "provenance": "vanilla"
+    },
+    "GetModifierValue": {
+      "meaning": "value of a modifier",
+      "provenance": "vanilla"
+    },
+    "ShowNamedValue": {
+      "meaning": "prints a named game value; keep the key and |format unchanged",
+      "provenance": "vanilla"
+    },
+    "ShowModifier": {
+      "meaning": "prints a modifier and its value",
+      "provenance": "vanilla"
+    },
+    "Link": {
+      "meaning": "clickable link to a game panel: Link('target','parameters','display text'); translate only the display text argument",
+      "provenance": "vanilla"
+    }
+  },
+  "patterns": [
+    {
+      "regex": "Show(\\w+?)(Name|Adjective)",
+      "meaning": "the {1} of the given {0} object, as tooltipped text; the quoted argument is a script key, not translatable text",
+      "provenance": "vanilla"
+    }
+  ]
 }

@@ -70,6 +70,33 @@ def test_scope_identifiers_are_not_reported_but_unknown_commands_are():
     assert [(ref.name, ref.kind) for ref in refs] == [("GetName", "command"), ("GetMysteryThing", "unknown")]
 
 
+def test_only_the_last_chain_link_is_described():
+    refs = find_command_references(["[ROOT.GetCountry.GetCapital.GetCityHubName]"], "victoria3")
+
+    assert [ref.name for ref in refs] == ["GetCityHubName"]
+    assert "the last link decides the printed text" in build_command_context(
+        ["[ROOT.GetCountry.GetName]"], "victoria3")
+
+
+def test_vanilla_rows_and_patterns_resolve():
+    eu5 = {ref.name: ref for ref in find_command_references(
+        ["[CHARACTER.GetHeSheFormal|U] [ShowReligionAdjectiveWithNoTooltip('sunni')]"], "eu5")}
+
+    assert (eu5["GetHeSheFormal"].base, eu5["GetHeSheFormal"].suffixes) == ("GetHeShe", ("Formal",))
+    assert eu5["ShowReligionAdjectiveWithNoTooltip"].meaning.startswith("the Adjective of the given Religion")
+    assert eu5["ShowReligionAdjectiveWithNoTooltip"].provenance == "vanilla"
+    assert "translate only the display text argument" in build_command_context(
+        ["[Glossary( 'Milion', 'MILION_GLOSS' )]"], "ck3")
+    assert "(seen in vanilla localization" in build_command_context(["[actor.GetWomanMan]"], "ck3")
+
+
+def test_lookup_reports_the_matching_source():
+    wiki, vanilla = lookup_commands("stellaris", ["GetStarName", "GetIndividualNamePlural"])
+
+    assert wiki["source"].startswith("https://stellaris.paradoxwikis.com/")
+    assert vanilla["provenance"] == "vanilla" and "vanilla localization" in vanilla["source"]
+
+
 def test_concept_links_are_detected():
     vic3 = find_command_references(["[concept_interest_group]"], "victoria3")
     ck3 = find_command_references(["[legitimacy|e]"], "ck3")

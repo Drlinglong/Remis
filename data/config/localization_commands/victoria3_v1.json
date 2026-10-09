@@ -2,21 +2,48 @@
   "schema_version": 1,
   "game_id": "victoria3",
   "sources": [
-    {"url": "https://vic3.paradoxwikis.com/Localization", "retrieved": "2026-10-10"}
+    {
+      "url": "https://vic3.paradoxwikis.com/Localization",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "kind": "vanilla",
+      "description": "English vanilla localization of Victoria 3 (commands observed in use; meanings inferred from name and usage)",
+      "retrieved": "2026-10-10"
+    }
   ],
   "notes": [
-    {"text": "Bracketed [...] data functions are replaced at runtime. Keep them exactly, including saved-scope calls such as [SCOPE.sCharacter('name').Function] and any |modifiers.", "provenance": "wiki"},
-    {"text": "Formatting uses #tag text#! (for example #b, #italic, #r, #blue); each nested tag needs its own #!. Icons are @key!; $key$ inserts another localization key.", "provenance": "wiki"},
-    {"text": "[concept_name] and [Concept('concept_name','text')] are concept links with a tooltip. Dropping one loses the tooltip even if the plain word is translated.", "provenance": "wiki"}
+    {
+      "text": "Bracketed [...] data functions are replaced at runtime. Keep them exactly, including saved-scope calls such as [SCOPE.sCharacter('name').Function] and any |modifiers.",
+      "provenance": "wiki"
+    },
+    {
+      "text": "Formatting uses #tag text#! (for example #b, #italic, #r, #blue); each nested tag needs its own #!. Icons are @key!; $key$ inserts another localization key.",
+      "provenance": "wiki"
+    },
+    {
+      "text": "[concept_name] and [Concept('concept_name','text')] are concept links with a tooltip. Dropping one loses the tooltip even if the plain word is translated.",
+      "provenance": "wiki"
+    }
   ],
   "language_notes": {
     "zh-CN": [
-      {"text": "中文本地化里代词命令输出他/她；中文没有主格宾格之分，任何代词命令都可作主语或宾语。", "provenance": "user"},
-      {"text": "因中文习惯省略重复的代词命令是合理的，前提是指代仍然清楚；不要把代词命令写死成“他”或“她”。没有必要时，应尽量保持与原文相同的命令引用。", "provenance": "user"}
+      {
+        "text": "中文本地化里代词命令输出他/她；中文没有主格宾格之分，任何代词命令都可作主语或宾语。",
+        "provenance": "user"
+      },
+      {
+        "text": "因中文习惯省略重复的代词命令是合理的，前提是指代仍然清楚；不要把代词命令写死成“他”或“她”。没有必要时，应尽量保持与原文相同的命令引用。",
+        "provenance": "user"
+      }
     ]
   },
   "suffixes": {
-    "NoFormatting": "same value as plain text without formatting or tooltip"
+    "NoFormatting": "same value as plain text without formatting or tooltip",
+    "NoFlag": "same value without the country flag",
+    "NoIcon": "same value without icon",
+    "WithCountryFlag": "with the country flag",
+    "WithTitle": "with title"
   },
   "modifiers": {
     "*": "K/M/B abbreviation",
@@ -33,26 +60,189 @@
     "SCOPE": "saved-scope accessor, used as SCOPE.sCountry('name'), SCOPE.sCharacter('name') and similar"
   },
   "commands": {
-    "GetName": {"meaning": "name as a tooltipped string; countries also show a flag", "provenance": "wiki"},
-    "GetNameNoFlag": {"meaning": "country name as a tooltipped string without flag", "provenance": "wiki"},
-    "GetAdjective": {"meaning": "country adjective as a tooltipped string", "provenance": "wiki"},
-    "GetPrimaryRoleTitle": {"meaning": "character's primary role title as a tooltipped string", "provenance": "wiki"},
-    "GetGoods": {"meaning": "the named goods as an object for further functions", "provenance": "wiki"},
-    "ScriptValue": {"meaning": "calculated value of the named script value", "provenance": "wiki"},
-    "GetCurrentBarValue": {"meaning": "value of a progress bar", "provenance": "wiki"},
-    "GetCustom": {"meaning": "customizable localization, local scope", "provenance": "wiki"},
-    "Localize": {"meaning": "customizable localization, global scope", "provenance": "wiki"},
-    "Concept": {"meaning": "concept link with alternate display text: Concept('concept_key','text'); translate only the text argument", "provenance": "wiki"},
-    "GetFullName": {"meaning": "character's full name", "provenance": "wiki"},
-    "GetFirstName": {"meaning": "character's first name", "provenance": "wiki"},
-    "GetLastName": {"meaning": "character's last name", "provenance": "wiki"},
-    "GetSheHe": {"meaning": "pronoun she or he by gender", "provenance": "wiki"},
-    "GetHerHis": {"meaning": "pronoun her or his by gender", "provenance": "wiki"},
-    "GetHerselfHimself": {"meaning": "reflexive pronoun herself or himself by gender", "provenance": "wiki"},
-    "sCountry": {"meaning": "saved-scope accessor for a country saved with save_scope_as", "provenance": "wiki"},
-    "sCharacter": {"meaning": "saved-scope accessor for a character saved with save_scope_as", "provenance": "wiki"},
-    "GetLocalVariable": {"meaning": "script variable accessor; usually followed by .GetValue", "provenance": "wiki"},
-    "GetValue": {"meaning": "numeric value of the preceding object", "provenance": "wiki"},
-    "GetPlayer": {"meaning": "the player's country", "provenance": "inferred"}
-  }
+    "GetName": {
+      "meaning": "name as a tooltipped string; countries also show a flag",
+      "provenance": "wiki"
+    },
+    "GetNameNoFlag": {
+      "meaning": "country name as a tooltipped string without flag",
+      "provenance": "wiki"
+    },
+    "GetAdjective": {
+      "meaning": "country adjective as a tooltipped string",
+      "provenance": "wiki"
+    },
+    "GetPrimaryRoleTitle": {
+      "meaning": "character's primary role title as a tooltipped string",
+      "provenance": "wiki"
+    },
+    "GetGoods": {
+      "meaning": "the named goods as an object for further functions",
+      "provenance": "wiki"
+    },
+    "ScriptValue": {
+      "meaning": "calculated value of the named script value",
+      "provenance": "wiki"
+    },
+    "GetCurrentBarValue": {
+      "meaning": "value of a progress bar",
+      "provenance": "wiki"
+    },
+    "GetCustom": {
+      "meaning": "customizable localization, local scope",
+      "provenance": "wiki"
+    },
+    "Localize": {
+      "meaning": "customizable localization, global scope",
+      "provenance": "wiki"
+    },
+    "Concept": {
+      "meaning": "concept link with alternate display text: Concept('concept_key','text'); translate only the text argument",
+      "provenance": "wiki"
+    },
+    "GetFullName": {
+      "meaning": "character's full name",
+      "provenance": "wiki"
+    },
+    "GetFirstName": {
+      "meaning": "character's first name",
+      "provenance": "wiki"
+    },
+    "GetLastName": {
+      "meaning": "character's last name",
+      "provenance": "wiki"
+    },
+    "GetSheHe": {
+      "meaning": "pronoun she or he by gender",
+      "provenance": "wiki"
+    },
+    "GetHerHis": {
+      "meaning": "pronoun her or his by gender",
+      "provenance": "wiki"
+    },
+    "GetHerselfHimself": {
+      "meaning": "reflexive pronoun herself or himself by gender",
+      "provenance": "wiki"
+    },
+    "sCountry": {
+      "meaning": "saved-scope accessor for a country saved with save_scope_as",
+      "provenance": "wiki"
+    },
+    "sCharacter": {
+      "meaning": "saved-scope accessor for a character saved with save_scope_as",
+      "provenance": "wiki"
+    },
+    "GetLocalVariable": {
+      "meaning": "script variable accessor; usually followed by .GetValue",
+      "provenance": "wiki"
+    },
+    "GetValue": {
+      "meaning": "numeric value of the preceding object",
+      "provenance": "wiki"
+    },
+    "GetPlayer": {
+      "meaning": "the player's country",
+      "provenance": "inferred"
+    },
+    "GetHerHim": {
+      "meaning": "pronoun her or him by gender",
+      "provenance": "vanilla"
+    },
+    "GetWomanMan": {
+      "meaning": "the word woman or man by gender",
+      "provenance": "vanilla"
+    },
+    "GetCityHubName": {
+      "meaning": "name of the state's city hub",
+      "provenance": "vanilla"
+    },
+    "GetFarmHubName": {
+      "meaning": "name of the state's farm hub",
+      "provenance": "vanilla"
+    },
+    "GetSeaNodeName": {
+      "meaning": "name of a sea node",
+      "provenance": "vanilla"
+    },
+    "GetNameWithCountryVariant": {
+      "meaning": "name of an interest group or similar object in its country-specific variant",
+      "provenance": "vanilla"
+    },
+    "GetFullNameWithTitle": {
+      "meaning": "character's full name with title",
+      "provenance": "vanilla"
+    },
+    "GetDesc": {
+      "meaning": "description text of the object",
+      "provenance": "vanilla"
+    },
+    "GetDescFor": {
+      "meaning": "description text of the object for the given scope",
+      "provenance": "vanilla"
+    },
+    "GetTooltip": {
+      "meaning": "tooltip text of the object",
+      "provenance": "vanilla"
+    },
+    "GetRank": {
+      "meaning": "rank of the object",
+      "provenance": "vanilla"
+    },
+    "GetRankName": {
+      "meaning": "name of the object's rank",
+      "provenance": "vanilla"
+    },
+    "GetPopulation": {
+      "meaning": "population number",
+      "provenance": "vanilla"
+    },
+    "GetTextIcon": {
+      "meaning": "text icon of the object",
+      "provenance": "vanilla"
+    },
+    "GetFlagTextIcon": {
+      "meaning": "flag icon of the country",
+      "provenance": "vanilla"
+    },
+    "GetDefine": {
+      "meaning": "numeric value of a game define; its arguments are conditions and localization keys or markup, not translatable text",
+      "provenance": "vanilla"
+    },
+    "SelectLocalization": {
+      "meaning": "chooses one of the given localization keys or icons by a condition; its arguments are conditions and localization keys or markup, not translatable text",
+      "provenance": "vanilla"
+    },
+    "AddLocalizationIf": {
+      "meaning": "inserts the given localization key when the condition is true; its arguments are conditions and localization keys or markup, not translatable text",
+      "provenance": "vanilla"
+    },
+    "AddTextIf": {
+      "meaning": "inserts the given text when the condition is true; its arguments are conditions and localization keys or markup, not translatable text",
+      "provenance": "vanilla"
+    },
+    "ConcatIfNeitherEmpty": {
+      "meaning": "joins two values with a separator when neither is empty; its arguments are conditions and localization keys or markup, not translatable text",
+      "provenance": "vanilla"
+    },
+    "Nbsp": {
+      "meaning": "a non-breaking space",
+      "provenance": "vanilla"
+    },
+    "GetString": {
+      "meaning": "string value of the object",
+      "provenance": "vanilla"
+    }
+  },
+  "patterns": [
+    {
+      "regex": "(?:Add|Subtract|Multiply|Divide|Negate)_\\w+|FixedPointToInt|IntToFixedPoint",
+      "meaning": "arithmetic helper that prints a number; keep the expression unchanged",
+      "provenance": "vanilla"
+    },
+    {
+      "regex": "GetNum(\\w+)",
+      "meaning": "number of {0}",
+      "provenance": "vanilla"
+    }
+  ]
 }

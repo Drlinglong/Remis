@@ -10,6 +10,7 @@ The text itself is never modified.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -20,11 +21,16 @@ from scripts.utils.game_format_contract import normalize_game_id, parse_format_s
 
 
 DICTIONARY_DIR = Path(CONFIG_DIR) / "localization_commands"
-PROVENANCES = {"wiki", "wiki_listed", "inferred", "user"}
+PROVENANCES = {"wiki", "wiki_listed", "vanilla", "inferred", "user"}
 _PROVENANCE_HINTS = {
     "wiki_listed": " (listed on the wiki; meaning inferred from the name)",
+    "vanilla": " (seen in vanilla localization; meaning inferred from the name and usage)",
     "inferred": " (meaning inferred from the name)",
 }
+CHAIN_NOTE = (
+    "In a chain such as [A.B.GetName], the earlier links only select an object; "
+    "the last link decides the printed text. Keep the whole chain unchanged."
+)
 
 
 @dataclass(frozen=True)
@@ -54,8 +60,9 @@ def load_command_dictionary(game_id: str) -> Optional[Dict]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if payload.get("schema_version") != 1 or not isinstance(payload.get("commands"), dict):
         raise ValueError(f"Invalid localization command dictionary: {path.name}")
-    for name, row in payload["commands"].items():
-        if not row.get("meaning") or row.get("provenance") not in PROVENANCES:
+    rows = [*payload["commands"].items(), *((p.get("regex"), p) for p in payload.get("patterns", []))]
+    for name, row in rows:
+        if not name or not row.get("meaning") or row.get("provenance") not in PROVENANCES:
             raise ValueError(f"Invalid command row {name!r} in {path.name}")
     return payload
 
@@ -102,18 +109,30 @@ def extract_command_chains(text: str, game_id: str) -> List[Tuple[Tuple[CommandS
     return chains
 
 
+def _row_for(base: str, dictionary: Dict) -> Optional[Dict]:
+    row = dictionary["commands"].get(base)
+    if row is not None:
+        return row
+    for pattern in dictionary.get("patterns", []):
+        match = re.fullmatch(pattern["regex"], base)
+        if match:
+            return {"meaning": pattern["meaning"].format(*match.groups()), "provenance": pattern["provenance"]}
+    return None
+
+
 def _resolve(name: str, dictionary: Dict) -> Optional[CommandReference]:
-    commands, suffixes = dictionary["commands"], dictionary.get("suffixes", {})
+    suffixes = dictionary.get("suffixes", {})
     stripped: List[str] = []
     base = name
-    while base not in commands:
+    row = _row_for(base, dictionary)
+    while row is None:
         suffix = next((s for s in sorted(suffixes, key=len, reverse=True)
                        if base.endswith(s) and len(base) > len(s)), None)
         if suffix is None:
             return None
         stripped.insert(0, suffix)
         base = base[: -len(suffix)]
-    row = commands[base]
+        row = _row_for(base, dictionary)
     return CommandReference(name, "command", row["meaning"], row["provenance"], base, tuple(stripped))
 
 
@@ -136,20 +155,22 @@ def find_command_references(texts: Iterable[str], game_id: str) -> List[CommandR
             if _is_concept(segments, modifier):
                 found.setdefault("concept", CommandReference(segments[0].name, "concept"))
                 continue
-            for segment in segments:
-                if segment.name in found or segment.name.lower() in scopes:
-                    continue
-                reference = _resolve(segment.name, dictionary)
-                if reference is not None:
-                    found[segment.name] = reference
-                elif segment.name.startswith("Get") or segment.has_args:
-                    found[segment.name] = CommandReference(segment.name, "unknown")
+            # Earlier links only select an object; the last link decides the printed text.
+            segment = segments[-1]
+            if segment.name in found or segment.name.lower() in scopes:
+                continue
+            reference = _resolve(segment.name, dictionary)
+            if reference is not None:
+                found[segment.name] = reference
+            elif segment.name.startswith("Get") or segment.has_args:
+                found[segment.name] = CommandReference(segment.name, "unknown")
     return list(found.values())
 
 
 def _describe(reference: CommandReference, dictionary: Dict) -> str:
     if reference.kind == "unknown":
-        return f"- {reference.name}: not in the reference; keep it unchanged and do not guess its output."
+        return (f"- {reference.name}: not in the reference (possibly scripted localization defined by the "
+                "game or mod); keep it unchanged and do not guess its output.")
     line = f"- {reference.name}: {reference.meaning}"
     for suffix in reference.suffixes:
         line += f"; {suffix} = {dictionary['suffixes'][suffix]}"
@@ -164,6 +185,7 @@ def build_command_context(texts: Iterable[str], game_id: str, target_lang: Optio
     dictionary = load_command_dictionary(game_id)
     lines = [f"Localization command reference ({dictionary['game_id']}):"]
     lines += [f"- {note['text']}" for note in dictionary.get("notes", [])]
+    lines.append(f"- {CHAIN_NOTE}")
     lines += [_describe(ref, dictionary) for ref in references if ref.kind != "concept"]
     lines += [f"- {note['text']}" for note in dictionary.get("language_notes", {}).get(target_lang or "", [])]
     return "\n".join(lines)
@@ -178,10 +200,12 @@ def lookup_commands(game_id: str, names: Iterable[str]) -> List[Dict[str, object
         if reference is None:
             results.append({"name": name, "found": False})
             continue
+        source = next((s for s in dictionary["sources"]
+                       if (s.get("kind") == "vanilla") == (reference.provenance == "vanilla")), {})
         results.append({
             "name": name, "found": True, "base": reference.base, "suffixes": list(reference.suffixes),
             "meaning": reference.meaning, "provenance": reference.provenance,
-            "source": dictionary["sources"][0]["url"],
+            "source": source.get("url") or source.get("description", ""),
         })
     return results
 
