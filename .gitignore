@@ -50,6 +50,7 @@ source_mod/
 my_translation/
 data/*.sqlite
 data/*.db
+data/cache/neologism_candidates/
 mods.sqlite
 data/seed_data_*.sql
 logs/

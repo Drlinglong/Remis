@@ -1,0 +1,11 @@
+{
+  "schema_version": "remis-release-glossaries/1",
+  "resource_version": "2026.10.08.1",
+  "game_id": "surviving_mars",
+  "files": {
+    "surviving-mars.en-zh-CN.json": "f8c0286db84d371ccbaedd4e0e9637db2751f18316e0d369872d7f6d3eaa42f0",
+    "surviving-mars.en-zh-CN-zh-TW.json": "773f28fcc20d58f9d8d330ca33bf19a4003455e10498c1f6a486ead5ee8aed13",
+    "README.zh-CN.md": "1ce5563b6125982158f355f46d432473d46632d86de40f6a7b649ad7758a4747",
+    "SOURCES.json": "deb136452e26b317d776b67302a1b155ef1c8c2b10b916e1d3ff30073511cc2a"
+  }
+}

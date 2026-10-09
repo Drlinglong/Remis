@@ -5,15 +5,29 @@ description: Operate Remis through its localhost Agent API to inspect or import 
 
 # Remis Agent Operator
 
-> Checkout notice (2026-09-29): this checkout contains older workflow code.
-> Before starting it, verify `git rev-parse HEAD` against the intended release
-> or development baseline; a matching `VERSION` string is insufficient.
-> Official v3.2.1 includes `tools/remis_fpk` and the isolated
-> `/api/agent/mars-pipeline/prepare/plan` workflow. If these are absent here,
-> use a checkout containing that code, rather than concluding that Remis needs
-> manual Mod Editor extraction. Preserve existing worktrees and their data.
-> Read the [released operator guide](https://github.com/Drlinglong/Remis/blob/v3.2.1/.agents/skills/remis-agent/SKILL.md)
-> for that workflow. Historical memories are not current feature restrictions.
+Advanced workflows have focused operator Skills, all backed by Remis APIs:
+
+- [Native Batch](../remis-native-batch/SKILL.md): submit and retrieve jobs across shutdown/restart.
+- [Chinese conversion](../remis-chinese-conversion/SKILL.md): deterministic simplified/traditional or regional vocabulary conversion with retained artifacts.
+
+Load the relevant Skill only when the user requests that advanced workflow.
+Native Batch and Chinese conversion have no GUI. Unfinished model review, terminology
+coverage, base-patch and immediate trials are disabled by default; do not propose them
+for ordinary translation or enable developer flags on the user's behalf.
+Check live capabilities before loading or invoking any experimental workflow.
+See [experimental API policy](../../../docs/zh/developer/advanced-agent-policy.md)
+only when the user explicitly requests developer experimentation.
+
+术语开发分支补充：维护词条应复用现有词典编辑库，优先使用
+`/api/agent/glossaries/terminology`、原词典编辑界面及
+`/api/agent/term-releases/from-glossary` 冻结版本。具体字段、人工审阅、
+指纹校验和普通翻译器的语境匹配边界见
+[词典接入契约](../../../docs/zh/developer/terminology-glossary-integration.md)。
+
+Verify the intended release or development baseline and live capabilities before
+starting Remis; a matching VERSION string alone does not establish workflow
+availability. Preserve existing worktrees and their runtime data.
+
 
 Treat Remis as the execution plane. Use Codex to understand intent, inspect the
 workspace, explain progress, and apply the user's authorization. Use Remis APIs
@@ -28,6 +42,14 @@ tokens, encoding and layout, verify the exact diff, and reconcile the reusable
 baseline. If synchronization is unavailable, report that the file is corrected
 but the baseline is not yet synchronized. Never expand this permission into
 bulk file translation or direct database writes.
+
+Do not generate an entire Mod translation in the conversation and import it
+through proofreading save as a substitute for a Remis model job. Proofreading
+is for identified corrections to existing translations, not an alternate bulk
+translation entry point. Native OpenAI Batch may use the advanced Agent workflow. Immediate trials require
+explicit developer opt-in; check live capabilities before using the workflow in
+[the native trial guide](../../../docs/zh/developer/native-openai-localization-trials.md);
+retain model requests, raw responses, usage and validation in managed state.
 
 ## Standing authorization for Surviving Mars preparation
 
@@ -349,6 +371,21 @@ Changes` error means that field is missing on the selected Mod; a successful
 Remis preflight does not mean the Mod can upload or that an upload succeeded.
 
 ## Report progress without guessing
+
+### Experimental Batch and terminology API
+
+Check capabilities for `batch_jobs` before using it. This feature is developed
+for advanced Agent users in v3.3.0, with no GUI entry. Other unfinished workflows remain disabled unless their explicit experimental opt-in is enabled.
+Read [the Batch handoff](../../../docs/zh/developer/openrouter-batch-agent-api-handoff.md)
+for the implemented endpoints, authorization, artifact contract, and limitations.
+Publish immutable `/api/agent/term-releases`, then plan `/api/agent/batch-jobs`;
+choose context mode explicitly and acknowledge provisional terminology.
+Keep content locale separate from the engine language slot. A paid submission
+needs existing scope authorization and a stable idempotency key. Never blindly
+retry a `submission_unknown` job. Refresh and collect explicitly after restart;
+review diagnostics, plan apply, and apply only with authorization. Apply creates
+new managed translated resources; it is not an installable Mod export or upload.
+No real-provider Batch acceptance is claimed by simulated tests.
 
 Use the API response as the source of truth. Report:
 
