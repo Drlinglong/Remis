@@ -162,3 +162,41 @@ def test_full_batch_prompt_explains_unmasked_encoding(monkeypatch):
     assert "SOURCE VALUE ENCODING" in prompt
     assert '1. "He said \\"Hello\\"\\\\nBye"' in prompt
     assert "_QT_" not in prompt and "_NL_" not in prompt
+
+
+# --- Single-text path (mod name / description) -----------------------------
+
+@pytest.mark.parametrize("raw, expected", [
+    ('"风味包"', "风味包"),                          # wrapper only
+    ('"\\"New Dawn\\""', '"New Dawn"'),            # JSON literal keeps semantic quotes
+    ('"The "New" Dawn"', 'The "New" Dawn'),          # invalid JSON: strip one pair only
+    ('The "New" Dawn', 'The "New" Dawn'),            # no wrapper: unchanged
+    ('"x', '"x'),
+])
+def test_single_text_response_keeps_semantic_quotes(raw, expected):
+    from scripts.core.translation_input_encoding import decode_single_text_response
+
+    assert decode_single_text_response(raw) == expected
+
+
+def test_single_text_prompt_serializes_source(monkeypatch):
+    from scripts.core.base_handler import glossary_manager, prompt_manager
+
+    class _Handler(BaseApiHandler):
+        def initialize_client(self):
+            return None
+
+        def _call_api(self, client, prompt):
+            return '"\\"新\\"黎明"'
+
+    monkeypatch.setattr(glossary_manager, "get_glossary_for_translation", lambda: None)
+    monkeypatch.setattr(prompt_manager, "get_custom_global_prompt", lambda: "")
+    handler = _Handler("openai", provider_config_snapshot={"default_model": "m"})
+    profile = {"single_prompt_template": "Translate {task_description} for {mod_name} from {source_lang_name} to {target_lang_name}.\n"}
+    source = 'The "New"\nDawn'
+    args = (source, "mod name", "Demo", {"code": "en", "name": "English"},
+            {"code": "zh-CN", "name": "Chinese"}, "", profile)
+
+    prompt = handler._build_single_text_prompt(*args)
+    assert 'Translate this: "The \\"New\\"\\nDawn"' in prompt
+    assert handler.translate_single_text(*args) == "“新”黎明"

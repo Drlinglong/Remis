@@ -9,6 +9,7 @@ from typing import Any
 
 from scripts.utils import i18n
 from scripts.app_settings import SOURCE_DIR, DEST_DIR
+from scripts.core.paradox_localization_parser import escape_value
 # REMOVED: from scripts.core.api_handler import translate_single_text
 # NOTE: The functions 'read_text_bom' and 'write_text_bom' are used but not defined/imported in the original file.
 # Assuming they are available from another utility module. If not, this will need to be fixed.
@@ -112,7 +113,7 @@ def _process_stellaris_metadata(mod_name: str, handler: Any, source_lang: dict, 
                 in_tags_block = False
             continue
         if stripped_line.startswith('name='):
-            new_content_lines.append(f'name="{final_name}"\n')
+            new_content_lines.append(f'name="{escape_value(final_name)}"\n')
         elif stripped_line.startswith('tags={'):
             new_content_lines.append('tags={\n\t"Translation"\n}\n')
             tags_block_written = True
@@ -187,7 +188,7 @@ def _process_eu4_metadata(mod_name: str, handler: Any, source_lang: dict, target
     for ln in lines:
         stripped = ln.strip()
         if stripped.startswith('name='):
-            new_lines.append(f'name="{final_name}"')
+            new_lines.append(f'name="{escape_value(final_name)}"')
         elif stripped.startswith('tags={'):
             tags_written = True
             new_lines.append('tags={')

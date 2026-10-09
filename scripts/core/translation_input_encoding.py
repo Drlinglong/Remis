@@ -19,3 +19,20 @@ SOURCE_VALUE_ENCODING_NOTE = (
 
 def encode_source_value(text: str) -> str:
     return json.dumps(text or "", ensure_ascii=False)
+
+
+def decode_single_text_response(raw: str) -> str:
+    """Remove only a response wrapper, never semantic quotes inside the value.
+
+    A reply that is a whole JSON string literal is decoded (so ``"\\"New\\" Dawn"``
+    keeps its inner quotes). Otherwise exactly one outer pair of straight quotes
+    is treated as a wrapper; anything else is returned as written.
+    """
+    text = (raw or "").strip()
+    if len(text) < 2 or not (text.startswith('"') and text.endswith('"')):
+        return text
+    try:
+        decoded = json.loads(text)
+    except json.JSONDecodeError:
+        return text[1:-1]
+    return decoded if isinstance(decoded, str) else text

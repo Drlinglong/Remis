@@ -13,7 +13,9 @@ from scripts.utils.punctuation_handler import generate_punctuation_prompt
 from scripts.core.glossary_manager import glossary_manager
 from scripts.utils.structured_parser import parse_response
 from scripts.utils.text_clean import normalize_model_output
-from scripts.core.translation_input_encoding import SOURCE_VALUE_ENCODING_NOTE, encode_source_value
+from scripts.core.translation_input_encoding import (
+    SOURCE_VALUE_ENCODING_NOTE, decode_single_text_response, encode_source_value,
+)
 from scripts.core.translation_output_contract import call_batch_with_contract
 from scripts.core.prompt_manager import prompt_manager
 from scripts.core.vic3_country_adjective_context import prompt_policy
@@ -569,7 +571,8 @@ class BaseApiHandler(ABC):
             "DO NOT include explanations, pinyin, or any other text.\n"
             'For example, if the input is "Flavor Pack", your output must be "风味包" and nothing else.\n\n'
             + (f"PUNCTUATION CONVERSION:\n{punctuation_prompt}\n\n" if punctuation_prompt else "")
-            + f'Translate this: "{text}"'
+            + "The source value is a JSON string literal; its quotes and \\n sequences are part of the text.\n"
+            + f"Translate this: {encode_source_value(text)}"
         )
         return self._apply_model_prompt_adapter(prompt)
 
@@ -603,9 +606,7 @@ class BaseApiHandler(ABC):
 
         try:
             raw_response = self._call_api(self.client, prompt)
-            # Simple cleanup for single text
-            translated_text = raw_response.strip().strip('"')
-            
+            translated_text = decode_single_text_response(raw_response)
             return normalize_model_output(translated_text, target_lang["code"])
         except Exception as e:
             self.logger.exception(f"Single text translation failed for '{text[:30]}...': {e}")
