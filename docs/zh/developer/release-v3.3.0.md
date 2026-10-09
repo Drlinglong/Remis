@@ -10,7 +10,7 @@
 
 - **任务可靠性：**取消、启动失败和重启恢复更一致；未能启动的任务不再一直占用项目，保存进度失败会明确提示。
 - **翻译文本完整性：**原文的语义标记、引号和换行完整传给模型；完善结构化返回及多行火星 CSV 的处理。
-- **模型设置：**新增／更新目录代号：Anthropic `claude-haiku-5-5`、xAI `grok-4.7`、Qwen `qwen3.8-flash`、DeepSeek `deepseek-flash`、OpenRouter `openai/gpt-6.1-sol`、ModelScope `deepseek-ai/DeepSeek-V4-Pro-0813` 与 `deepseek-ai/DeepSeek-V4.1-Flash`、NVIDIA `deepseek-ai/deepseek-v4.1-flash`。完善已有 GPT-6／GPT-6.1、Claude 5.5、Muse Spark 等模型的推理参数支持，修复选择的推理参数未实际发送、采样参数冲突及冻结任务模型不一致的问题。保留用户已保存的设置；使用已迁移旧模型代号的用户需在设置中重新选择受支持的代号。
+- **模型设置：**Claude 5.5 系列支持 `claude-opus-5-5`、`claude-sonnet-5-5` 和 `claude-haiku-5-5`；本版新增 Haiku，并完善三款的推理参数支持。新增／更新的其他目录代号包括 xAI `grok-4.7`、Qwen `qwen3.8-flash`、DeepSeek `deepseek-flash`、OpenRouter `openai/gpt-6.1-sol`、ModelScope `deepseek-ai/DeepSeek-V4-Pro-0813` 与 `deepseek-ai/DeepSeek-V4.1-Flash`、NVIDIA `deepseek-ai/deepseek-v4.1-flash`。完善已有 GPT-6／GPT-6.1、Muse Spark 等模型的推理参数支持，修复选择的推理参数未实际发送、采样参数冲突及冻结任务模型不一致的问题。保留用户已保存的设置；使用已迁移旧模型代号的用户需在设置中重新选择受支持的代号。
 - **词典资源：**发布时附带火星求生英／简中及英／简中／正体词典 ZIP 和 SHA256 校验文件，可独立下载；条目保留来源、语境及审阅状态，不将候选译名宣称为全部人工认证。
 
 ## 高级 Agent 功能与开放边界
@@ -44,7 +44,7 @@ OpenRouter 翻译要求所选模型端点支持严格 JSON Schema；不支持时
 
 - **More reliable tasks:** cancellation, failed startup and restart recovery stay consistent; tasks that never started release project ownership and failed progress saves are visible.
 - **Text integrity:** semantic game tokens, quotes and line breaks remain visible to the model. Structured responses and multiline Surviving Mars CSV handling are improved.
-- **Model settings:** added or updated catalog IDs include Anthropic `claude-haiku-5-5`, xAI `grok-4.7`, Qwen `qwen3.8-flash`, DeepSeek `deepseek-flash`, OpenRouter `openai/gpt-6.1-sol`, ModelScope `deepseek-ai/DeepSeek-V4-Pro-0813` and `deepseek-ai/DeepSeek-V4.1-Flash`, and NVIDIA `deepseek-ai/deepseek-v4.1-flash`. Improved reasoning support for existing GPT-6/GPT-6.1, Claude 5.5 and Muse Spark models fixes missing selected parameters, conflicting sampling settings and frozen-model mismatches. Existing saved selections remain; users of migrated model IDs should select a supported replacement in Settings.
+- **Model settings:** the Claude 5.5 lineup supports `claude-opus-5-5`, `claude-sonnet-5-5` and `claude-haiku-5-5`; this release adds Haiku and improves reasoning support for all three. Other added or updated catalog IDs include xAI `grok-4.7`, Qwen `qwen3.8-flash`, DeepSeek `deepseek-flash`, OpenRouter `openai/gpt-6.1-sol`, ModelScope `deepseek-ai/DeepSeek-V4-Pro-0813` and `deepseek-ai/DeepSeek-V4.1-Flash`, and NVIDIA `deepseek-ai/deepseek-v4.1-flash`. Improved reasoning support for existing GPT-6/GPT-6.1 and Muse Spark models fixes missing selected parameters, conflicting sampling settings and frozen-model mismatches. Existing saved selections remain; users of migrated model IDs should select a supported replacement in Settings.
 - **Glossary download:** releases include English/Simplified and English/Simplified/Traditional Surviving Mars glossary attachments with checksums, sources, context and review states.
 
 ## Advanced Agent APIs
