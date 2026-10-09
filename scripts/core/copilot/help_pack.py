@@ -153,8 +153,15 @@ HELP_SKILLS: dict[str, dict[str, Any]] = {
     },
     "surviving_mars": {
         "title": "火星求生重制版本地化",
-        "description": "Surviving Mars / Relaunched 的 CSV 本地化、校验和输出路径。",
-        "resources": ("zh/user-guides/surviving-mars.md",),
+        "description": (
+            "Surviving Mars / Relaunched 的 CSV 本地化、校验和输出路径；"
+            "Mod Editor 上传前检查与报错（Missing mod Summary (PDX only)、"
+            "Last Changes、metadata.lua 字段、编辑器中文乱码），Steam Workshop / Paradox Mods 发布。"
+        ),
+        "resources": (
+            "zh/user-guides/surviving-mars.md",
+            "zh/user-guides/surviving-mars-mod-editor-upload-preflight.md",
+        ),
     },
     "shell_languages": {
         "title": "套壳语言与项目维护",
