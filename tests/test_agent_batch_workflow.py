@@ -625,6 +625,39 @@ def test_batch_project_guard_persists_task_and_releases_real_remis_lock(tmp_path
     assert repository.get_project_lock("project-guarded") is None
 
 
+@pytest.mark.parametrize("outcome", ["completed", "failed", "busy"])
+def test_batch_guard_releases_only_its_lock_when_terminal_save_fails(tmp_path, monkeypatch, outcome):
+    main_db = tmp_path / "remis-main.sqlite3"
+    assert migrate_main_database(str(main_db))
+    repository = TaskRepository(str(main_db))
+    project_id = "project-guarded"
+    if outcome == "busy":
+        repository.save_task({"task_id": "other-owner", "kind": "translation", "status": "running",
+                              "project_id": project_id})
+        assert repository.acquire_project_lock(task_id="other-owner", project_id=project_id)
+    original_save = repository.save_task
+
+    def fail_terminal_save(task):
+        if task["status"] != "running":
+            raise OSError("injected terminal persistence failure")
+        original_save(task)
+
+    monkeypatch.setattr(repository, "save_task", fail_terminal_save)
+    with pytest.raises(OSError, match="injected terminal persistence failure"):
+        with BatchProjectGuard(repository)(project_id):
+            if outcome == "failed":
+                raise ValueError("injected apply failure")
+    lock = repository.get_project_lock(project_id)
+    if outcome == "busy":
+        assert lock["task_id"] == "other-owner"
+    else:
+        assert lock is None
+        monkeypatch.setattr(repository, "save_task", original_save)
+        with BatchProjectGuard(repository)(project_id):
+            assert repository.get_project_lock(project_id) is not None
+        assert repository.get_project_lock(project_id) is None
+
+
 class ParadoxTokenTransport(FakeTransport):
     async def submit(self, payload):
         self.submissions.append(payload)

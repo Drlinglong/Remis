@@ -8,7 +8,7 @@ import {
 import { useForm } from '@mantine/form';
 import { IconX, IconPlus, IconTrash } from '@tabler/icons-react';
 import TerminologyReviewFields from './TerminologyReviewFields';
-import { prepareReviewMetadata } from '../../utils/terminologyReview';
+import { parseTermVariants, prepareReviewMetadata } from '../../utils/terminologyReview';
 
 /**
  * 词条编辑表单组件
@@ -99,12 +99,7 @@ const EditTermForm = ({
 
         const { source, translation, notes, variants, abbreviations } = values;
 
-        const variantsObject = variants.reduce((acc, item) => {
-            if (item.lang && item.value) {
-                acc[item.lang] = item.value.split(',').map(s => s.trim()).filter(Boolean);
-            }
-            return acc;
-        }, {});
+        const variantsObject = parseTermVariants(variants);
 
         const abbreviationsObject = abbreviations.reduce((acc, item) => {
             if (item.lang && item.value) {

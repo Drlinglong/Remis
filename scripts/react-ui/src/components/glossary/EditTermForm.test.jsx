@@ -120,4 +120,22 @@ describe('EditTermForm', () => {
     expect(saved.metadata.terminology.evidence_refs).toEqual([{ id: '6652' }]);
     expect(saved.metadata.custom).toBe('preserve me');
   });
+
+  it('saves edited English aliases and their explicit approval basis together', async () => {
+    const onSave = vi.fn().mockResolvedValue(true);
+    renderForm({ onSave, selectedTerm: { ...selectedTerm, variants: { en: ['Old factory'] },
+      metadata: { terminology: { locale: 'zh-CN', review_state: 'candidate',
+        aliases: ['Old factory'], alias_review_basis: ['Old factory'] } },
+    } });
+    fireEvent.click(screen.getByRole('switch', { name: 'glossary_advanced_mode' }));
+    fireEvent.change(screen.getByDisplayValue('Old factory'), { target: { value: ' Factory plant, Works, ' } });
+    fireEvent.click(screen.getByRole('textbox', { name: 'glossary_terminology.state' }));
+    fireEvent.click(await screen.findByRole('option', { name: 'glossary_terminology.states.approved' }));
+    fireEvent.click(screen.getByRole('button', { name: 'button_save' }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+    const saved = onSave.mock.calls[0][0];
+    expect(saved.variants.en).toEqual(['Factory plant', 'Works']);
+    expect(saved.metadata.terminology.alias_review_basis).toEqual(saved.variants.en);
+    expect(saved.metadata.terminology.review_state).toBe('approved');
+  });
 });

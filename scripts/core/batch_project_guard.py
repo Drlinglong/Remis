@@ -26,5 +26,7 @@ class BatchProjectGuard:
             outcome = "completed"
         finally:
             task.update(status=outcome, updated_at=datetime.now(timezone.utc).isoformat())
-            self.repository.save_task(task)
-            self.repository.release_project_lock(task_id=identifier)
+            try:
+                self.repository.save_task(task)
+            finally:
+                self.repository.release_project_lock(task_id=identifier)

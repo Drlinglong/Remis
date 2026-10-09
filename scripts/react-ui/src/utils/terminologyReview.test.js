@@ -7,6 +7,17 @@ const term = { locale: 'zh-TW', concept_id: 'water:1', sense: 'Terraforming', co
 const metadata = { source_lang: 'en', preserved: { custom: true }, terminology: { ...term, review_basis: reviewBasis(values, term) } };
 
 describe('terminology review metadata', () => {
+    it.each(['reviewed', 'approved'])('refreshes the alias basis on explicit %s confirmation', (reviewState) => {
+        const edited = { ...values, variants: [{ lang: 'en', value: ' Water supply, H2O, ' }] };
+        const imported = { ...metadata, terminology: { ...metadata.terminology,
+            aliases: ['Water resource'], alias_review_basis: ['Water resource'] } };
+        expect(effectiveReviewState(imported.terminology, edited)).toBe('candidate');
+        const result = JSON.parse(updateReviewMetadata(JSON.stringify(imported), { review_state: reviewState }, edited));
+        expect(result.terminology.alias_review_basis).toEqual(['Water supply', 'H2O']);
+        expect(prepareReviewMetadata(JSON.stringify(result), edited, 'zh-TW').terminology.review_state).toBe(reviewState);
+        expect(prepareReviewMetadata(JSON.stringify(result), { ...edited,
+            variants: [{ lang: 'en', value: 'Changed after approval' }] }, 'zh-TW').terminology.review_state).toBe('candidate');
+    });
     it('invalidates approval after source, translation or sense edits', () => {
         expect(effectiveReviewState(metadata.terminology, { ...values, translation: '新译法' })).toBe('candidate');
         expect(effectiveReviewState({ ...metadata.terminology, sense: 'Stored resource' }, values)).toBe('candidate');

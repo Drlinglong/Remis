@@ -43,6 +43,10 @@ OpenRouter 翻译要求所选模型端点支持严格 JSON Schema；不支持时
 
 Batch源语言在revision检查前统一规范化，`english`、`l_english`、`simp_chinese`等既有项目别名不会误触发`source_revision_conflict`。回归覆盖提交、重启收集、重试和应用；真实语言变化与无效语言仍拒绝提交。CI完整后端测试分为八个独立Windows作业，只有全部成功才通过原有Python tests门禁；分片回归确认每个用例恰好执行一次。
 
+
+
+术语编辑器明确审阅／批准别名变更时，同步更新当前英文别名的审阅依据；确认后继续编辑会重新降为候选。Batch apply清理中的终态持久化失败仍会尝试按任务所有者释放项目锁；失败保持可见，不释放其他任务的锁。
+
 ## English
 
 ## Highlights
@@ -68,16 +72,20 @@ Task admission rollback, ledger-aware updates, owner-safe terminal transitions, 
 
 Batch source-language aliases are normalized before revision checks, preventing false `source_revision_conflict` errors for existing projects storing `english`, `l_english` or `simp_chinese`. Regressions cover submission, restart collection, retry and apply; actual language changes and invalid values still block submission. The complete backend CI suite runs in eight independent Windows shards, with the existing Python tests gate requiring every shard to pass; shard regressions verify each case runs exactly once.
 
-The integrated backend suite passes 2,856 tests with 19 environmental/optional skips; the frontend passes 1,088 tests. Lint has no errors and 13 existing warnings, the production dependency audit has no vulnerabilities, and the stable Windows installer builds successfully. Frozen-backend smoke checks confirm version 3.3.0 and the default experimental API gates. No real paid calls, game loading or Workshop upload acceptance is claimed by these checks.
+
+
+Explicit glossary alias review/approval now refreshes the English alias review basis; subsequent alias edits invalidate that approval. Batch apply cleanup attempts owner-safe lock release even when terminal-state persistence fails, propagating the failure and preserving other tasks' locks.
+
+The integrated backend suite passes 2,859 tests with 19 environmental/optional skips; the frontend passes 1,091 tests. Lint has no errors and 13 existing warnings, the production dependency audit has no vulnerabilities, and the stable Windows installer builds successfully. Frozen-backend smoke checks confirm version 3.3.0 and the default experimental API gates. No real paid calls, game loading or Workshop upload acceptance is claimed by these checks.
 
 ## 最终验证与安装包
 
-最终构建源码提交：`bf7b301f0df7914870445a9e86c9a07abc4d9c88`，包含CodeQL引号扫描修复、Batch源语言别名P1修复及完整后端CI分片。构建后收尾仅修改发布文档，没有修改打包代码或资源。
+最终构建源码提交：`5a47b2a939a0fcf854b4c4d0a614ada8baf9b12a`，包含CodeQL引号扫描修复、Batch源语言别名P1修复、别名批准／失败释放锁两项P2修复及完整后端CI分片。构建后收尾仅修改发布文档，没有修改打包代码或资源。
 
 | 检查 | 结果 |
 | --- | --- |
-| 完整后端 pytest | 2856通过、19跳过、746警告；228.14秒 |
-| 完整前端 Vitest（独立锁定依赖） | 258文件、1088通过；53.88秒 |
+| 完整后端 pytest | 2859通过、19跳过、746警告；262.15秒 |
+| 完整前端 Vitest（独立锁定依赖） | 258文件、1091通过；56.16秒 |
 | 前端 lint／生产依赖审计 | 0错误、13既有警告／0漏洞 |
 | 构建与资源聚焦回归 | 35通过；新增种子导出到freezer调用链回归 |
 | Python架构守卫、compileall、diff检查 | 通过；编译缓存与测试数据均隔离到TEMP |
@@ -88,13 +96,13 @@ The integrated backend suite passes 2,856 tests with 19 environmental/optional s
 
 19个跳过项：14个需要本机未开放的符号链接权限，另外5个分别需要可选PZ样本、可选上游样本、完整参考档案、lupa及显式启用真实Gemini调用。没有执行真实收费翻译、实际游戏加载、Workshop上传或安装到用户现有数据目录。
 
-前端职责复核：合集主hook保持142行，三个控制器59／50／60行；词典页面478→484行，编辑表单274→280行，新展示组件17／46行。没有新增state/effect；已有API／工作流边界保持分离。聚焦测试覆盖控制器卸载、畸形payload拒绝、TaskRunner及词典metadata展示，未提高冻结文件上限。
+前端职责复核：合集主hook保持142行，三个控制器59／50／60行；词典页面478→484行，编辑表单274→275行，新展示组件17／46行。没有新增state/effect；已有API／工作流边界保持分离。聚焦测试覆盖控制器卸载、畸形payload拒绝、TaskRunner及词典metadata展示，未提高冻结文件上限。
 
 附件位于本地候选checkout的`archive/release/stable/`，另存于`J:\Remis-release-preparation\v3.3.0\release-assets\`；完整日志保存在同级`evidence/`。
 
 | 附件 | 字节数 | SHA256 |
 | --- | ---: | --- |
-| remis-mod-factory_3.3.0_x64-setup.exe | 45721181 | `737cfbaf714121dd823cf0eaa87070398b4860b0faa909ec06834b192e3af839` |
+| remis-mod-factory_3.3.0_x64-setup.exe | 45723026 | `f61f4626a9e62f3dc492fa33b239dd5db4eecf2105f21e7d81d916fed14fe679` |
 | Remis-SurvivingMars-Glossary_3.3.0.zip | 415008 | `5430a7713eccad27aa703b6a1b094e5ecc78e3f88936c57be68fe62440d9ce97` |
 
 发布时附带词典`.zip.sha256`和`SHA256SUMS`。生成本地附件不等于GitHub Release已发布；正式发版应把候选代码通过仓库分支保护和CI门禁合入main，并核对最终Release的精确commit。
