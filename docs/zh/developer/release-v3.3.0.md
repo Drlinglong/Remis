@@ -2,7 +2,7 @@
 
 准备日期：2026-10-10
 
-状态：本地整合与发版准备完成，尚未合并 main、推送或正式发布。
+状态：v3.3.0 构建与验证记录；正式发布信息以 GitHub Release 为准。
 
 ## 中文
 
@@ -25,6 +25,7 @@
 - 异步数据库引擎按事件循环隔离，避免同步worker新loop与主API loop共享初始化状态；shutdown释放引擎。
 - 原生结构化输出与推理参数合并后保留schema及合法effort；OpenRouter保持严格schema，其他支持端点仅在明确能力拒绝时允许prompt JSON回退。
 - Provider错误只传播安全摘要，保留致命／重试分类；不把上游回显正文写入任务警告、日志或异常链。
+- 引号保护改用线性扫描，避免大量未闭合方括号造成耗时放大；嵌套／交叠语义token保持保守保护，新增50万括号输入回归。
 - 前端拒绝畸形Archive A/B及增量预扫描payload，保留既有合集生命周期/CAS/路径边界，增加卸载和TaskRunner回归；已有hook拆分不重复计为本版新增。
 - Python架构例外继续收紧，未提高既有上限。构建只使用仓库静态词典和已审阅数据库种子，不读取用户运行数据库。
 
@@ -57,17 +58,17 @@ OpenRouter translation requires an endpoint supporting strict JSON Schema. Unsup
 
 ## Engineering quality and reliability
 
-Task admission rollback, ledger-aware updates, owner-safe terminal transitions, loop-scoped database engines and checkpoint failure handling have focused regressions. Structured schemas and reasoning settings share the final request policy; provider failures retain safe retry classification without exposing upstream bodies. Malformed review/prescan payloads are rejected. Release glossaries use reviewed static inputs rather than live user databases.
+Task admission rollback, ledger-aware updates, owner-safe terminal transitions, loop-scoped database engines and checkpoint failure handling have focused regressions. Structured schemas and reasoning settings share the final request policy; provider failures retain safe retry classification without exposing upstream bodies. Quote protection scans malformed bracket input in linear time while conservatively preserving nested/overlapping semantic tokens, with a 500,000-bracket regression. Malformed review/prescan payloads are rejected. Release glossaries use reviewed static inputs rather than live user databases.
 
-The integrated backend suite passes 2,836 tests with 19 environmental/optional skips; the frontend passes 1,088 tests. Lint has no errors and 13 existing warnings, the production dependency audit has no vulnerabilities, and the stable Windows installer builds successfully. Frozen-backend smoke checks confirm version 3.3.0 and the default experimental API gates. No real paid calls, game loading or Workshop upload acceptance is claimed by these checks.
+The integrated backend suite passes 2,843 tests with 19 environmental/optional skips; the frontend passes 1,088 tests. Lint has no errors and 13 existing warnings, the production dependency audit has no vulnerabilities, and the stable Windows installer builds successfully. Frozen-backend smoke checks confirm version 3.3.0 and the default experimental API gates. No real paid calls, game loading or Workshop upload acceptance is claimed by these checks.
 
 ## 最终验证与安装包
 
-构建源码提交：`87f68911373b204280e84cf778a40bd34ae41eee`。后续收尾仅修改发布／构建／API参考文档，没有修改打包代码或资源。
+最终构建源码提交：`cfb927efebd2d9de59e7bcd2411a90dffed3632e`，包含发布前CodeQL发现的引号扫描修复。后续收尾仅修改发布文档，没有修改打包代码或资源。
 
 | 检查 | 结果 |
 | --- | --- |
-| 完整后端 pytest | 2836通过、19跳过、746警告；200.72秒 |
+| 完整后端 pytest | 2843通过、19跳过、746警告；206.53秒 |
 | 完整前端 Vitest（独立锁定依赖） | 258文件、1088通过；53.88秒 |
 | 前端 lint／生产依赖审计 | 0错误、13既有警告／0漏洞 |
 | 构建与资源聚焦回归 | 35通过；新增种子导出到freezer调用链回归 |
@@ -85,7 +86,7 @@ The integrated backend suite passes 2,836 tests with 19 environmental/optional s
 
 | 附件 | 字节数 | SHA256 |
 | --- | ---: | --- |
-| remis-mod-factory_3.3.0_x64-setup.exe | 45724113 | `7ccbe60c2313f0d000d8c62c12156c98a5cc3bae3b400a60238cfad0c43ea8c9` |
+| remis-mod-factory_3.3.0_x64-setup.exe | 45722087 | `26c4410663ea78798309a8a6dfcf5498f9addfc2124d9b614bb56809ded2062f` |
 | Remis-SurvivingMars-Glossary_3.3.0.zip | 415008 | `5430a7713eccad27aa703b6a1b094e5ecc78e3f88936c57be68fe62440d9ce97` |
 
-发布时附带词典`.zip.sha256`和`SHA256SUMS`。生成本地附件不等于GitHub Release已发布；发布前仍需把候选代码通过仓库分支保护和CI门禁合入main，并核对最终Release的精确commit。
+发布时附带词典`.zip.sha256`和`SHA256SUMS`。生成本地附件不等于GitHub Release已发布；正式发版应把候选代码通过仓库分支保护和CI门禁合入main，并核对最终Release的精确commit。

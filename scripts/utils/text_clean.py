@@ -115,7 +115,30 @@ QUOTE_STYLES = {
     "tr": ("“", "”"),
 }
 # Paradox runtime tokens are never restyled: quotes inside them are syntax.
-_PROTECTED_QUOTE_SPAN = re.compile(r"\[[^\]]*\]|\$[^$\s]*\$")
+
+
+def _has_protected_quotes(text: str) -> bool:
+    """Scan once; ambiguous overlapping tokens are conservatively preserved."""
+    bracket_open = dollar_open = False
+    bracket_quote = dollar_quote = False
+    for char in text:
+        if char == "[" and not bracket_open:
+            bracket_open, bracket_quote = True, False
+        elif char == "]" and bracket_open:
+            if bracket_quote:
+                return True
+            bracket_open = False
+        if char == "$":
+            if dollar_open and dollar_quote:
+                return True
+            dollar_open = not dollar_open
+            dollar_quote = False
+        elif char.isspace():
+            dollar_open = False
+        if char == '"':
+            bracket_quote = bracket_quote or bracket_open
+            dollar_quote = dollar_quote or dollar_open
+    return False
 
 
 def restore_legacy_mask_tokens(text: str, *, preserve_newlines: bool = False) -> str:
@@ -144,9 +167,8 @@ def _unambiguous_quote_positions(text: str) -> list[int] | None:
         return None
     if any(index > 0 and text[index - 1] == "\\" for index in positions):
         return None
-    for span in _PROTECTED_QUOTE_SPAN.finditer(text):
-        if any(span.start() <= index < span.end() for index in positions):
-            return None
+    if _has_protected_quotes(text):
+        return None
     for open_index, close_index in zip(positions[::2], positions[1::2]):
         if close_index == open_index + 1:
             return None

@@ -81,6 +81,37 @@ def test_ambiguous_quotes_are_left_unchanged(text):
     assert apply_quote_style(text, "zh") == text
 
 
+@pytest.mark.parametrize("text", [
+    '[Concept("war", "War")] "x"',
+    '[Outer("a", [Inner("b")])] "x"',
+    '$VAR"x"$ "outside"',
+    '[prefix $VAR"x"$ "outside"',
+    '$prefix["x"$] "outside"',
+])
+def test_quote_protection_preserves_nested_and_overlapping_runtime_tokens(text):
+    assert apply_quote_style(text, "en") == text
+
+
+def test_tokens_without_quotes_allow_prose_quotes_to_be_styled():
+    assert apply_quote_style('[Root.GetName] $VAR$ "hello"', "en") == '[Root.GetName] $VAR$ “hello”'
+    assert apply_quote_style('$not a token "hello" $', "en") == '$not a token “hello” $'
+
+
+def test_unclosed_bracket_run_does_not_block_normalization():
+    """A bounded child prevents a quadratic regression from hanging pytest."""
+    import subprocess
+    import sys
+
+    result = subprocess.run(
+        [sys.executable, "-c", "from scripts.utils.text_clean import apply_quote_style; "
+         "prefix = '[' * 500000; "
+         "assert apply_quote_style(prefix + chr(34) + 'ok' + chr(34), 'en') "
+         "== prefix + chr(0x201c) + 'ok' + chr(0x201d)"],
+        capture_output=True, text=True, timeout=10,
+    )
+    assert result.returncode == 0, result.stderr
+
+
 def test_nested_straight_quotes_are_ambiguous_and_left_unchanged():
     assert apply_quote_style('"a "b" c"', "en") == '"a "b" c"'
 
