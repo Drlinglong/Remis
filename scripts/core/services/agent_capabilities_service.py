@@ -2,11 +2,12 @@
 
 
 def build_capabilities(*, api_version, version, games, languages, providers, shells, policy, context_capabilities):
+    from scripts.core.advanced_agent_policy import project_experimental_capabilities
     from scripts.core.game_adapters.registry import game_capabilities
     from scripts.core.services.game_support_service import get_game_support
     games = [{**game, "capabilities": game_capabilities(game["id"]),
               "game_support": get_game_support(game["id"])} for game in games]
-    return {
+    return project_experimental_capabilities({
         "api_version": api_version,
         "remis_version": version,
         "service": "remis-agent-api",
@@ -30,6 +31,7 @@ def build_capabilities(*, api_version, version, games, languages, providers, she
             "guide": "docs/zh/user-guides/translation-collections.md"},
         "baseline_sync": {"supported": True, "endpoint": "/api/agent/jobs/{job_id}/baseline/sync",
             "requires_approval": True, "max_keys": 100, "validation_refreshed": False},
+        **advanced_capabilities(),
         "actions": policy({
             "preview_incremental_translation": {"supported": True, "requires_approval": False,
                 "endpoint": "/api/agent/projects/{project_id}/incremental-preview",
@@ -74,4 +76,38 @@ def build_capabilities(*, api_version, version, games, languages, providers, she
             "projects": "/api/agent/projects",
             "translation_collections": "/api/agent/translation-collections",
         },
+    })
+
+
+def advanced_capabilities():
+    return {
+        "batch_jobs": {"supported": True, "experimental": True, "base_url": "/api/agent/batch-jobs",
+            "provider": "openrouter", "remote_submission_requires_approval": True,
+            "providers": ["openrouter", "openai"], "native_openai_endpoint": "/v1/responses",
+            "automatic_paid_retry": False, "restart_retrieval": True, "gui": False,
+            "apply_creates_new_output": True, "term_release_context": True,
+            "guide": "docs/zh/developer/openrouter-batch-agent-api-handoff.md"},
+        "translation_trials": {"supported": True, "experimental": True,
+            "base_url": "/api/agent/translation-trials", "provider": "openai",
+            "protocol": "responses", "shared_frozen_context_and_validation": True,
+            "automatic_paid_retry": False, "gui": False},
+        "terminology_coverage": {"supported": True, "experimental": True, "gui": False,
+            "base_url": "/api/agent/terminology-coverage", "paid_calls": False,
+            "candidate_store": "existing_project_archive", "glossary_auto_overwrite": False},
+        "localization_reviews": {"supported": True, "experimental": True, "gui": False,
+            "base_url": "/api/agent/localization-reviews", "provider": "openai", "sparse_findings": True,
+            "execution_modes": ["immediate", "background", "batch"], "background_uses_ordinary_responses": True,
+            "paid_review_requires_approval": True, "automatic_apply": False, "automatic_paid_retry": False},
+        "term_releases": {"supported": True, "base_url": "/api/agent/term-releases",
+            "immutable": True, "separate_content_locale": True, "maturity_explicit": True},
+        "chinese_conversion": {"supported": True, "experimental": True, "gui": False,
+            "base_url": "/api/agent/chinese-conversion", "provider": "zhconvert", "requires_key": False,
+            "natural_language_instructions": False, "contextual_glossary": False, "literal_rules": True,
+            "automatic_apply": False, "retained_artifacts": True,
+            "guide": "docs/zh/developer/chinese-conversion-agent-api.md"},
+        "mars_base_patch": {"supported": True, "experimental": True, "gui": False,
+            "base_url": "/api/agent/mars-base-patch", "requires_export_approval": True,
+            "paid_calls": False, "installs_to_game": False, "publishes_to_steam": False,
+            "verified_candidate_origins": True, "runtime_verified": False,
+            "guide": "docs/zh/developer/mars-base-patch-agent-api.md"},
     }

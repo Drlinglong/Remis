@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import notificationService from '../services/notificationService';
 import translationService from '../services/translationService';
 import { buildIncrementalUpdatePayload, getArchivedTargetLanguages } from './incrementalTranslationPayload';
+import { normalizePreScanResults } from '../utils/preScanPayload';
 
 
 export function useIncrementalPreScan(options) {
@@ -61,11 +62,11 @@ export function useIncrementalPreScan(options) {
             notificationStyle,
           );
         }
-        setScanResults({
+        setScanResults(normalizePreScanResults({
           ...(response.data.summary || {}),
-          file_summaries: response.data.file_summaries || [],
+          file_summaries: response.data.file_summaries,
           telemetry: response.data.telemetry || null,
-        });
+        }));
         setActive(2);
         setLoading(false);
       };

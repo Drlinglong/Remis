@@ -282,6 +282,37 @@ def _collect_task_summaries(*, include_archived: bool = False) -> list[TaskSumma
     return summaries
 
 
+def _collect_child_summaries(parent_task_id: str) -> list[TaskSummary]:
+    """Return one parent's children without projecting the whole task ledger."""
+    jobs = {str(job.get("job_id")): job for job in agent_registry.list_jobs() if job.get("job_id")}
+    repository = task_state.get_repository()
+    tasks_by_id = {
+        str(task.get("task_id")): task
+        for task in (
+            repository.list_tasks(include_events=False, parent_task_id=parent_task_id)
+            if repository is not None
+            else []
+        )
+        if task.get("task_id")
+    }
+    for task in task_state.list_tasks():
+        task_id = str(task.get("task_id") or "")
+        if not task_id or str(task.get("parent_task_id") or "") != parent_task_id:
+            continue
+        persisted = tasks_by_id.get(task_id)
+        if persisted is None or str(task.get("updated_at") or "") >= str(persisted.get("updated_at") or ""):
+            tasks_by_id[task_id] = task
+    summaries = [_from_live_task(task, jobs.get(task_id)) for task_id, task in tasks_by_id.items()]
+    summaries.extend(
+        _from_persisted_agent_job(job)
+        for job_id, job in jobs.items()
+        if job_id not in tasks_by_id
+        and str((job.get("last_snapshot") or {}).get("parent_task_id") or "") == parent_task_id
+    )
+    summaries.sort(key=lambda item: item.updated_at or item.created_at or "", reverse=True)
+    return summaries
+
+
 def _iso_utc(value: Optional[datetime]) -> Optional[str]:
     if value is None:
         return None
@@ -508,11 +539,7 @@ async def get_task_detail(
             }
             for index, message in enumerate(task.get("log") or [])
         ]
-    children = [
-        item
-        for item in _collect_task_summaries(include_archived=True)
-        if item.parent_task_id == task_id
-    ]
+    children = _collect_child_summaries(task_id)
     child_aggregate = TaskChildAggregate(
         total=len(children),
         active=sum(item.status in ACTIVE_STATUSES for item in children),

@@ -94,7 +94,7 @@ const useGlossaryActions = () => {
                     setSelectedGameRef.current(normalizedTree[0].key);
                 }
 
-                const languages = Object.values(configResponse.data.languages);
+                const languages = Object.values(configResponse.data.glossary_languages || configResponse.data.languages);
                 setTargetLanguages(languages);
                 setApiProviders(configResponse.data.api_providers || []);
                 if (languages.length > 0 && !selectedTargetLangRef.current) {

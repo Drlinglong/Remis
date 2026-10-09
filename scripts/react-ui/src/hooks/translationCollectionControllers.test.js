@@ -16,6 +16,24 @@ const deferred = () => {
 describe('translation collection controller boundaries', () => {
   beforeEach(() => vi.resetAllMocks());
 
+  it('invalidates captured authorization on unmount before a late request completes', async () => {
+    const pending = deferred();
+    const afterRequest = vi.fn();
+    const { result, unmount } = renderHook(() => useCollectionRequestLifecycle(true));
+    const lifecycle = result.current;
+    const { life, selection } = lifecycle.capture();
+    let request;
+    act(() => { request = lifecycle.run(async () => {
+      await pending.promise;
+      if (lifecycle.isCurrent(life, selection)) afterRequest();
+    }); });
+    unmount();
+    expect(lifecycle.isLive(life)).toBe(false);
+    expect(lifecycle.isCurrent(life, selection)).toBe(false);
+    await act(async () => { pending.resolve('late'); await request; });
+    expect(afterRequest).not.toHaveBeenCalled();
+  });
+
   it('keeps a reopened session busy when a request from the closed session fails', async () => {
     const old = deferred();
     const current = deferred();

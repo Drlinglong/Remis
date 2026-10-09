@@ -3301,5 +3301,37 @@
     "submit_reveal": "提交并揭晓",
     "no_cases": "当前筛选没有案例。",
     "submit_error": "无法保存复核记录。"
+  },
+  "glossary_terminology": {
+    "community_review": "社区一致性复核",
+    "community_author_history": "参考来源：作者公开历史版本",
+    "community": "社区旧译",
+    "title": "术语审阅",
+    "state": "审阅状态",
+    "confidence": "置信度",
+    "sense": "概念含义与语境",
+    "context": "语境标识",
+    "schinese": "官方简中参考",
+    "original": "原始候选译法",
+    "suggestion": "审计建议",
+    "reason": "审阅理由",
+    "reviewer": "审阅记录来源",
+    "confidence_note": "定性判断，用于安排审阅优先级，不代表实测正确率。",
+    "pending_note": "等待决定；不会进入翻译使用的词典快照。",
+    "reference_locale": "这份审阅对应 {{locale}}，选择该语言后可编辑。",
+    "states": {
+      "candidate": "候选",
+      "reviewed": "已审阅",
+      "pending": "待决定",
+      "approved": "已确认",
+      "rejected": "不采用"
+    },
+    "bands": {
+      "high": "高",
+      "medium": "中",
+      "low": "低",
+      "unrated": "未评级"
+    },
+    "human_review": "人工决定"
   }
 }

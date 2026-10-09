@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { normalizeArchiveABCases } from '../../services/archiveABReviewPayload';
 import {
   Alert,
   Badge,
@@ -73,7 +74,11 @@ const sameReview = (item, selection, errorTags, confidence, note) => {
   return savedTags.length === nextTags.length && savedTags.every((tag, index) => tag === nextTags[index]);
 };
 
-export default function ArchiveABReviewPanel({ t, cases, activeIndex, onChangeCase, onSubmit, saving }) {
+export default function ArchiveABReviewPanel({ t, cases: rawCases, activeIndex, onChangeCase, onSubmit, saving }) {
+  const { cases, payloadError } = useMemo(() => {
+    try { return { cases: normalizeArchiveABCases(rawCases), payloadError: '' }; }
+    catch (error) { return { cases: [], payloadError: error.message }; }
+  }, [rawCases]);
   const item = cases[activeIndex];
   const [selection, setSelection] = useState('');
   const [errorTags, setErrorTags] = useState([]);
@@ -104,6 +109,7 @@ export default function ArchiveABReviewPanel({ t, cases, activeIndex, onChangeCa
   const resultCounts = useMemo(() => countResults(cases), [cases]);
   const isLastCase = activeIndex === cases.length - 1;
 
+  if (payloadError) return <Alert color="red">{payloadError}</Alert>;
   if (!item) {
     return <Alert color="yellow">{label(t, 'no_cases', '当前筛选没有可抽检案例。')}</Alert>;
   }

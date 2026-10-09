@@ -454,115 +454,134 @@ class ParallelProcessor:
 
     def process_files_stream(
         self,
-        file_tasks_generator: Any, # Iterator[FileTask]
+        file_tasks_generator: Any,
         translation_function: Callable,
         batch_progress_callback: Optional[Callable[[BatchTask], None]] = None,
         should_cancel: Optional[Callable[[], bool]] = None,
-    ) -> Any: # Iterator[Tuple[str, List[str], List[Dict[str, Any]]]]
-        """Yield each file as soon as all of its translated batches complete."""
+    ) -> Any:
+        """Yield files while ensuring consumer errors stop queued provider work."""
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            abort_event = threading.Event()
+            future_to_info = {}
+            try:
+                yield from self._stream_file_results(
+                    executor, abort_event, future_to_info, file_tasks_generator,
+                    translation_function, batch_progress_callback, should_cancel,
+                )
+            except BaseException:
+                abort_event.set()
+                self._cancel_pending(future_to_info)
+                raise
+
+    def _stream_file_results(
+        self,
+        executor: concurrent.futures.ThreadPoolExecutor,
+        abort_event: threading.Event,
+        future_to_info: dict,
+        file_tasks_generator: Any,
+        translation_function: Callable,
+        batch_progress_callback: Optional[Callable[[BatchTask], None]],
+        should_cancel: Optional[Callable[[], bool]],
+    ) -> Any:
         # Buffer to hold incomplete file batches: {stable file identity: {batch_index: BatchTask}}
         file_buffers: Dict[str, Dict[int, BatchTask]] = {}
         # Track total batches expected per file: {filename: total_batches}
         file_batch_counts: Dict[str, int] = {}
         file_warning_buffers: Dict[str, List[Dict[str, Any]]] = {}
-        with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            abort_event = threading.Event()
-            future_to_info = {}
-            
-            # Helper to submit batches for a file
-            def submit_file(file_task: FileTask):
-                if should_cancel and should_cancel():
-                    abort_event.set()
-                    raise ProcessingCancelledError("Translation cancelled by user.")
-                if not file_task.texts_to_translate:
-                    # Handle empty file immediately
-                    return True, (file_task, [], [], False)
+        # Helper to submit batches for a file
+        def submit_file(file_task: FileTask):
+            if should_cancel and should_cancel():
+                abort_event.set()
+                raise ProcessingCancelledError("Translation cancelled by user.")
+            if not file_task.texts_to_translate:
+                # Handle empty file immediately
+                return True, (file_task, [], [], False)
                 
-                chunk_size = self._resolve_chunk_size(file_task.provider_name)
-                texts = file_task.texts_to_translate
-                file_identity = file_task.file_path or file_task.filename
-                translation_indices = self._translation_entry_indices(file_task, len(texts))
-                total_batches = (len(texts) + chunk_size - 1) // chunk_size
-                file_batch_counts[file_identity] = total_batches
-                file_buffers[file_identity] = {}
-                file_warning_buffers[file_identity] = []
+            chunk_size = self._resolve_chunk_size(file_task.provider_name)
+            texts = file_task.texts_to_translate
+            file_identity = file_task.file_path or file_task.filename
+            translation_indices = self._translation_entry_indices(file_task, len(texts))
+            total_batches = (len(texts) + chunk_size - 1) // chunk_size
+            file_batch_counts[file_identity] = total_batches
+            file_buffers[file_identity] = {}
+            file_warning_buffers[file_identity] = []
                 
-                for i in range(0, len(texts), chunk_size):
-                    batch_texts = texts[i:i + chunk_size]
-                    batch_index = i // chunk_size
+            for i in range(0, len(texts), chunk_size):
+                batch_texts = texts[i:i + chunk_size]
+                batch_index = i // chunk_size
                     
-                    batch_task = self._make_batch_task(
-                        file_task,
-                        batch_index,
-                        i,
-                        batch_texts,
-                        translation_indices[i:],
-                    )
-                    future = self._submit_guarded_batch(
-                        executor, batch_task, translation_function, abort_event, should_cancel
-                    )
-                    future_to_info[future] = (file_identity, batch_index, batch_task)
-                return False, None
+                batch_task = self._make_batch_task(
+                    file_task,
+                    batch_index,
+                    i,
+                    batch_texts,
+                    translation_indices[i:],
+                )
+                future = self._submit_guarded_batch(
+                    executor, batch_task, translation_function, abort_event, should_cancel
+                )
+                future_to_info[future] = (file_identity, batch_index, batch_task)
+            return False, None
 
-            # Bound pending batches because each future retains its FileTask.
-            MAX_PENDING_BATCHES = self.max_workers * 4
-            pending_batches_count = 0
+        # Bound pending batches because each future retains its FileTask.
+        MAX_PENDING_BATCHES = self.max_workers * 4
+        pending_batches_count = 0
             
-            iterator = iter(file_tasks_generator)
-            done_consuming = False
-            stream_cancellation_error = None
+        iterator = iter(file_tasks_generator)
+        done_consuming = False
+        stream_cancellation_error = None
             
-            while not done_consuming or future_to_info:
-                if should_cancel and should_cancel():
-                    abort_event.set()
-                    self._cancel_pending(future_to_info)
-                    raise ProcessingCancelledError("Translation cancelled by user.")
-                # 1. Submit new tasks if we have capacity
-                while not done_consuming and pending_batches_count < MAX_PENDING_BATCHES:
-                    try:
-                        file_task = next(iterator)
-                        is_empty, empty_result = submit_file(file_task)
-                        if is_empty:
-                            yield empty_result
-                        else:
-                            # Update pending count
-                            pending_batches_count += file_batch_counts[file_task.file_path or file_task.filename]
-                    except StopIteration:
-                        done_consuming = True
+        while not done_consuming or future_to_info:
+            if should_cancel and should_cancel():
+                abort_event.set()
+                self._cancel_pending(future_to_info)
+                raise ProcessingCancelledError("Translation cancelled by user.")
+            # 1. Submit new tasks if we have capacity
+            while not done_consuming and pending_batches_count < MAX_PENDING_BATCHES:
+                try:
+                    file_task = next(iterator)
+                    is_empty, empty_result = submit_file(file_task)
+                    if is_empty:
+                        yield empty_result
+                    else:
+                        # Update pending count
+                        pending_batches_count += file_batch_counts[file_task.file_path or file_task.filename]
+                except StopIteration:
+                    done_consuming = True
                 
-                # 2. Wait for at least one future to complete
-                if future_to_info:
-                    # wait for first completed
-                    done, _ = concurrent.futures.wait(
-                        future_to_info.keys(),
-                        timeout=0.25,
-                        return_when=concurrent.futures.FIRST_COMPLETED
+            # 2. Wait for at least one future to complete
+            if future_to_info:
+                # wait for first completed
+                done, _ = concurrent.futures.wait(
+                    future_to_info.keys(),
+                    timeout=0.25,
+                    return_when=concurrent.futures.FIRST_COMPLETED
+                )
+                resolved, cancellation_error = self._resolve_stream_done_futures(
+                    done, future_to_info, abort_event, should_cancel
+                )
+                if cancellation_error and stream_cancellation_error is None:
+                    stream_cancellation_error = cancellation_error
+                    # Stop consuming/submitting new files, but drain every
+                    # already-submitted future to preserve a later fatal error.
+                    done_consuming = True
+                for file_identity, batch_index, processed_task, warnings in resolved:
+                    pending_batches_count -= 1
+                    result = self._record_stream_batch(
+                        file_identity,
+                        batch_index,
+                        processed_task,
+                        warnings,
+                        batch_progress_callback,
+                        file_buffers,
+                        file_batch_counts,
+                        file_warning_buffers,
                     )
-                    resolved, cancellation_error = self._resolve_stream_done_futures(
-                        done, future_to_info, abort_event, should_cancel
-                    )
-                    if cancellation_error and stream_cancellation_error is None:
-                        stream_cancellation_error = cancellation_error
-                        # Stop consuming/submitting new files, but drain every
-                        # already-submitted future to preserve a later fatal error.
-                        done_consuming = True
-                    for file_identity, batch_index, processed_task, warnings in resolved:
-                        pending_batches_count -= 1
-                        result = self._record_stream_batch(
-                            file_identity,
-                            batch_index,
-                            processed_task,
-                            warnings,
-                            batch_progress_callback,
-                            file_buffers,
-                            file_batch_counts,
-                            file_warning_buffers,
-                        )
-                        if result is not None:
-                            yield result
+                    if result is not None:
+                        yield result
 
-            if stream_cancellation_error is not None:
-                raise stream_cancellation_error
+        if stream_cancellation_error is not None:
+            raise stream_cancellation_error
 
     def _collect_file_results(
         self,

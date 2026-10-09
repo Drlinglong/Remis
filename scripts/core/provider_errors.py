@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any, Optional
 
 
@@ -163,3 +164,45 @@ def raise_safe_provider_fatal_error(error: BaseException, *, provider: str) -> N
             message, provider=fatal.provider, status_code=fatal.status_code,
             reason_code=fatal.reason_code,
         ) from None
+def raise_for_status_with_detail(response: Any, limit: int = 300) -> None:
+    """Like ``raise_for_status`` but keep the provider's bounded error message.
+
+    Raw HTTP adapters otherwise lose the body that says which request field was
+    refused, which the structured-output capability fallback needs.
+    """
+    import requests
+
+    try:
+        response.raise_for_status()
+    except requests.HTTPError as exc:
+        detail = ""
+        try:
+            payload = response.json()
+            error = payload.get("error") if isinstance(payload, dict) else None
+            detail = error.get("message", "") if isinstance(error, dict) else str(error or "")
+        except Exception:
+            detail = getattr(response, "text", "") or ""
+        # The upstream body can echo supplied text or credentials. Keep only
+        # the capability signal needed by the schema dispatcher, never its body.
+        schema_rejected = any(field in str(detail).casefold() for field in (
+            "response_format", "json_schema", "response_schema", "response_json_schema",
+            "output_config", "output_format", "structured output", "structured_output",
+            "generaterequest.format", "format of type",
+        ))
+        message = (
+            "Provider rejected structured output schema."
+            if schema_rejected else f"Provider HTTP request failed ({response.status_code})."
+        )
+        raise requests.HTTPError(message, response=response) from None
+
+
+def raise_safe_provider_request_error(error: BaseException, *, provider: str) -> None:
+    """Preserve retry classification without exposing upstream exception bodies."""
+    if isinstance(error, json.JSONDecodeError):
+        raise json.JSONDecodeError("Invalid provider response JSON", "", 0) from None
+    raise_safe_provider_fatal_error(error, provider=provider)
+    status = _status_code(error)
+    message = f"Provider request failed ({type(error).__name__}, status={status})."
+    wrapped = RuntimeError(message)
+    wrapped.status_code = status
+    raise wrapped from None

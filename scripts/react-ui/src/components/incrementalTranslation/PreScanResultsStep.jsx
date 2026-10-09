@@ -24,10 +24,11 @@ import { useTranslation } from 'react-i18next';
 import PerformanceControlPanel from '../shared/PerformanceControlPanel';
 import TelemetrySummary from './TelemetrySummary';
 import { buildPreScanLanguageSummary } from './preScanSummary';
+import { normalizePreScanResults } from '../../utils/preScanPayload';
 import styles from '../../pages/Translation.module.css';
 
 export const PreScanResultsStep = ({
-    scanResults,
+    scanResults: rawScanResults,
     selectedProvider,
     handleProviderChange,
     selectedModel,
@@ -53,6 +54,7 @@ export const PreScanResultsStep = ({
     onViewTask,
 }) => {
     const { t } = useTranslation();
+    const scanResults = normalizePreScanResults(rawScanResults);
     const languageSummary = buildPreScanLanguageSummary({ scanResults, selectedLangs, archiveInfo });
 
     const formatRange = useCallback((range) => (
@@ -255,7 +257,7 @@ export const PreScanResultsStep = ({
                             size="lg"
                             leftSection={<IconPlayerPlay size={20} />}
                             onClick={startTranslation}
-                            disabled={loading || executing || Boolean(conflictingTaskId)}
+                            disabled={loading || executing || Boolean(conflictingTaskId) || Boolean(scanResults.payloadError)}
                         >
                             {t('incremental_translation.step_4_title')}
                         </Button>
@@ -263,6 +265,7 @@ export const PreScanResultsStep = ({
 
                     <TelemetrySummary telemetry={scanResults.telemetry} />
 
+                    {scanResults.payloadError && <Alert color="red">{scanResults.payloadError}</Alert>}
                     {renderFileDetails(scanResults.file_summaries)}
                 </Paper>
             )}

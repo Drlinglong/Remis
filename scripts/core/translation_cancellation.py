@@ -30,6 +30,12 @@ def cancellable_translation_workflow(workflow):
         except ProcessingCancelledError:
             _finalize_cancelled(task_id)
             return None
+        except BaseException:
+            # An unexpected escape after a stop request must still leave the
+            # sticky cancelling state, or the project stays blocked.
+            if task_state.is_task_cancellation_requested(task_id):
+                _finalize_cancelled(task_id)
+            raise
         if task_state.is_task_cancellation_requested(task_id):
             _finalize_cancelled(task_id)
         return result

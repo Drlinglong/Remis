@@ -8,6 +8,7 @@ from typing import Any, Mapping, Sequence
 
 from scripts.core.neologism_manager import Candidate, ContextEvidence
 from scripts.schemas.context_candidate import normalized_match_key
+from .term_candidate_evidence_merge import merge_pending_evidence
 
 
 class ContextTreeV2TermCandidateService:
@@ -28,6 +29,7 @@ class ContextTreeV2TermCandidateService:
         target_language: str,
         review_language: str,
         duplicate_index: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
+        append_evidence: bool = False,
     ) -> dict[str, int]:
         item_lookup = {item.source_item_id: item for item in source_items}
         source_to_units = self._source_to_units(local_units)
@@ -71,7 +73,10 @@ class ContextTreeV2TermCandidateService:
                 else:
                     duplicates += 1
                     if current.status == "pending":
-                        self._refresh_pending(current, candidate)
+                        if append_evidence:
+                            merge_pending_evidence(current, candidate)
+                        else:
+                            self._refresh_pending(current, candidate)
             self.candidate_store.save_candidates(project_id, existing)
         return {"new_terms": added, "duplicate_terms": duplicates}
 

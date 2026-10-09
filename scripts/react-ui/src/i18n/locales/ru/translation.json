@@ -3280,5 +3280,37 @@
     "submit_reveal": "Submit and reveal",
     "no_cases": "No cases match the current filters.",
     "submit_error": "Could not save the review record."
+  },
+  "glossary_terminology": {
+    "community_review": "Проверка согласованности с переводом сообщества",
+    "community_author_history": "Источник: опубликованная автором историческая версия",
+    "community": "Прежний перевод сообщества",
+    "title": "Проверка терминологии",
+    "state": "Статус проверки",
+    "confidence": "Уверенность",
+    "sense": "Значение и контекст",
+    "context": "Идентификаторы контекста",
+    "schinese": "Официальный перевод на упрощённый китайский",
+    "original": "Исходный вариант",
+    "suggestion": "Предложение проверки",
+    "reason": "Обоснование",
+    "reviewer": "Источник проверки",
+    "human_review": "Ручное решение",
+    "confidence_note": "Качественная оценка для определения порядка проверки, а не измеренная точность.",
+    "pending_note": "Ожидает решения; исключено из снимков для перевода.",
+    "reference_locale": "Эта проверка относится к {{locale}}. Выберите этот язык для редактирования.",
+    "states": {
+      "candidate": "Кандидат",
+      "reviewed": "Проверено",
+      "pending": "Требует решения",
+      "approved": "Подтверждено",
+      "rejected": "Отклонено"
+    },
+    "bands": {
+      "high": "Высокая",
+      "medium": "Средняя",
+      "low": "Низкая",
+      "unrated": "Без оценки"
+    }
   }
 }

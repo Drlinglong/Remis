@@ -7,6 +7,8 @@ import {
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { IconX, IconPlus, IconTrash } from '@tabler/icons-react';
+import TerminologyReviewFields from './TerminologyReviewFields';
+import { prepareReviewMetadata } from '../../utils/terminologyReview';
 
 /**
  * 词条编辑表单组件
@@ -116,7 +118,7 @@ const EditTermForm = ({
             notes,
             variants: variantsObject,
             abbreviations: abbreviationsObject,
-            metadata: values.metadata ? JSON.parse(values.metadata) : {},
+            metadata: prepareReviewMetadata(values.metadata, values, selectedTargetLang),
             translations: {
                 ...selectedTerm?.translations,
                 [selectedTargetLang]: translation
@@ -210,6 +212,10 @@ const EditTermForm = ({
                             minRows={3}
                             {...form.getInputProps('notes')}
                         />
+
+                        <TerminologyReviewFields metadata={form.values.metadata} values={form.values}
+                            locale={selectedTargetLang} translations={selectedTerm?.translations}
+                            onChange={(value) => form.setFieldValue('metadata', value)} />
 
                         <Switch
                             label={t('glossary_advanced_mode')}

@@ -3257,5 +3257,37 @@
     "submit_reveal": "Submit and reveal",
     "no_cases": "No cases match the current filters.",
     "submit_error": "Could not save the review record."
+  },
+  "glossary_terminology": {
+    "community_review": "Topluluk çevirisiyle tutarlılık incelemesi",
+    "community_author_history": "Referans kaynağı: yazarın yayımladığı geçmiş sürüm",
+    "community": "Topluluğun önceki çevirisi",
+    "title": "Terminoloji incelemesi",
+    "state": "İnceleme durumu",
+    "confidence": "Güven düzeyi",
+    "sense": "Anlam ve bağlam",
+    "context": "Bağlam kimlikleri",
+    "schinese": "Resmî basitleştirilmiş Çince karşılığı",
+    "original": "İlk taslak",
+    "suggestion": "İnceleme önerisi",
+    "reason": "Gerekçe",
+    "reviewer": "İnceleme kaynağı",
+    "human_review": "Elle verilen karar",
+    "confidence_note": "İnceleme önceliği için nitel bir değerlendirmedir; ölçülmüş doğruluk değildir.",
+    "pending_note": "Karar bekleniyor; çeviri anlık görüntülerine dahil edilmez.",
+    "reference_locale": "Bu inceleme {{locale}} içindir. Düzenlemek için bu dili seçin.",
+    "states": {
+      "candidate": "Aday",
+      "reviewed": "İncelendi",
+      "pending": "Karar gerekli",
+      "approved": "Onaylandı",
+      "rejected": "Reddedildi"
+    },
+    "bands": {
+      "high": "Yüksek",
+      "medium": "Orta",
+      "low": "Düşük",
+      "unrated": "Değerlendirilmedi"
+    }
   }
 }

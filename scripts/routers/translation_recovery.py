@@ -1,6 +1,7 @@
 """Task Center recovery actions for persisted translation runs."""
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
+from starlette.concurrency import run_in_threadpool
 
 from scripts.core.feature_policy import checkpoint_resume_enabled
 from scripts.core.services.translation_recovery_service import TranslationRecoveryService
@@ -11,6 +12,7 @@ from scripts.schemas.translation import (
     TranslationTaskResponse,
 )
 from scripts.shared import task_state
+from scripts.shared.task_admission import rollback_unstarted_task
 
 
 router = APIRouter()
@@ -21,7 +23,7 @@ async def get_translation_recovery(project_id: str):
     repository = task_state.get_repository()
     if repository is None:
         return {"task_id": None, "status": "none", "checkpoint": {}, "allowed_actions": []}
-    return TranslationRecoveryService(repository).inspect(project_id)
+    return await run_in_threadpool(TranslationRecoveryService(repository).inspect, project_id)
 
 
 @router.delete("/api/projects/{project_id}/translation-checkpoint")
@@ -30,7 +32,10 @@ async def clear_translation_checkpoint(project_id: str):
     if repository is None:
         raise HTTPException(status_code=503, detail="Task persistence is unavailable")
     try:
-        return TranslationRecoveryService(repository).clear_project_checkpoint(project_id)
+        return await run_in_threadpool(
+            TranslationRecoveryService(repository).clear_project_checkpoint,
+            project_id,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
@@ -63,7 +68,8 @@ async def resume_translation_task(
         raise HTTPException(status_code=503, detail="Task persistence is unavailable")
     try:
         recovery_service = TranslationRecoveryService(repository)
-        original = recovery_service.require_resumable_identity(
+        original = await run_in_threadpool(
+            recovery_service.require_resumable_identity,
             task_id,
             expected_checkpoint_revision=payload.expected_checkpoint_revision,
         )
@@ -95,15 +101,19 @@ async def start_translation_over(task_id: str, background_tasks: BackgroundTasks
         raise HTTPException(status_code=404, detail="Recovery task not found")
     try:
         service = TranslationRecoveryService(repository)
-        original = service.require_start_over(task_id)
+        original = await run_in_threadpool(service.require_start_over, task_id)
         configuration = dict(original["recovery"]["configuration_snapshot"])
         configuration.update(resume_from_task_id=None, use_resume=False)
         request = InitialTranslationRequest.model_validate(configuration)
         replacement = await start_translation_project(request, background_tasks)
-        service.finalize_start_over(
-            task_id,
-            replacement_task_id=replacement["task_id"],
-        )
+        # If discarding the old checkpoint fails, this response errors and the
+        # queued replacement never runs; release it instead of leaving it pending.
+        with rollback_unstarted_task(replacement["task_id"]):
+            await run_in_threadpool(
+                service.finalize_start_over,
+                task_id,
+                replacement_task_id=replacement["task_id"],
+            )
         return replacement
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc

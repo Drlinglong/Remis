@@ -3286,5 +3286,37 @@
     "submit_reveal": "Submit and reveal",
     "no_cases": "No cases match the current filters.",
     "submit_error": "Could not save the review record."
+  },
+  "glossary_terminology": {
+    "community_review": "Community consistency review",
+    "community_author_history": "Reference source: public historical version from the author",
+    "community": "Community historical translation",
+    "title": "Terminology review",
+    "state": "Review status",
+    "confidence": "Confidence",
+    "sense": "Meaning and context",
+    "context": "Context identifiers",
+    "schinese": "Official Simplified Chinese reference",
+    "original": "Original draft",
+    "suggestion": "Audit suggestion",
+    "reason": "Audit reasoning",
+    "reviewer": "Review provenance",
+    "confidence_note": "Qualitative routing estimate, not a measured accuracy score.",
+    "pending_note": "Awaiting a decision; excluded from translation snapshots.",
+    "reference_locale": "This review is for {{locale}}. Select that language to edit it.",
+    "states": {
+      "candidate": "Candidate",
+      "reviewed": "Reviewed",
+      "pending": "Needs decision",
+      "approved": "Confirmed",
+      "rejected": "Rejected"
+    },
+    "bands": {
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low",
+      "unrated": "Unrated"
+    },
+    "human_review": "Manual decision"
   }
 }

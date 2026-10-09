@@ -100,7 +100,7 @@ class TranslationFixerAgent:
             prompt = self._build_fix_prompt(task, current_broken, error_reports)
             
             try:
-                raw_response = self.handler._call_api(self.handler.client, prompt)
+                raw_response = self.handler._call_batch_api(self.handler.client, prompt, len(task.texts))
                 fixed_texts = parse_response(
                     raw_response,
                     TranslationResponse,

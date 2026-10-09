@@ -16,6 +16,10 @@ from scripts.core.services.translation_task_lifecycle import (
 )
 from scripts.core.services.translation_recovery_service import TranslationRecoveryService
 from scripts.shared.state import tasks
+from scripts.shared.task_restart_policy import (
+    mark_restart_interrupted as _mark_restart_interrupted,
+    restart_recovery as _restart_recovery,
+)
 from scripts.shared.ws_manager import ws_manager
 
 _LOCK = threading.RLock()
@@ -271,69 +275,6 @@ def _mark_persistence_failure(task: Dict[str, Any], error: Exception) -> None:
     }
 
 
-def _restart_recovery(task: Dict[str, Any]) -> Optional[tuple[str, str, bool]]:
-    """Return restart interruption messaging for work that has no live worker."""
-
-    kind = task.get("kind")
-    checkpoint = task.get("checkpoint") or {}
-    if kind == "initial_translation":
-        checkpoint_available = checkpoint.get("available") is True
-        return (
-            "The app restarted before this initial translation finished.",
-            (
-                "The previous translation worker is no longer running. "
-                "Resume from the saved checkpoint or start a new translation."
-                if checkpoint_available
-                else "The previous translation worker is no longer running. "
-                "Return to Initial Translation to check for saved progress or start again."
-            ),
-            checkpoint_available,
-        )
-    if kind == "reference_library_maintenance":
-        return (
-            "The app restarted before official reference library maintenance finished.",
-            "This reference library task cannot resume automatically. Review the current library state before retrying.",
-            False,
-        )
-    if kind in {"neologism_mining", "context_archive_analysis"}:
-        return (
-            "The app restarted before this context-analysis task finished.",
-            "This context-analysis task cannot resume automatically. Start it again.",
-            False,
-        )
-    if (
-        kind in {"agent_workshop", "agent_workshop_batch"}
-        and checkpoint.get("resume_supported") is False
-    ):
-        return (
-            "The app restarted before this repair task finished.",
-            "This Agent Workshop task cannot resume automatically. Return to the workflow and review current validation results before retrying.",
-            False,
-        )
-    return None
-
-
-def _mark_restart_interrupted(
-    task: Dict[str, Any],
-    message: str,
-    attention_reason: str,
-    *,
-    preserve_checkpoint: bool = False,
-) -> None:
-    now = _utc_now_iso()
-    task["status"] = "interrupted"
-    task["updated_at"] = now
-    task["finished_at"] = now
-    task["message"] = message
-    task["attention_reason"] = attention_reason
-    task.setdefault("progress", {})["stage"] = "Interrupted"
-    if not preserve_checkpoint:
-        checkpoint = task.setdefault("checkpoint", {})
-        checkpoint["available"] = False
-        checkpoint["stage"] = "interrupted"
-        checkpoint["updated_at"] = now
-
-
 def _persist_task(
     task: Dict[str, Any],
     *,
@@ -472,13 +413,52 @@ def create_task(
 
 def init_progress(task_id: str, progress: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     with _LOCK:
-        task = _ensure_task(task_id)
+        task = _task_for_update(task_id)
         task["progress"] = deepcopy(DEFAULT_PROGRESS)
         if progress:
             _merge_dict(task["progress"], progress)
         task["updated_at"] = _utc_now_iso()
         _persist_task(task)
         return deepcopy(task["progress"])
+
+
+def _task_for_update(task_id: str) -> Dict[str, Any]:
+    """Return the record an update should modify.
+
+    Workers own live tasks, so the in-memory copy is current for them. A task
+    that is missing here or already terminal may have been changed directly in
+    SQLite (recovery actions, checkpoint clearing); start from the ledger so a
+    whole-record save cannot restore a stale snapshot.
+    """
+    task = tasks.get(task_id)
+    stale_candidate = task is None or (
+        str(task.get("status") or "").lower() in TERMINAL_TASK_STATUSES
+        and not task.get("persistence_failure")
+    )
+    if _repository is not None and stale_candidate:
+        try:
+            persisted = _repository.get_task(task_id, include_events=False)
+        except (AttributeError, TypeError):
+            persisted = None
+        if persisted is not None:
+            persisted["log"] = list((task or {}).get("log") or [])
+            if task is not None or str(persisted.get("status") or "").lower() in ACTIVE_TASK_STATUSES:
+                tasks[task_id] = persisted
+            return persisted
+    return _ensure_task(task_id)
+
+
+def _status_after_cancel_request(requested: str, status: str) -> Optional[str]:
+    """Hold cancelling until the worker stops; then accept its terminal outcome.
+
+    A failure reported after the user asked to stop is recorded as cancelled,
+    because the stop request, not the provider, ended the run.
+    """
+    if requested in {"failed", "partial_failed"}:
+        return "cancelled"
+    if requested == "cancelling" or requested in TERMINAL_TASK_STATUSES:
+        return status
+    return None
 
 
 def update_task(
@@ -497,7 +477,7 @@ def update_task(
     event_level: Optional[str] = None,
 ) -> Dict[str, Any]:
     with _LOCK:
-        task = _ensure_task(task_id)
+        task = _task_for_update(task_id)
         if status is not None:
             current_status = str(task.get("status") or "").lower()
             requested_status = str(status or "").lower()
@@ -510,10 +490,9 @@ def update_task(
                     f"Translation task {task_id} is terminal ({current_status}) "
                     f"and cannot transition to {requested_status}"
                 )
-            if not (
-                current_status == "cancelling"
-                and requested_status not in {"cancelling", "cancelled", "canceled"}
-            ):
+            if current_status == "cancelling":
+                status = _status_after_cancel_request(requested_status, status)
+            if status is not None:
                 task["status"] = status
         if message is not None:
             task["message"] = message
@@ -541,30 +520,16 @@ def update_task(
         task["updated_at"] = now
         if event_audience == "user":
             _append_log(task, append_log)
-        persisted = _persist_task(
+        # A terminal save also releases this task's own project lock row, so no
+        # second lifecycle transition is needed (or safe: the project lock may
+        # already belong to another task).
+        _persist_task(
             task,
             event_message=append_log or message,
             event_type="status_changed" if status is not None else "log",
             event_audience=event_audience,
             event_level=event_level,
         )
-        if (
-            persisted
-            and _translation_lifecycle is not None
-            and _is_translation_task(task)
-            and normalized_status in TRANSLATION_TERMINAL_STATUSES
-        ):
-            try:
-                project_id = str(task.get("project_id") or "")
-                if project_id and _translation_lifecycle.get_project_lock(project_id):
-                    _translation_lifecycle.transition(
-                        task_id,
-                        normalized_status,
-                        message=message or append_log,
-                        event_type="terminal_transition",
-                    )
-            except (OSError, sqlite3.Error, ValueError, KeyError, AttributeError) as exc:
-                logging.error("Failed to finalize translation task %s: %s", task_id, exc)
         snapshot = deepcopy(task)
     _notify_task_update_listeners(task_id, snapshot)
     if push:
@@ -575,7 +540,7 @@ def update_task(
 def request_task_cancellation(task_id: str) -> Dict[str, Any]:
     """Request cooperative cancellation without releasing the task's lock early."""
     with _LOCK:
-        task = _ensure_task(task_id)
+        task = _task_for_update(task_id)
         event = _CANCELLATION_EVENTS.setdefault(task_id, threading.Event())
         event.set()
         if _translation_lifecycle is not None and _is_translation_task(task):
@@ -602,6 +567,13 @@ def request_task_cancellation(task_id: str) -> Dict[str, Any]:
 
 
 def is_task_cancellation_requested(task_id: str) -> bool:
+    """Answer from process state; consult SQLite only for tasks not mirrored here.
+
+    Every in-process cancellation goes through request_task_cancellation, which
+    sets the Event and updates the in-memory mirror, so a mirrored task never
+    needs a ledger read. Workers poll this per batch, so it must stay cheap and
+    must not hold _LOCK across database I/O.
+    """
     with _LOCK:
         event = _CANCELLATION_EVENTS.get(task_id)
         if event and event.is_set():
@@ -611,20 +583,21 @@ def is_task_cancellation_requested(task_id: str) -> bool:
             status = str(task.get("status") or "").lower()
             if status in TERMINAL_TASK_STATUSES:
                 return False
-            if status == "cancelling" or task.get("cancellation_requested_at"):
-                return True
-        if _repository is not None:
-            try:
-                persisted = _repository.get_task(task_id)
-            except AttributeError:
-                persisted = None
-            if persisted is not None:
-                status = str(persisted.get("status") or "").lower()
-                return (
-                    status not in TERMINAL_TASK_STATUSES
-                    and (status == "cancelling" or bool(persisted.get("cancellation_requested_at")))
-                )
+            return status == "cancelling" or bool(task.get("cancellation_requested_at"))
+        repository = _repository
+    if repository is None:
         return False
+    try:
+        persisted = repository.get_task(task_id, include_events=False)
+    except AttributeError:
+        persisted = None
+    if persisted is None:
+        return False
+    status = str(persisted.get("status") or "").lower()
+    return (
+        status not in TERMINAL_TASK_STATUSES
+        and (status == "cancelling" or bool(persisted.get("cancellation_requested_at")))
+    )
 
 
 def update_progress(
@@ -710,7 +683,7 @@ def append_task_event(
     if audience not in {"user", "diagnostic"}:
         raise ValueError("Task event audience must be user or diagnostic")
     with _LOCK:
-        task = _ensure_task(task_id)
+        task = _task_for_update(task_id)
         task["updated_at"] = _utc_now_iso()
         if audience == "user":
             _append_log(task, message)
@@ -736,10 +709,13 @@ def get_task(task_id: str) -> Optional[Dict[str, Any]]:
         if _repository is None:
             return None
         persisted = _repository.get_task(task_id)
-        if persisted is not None:
+        if persisted is None:
+            return None
+        # Mirror only live work; historical tasks stay in SQLite so the
+        # in-memory map does not grow with every task ever viewed.
+        if str(persisted.get("status") or "").lower() in ACTIVE_TASK_STATUSES:
             tasks[task_id] = persisted
-            return deepcopy(persisted)
-        return None
+        return deepcopy(persisted)
 
 
 def list_tasks() -> list[Dict[str, Any]]:

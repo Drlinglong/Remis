@@ -22,7 +22,6 @@ from scripts.app_settings import MAX_RETRIES, PROJECT_ROOT
 from scripts.core.api_handler import get_handler
 from scripts.core.glossary_manager import glossary_manager
 from scripts.utils.post_process_validator import PostProcessValidator
-from scripts.utils.text_clean import mask_special_tokens
 from scripts.utils.rate_limiter import rate_limiter
 from scripts.developer_tools.evaluate_translation_quality import (
     build_translation_prompt,
@@ -154,11 +153,23 @@ def _lookup_by_key(mapping: dict[str, Any], key: str) -> Any:
     return mapping.get(key, mapping.get(_display_key(key)))
 
 
+def _historical_masked_source(text: str) -> str:
+    """Frozen input recipe of the recorded factorial runs (pre-2026-10-09 masks).
+
+    Production prompts no longer mask quotes or newlines. This copy exists only
+    so new runs of this experiment stay comparable with its recorded results.
+    """
+    text = text.replace("\n", "[[_NL_]]")
+    for quote in ('"', "“", "”", "«", "»", "„"):
+        text = text.replace(quote, "[[_QT_]]")
+    return text
+
+
 def _numbered_input(case: dict[str, Any], arm: ExperimentArm) -> str:
     lines = []
     hints = case.get("semantic_hints", {})
     for index, entry in enumerate(case["source_entries"], start=1):
-        masked = mask_special_tokens(entry["text"])
+        masked = _historical_masked_source(entry["text"])
         if arm.include_raw_key:
             lines.append(
                 f'{index}. Localization key: "{_display_key(entry["key"])}"; '

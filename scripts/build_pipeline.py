@@ -16,6 +16,7 @@ try:
     from scripts.build_profile import PROFILES, write_profile_manifest
     from scripts.build_game_smoke import REQUIRED_FROZEN_GAME_ADAPTER_MODULES, verify_frozen_game_adapter_modules
     from scripts.build_fpk_smoke import PYINSTALLER_FPK_ARGS, verify_frozen_fpk_support
+    from scripts.build_glossary_resources import package_glossaries, read_resources
     PYINSTALLER_GAME_ADAPTER_ARGS = "--collect-submodules scripts.core.game_adapters"
     PYINSTALLER_GAME_ADAPTER_FACTORY_ARGS = (
         "--hidden-import scripts.core.game_adapters.project_zomboid "
@@ -26,6 +27,7 @@ except ModuleNotFoundError:
     from build_profile import PROFILES, write_profile_manifest
     from build_game_smoke import REQUIRED_FROZEN_GAME_ADAPTER_MODULES, verify_frozen_game_adapter_modules
     from build_fpk_smoke import PYINSTALLER_FPK_ARGS, verify_frozen_fpk_support
+    from build_glossary_resources import package_glossaries, read_resources
     PYINSTALLER_GAME_ADAPTER_ARGS = "--collect-submodules scripts.core.game_adapters"
     PYINSTALLER_GAME_ADAPTER_FACTORY_ARGS = (
         "--hidden-import scripts.core.game_adapters.project_zomboid "
@@ -549,6 +551,31 @@ def run_frozen_backend_smoke(target_path, profile, env_python):
         sys.exit(1)
 
 
+def prepare_release_seed_data(project_root, scripts_dir, env_python):
+    """Validate public dictionaries and export only reviewed database seeds."""
+    read_resources(project_root)
+    run_command(
+        [env_python, os.path.join(scripts_dir, "utils", "export_seed_data.py"),
+         "--source-db", os.path.join(project_root, "assets", "skeleton.sqlite"),
+         "--cache-db", os.path.join(project_root, "assets", "mods_cache_skeleton.sqlite")],
+        cwd=project_root, shell=False,
+    )
+    seed_main = os.path.join(project_root, "data", "seed_data_main.sql")
+    seed_projects = os.path.join(project_root, "data", "seed_data_projects.sql")
+    for label, path in (("Main", seed_main), ("Projects", seed_projects)):
+        if not os.path.exists(path):
+            print(f"[ERROR] {label} seed data not found at {path}")
+            sys.exit(1)
+    return seed_main, seed_projects, os.path.join(project_root, "assets", "mods_cache_skeleton.sqlite")
+
+
+def copy_release_artifacts(project_root, src_tauri_dir, tauri_config, target_triple, profile):
+    installer = copy_nsis_artifact(project_root, src_tauri_dir, tauri_config, target_triple, profile)
+    glossary = package_glossaries(project_root, Path(project_root) / "archive/release" / profile.channel, profile.version)
+    print(f"[SUCCESS] Release glossary attachment: {glossary}")
+    return installer, glossary
+
+
 def main(argv=None):
     profile = PROFILES[parse_args(argv).channel]
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -598,35 +625,7 @@ def main(argv=None):
     # Step 1.5: Export reviewed release seed data.
     # Never read the developer's live AppData databases during a release build.
     print_step("Step 1.5: Export Reviewed Seed Data")
-    export_script = os.path.join(scripts_dir, "utils", "export_seed_data.py")
-    release_seed_db = os.path.join(project_root, "assets", "skeleton.sqlite")
-    cache_skeleton_db = os.path.join(
-        project_root,
-        "assets",
-        "mods_cache_skeleton.sqlite",
-    )
-    run_command(
-        [
-            env_python,
-            export_script,
-            "--source-db",
-            release_seed_db,
-            "--cache-db",
-            cache_skeleton_db,
-        ],
-        cwd=project_root,
-        shell=False,
-    )
-
-    seed_main = os.path.join(project_root, "data", "seed_data_main.sql")
-    seed_projects = os.path.join(project_root, "data", "seed_data_projects.sql")
-
-    if not os.path.exists(seed_main):
-        print(f"[ERROR] Main seed data not found at {seed_main}")
-        sys.exit(1)
-    if not os.path.exists(seed_projects):
-        print(f"[ERROR] Projects seed data not found at {seed_projects}")
-        sys.exit(1)
+    seed_main, seed_projects, cache_skeleton_db = prepare_release_seed_data(project_root, scripts_dir, env_python)
 
     print_step("Step 2: Freeze the Backend (PyInstaller)")
     
@@ -746,7 +745,7 @@ def main(argv=None):
     print_step("Step 4: Frontend Build & Tauri Build")
     
     # Install dependencies
-    run_command("npm install", cwd=react_ui_dir)
+    run_command("npm ci", cwd=react_ui_dir)
     
     # Build React App
     build_env = frontend_build_environment(profile)
@@ -758,7 +757,7 @@ def main(argv=None):
     
     # Step 5: Move Artifacts
     print_step("Step 5: Move Artifacts")
-    copy_nsis_artifact(project_root, src_tauri_dir, tauri_config, target_triple, profile)
+    copy_release_artifacts(project_root, src_tauri_dir, tauri_config, target_triple, profile)
 
     print_step("Build Pipeline Completed Successfully!")
 

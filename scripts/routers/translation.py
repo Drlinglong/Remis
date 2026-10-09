@@ -4,8 +4,10 @@ import logging
 import traceback
 from typing import List, Optional
 from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile, File, Form, WebSocket
+from starlette.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse
 from scripts.shared.state import tasks
+from scripts.shared.task_admission import rollback_unstarted_task
 from scripts.shared.services import project_manager, glossary_manager, archive_manager
 from scripts.shared import task_state
 from scripts.schemas.translation import (
@@ -481,7 +483,8 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
         validate_target_language_codes(
             str(project.get("game_id") or ""), [str(item["code"]) for item in target_languages]
         )
-        mod_name, recovery = prepare_initial_recovery(
+        mod_name, recovery = await run_in_threadpool(
+            prepare_initial_recovery,
             request=request,
             project=project,
             task_id=task_id,
@@ -493,7 +496,8 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     resume_supported = checkpoint_resume_enabled()
     try:
-        create_initial_translation_task(
+        await run_in_threadpool(
+            create_initial_translation_task,
             task_id=task_id,
             project=project,
             request=request,
@@ -521,16 +525,19 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
             },
         ) from exc
 
-    task_state.update_task(
-        task_id,
-        status="starting",
-        append_log=f"Starting translation for project: '{mod_name}'",
-        push=True,
-    )
+    # Background tasks run only after a successful response, so any failure
+    # before returning must release the task instead of leaving it pending.
+    with rollback_unstarted_task(task_id):
+        task_state.update_task(
+            task_id,
+            status="starting",
+            append_log=f"Starting translation for project: '{mod_name}'",
+            push=True,
+        )
 
-    _enqueue_project_translation(
-        background_tasks, task_id, mod_name, project, request, provider_runtime, recovery,
-    )
+        _enqueue_project_translation(
+            background_tasks, task_id, mod_name, project, request, provider_runtime, recovery,
+        )
 
     # Auto-register translation path (Optimistic registration)
     # We predict the output path based on the request
@@ -605,6 +612,14 @@ async def _archived_start_translation(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"File processing failed: {e}")
 
+    try:
+        # Normalize languages using strict schema
+        from scripts.schemas.common import LanguageCode
+        source_lang_code = LanguageCode.from_str(source_lang_code).value
+        target_codes = [LanguageCode.from_str(code.strip()).value for code in target_lang_codes.split(',')]
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
     task_id = str(uuid.uuid4())
     mod_name = installed.mod_name
     source_path = installed.source_path
@@ -619,26 +634,19 @@ async def _archived_start_translation(
         log_message=f"Mod '{mod_name}' uploaded and extracted.",
     )
 
-    try:
-        # Normalize languages using strict schema
-        from scripts.schemas.common import LanguageCode
-        source_lang_code = LanguageCode.from_str(source_lang_code).value
-        target_codes = [LanguageCode.from_str(code.strip()).value for code in target_lang_codes.split(',')]
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-    background_tasks.add_task(
-        run_translation_workflow,
-        task_id,
-        mod_name,
-        game_profile_id,
-        source_lang_code,
-        target_codes,
-        api_provider,
-        mod_context,
-        project_id=None,
-        **({"provider_runtime": provider_runtime} if provider_runtime else {}),
-    )
+    with rollback_unstarted_task(task_id):
+        background_tasks.add_task(
+            run_translation_workflow,
+            task_id,
+            mod_name,
+            game_profile_id,
+            source_lang_code,
+            target_codes,
+            api_provider,
+            mod_context,
+            project_id=None,
+            **({"provider_runtime": provider_runtime} if provider_runtime else {}),
+        )
 
     return {"task_id": task_id, "message": "Translation task started."}
 
@@ -661,7 +669,8 @@ async def start_translation_v2(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     provider_runtime = resolve_runtime_or_400(payload.api_provider, payload.model_name)
     try:
-        task_id, mod_name = legacy_translation_start_service.prepare_legacy_translation_start(
+        task_id, mod_name = await run_in_threadpool(
+            legacy_translation_start_service.prepare_legacy_translation_start,
             payload=payload,
             provider_fields=provider_task_fields(provider_runtime),
             source_dir=SOURCE_DIR,
@@ -676,26 +685,27 @@ async def start_translation_v2(
             detail={"code": "task_persistence_failed", "message": "The translation task could not be recorded. Retry safely."},
         ) from exc
 
-    background_tasks.add_task(
-        run_translation_workflow_v2,
-        task_id,
-        mod_name,
-        payload.game_profile_id,
-        payload.source_lang_code,
-        payload.target_lang_codes,
-        payload.api_provider,
-        payload.mod_context,
-        payload.selected_glossary_ids,
-        payload.model_name,
-        payload.use_main_glossary,
-        payload.custom_lang_config,
-        project_id=None, # Path-based upload might not have project ID
-        use_resume=False,
-        clean_source=payload.clean_source,
-        embedded_workshop=payload.embedded_workshop.model_dump() if payload.embedded_workshop else None,
-        reference_reuse=payload.reference_reuse.model_dump() if payload.reference_reuse else None,
-        **({"provider_runtime": provider_runtime} if provider_runtime else {}),
-    )
+    with rollback_unstarted_task(task_id):
+        background_tasks.add_task(
+            run_translation_workflow_v2,
+            task_id,
+            mod_name,
+            payload.game_profile_id,
+            payload.source_lang_code,
+            payload.target_lang_codes,
+            payload.api_provider,
+            payload.mod_context,
+            payload.selected_glossary_ids,
+            payload.model_name,
+            payload.use_main_glossary,
+            payload.custom_lang_config,
+            project_id=None, # Path-based upload might not have project ID
+            use_resume=False,
+            clean_source=payload.clean_source,
+            embedded_workshop=payload.embedded_workshop.model_dump() if payload.embedded_workshop else None,
+            reference_reuse=payload.reference_reuse.model_dump() if payload.reference_reuse else None,
+            **({"provider_runtime": provider_runtime} if provider_runtime else {}),
+        )
 
     return {"task_id": task_id, "message": "Translation task started."}
 
