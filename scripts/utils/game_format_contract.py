@@ -18,6 +18,7 @@ from difflib import SequenceMatcher
 import re
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 from scripts.utils.concept_identity import concept_identity
+from scripts.utils.format_span_permutation import spans_are_permutation
 
 
 GAME_ALIASES = {
@@ -715,13 +716,15 @@ def compare_format_structure(source: str, target: str, game_id: str) -> FormatSt
             diff.protected_order_changed,
         ) = _sequence_diff(source_runtime, target_runtime)
 
-        (
-            diff.format_identity_changes,
-            diff.format_order_changed,
-            format_variations,
-        ) = _compare_format_tokens(source_parsed, target_parsed)
-        diff.possible_variations.extend(format_variations)
-        diff.boundary_changes.extend(_compare_boundaries(source_parsed, target_parsed))
+        # Whole spans moved by target word order keep identity and binding.
+        if not spans_are_permutation(source_parsed, target_parsed):
+            (
+                diff.format_identity_changes,
+                diff.format_order_changed,
+                format_variations,
+            ) = _compare_format_tokens(source_parsed, target_parsed)
+            diff.possible_variations.extend(format_variations)
+            diff.boundary_changes.extend(_compare_boundaries(source_parsed, target_parsed))
         diff.runtime_variations.extend(
             _runtime_token_reduction_variations(source_parsed, target_parsed)
         )
