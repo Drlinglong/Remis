@@ -6,7 +6,9 @@ from openai import OpenAI
 from scripts.app_settings import get_api_key
 from scripts.core.openai_handler import OpenAIHandler
 from scripts.core.strict_json_schema import strict_json_schema
-from scripts.core.translation_output_contract import translation_response_format, validate_translation_response
+from scripts.core.translation_output_contract import (
+    BATCH_ENVELOPE_SYSTEM_PROMPT, translation_response_format, validate_translation_response,
+)
 
 
 class OpenRouterHandler(OpenAIHandler):
@@ -71,11 +73,7 @@ class OpenRouterHandler(OpenAIHandler):
         options["extra_body"] = extra
         response = client.chat.completions.create(
             messages=[
-                {"role": "system", "content": (
-                    "You are a professional translator for game mods. Return a JSON object "
-                    "with a translations array in input order. This output envelope supersedes "
-                    "any instruction requesting a bare array; preserve all translation rules."
-                )},
+                {"role": "system", "content": BATCH_ENVELOPE_SYSTEM_PROMPT},
                 {"role": "user", "content": prompt},
             ],
             response_format=translation_response_format(expected_count),

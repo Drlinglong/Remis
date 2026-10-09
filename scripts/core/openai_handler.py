@@ -4,6 +4,9 @@ from openai import OpenAI
 
 from scripts.app_settings import get_api_key
 from scripts.core.base_handler import BaseApiHandler
+from scripts.core.translation_output_contract import (
+    BATCH_ENVELOPE_SYSTEM_PROMPT, translation_response_format,
+)
 
 class OpenAIHandler(BaseApiHandler):
     """OpenAI API Handler子类"""
@@ -71,6 +74,24 @@ class OpenAIHandler(BaseApiHandler):
             self.logger.exception(f"OpenAI API call failed: {e}")
             # 重新引发异常，让基类的重试逻辑捕获
             raise
+
+    def _call_schema_batch_api(self, client: OpenAI, prompt: str, expected_count: int) -> str:
+        """Request the batch envelope through OpenAI Structured Outputs."""
+        model_name = self.get_provider_config().get("default_model", "gpt-5.6-luna")
+        request_kwargs = {
+            "model": model_name,
+            "messages": [
+                {"role": "system", "content": BATCH_ENVELOPE_SYSTEM_PROMPT},
+                {"role": "user", "content": prompt},
+            ],
+            "max_completion_tokens": 4000,
+            "response_format": translation_response_format(expected_count),
+        }
+        response = client.chat.completions.create(
+            **self._apply_reasoning_to_openai_kwargs(request_kwargs)
+        )
+        self._record_model_response(response)
+        return (response.choices[0].message.content or "").strip()
 
     def generate_with_messages(self, messages: list[dict], temperature: float = 0.7) -> str:
         """

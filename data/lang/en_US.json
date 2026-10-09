@@ -352,6 +352,8 @@
   "validation_format_boundary_mismatch": "A formatting span is bound to different protected content.",
   "validation_format_nesting_mismatch": "Formatting tag nesting differs from the source.",
   "validation_format_structure_variation": "Formatting occurrence count changed and requires semantic review.",
+  "validation_unpaired_quotes": "Target quotation marks are unpaired and require review.",
+  "validation_line_break_count_mismatch": "Line break count differs from the source and requires review.",
   "validation_generic_variable_parity_details": "Variable '{var}': source appears {source_count} time(s), translation appears {target_count} time(s).",
   "post_processing_start": "\n--- Starting Post-Processing Format Validation ---",
   "post_processing_game": "Validating localization syntax format for {game_name}...",

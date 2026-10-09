@@ -2,6 +2,10 @@ import requests
 
 from scripts.app_settings import get_api_key
 from scripts.core.base_handler import BaseApiHandler
+from scripts.core.provider_errors import raise_for_status_with_detail
+from scripts.core.translation_output_contract import (
+    BATCH_ENVELOPE_SYSTEM_PROMPT, anthropic_output_config,
+)
 
 
 class AnthropicHandler(BaseApiHandler):
@@ -54,6 +58,7 @@ class AnthropicHandler(BaseApiHandler):
         messages: list[dict],
         system: str,
         temperature: float | None = None,
+        output_config: dict | None = None,
     ) -> str:
         provider_config = self.get_provider_config()
         payload = {
@@ -65,13 +70,16 @@ class AnthropicHandler(BaseApiHandler):
         if temperature is not None:
             payload["temperature"] = temperature
         payload.update(self._reasoning_request_parameters())
+        if output_config:
+            # Reasoning may already set output_config.effort; merge, never replace.
+            payload["output_config"] = {**payload.get("output_config", {}), **output_config}
 
         response = client.post(
             f"{self.base_url}/messages",
             json=payload,
             timeout=300,
         )
-        response.raise_for_status()
+        raise_for_status_with_detail(response)
         response_payload = response.json()
         self._record_model_response(response_payload)
         return self._extract_text(response_payload)
@@ -81,6 +89,17 @@ class AnthropicHandler(BaseApiHandler):
             client,
             system=self.DEFAULT_SYSTEM_PROMPT,
             messages=[{"role": "user", "content": prompt}],
+        )
+
+    def _call_schema_batch_api(
+        self, client: requests.Session, prompt: str, expected_count: int
+    ) -> str:
+        """Request the batch envelope through Anthropic structured outputs."""
+        return self._create_message(
+            client,
+            system=BATCH_ENVELOPE_SYSTEM_PROMPT,
+            messages=[{"role": "user", "content": prompt}],
+            output_config=anthropic_output_config(expected_count),
         )
 
     def generate_with_messages(

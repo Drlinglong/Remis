@@ -16,6 +16,8 @@ Narzędzia do „czyszczenia” tekstu na potrzeby lokalizacji Paradox:
   parser EU4.
 """
 
+import re
+
 # --- Mapa zamian 1-do-1 (ogonków) ------------------------------
 DIACRITIC_MAP = str.maketrans({
     "ł": "l", "Ł": "L",
@@ -63,9 +65,31 @@ def strip_outer_quotes(txt: str) -> str:
 
     return txt
 
-# --- Token Masking Constants -----------------------------------
-MASK_NEWLINE = "[[_NL_]]"
-MASK_QUOTE   = "[[_QT_]]"
+
+# --- Model output normalization -----------------------------------
+# Source text reaches the model unmasked (quotes and ``\n`` stay visible). The
+# helpers below only normalize what comes back.
+
+# Legacy input masks, retired 2026-10-09. Kept only so archived raw model
+# outputs (checkpoints, Model Arena history, benchmark replays) still parse.
+# Remove LEGACY_MASK_* and restore_legacy_mask_tokens once no supported
+# archive replays raw outputs produced before that date, i.e. a scan of the
+# archived raw responses for "_QT_" / "_NL_" returns zero matches.
+LEGACY_MASK_NEWLINE = "[[_NL_]]"
+LEGACY_MASK_QUOTE = "[[_QT_]]"
+_LEGACY_BARE_TOKENS = {
+    "QT_": '"', "_QT_": '"', "[_QT_]": '"',
+    "NL_": "\\n", "_NL_": "\\n", "[_NL_]": "\\n",
+}
+# Accepts well-formed and malformed fragments seen in history, e.g.
+# "[[_QT_]]", "[[ _QT_ ]]", "[ [_QT_]]", "[_QT_]]", "[[_QT_]", "_QT_]]".
+_LEGACY_TOKEN_TEMPLATE = (
+    r"(?:\[\s*){{1,2}}_{kind}_(?:\s*\]){{0,2}}"
+    r"|(?<![\w\[])_{kind}_(?:\s*\]){{1,2}}"
+)
+_LEGACY_QUOTE = re.compile(_LEGACY_TOKEN_TEMPLATE.format(kind="QT"))
+# Older models padded newline masks with spaces; one space per side is dropped.
+_LEGACY_NEWLINE = re.compile(r" ?(?:" + _LEGACY_TOKEN_TEMPLATE.format(kind="NL") + r") ?")
 
 # --- Paradox Language Quote Standards --------------------------
 # Maps target_lang code to (Open_Quote, Close_Quote)
@@ -79,96 +103,87 @@ QUOTE_STYLES = {
     # European - Angle Brackets (Guillemets)
     "fr": ("« ", " »"),     # French (With non-breaking space usually)
     "ru": ("«", "»"),       # Russian
-    
+
     # European - Low-High
     "de": ("„", "“"),       # German
     "pl": ("„", "”"),       # Polish
 
-    # Standard / Fallback (English, Spanish, Portuguese, Turkish)
-    "en": ("“", "”"), 
+    # Standard (English, Spanish, Portuguese, Turkish)
+    "en": ("“", "”"),
     "es": ("“", "”"),
     "pt": ("“", "”"),
     "tr": ("“", "”"),
-    "default": ("\\\"", "\\\"") # Fallback: Escaped straight quote
 }
+# Paradox runtime tokens are never restyled: quotes inside them are syntax.
+_PROTECTED_QUOTE_SPAN = re.compile(r"\[[^\]]*\]|\$[^$\s]*\$")
 
-def mask_special_tokens(text: str) -> str:
-    """
-    Replaces special characters with neutral tokens to prevent LLM formatting hallucinations.
-    1. Newlines -> [[_NL_]]
-    2. All quotes -> [[_QT_]]
+
+def restore_legacy_mask_tokens(text: str) -> str:
+    """Compatibility restore: legacy masks become a straight quote or literal ``\\n``."""
+    if not text or "QT_" not in text and "NL_" not in text:
+        return text
+    bare = _LEGACY_BARE_TOKENS.get(text.strip())
+    if bare is not None:
+        return bare
+    text = _LEGACY_NEWLINE.sub(lambda _match: "\\n", text)
+    return _LEGACY_QUOTE.sub('"', text)
+
+
+def quote_style_for(target_lang: str | None):
+    """Return the configured (open, close) pair, trying the base language code."""
+    code = (target_lang or "").strip()
+    if code in QUOTE_STYLES:
+        return QUOTE_STYLES[code]
+    base = re.split(r"[-_]", code, maxsplit=1)[0]
+    return QUOTE_STYLES.get(base)
+
+
+def _unambiguous_quote_positions(text: str) -> list[int] | None:
+    positions = [index for index, char in enumerate(text) if char == '"']
+    if not positions or len(positions) % 2:
+        return None
+    if any(index > 0 and text[index - 1] == "\\" for index in positions):
+        return None
+    for span in _PROTECTED_QUOTE_SPAN.finditer(text):
+        if any(span.start() <= index < span.end() for index in positions):
+            return None
+    for open_index, close_index in zip(positions[::2], positions[1::2]):
+        if close_index == open_index + 1:
+            return None
+        if text[open_index + 1].isspace() or text[close_index - 1].isspace():
+            return None
+    return positions
+
+
+def apply_quote_style(text: str, target_lang: str | None) -> str:
+    """Style straight double quotes only when every quote pairs unambiguously."""
+    style = quote_style_for(target_lang)
+    if not text or not style:
+        return text
+    positions = _unambiguous_quote_positions(text)
+    if positions is None:
+        return text
+    open_q, close_q = style
+    styled = []
+    previous = 0
+    for order, index in enumerate(positions):
+        styled.append(text[previous:index])
+        styled.append(open_q if order % 2 == 0 else close_q)
+        previous = index + 1
+    styled.append(text[previous:])
+    return "".join(styled)
+
+
+def normalize_model_output(text: str, target_lang: str | None) -> str:
+    """Normalize one translated value returned by a model.
+
+    1. Restore legacy ``[[_QT_]]`` / ``[[_NL_]]`` fragments (compatibility).
+    2. Convert real newline characters to the literal ``\\n`` Paradox expects.
+    3. Apply the target-language quote style when quotes pair unambiguously;
+       otherwise leave quotes unchanged for the review-only quote finding.
     """
     if not text:
         return text
-        
-    # 1. Protect Newlines
-    # We replace the actual newline character with the token
-    text = text.replace("\n", MASK_NEWLINE)
-    
-    # 2. Flatten Quotes -> [[_QT_]]
-    # Treat all variations as a generic "quote boundary"
-    text = text.replace("\"", MASK_QUOTE)
-    text = text.replace("“", MASK_QUOTE).replace("”", MASK_QUOTE)
-    text = text.replace("«", MASK_QUOTE).replace("»", MASK_QUOTE)
-    text = text.replace("„", MASK_QUOTE)
-    
-    return text
-
-def restore_special_tokens(text: str, target_lang: str) -> str:
-    """
-    Restores special tokens to their language-specific forms.
-    1. [[_NL_]] -> \\n (Escaped newline for Paradox files)
-    2. [[_QT_]] -> Context-aware quotes (Flip-Flop logic)
-    """
-    if not text:
-        return text
-
-    import re
-    bare_token = text.strip()
-    if bare_token in {"QT_", "_QT_", "[_QT_]"}:
-        text = MASK_QUOTE
-    elif bare_token in {"NL_", "_NL_", "[_NL_]"}:
-        text = MASK_NEWLINE
-
-    # Normalize variants with spaces (e.g. [[ _NL_ ]], [[_QT_ ]]) to standard tokens
-    text = re.sub(r'\[\[\s*_NL_\s*\]\]', MASK_NEWLINE, text)
-    text = re.sub(r'\[\[\s*_QT_\s*\]\]', MASK_QUOTE, text)
-
-    # 1. Restore Newlines
-    # Paradox localization files usually expect escaped newlines (\n)
-    # Clean up spaces LLM might add around newline masks FIRST
-    text = text.replace(f" {MASK_NEWLINE} ", "\\n")
-    text = text.replace(f" {MASK_NEWLINE}", "\\n")
-    text = text.replace(f"{MASK_NEWLINE} ", "\\n")
-    # Finally replace the bare token
-    text = text.replace(MASK_NEWLINE, "\\n")
-
-    # 2. Restore Quotes (Context Aware)
-    if MASK_QUOTE in text:
-        # Get style for this language, default to generic escaped quotes
-        # Handle regional codes like 'zh-Hans' -> 'zh'
-        lang_key = target_lang.split('_')[0] if '_' in target_lang else target_lang
-        open_q, close_q = QUOTE_STYLES.get(lang_key, QUOTE_STYLES["default"])
-        
-        # Flip-Flop Replacement Logic
-        # First instance -> Open, Second -> Close, Third -> Open...
-        parts = text.split(MASK_QUOTE)
-        restored_text = ""
-        
-        for i, part in enumerate(parts):
-            restored_text += part
-            # If we are not at the last part, we need to add a quote
-            if i < len(parts) - 1:
-                if i % 2 == 0:
-                    restored_text += open_q  # Even index (0, 2...) follows an Open Quote
-                else:
-                    restored_text += close_q # Odd index (1, 3...) follows a Close Quote
-        
-        text = restored_text
-
-    # 3. Final Safety: Escape any remaining actual newlines
-    # If the LLM returned actual newlines instead of tokens, we must escape them
-    # to prevent breaking the YAML-like structure.
-    text = text.replace("\n", "\\n")
-
-    return text
+    text = restore_legacy_mask_tokens(text)
+    text = text.replace("\r\n", "\n").replace("\n", "\\n")
+    return apply_quote_style(text, target_lang)

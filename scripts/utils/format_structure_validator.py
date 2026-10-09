@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any, Dict, List
 
 from scripts.utils.game_format_contract import FormatStructureDiff
+from scripts.utils.text_integrity_findings import text_integrity_findings
 
 
 def _finding(
@@ -140,4 +141,4 @@ def structure_findings(diff: FormatStructureDiff) -> List[Dict[str, Any]]:
     return findings
 
 
-__all__ = ["structure_findings"]
+__all__ = ["structure_findings", "text_integrity_findings"]
