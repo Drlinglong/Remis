@@ -13,6 +13,7 @@ from pydantic_ai.usage import UsageLimits
 
 from scripts.core.copilot.read_tools import execute_workflow_read_tool
 from scripts.core.copilot.settings import pydantic_reasoning_settings
+from scripts.core.chat_request_policy import prepare_model_settings
 from scripts.core.copilot.runtime import resolve_provider_runtime_snapshot
 from scripts.core.services.provider_runtime import ProviderRuntimeSnapshot
 
@@ -65,19 +66,21 @@ def _build_agent(
             "根据只读结果给出保守配置，不得发明未列出的模型。"
             "优先 preferred_provider，除非工具明确显示不可用。不要执行翻译。"
         ),
-        model_settings=OpenAIResponsesModelSettings(
-            temperature=0.0,
-            max_tokens=1024,
-            timeout=90,
-            parallel_tool_calls=False,
-            **pydantic_reasoning_settings(
-                provider=runtime.adapter_id,
-                model=selected_model,
-                enabled=reasoning_enabled,
-                preset=reasoning_preset,
-                provider_config=provider_config,
-            ),
-        ),
+        model_settings=OpenAIResponsesModelSettings(**prepare_model_settings(
+            runtime.adapter_id, selected_model, {
+                "temperature": 0.0,
+                "max_tokens": 1024,
+                "timeout": 90,
+                "parallel_tool_calls": False,
+                **pydantic_reasoning_settings(
+                    provider=runtime.adapter_id,
+                    model=selected_model,
+                    enabled=reasoning_enabled,
+                    preset=reasoning_preset,
+                    provider_config=provider_config,
+                ),
+            },
+        )),
         retries=1,
         tool_timeout=20,
     )

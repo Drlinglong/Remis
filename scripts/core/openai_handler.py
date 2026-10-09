@@ -4,9 +4,14 @@ from openai import OpenAI
 
 from scripts.app_settings import get_api_key
 from scripts.core.base_handler import BaseApiHandler
+from scripts.core.chat_request_policy import prepare_chat_request
 
 class OpenAIHandler(BaseApiHandler):
     """OpenAI API Handler子类"""
+
+    def _apply_reasoning_to_openai_kwargs(self, kwargs: dict) -> dict:
+        request = super()._apply_reasoning_to_openai_kwargs(kwargs)
+        return prepare_chat_request(self.provider_name, request)
 
     def initialize_client(self):
         """

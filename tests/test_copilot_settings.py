@@ -3,6 +3,7 @@ import pytest
 from scripts.core.copilot import settings
 from scripts.routers import copilot as copilot_router
 from scripts.schemas.copilot import CopilotChatMessage, CopilotChatRequest
+from scripts.schemas.copilot import CopilotSettingsUpdate
 
 
 @pytest.fixture
@@ -25,6 +26,35 @@ def test_shared_settings_persist_without_api_keys(config_store):
     assert saved["model"] == "gpt-5.6-luna"
     assert saved["reasoning"]["effective_preset"] == "high"
     assert "api_key" not in config_store[settings.CONFIG_KEY]
+
+
+@pytest.mark.parametrize("model", ["gpt-6-luna", "gpt-6-sol"])
+def test_gpt6_none_preset_can_be_saved_through_the_settings_schema(config_store, model):
+    payload = CopilotSettingsUpdate(
+        provider="openai", model=model, reasoning_enabled=True, reasoning_preset="none",
+    )
+    saved = settings.update_copilot_settings(**payload.model_dump())
+    assert saved["reasoning"]["mapping_preview"] == {"reasoning_effort": "none"}
+
+
+@pytest.mark.parametrize("model", ["gpt-6-luna", "gpt-6-sol", "gpt-6.1-sol", "gpt-6-astra"])
+def test_gpt6_pydantic_reasoning_adapter_retains_selected_effort(model):
+    assert settings.pydantic_reasoning_settings(
+        provider="openai", model=model, enabled=True, preset="high",
+    ) == {"openai_reasoning_effort": "high"}
+
+
+@pytest.mark.parametrize("provider,model,expected", [
+    ("anthropic", "claude-opus-5", {"anthropic_effort": "high"}),
+    ("gemini", "gemini-3.8-flash", {"google_thinking_config": {"thinking_level": "high"}}),
+])
+def test_native_pydantic_reasoning_adapter_retains_selected_preset(provider, model, expected):
+    assert settings.pydantic_reasoning_settings(
+        provider=provider, model=model, enabled=True, preset="high",
+    ) == expected
+    assert settings.pydantic_reasoning_settings(
+        provider=provider, model=model, enabled=False, preset="high",
+    ) == {}
 
 
 def test_default_shared_settings_use_200k_context_budget(config_store):

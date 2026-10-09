@@ -51,7 +51,10 @@ def test_approved_provider_catalogs_and_defaults_are_locked():
         ),
         "openai": (
             "gpt-5.6-luna",
-            ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"],
+            [
+                "gpt-6.1-sol", "gpt-6-sol", "gpt-6-luna", "gpt-6-astra",
+                "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna",
+            ],
         ),
         "qwen": ("qwen3.8-max", ["qwen3.8-max", "qwen3.8-flash-next"]),
         "grok": ("grok-4.6", ["grok-4.6"]),
@@ -76,7 +79,7 @@ def test_approved_provider_catalogs_and_defaults_are_locked():
         assert API_PROVIDERS[provider_id]["available_models"] == models
 
 
-def test_curated_aggregator_catalogs_never_infer_reasoning():
+def test_curated_aggregator_catalogs_require_endpoint_specific_reasoning_evidence():
     expected = {
         "modelscope": (
             "deepseek-ai/DeepSeek-V4-Flash",
@@ -95,6 +98,10 @@ def test_curated_aggregator_catalogs_never_infer_reasoning():
         "openrouter": (
             "openai/gpt-5.6-luna",
             [
+                "openai/gpt-6.1-sol",
+                "openai/gpt-6-sol",
+                "openai/gpt-6-luna",
+                "openai/gpt-6-astra",
                 "openai/gpt-5.6-luna",
                 "google/gemini-3.8-flash",
                 "google/gemini-3.7-flash",
@@ -117,7 +124,22 @@ def test_curated_aggregator_catalogs_never_infer_reasoning():
         config = API_PROVIDERS[provider_id]
         assert config["default_model"] == default_model
         assert config["available_models"] == models
-        assert config["reasoning"]["models"] == dict.fromkeys(models)
+        for model in models:
+            capability = config["reasoning"]["models"][model]
+            if provider_id == "siliconflow" and model == "deepseek-ai/DeepSeek-V4-Flash":
+                assert capability["source_url"].startswith("https://docs.siliconflow.cn/")
+                assert capability["presets"]["high"] == {
+                    "enable_thinking": True, "reasoning_effort": "high",
+                }
+            elif provider_id == "openrouter" and model != "qwen/qwen3.8-max":
+                assert capability["source_url"] == "https://openrouter.ai/api/v1/models"
+                assert capability["presets"]["high"] == {"reasoning": {"effort": "high"}}
+            elif provider_id == "nvidia" and model.startswith("deepseek-ai/"):
+                assert capability["source_url"].startswith("https://docs.api.nvidia.com/nim/reference/")
+                assert tuple(capability["presets"]) == ("none", "high", "max")
+                assert capability["presets"]["high"] == {"reasoning_effort": "high"}
+            else:
+                assert capability is None
 
 
 def test_unknown_custom_model_never_receives_builtin_reasoning_parameters():

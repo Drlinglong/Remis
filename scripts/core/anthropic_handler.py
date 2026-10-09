@@ -2,6 +2,7 @@ import requests
 
 from scripts.app_settings import get_api_key
 from scripts.core.base_handler import BaseApiHandler
+from scripts.core.chat_request_policy import prepare_chat_request
 
 
 class AnthropicHandler(BaseApiHandler):
@@ -65,6 +66,7 @@ class AnthropicHandler(BaseApiHandler):
         if temperature is not None:
             payload["temperature"] = temperature
         payload.update(self._reasoning_request_parameters())
+        payload = prepare_chat_request(self.provider_name, payload)
 
         response = client.post(
             f"{self.base_url}/messages",

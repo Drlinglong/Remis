@@ -4,7 +4,6 @@ from typing import Any
 from google import genai
 from google.genai import types
 
-from scripts.app_settings import API_PROVIDERS
 from scripts.core.base_handler import BaseApiHandler
 
 class GeminiHandler(BaseApiHandler):
@@ -71,7 +70,7 @@ class GeminiHandler(BaseApiHandler):
         """
         Supports chat-like interaction for NeologismMiner.
         """
-        provider_config = API_PROVIDERS.get(self.provider_name, {})
+        provider_config = self.get_provider_config()
         model_name = provider_config.get("default_model", "gemini-3.8-flash")
         
         # Convert messages to Gemini format if needed, or just concatenate for now

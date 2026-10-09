@@ -166,7 +166,7 @@ def pydantic_reasoning_settings(
     preset: str,
     provider_config: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Translate the verified Remis mapping to PydanticAI OpenAI settings."""
+    """Translate the verified Remis mapping to provider-native PydanticAI settings."""
     resolved_config = dict(provider_config or API_PROVIDERS[provider])
     resolved_config.update({
         "default_model": model,
@@ -176,9 +176,18 @@ def pydantic_reasoning_settings(
     })
     parameters = dict(resolve_reasoning_parameters(resolved_config).parameters)
     result: dict[str, Any] = {}
-    effort = parameters.pop("reasoning_effort", None)
-    if effort:
-        result["openai_reasoning_effort"] = effort
+    if provider == "anthropic":
+        output_config = parameters.pop("output_config", {})
+        if output_config.get("effort"):
+            result["anthropic_effort"] = output_config["effort"]
+    elif provider == "gemini":
+        thinking_config = parameters.pop("thinking_config", None)
+        if thinking_config:
+            result["google_thinking_config"] = thinking_config
+    else:
+        effort = parameters.pop("reasoning_effort", None)
+        if effort:
+            result["openai_reasoning_effort"] = effort
     if parameters:
         result["extra_body"] = parameters
     return result
