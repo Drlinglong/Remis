@@ -1,0 +1,46 @@
+{
+  "reviewed_at": "2026-10-09",
+  "models": [
+    {
+      "requested_model": "deepseek-ai/DeepSeek-V4.1-Flash",
+      "source_url": "https://modelscope.cn/api/v1/models/deepseek-ai/DeepSeek-V4.1-Flash",
+      "code": 200,
+      "success": true,
+      "path": "deepseek-ai",
+      "name": "DeepSeek-V4.1-Flash",
+      "support_api_inference": false,
+      "is_accessible": 1,
+      "is_published": 1
+    },
+    {
+      "requested_model": "deepseek-ai/DeepSeek-V4-Pro-0813",
+      "source_url": "https://modelscope.cn/api/v1/models/deepseek-ai/DeepSeek-V4-Pro-0813",
+      "code": 200,
+      "success": true,
+      "path": "deepseek-ai",
+      "name": "DeepSeek-V4-Pro-0813",
+      "support_api_inference": false,
+      "is_accessible": 1,
+      "is_published": 1
+    }
+  ],
+  "inference_catalog": {
+    "source_url": "https://api-inference.modelscope.cn/v1/models",
+    "status": 200,
+    "model_count": 35,
+    "models": [
+      {
+        "id": "deepseek-ai/DeepSeek-V4-Pro-0813",
+        "object": "",
+        "owned_by": "system",
+        "created": 1787068235
+      },
+      {
+        "id": "deepseek-ai/DeepSeek-V4.1-Flash",
+        "object": "",
+        "owned_by": "system",
+        "created": 1789386292
+      }
+    ]
+  }
+}

@@ -2,7 +2,7 @@
 
 ## 概述
 
-3.2.1 Windows 正式发布使用 `scripts/build_pipeline.py` 构建 Tauri NSIS
+3.3.0 Windows 正式发布使用 `scripts/build_pipeline.py` 构建 Tauri NSIS
 安装包。`archive/build_release_scripts/build_release.bat` 只保留用于历史便携
 ZIP 格式；当前 EXE 发版不能使用它。
 
@@ -70,7 +70,7 @@ python -m pytest -q tests/test_release_metadata.py
 
 ## 使用方法
 
-## 3.2.1 Tauri 桌面安装包的数据规则
+## 3.3.0 Tauri 桌面安装包的数据规则
 
 当前 Tauri 桌面安装包由 `scripts/build_pipeline.py` 构建。数据库初始化分成三层：
 
@@ -114,6 +114,35 @@ python scripts/build_pipeline.py --channel stable
 最后执行 Tauri 打包。stable NSIS 安装包会复制到：
 `archive/release/stable/remis-mod-factory_3.2.1_x64-setup.exe`。只有明确要生成隔离的
 `3.2.0-agent-preview.1` 预览安装包时，才使用 `--channel agent-preview`。
+
+### 每个 release 必须附带火星求生词典
+
+`assets/release_glossaries/surviving_mars/` 是经过审查的静态词典发布输入，
+包含英文／简中术语及英文／简中参考／正体术语。构建不会访问用户的词典数据库，
+也不会调用翻译模型。资源版本独立于 Remis 版本；词典没有改变时继续发布相同快照。
+
+`scripts/build_pipeline.py` 会在构建前校验输入文件哈希，在安装包旁生成
+`Remis-SurvivingMars-Glossary_<version>.zip` 及 `.zip.sha256`。附件含 JSON、
+UTF-8 BOM CSV、来源说明和版本／哈希清单。发布到 GitHub 时，安装包、词典 ZIP
+及校验文件必须一起上传；release notes 应链接词典并注明词条数量及资源版本。
+构建负责生成附件，目前没有自动 GitHub 上传步骤，不能将生成成功描述为已发布。
+
+若只需要准备词典附件，无需编译程序：
+
+```powershell
+python scripts/build_glossary_resources.py --version <release-version> --output-dir <release-directory>
+python -m pytest -q tests/test_release_glossaries.py tests/test_build_pipeline.py
+```
+
+更新词典时，先走现有 Agent preflight 和术语预览，然后读取
+`GET /api/agent/glossaries/{id}/terminology/distribution?locale=...&expected_fingerprint=...`。
+该接口读取现有词典的一致快照，保留有效审阅状态，排除待定词和本机证据路径，
+不修改词典。将审查后的快照更新到上述静态目录，提高 `resource_version` 并重新
+计算 `manifest.json` 中的 SHA-256。不要直接复制 AppData 数据库或整个任务目录。
+
+词典附件可独立于 Batch 功能随正式版发布。JSON 中的 `import_payload` 供支持
+高级术语接口的版本使用，默认 `approved: false`；不承诺当前正式版已有 GUI 导入。
+详见资源目录的 README。导出 API 与发行资源打包分别测试，不相互依赖运行环境。
 
 ### 历史便携 ZIP（`build_release.bat`）
 

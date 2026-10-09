@@ -2,7 +2,7 @@
 
 ## Overview
 
-The formal release path for the 3.2.1 Windows application is the Tauri NSIS
+The formal release path for the 3.3.0 Windows application is the Tauri NSIS
 installer built by `scripts/build_pipeline.py`. The older
 `archive/build_release_scripts/build_release.bat` remains only for the
 historical portable ZIP format and must not be used to produce the current EXE
@@ -15,6 +15,42 @@ release.
 *   **Dependency Management**: CI installs the locked frontend and website dependency trees before running audits, tests, lint, and production builds.
 *   **Structured Output**: Produces a versioned Windows NSIS installer in the release archive.
 *   **Legacy Portable ZIP**: The archived batch script can still create the older ZIP format when that format is specifically required.
+
+## Required Surviving Mars glossary attachment
+
+Every release must publish the installer together with
+`Remis-SurvivingMars-Glossary_<version>.zip` and its `.zip.sha256` file.
+The build pipeline validates the reviewed static inputs under
+`assets/release_glossaries/surviving_mars/` and generates the attachment beside
+the installer in `archive/release/<channel>/`. It never reads live user
+databases or calls models. GitHub upload is still an explicit publishing step;
+generating the bundle does not publish it.
+
+The bundle contains English/Simplified and English/Simplified-reference/
+Traditional Chinese JSON snapshots, UTF-8 BOM CSV companions, attribution,
+review states, context restrictions, aliases and a version/hash manifest.
+The glossary resource version is independent of the application version;
+unchanged terms are republished as the same resource snapshot.
+Link the attachment in release notes and report its resource version and counts.
+
+For attachment-only preparation, run:
+
+```powershell
+python scripts/build_glossary_resources.py --version <release-version> --output-dir <release-directory>
+python -m pytest -q tests/test_release_glossaries.py tests/test_build_pipeline.py
+```
+
+To update the reviewed inputs, use Agent preflight and terminology preview, then
+`GET /api/agent/glossaries/{id}/terminology/distribution?locale=...&expected_fingerprint=...`.
+This read-only endpoint returns a consistent snapshot of the existing glossary,
+preserves effective review states, excludes pending terms and removes local
+evidence paths. Review the export, increment `resource_version` and refresh
+the static manifest hashes. Do not copy AppData databases or whole job folders.
+
+The resource attachment can ship independently of experimental Batch features.
+Its `import_payload` uses the advanced terminology import contract with
+`approved: false`; only builds exposing that API can import it that way.
+Do not promise an existing GUI file import route in older releases.
 
 ## Release Notes Standard
 
@@ -78,7 +114,7 @@ in `archive/release_notes/README.md`.
 
 ## Usage
 
-## Tauri installer data policy for the 3.2.1 desktop release
+## Tauri installer data policy for the 3.3.0 desktop release
 
 The current Tauri installer is built by `scripts/build_pipeline.py`. First-run
 database setup has three layers:
