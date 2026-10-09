@@ -56,14 +56,14 @@ def test_every_configured_default_model_is_in_its_available_catalog():
             assert config["default_model"] in available_models, provider_id
 
 
-def test_deepseek_v4_models_are_selectable_for_context_smoke_tests():
+def test_deepseek_current_flash_and_retained_pro_are_selectable_for_context_smoke_tests():
     assert API_PROVIDERS["deepseek"]["available_models"] == [
         "deepseek-v4-pro",
-        "deepseek-v4-flash",
+        "deepseek-flash",
     ]
 
 
-def test_deepseek_request_uses_explicit_v4_model():
+def test_deepseek_request_uses_explicit_current_flash_model():
     captured = {}
 
     class Completions:
@@ -76,12 +76,12 @@ def test_deepseek_request_uses_explicit_v4_model():
 
     handler = DeepSeekHandler.__new__(DeepSeekHandler)
     handler.provider_name = "deepseek"
-    handler.model_id = "deepseek-v4-flash"
+    handler.model_id = "deepseek-flash"
     handler.logger = logging.getLogger("DeepSeekHandlerTest")
     client = SimpleNamespace(chat=SimpleNamespace(completions=Completions()))
 
     assert handler._call_api(client, "Analyze this text") == "{}"
-    assert captured["model"] == "deepseek-v4-flash"
+    assert captured["model"] == "deepseek-flash"
 
 
 def test_deepseek_routes_effort_top_level_and_thinking_through_extra_body():
@@ -160,11 +160,12 @@ def test_openrouter_chat_preserves_provider_failure():
         chat=SimpleNamespace(completions=FailingCompletions())
     )
 
-    with pytest.raises(RuntimeError, match="openrouter unavailable"):
+    with pytest.raises(RuntimeError, match="Provider request failed") as raised:
         handler.generate_with_messages(
             [{"role": "user", "content": "Analyze this text"}],
             temperature=0.0,
         )
+    assert "openrouter unavailable" not in str(raised.value)
 
 
 def test_openrouter_unverified_model_uses_bounded_output_without_builtin_reasoning():
@@ -240,7 +241,7 @@ def test_openrouter_luna_structured_chat_sends_json_schema():
         },
     }
     assert captured["extra_body"] == {
-        "provider": {"require_parameters": True},
+        "provider": {"require_parameters": True, "allow_fallbacks": False},
         "plugins": [{"id": "response-healing"}],
     }
 
@@ -291,7 +292,7 @@ def test_openrouter_structured_chat_does_not_retry_other_failures():
     handler.logger = logging.getLogger("OpenRouterHandlerTest")
     handler.client = SimpleNamespace(chat=SimpleNamespace(completions=Completions()))
 
-    with pytest.raises(RuntimeError, match="openrouter unavailable"):
+    with pytest.raises(RuntimeError, match="Provider request failed") as raised:
         handler.generate_structured_with_messages(
             [{"role": "user", "content": "Return items"}],
             schema={"type": "object", "properties": {}},

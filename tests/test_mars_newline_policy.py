@@ -11,7 +11,7 @@ from scripts.core.agents.translation_fixer_agent import TranslationFixerAgent
 from scripts.core.agents.fix_agent import _parse_fix_translations
 from scripts.core import surviving_mars_csv
 from scripts.utils.structured_parser import parse_response
-from scripts.utils.text_clean import MASK_NEWLINE, mask_special_tokens, restore_special_tokens
+from scripts.utils.text_clean import LEGACY_MASK_NEWLINE as MASK_NEWLINE, restore_special_tokens
 
 
 def test_restore_keeps_paradox_default_but_can_restore_a_real_lf():
@@ -36,7 +36,7 @@ def test_mars_batch_parse_and_csv_rewrite_keep_real_lf(tmp_path):
     writer.writerow(["0001", "English line one\nEnglish line two", "", "", ""])
     source_text = source_output.getvalue()
     translated = "中文第一行\n中文第二行"
-    response = json.dumps({"translations": [mask_special_tokens(translated)]}, ensure_ascii=False)
+    response = json.dumps({"translations": [translated]}, ensure_ascii=False)
     profile = {"format_adapter_id": "surviving_mars_csv"}
 
     result = BaseApiHandler._parse_response(
@@ -84,7 +84,7 @@ def test_translation_fixer_passes_mars_newline_policy():
     )
     handler = SimpleNamespace(
         client=object(),
-        _call_api=lambda client, prompt: json.dumps({"translations": [f"fixed{MASK_NEWLINE}line"]}),
+        _call_batch_api=lambda client, prompt, count: json.dumps({"translations": [f"fixed{MASK_NEWLINE}line"]}),
     )
     warning = SimpleNamespace(
         level="error", line_number=1, message="bad", details="",

@@ -21,6 +21,7 @@ from pydantic_ai.providers.openrouter import OpenRouterProvider
 
 from scripts.app_settings import API_PROVIDERS, config_manager, get_api_key
 from scripts.core.copilot.settings import pydantic_reasoning_settings
+from scripts.core.chat_request_policy import prepare_model_settings
 from scripts.core.services.provider_runtime import ProviderRuntimeSnapshot
 
 
@@ -108,15 +109,13 @@ def build_help_model(
         provider_runtime,
     )
     model, settings_type = _model(provider, base_url, selected_model, api_key)
-    reasoning: dict[str, Any] = {}
-    if provider not in {"anthropic", "gemini"}:
-        reasoning = pydantic_reasoning_settings(
-            provider=provider,
-            model=selected_model,
-            enabled=bool((reasoning_override or {}).get("reasoning_builtin_enabled")),
-            preset=str((reasoning_override or {}).get("reasoning_preset") or "medium"),
-            provider_config=provider_config,
-        )
+    reasoning = pydantic_reasoning_settings(
+        provider=provider,
+        model=selected_model,
+        enabled=bool((reasoning_override or {}).get("reasoning_builtin_enabled")),
+        preset=str((reasoning_override or {}).get("reasoning_preset") or "medium"),
+        provider_config=provider_config,
+    )
     common_settings: dict[str, Any] = {
         "max_tokens": 1200,
         "timeout": 90,
@@ -124,8 +123,7 @@ def build_help_model(
     }
     if provider not in {"openai", "openrouter"}:
         common_settings["temperature"] = 0.1
-    settings = settings_type(
-        **common_settings,
-        **reasoning,
-    )
+    settings = settings_type(**prepare_model_settings(
+        provider, selected_model, {**common_settings, **reasoning},
+    ))
     return model, settings, selected_model

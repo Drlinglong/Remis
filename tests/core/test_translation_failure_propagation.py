@@ -115,7 +115,7 @@ def test_translate_batch_aborts_immediately_for_fatal_provider_error():
         "batch_num": 1,
         "attempt": 1,
         "provider": "test",
-        "message": "authentication failed",
+        "message": "Provider authentication failed. Check the API key in Remis Settings.",
     }]
 
 
@@ -290,6 +290,33 @@ def test_stream_processor_discards_in_flight_result_after_cancellation():
         ))
 
     assert calls == [0]
+
+
+def test_stream_consumer_closing_early_stops_queued_paid_batches():
+    import time
+
+    processor = ParallelProcessor(max_workers=1, chunk_size_override=1)
+    first = _file_task()
+    first.filename = "first_l_english.yml"
+    second = _file_task()
+    second.filename = "second_l_english.yml"
+    second.texts_to_translate = ["one", "two", "three", "four", "five"]
+    calls = []
+
+    def slow_translation(task: BatchTask) -> BatchTask:
+        calls.append((task.file_task.filename, task.batch_index))
+        time.sleep(0.05)
+        task.translated_texts = list(task.texts)
+        return task
+
+    stream = processor.process_files_stream(iter([first, second]), slow_translation)
+    first_result = next(stream)
+    assert first_result[0].filename == "first_l_english.yml"
+    stream.close()
+
+    # At most the batch already running when the consumer stopped may finish;
+    # every queued batch must be cancelled instead of reaching the provider.
+    assert len(calls) <= 2
 
 
 def test_parallel_processor_stops_queued_batches_after_provider_fatal_error():

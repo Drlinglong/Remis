@@ -57,6 +57,7 @@ class CheckpointManager:
         self.read_enabled = True
         self.compatibility = "missing"
         self.compatibility_reason: Optional[str] = None
+        self.last_save_failed = False
         self.logger = logging.getLogger(__name__)
         self._lock = threading.RLock()
         self._load_checkpoint()
@@ -248,10 +249,13 @@ class CheckpointManager:
             raise ValueError("Checkpoint file identity must stay inside the source root")
         return normalized
 
-    def save_checkpoint(self) -> None:
+    def save_checkpoint(self) -> bool:
+        """Atomically write the checkpoint; return False when it was not saved."""
         with self._lock:
-            os.makedirs(self.output_dir, exist_ok=True)
-            existing_revision = self._read_revision_from_disk()
+            # Only a manager that has not written yet needs the on-disk
+            # revision; re-parsing the whole file on every batch made each save
+            # proportional to everything saved before it.
+            existing_revision = self._read_revision_from_disk() if self.revision == 0 else 0
             next_revision = max(self.revision, existing_revision) + 1
             metadata = dict(self.metadata or self.current_config)
             metadata["completed_count"] = len(self.completed_files)
@@ -269,20 +273,28 @@ class CheckpointManager:
                 )
             temp_path = None
             try:
+                os.makedirs(self.output_dir, exist_ok=True)
                 with tempfile.NamedTemporaryFile(
                     mode="w", delete=False, encoding="utf-8", dir=self.output_dir
                 ) as temp_file:
-                    json.dump(data, temp_file, ensure_ascii=False, indent=2)
                     temp_path = temp_file.name
+                    json.dump(data, temp_file, ensure_ascii=False, separators=(",", ":"))
                 os.replace(temp_path, self.checkpoint_path)
                 self.revision = next_revision
                 self.metadata = metadata
                 self.compatibility = "compatible"
                 self.compatibility_reason = None
+                self.last_save_failed = False
+                return True
             except (OSError, TypeError, ValueError) as exc:
                 self.logger.error("Failed to save checkpoint: %s", exc)
+                self.last_save_failed = True
                 if temp_path and os.path.exists(temp_path):
-                    os.unlink(temp_path)
+                    try:
+                        os.unlink(temp_path)
+                    except OSError as cleanup_error:
+                        self.logger.warning("Failed to remove checkpoint temp file: %s", cleanup_error)
+                return False
 
     def is_file_completed(self, filename: str) -> bool:
         if not self.read_enabled or self.compatibility not in {"compatible", "missing"}:
@@ -493,6 +505,7 @@ class CheckpointManager:
                 "progress": dict(self.progress),
                 "compatibility": self.compatibility,
                 "compatibility_reason": self.compatibility_reason,
+                "last_save_failed": self.last_save_failed,
                 "resume_allowed": bool(
                     self.compatibility == "compatible"
                     and (self.completed_files or completed_batch_count)

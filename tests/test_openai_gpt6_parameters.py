@@ -122,7 +122,7 @@ def test_gpt6_none_effort_preserves_caller_temperature_argument():
     assert completions.kwargs["extra_body"] == {"reasoning_effort": "none"}
 
 
-def test_gpt6_custom_json_temperature_is_preserved_without_system_default():
+def test_gpt6_custom_json_temperature_is_removed_with_active_reasoning():
     handler, completions = _handler(
         "gpt-6-luna",
         reasoning_effort="high",
@@ -134,12 +134,11 @@ def test_gpt6_custom_json_temperature_is_preserved_without_system_default():
     assert "temperature" not in completions.kwargs
     assert completions.kwargs["extra_body"] == {
         "reasoning_effort": "high",
-        "temperature": 0.2,
     }
 
 
 def test_other_model_keeps_existing_default_temperature_behavior():
-    handler, completions = _handler("gpt-5.6-luna")
+    handler, completions = _handler("user/custom-model")
 
     handler.generate_with_messages([{"role": "user", "content": "Hi"}])
 

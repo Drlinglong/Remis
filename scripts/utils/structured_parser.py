@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 # Define a TypeVar for Pydantic models to ensure type safety
 T = TypeVar('T', bound=BaseModel)
 
-from scripts.utils.text_clean import restore_special_tokens
+from scripts.utils.text_clean import normalize_model_output
 
 def parse_response(
     response_text: str,
@@ -29,7 +29,7 @@ def parse_response(
     Args:
         response_text: The raw text response from the LLM.
         pydantic_model: The Pydantic model class to validate against.
-        target_lang: The target language code (e.g., "zh", "de") for token restoration.
+        target_lang: The target language code (e.g., "zh", "de") for output normalization.
     """
     try:
         # First defense: Repair the raw string to ensure it's valid JSON.
@@ -69,13 +69,10 @@ def parse_response(
             # This handles the 'SimpleModel' test case and direct '{"translations": ...}' cases.
             model_instance = pydantic_model.model_validate_json(payload_to_validate)
 
-        # Post-processing: Restore special tokens (Newlines and Quotes)
+        # Post-processing: literal \n, quote style, legacy mask compatibility.
         if pydantic_model is TranslationResponse and hasattr(model_instance, 'translations'):
             model_instance.translations = [
-                restore_special_tokens(
-                    t, target_lang, preserve_newlines=preserve_newlines
-                )
-                for t in model_instance.translations
+                normalize_model_output(t, target_lang, preserve_newlines=preserve_newlines) for t in model_instance.translations
             ]
 
         return model_instance

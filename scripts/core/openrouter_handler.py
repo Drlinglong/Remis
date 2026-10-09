@@ -5,7 +5,18 @@ from openai import OpenAI
 
 from scripts.app_settings import get_api_key
 from scripts.core.openai_handler import OpenAIHandler
+from scripts.core.provider_errors import raise_safe_provider_request_error
 from scripts.core.strict_json_schema import strict_json_schema
+from scripts.core.translation_output_contract import (
+    BATCH_ENVELOPE_SYSTEM_PROMPT, translation_response_format, validate_translation_response,
+)
+
+
+def _safe_chat_completion(client, provider, **kwargs):
+    try:
+        return client.chat.completions.create(**kwargs)
+    except Exception as error:
+        raise_safe_provider_request_error(error, provider=provider)
 
 
 class OpenRouterHandler(OpenAIHandler):
@@ -48,7 +59,7 @@ class OpenRouterHandler(OpenAIHandler):
         return client
 
     def _call_api(self, client: OpenAI, prompt: str) -> str:
-        response = client.chat.completions.create(
+        response = _safe_chat_completion(client, self.provider_name,
             messages=[
                 {
                     "role": "system",
@@ -61,12 +72,32 @@ class OpenRouterHandler(OpenAIHandler):
         self._record_model_response(response)
         return response.choices[0].message.content.strip()
 
+    def _call_batch_api(self, client: OpenAI, prompt: str, expected_count: int) -> str:
+        options = self._chat_options()
+        extra = dict(options.get("extra_body") or {})
+        extra["provider"] = {
+            **extra.get("provider", {}), "require_parameters": True, "allow_fallbacks": False,
+        }
+        options["extra_body"] = extra
+        response = _safe_chat_completion(client, self.provider_name,
+            messages=[
+                {"role": "system", "content": BATCH_ENVELOPE_SYSTEM_PROMPT},
+                {"role": "user", "content": prompt},
+            ],
+            response_format=translation_response_format(expected_count),
+            **options,
+        )
+        self._record_model_response(response)
+        raw = response.choices[0].message.content or ""
+        validate_translation_response(raw, expected_count)
+        return raw
+
     def generate_with_messages(
         self,
         messages: list[dict],
         temperature: float = 0.7,
     ) -> str:
-        response = self.client.chat.completions.create(
+        response = _safe_chat_completion(self.client, self.provider_name,
             messages=messages,
             **self._chat_options(temperature),
         )
@@ -84,7 +115,11 @@ class OpenRouterHandler(OpenAIHandler):
         options = self._chat_options(temperature)
         extra_body = dict(options.get("extra_body") or {})
         extra_body.update({
-            "provider": {"require_parameters": True},
+            "provider": {
+                **extra_body.get("provider", {}),
+                "require_parameters": True,
+                "allow_fallbacks": False,
+            },
             "plugins": [{"id": "response-healing"}],
         })
         options["extra_body"] = extra_body
@@ -109,7 +144,7 @@ class OpenRouterHandler(OpenAIHandler):
 
         for attempt in range(1, self.STRUCTURED_RESPONSE_ATTEMPTS + 1):
             try:
-                return self.client.chat.completions.create(**request)
+                return _safe_chat_completion(self.client, self.provider_name, **request)
             except Exception as exc:
                 if not self._is_response_envelope_decode_error(exc):
                     raise

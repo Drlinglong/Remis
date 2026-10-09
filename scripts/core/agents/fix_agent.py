@@ -267,7 +267,7 @@ class ReflexionFixAgent:
             
             try:
                 # 2. Call LLM for the batch
-                raw_response = self.handler._call_api(self.handler.client, prompt)
+                raw_response = self.handler._call_batch_api(self.handler.client, prompt, len(active_indices))
                 
                 fixed_texts = _parse_fix_translations(raw_response, game_id)
                 

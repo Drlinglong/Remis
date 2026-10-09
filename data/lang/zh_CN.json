@@ -386,6 +386,8 @@
   "validation_format_boundary_mismatch": "格式范围绑定到了不同的保护 token。",
   "validation_format_nesting_mismatch": "译文格式标签嵌套与原文不一致。",
   "validation_format_structure_variation": "格式出现次数发生变化，需要进行语义复核。",
+  "validation_unpaired_quotes": "译文引号未成对，需要人工复核。",
+  "validation_line_break_count_mismatch": "换行符数量与原文不一致，需要人工复核。",
   "validation_generic_unsupported_formatting": "不支持的格式化命令: '{found_text}'。",
   "post_processing_start": "\n--- 启动后处理格式验证 ---",
   "post_processing_game": "正在按照 {game_name} 的本地化语法格式进行检查...",

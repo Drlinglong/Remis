@@ -18,7 +18,7 @@ Translate the following {task_description} from {source_lang_name} to {target_la
 VICTORIA3_FORMAT_PROMPT = """Output Logic:
 1. Return a single JSON array of strings matching input length exactly ({chunk_size} items).
 2. If an input line is empty/placeholder (e.g. "TODO", "..."), translate it as: "WARNING: Source localization entry is incomplete".
-3. Do NOT translate internal keys (underscored_words) or special tokens ([[_NL_]], [[_QT_]]).
+3. Do NOT translate internal keys (underscored_words).
 4. Translate ALL content inside formatting tags (e.g. #bold Text#! -> #bold 文本#!). Do NOT skip long descriptions.
 5. Preserve every formatting opener character-for-character, including case (for example #BOLD is not #bold), parameters, order, and its matching #!. Keep the same protected variables, functions, concepts, and icons that it originally encloses. You may move the complete formatted span for target-language grammar, but NEVER move a formatting boundary across a protected token or rebind it to different content. Do not add any formatting marker that is absent from the source.
 6. Keep the translation on a single line. Do not split the output into multiple lines.
@@ -52,7 +52,7 @@ Translate the following {task_description} from {source_lang_name} to {target_la
 STELLARIS_FORMAT_PROMPT = """Output Logic:
 1. Return a single JSON array of strings matching input length exactly ({chunk_size} items).
 2. If an input line is empty/placeholder (e.g. "TODO", "..."), translate it as: "WARNING: Source localization entry is incomplete".
-3. Do NOT translate internal keys (underscored_words) or special tokens ([[_NL_]], [[_QT_]]).
+3. Do NOT translate internal keys (underscored_words).
 4. Translate ALL content inside formatting tags (e.g. §RText§! -> §R文本§!). Preserve each § opener character-for-character, including case, order, parameters, and its matching §!. Do NOT skip long descriptions.
 5. Keep the translation on a single line. Do not split the output into multiple lines.
 
@@ -82,7 +82,7 @@ Translate the following {task_description} from {source_lang_name} to {target_la
 EU4_FORMAT_PROMPT = """Output Logic:
 1. Return a single JSON array of strings matching input length exactly ({chunk_size} items).
 2. If an input line is empty/placeholder (e.g. "TODO", "..."), translate it as: "WARNING: Source localization entry is incomplete".
-3. Do NOT translate internal keys (underscored_words) or special tokens ([[_NL_]], [[_QT_]]).
+3. Do NOT translate internal keys (underscored_words).
 4. Translate ALL content inside formatting tags (e.g. §RText§! -> §R文本§!). Preserve each § opener character-for-character, including case, order, parameters, and its matching §!. Do NOT skip long descriptions.
 5. Keep the translation on a single line. Do not split the output into multiple lines.
 
@@ -113,7 +113,7 @@ Translate the following {task_description} from {source_lang_name} to {target_la
 HOI4_FORMAT_PROMPT = """Output Logic:
 1. Return a single JSON array of strings matching input length exactly ({chunk_size} items).
 2. If an input line is empty/placeholder (e.g. "TODO", "..."), translate it as: "WARNING: Source localization entry is incomplete".
-3. Do NOT translate internal keys (underscored_words) or special tokens ([[_NL_]], [[_QT_]]).
+3. Do NOT translate internal keys (underscored_words).
 4. Translate ALL content inside formatting tags (e.g. §RText§! -> §R文本§!). Do NOT skip long descriptions.
 5. Keep the translation on a single line. Do not split the output into multiple lines.
 
@@ -143,7 +143,7 @@ Translate the following {task_description} from {source_lang_name} to {target_la
 CK3_FORMAT_PROMPT = """Output Logic:
 1. Return a single JSON array of strings matching input length exactly ({chunk_size} items).
 2. If an input line is empty/placeholder (e.g. "TODO", "..."), translate it as: "WARNING: Source localization entry is incomplete".
-3. Do NOT translate internal keys (underscored_words) or special tokens ([[_NL_]], [[_QT_]]).
+3. Do NOT translate internal keys (underscored_words).
 4. Translate ALL content inside formatting tags (e.g. #P Text#! -> #P 文本#!). Preserve each # opener character-for-character, including case, parameters, order, and its matching #!. Do NOT skip long descriptions.
 5. Keep the translation on a single line. Do not split the output into multiple lines.
 
@@ -177,7 +177,7 @@ Translate the following {task_description} from {source_lang_name} to {target_la
 EU5_FORMAT_PROMPT = """Output Logic:
 1. Return a single JSON array of strings matching input length exactly ({chunk_size} items).
 2. If an input line is empty/placeholder (e.g. "TODO", "..."), translate it as: "WARNING: Source localization entry is incomplete".
-3. Do NOT translate internal keys (underscored_words) or special tokens ([[_NL_]], [[_QT_]]).
+3. Do NOT translate internal keys (underscored_words).
 4. Translate ALL content inside formatting tags (e.g. #P Text#! -> #P 文本#!). Do NOT skip long descriptions.
 5. Keep the translation on a single line. Do not split the output into multiple lines.
 
@@ -233,7 +233,7 @@ from scripts.config.resource_game_prompts import (  # noqa: E402,F401
 FALLBACK_FORMAT_PROMPT = """Output Logic:
     "1. Return a single JSON array of strings matching input length exactly ({chunk_size} items).\n"
     "2. If an input line is empty/placeholder (e.g. \"TODO\", \"...\"), translate it as: \"WARNING: Source localization entry is incomplete\".\n"
-    "3. Do NOT translate internal keys (underscored_words) or special tokens ([[_NL_]], [[_QT_]]).\n"
+    "3. Do NOT translate internal keys (underscored_words).\n"
     "4. Translate ALL content inside formatting tags (e.g. #P Text#! -> #P 文本#!). Do NOT skip long descriptions.\n"
     "5. Keep the translation on a single line. Do not split the output into multiple lines.\n\n"
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { MantineProvider } from '@mantine/core';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import EditTermForm from './EditTermForm';
@@ -93,5 +93,49 @@ describe('EditTermForm', () => {
 
     expect(screen.getByDisplayValue('railway')).toBeInTheDocument();
     expect(screen.getByDisplayValue('铁路')).toBeInTheDocument();
+  });
+
+  it('shows a pending term and saves a human confirmation through the existing editor', async () => {
+    const onSave = vi.fn().mockResolvedValue(true);
+    renderForm({ selectedTargetLang: 'zh-TW', onSave, selectedTerm: {
+      ...selectedTerm, source: 'Idiot', translations: { 'zh-TW': '笨蛋', 'zh-CN': '愚蠢' },
+      metadata: { custom: 'preserve me', terminology: {
+        locale: 'zh-TW', concept_id: 'mars:trait:6652', source_id: '6652',
+        sense: 'Trait tone', context_keys: ['source_id:6652'], review_state: 'pending', confidence: 'low',
+        original_candidate: '笨蛋', audit_reason: 'Tone requires a decision', evidence_refs: [{ id: '6652' }],
+        historical_reference: { source_id: '6652', english: 'Idiot', translation: '愚蠢' },
+      } },
+    } });
+    expect(screen.getByText('glossary_terminology.pending_note')).toBeInTheDocument();
+    expect(screen.getAllByText(/愚蠢/)).toHaveLength(2);
+    fireEvent.change(screen.getByDisplayValue('笨蛋'), { target: { value: '愚鈍' } });
+    fireEvent.click(screen.getByRole('textbox', { name: 'glossary_terminology.state' }));
+    fireEvent.click(await screen.findByRole('option', { name: 'glossary_terminology.states.approved' }));
+    fireEvent.click(screen.getByRole('button', { name: 'button_save' }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+    const saved = onSave.mock.calls[0][0];
+    expect(saved.translations).toEqual({ 'zh-TW': '愚鈍', 'zh-CN': '愚蠢' });
+    expect(saved.metadata.terminology.review_state).toBe('approved');
+    expect(saved.metadata.terminology.review_basis.translation).toBe('愚鈍');
+    expect(saved.metadata.terminology.evidence_refs).toEqual([{ id: '6652' }]);
+    expect(saved.metadata.custom).toBe('preserve me');
+  });
+
+  it('saves edited English aliases and their explicit approval basis together', async () => {
+    const onSave = vi.fn().mockResolvedValue(true);
+    renderForm({ onSave, selectedTerm: { ...selectedTerm, variants: { en: ['Old factory'] },
+      metadata: { terminology: { locale: 'zh-CN', review_state: 'candidate',
+        aliases: ['Old factory'], alias_review_basis: ['Old factory'] } },
+    } });
+    fireEvent.click(screen.getByRole('switch', { name: 'glossary_advanced_mode' }));
+    fireEvent.change(screen.getByDisplayValue('Old factory'), { target: { value: ' Factory plant, Works, ' } });
+    fireEvent.click(screen.getByRole('textbox', { name: 'glossary_terminology.state' }));
+    fireEvent.click(await screen.findByRole('option', { name: 'glossary_terminology.states.approved' }));
+    fireEvent.click(screen.getByRole('button', { name: 'button_save' }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+    const saved = onSave.mock.calls[0][0];
+    expect(saved.variants.en).toEqual(['Factory plant', 'Works']);
+    expect(saved.metadata.terminology.alias_review_basis).toEqual(saved.variants.en);
+    expect(saved.metadata.terminology.review_state).toBe('approved');
   });
 });

@@ -1,4 +1,6 @@
 import api from '../utils/api';
+import { normalizeArchiveABBatch, normalizeArchiveABCases } from './archiveABReviewPayload';
+import { unwrapRecordPayload } from '../utils/workflowPayload';
 
 const cleanParams = (params = {}) => Object.fromEntries(
   Object.entries(params).filter(([, value]) => value !== '' && value !== null && value !== undefined),
@@ -12,12 +14,13 @@ const archiveABReviewService = {
 
   async loadCases(params = {}, { signal } = {}) {
     const response = await api.get('/api/archive-ab-review/cases', { params: cleanParams(params), signal });
-    return response.data;
+    return normalizeArchiveABBatch(response.data);
   },
 
   async submitReview(payload) {
     const response = await api.post('/api/archive-ab-review/reviews', payload);
-    return response.data;
+    const data = unwrapRecordPayload(response.data, 'Archive A/B review');
+    return { ...data, case: normalizeArchiveABCases([data.case])[0] };
   },
 
   async loadHistory(params = {}) {

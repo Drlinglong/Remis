@@ -30,6 +30,7 @@ from scripts.core.services.agent_validation_policy import (
     validation_allowed_actions,
 )
 from scripts.core.services.agent_validation_projection_service import AgentValidationProjectionService
+from scripts.core.services.agent_job_admission import bind_agent_translation_job
 from scripts.core.services import agent_translation_plan_service as translation_plan
 from scripts.core.services.agent_provider_catalog_service import agent_key_resolver, agent_provider_catalog, agent_provider_setup
 from scripts.core.services.translation_context_readiness_service import (
@@ -591,21 +592,12 @@ async def start_agent_job(
         agent_registry.release_plan(request.plan_id)
         raise
     job_id = response["task_id"]
-    task_state.update_task(
-        job_id,
-        fields={
-            "project_id": plan["project_id"],
-            "agent_job_kind": "incremental_translation" if args.get("workflow") == "incremental" else "translation",
-            "created_by": {"type": "remis_agent", "label": "Remis Agent"},
-            "idempotency_key": request.plan_id,
-        },
-    )
-    agent_registry.record_job(
+    bind_agent_translation_job(
         job_id=job_id,
         project_id=plan["project_id"],
         plan_id=request.plan_id,
-        kind="incremental_translation" if args.get("workflow") == "incremental" else "translation",
         execution_args=args,
+        registry=agent_registry,
     )
     try:
         await project_manager.log_history_event(

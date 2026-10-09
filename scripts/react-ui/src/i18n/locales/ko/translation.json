@@ -3262,5 +3262,37 @@
     "submit_reveal": "Submit and reveal",
     "no_cases": "No cases match the current filters.",
     "submit_error": "Could not save the review record."
+  },
+  "glossary_terminology": {
+    "community_review": "커뮤니티 번역 일관성 검토",
+    "community_author_history": "참고 출처: 작성자가 공개한 과거 버전",
+    "community": "커뮤니티의 기존 번역",
+    "title": "용어 검토",
+    "state": "검토 상태",
+    "confidence": "확신도",
+    "sense": "의미와 맥락",
+    "context": "맥락 식별자",
+    "schinese": "공식 중국어 간체 번역 참고",
+    "original": "원래 번역 초안",
+    "suggestion": "검토 제안",
+    "reason": "검토 근거",
+    "reviewer": "검토 기록 출처",
+    "human_review": "수동 결정",
+    "confidence_note": "검토 우선순위를 위한 정성적 판단이며 측정된 정확도가 아닙니다.",
+    "pending_note": "결정 대기 중이며 번역 스냅샷에서 제외됩니다.",
+    "reference_locale": "이 검토는 {{locale}}에 해당합니다. 수정하려면 해당 언어를 선택하세요.",
+    "states": {
+      "candidate": "후보",
+      "reviewed": "검토됨",
+      "pending": "결정 필요",
+      "approved": "확정됨",
+      "rejected": "거부됨"
+    },
+    "bands": {
+      "high": "높음",
+      "medium": "중간",
+      "low": "낮음",
+      "unrated": "미평가"
+    }
   }
 }

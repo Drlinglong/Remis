@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException
 from dotenv import load_dotenv
 
 from scripts.app_settings import API_PROVIDERS, get_api_key, get_appdata_config_path, GAME_PROFILES, LANGUAGES
+from scripts.core.glossary_terminology_service import glossary_languages
 from scripts.schemas.config import (
     CustomProviderProfileCreateRequest,
     CustomProviderProfileUpdateRequest,
@@ -117,6 +118,7 @@ def get_config():
     return sanitize_for_json({
         "game_profiles": game_profiles,
         "languages": LANGUAGES,
+        "glossary_languages": glossary_languages(LANGUAGES),
         "api_providers": api_providers_list,
         "profiles": profiles,
         "rpm_limit": config_manager.get_value("rpm_limit", 40)

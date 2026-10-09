@@ -108,7 +108,7 @@ def test_fixer_examples_have_a_stable_category_order():
 async def test_fix_batch_loop_reports_retry_reflection_attempts():
     handler = MagicMock()
     handler.client = MagicMock()
-    handler._call_api = MagicMock(side_effect=[
+    handler._call_batch_api = MagicMock(side_effect=[
         '["bad translation without tag"]',
         '["A #P good#! result."]',
     ])

@@ -6,6 +6,7 @@ class LanguageCode(str, Enum):
     """ISO 639-1 代码 - 这是数据库存储的唯一合法格式"""
     EN = "en"
     ZH_CN = "zh-CN"
+    ZH_TW = "zh-TW"
     FR = "fr"
     DE = "de"
     ES = "es"
@@ -32,6 +33,7 @@ class LanguageCode(str, Enum):
             "english": cls.EN, "l_english": cls.EN, "en_us": cls.EN, "en": cls.EN,
             # Chinese
             "chinese": cls.ZH_CN, "simp_chinese": cls.ZH_CN, "l_simp_chinese": cls.ZH_CN, "zh": cls.ZH_CN, "zh_cn": cls.ZH_CN, "zh-cn": cls.ZH_CN,
+            "zh-tw": cls.ZH_TW, "zh_tw": cls.ZH_TW,
             # French
             "french": cls.FR, "l_french": cls.FR, "fr": cls.FR,
             # German
@@ -69,6 +71,8 @@ class LanguageCode(str, Enum):
         """
         转换为 P社游戏使用的语言字符串 (e.g. 'en' -> 'english', 'zh-CN' -> 'simp_chinese')
         """
+        if self == self.ZH_TW:
+            raise ValueError("zh-TW requires an explicit game loading slot")
         mapping = {
             self.EN: "english",
             self.ZH_CN: "simp_chinese",

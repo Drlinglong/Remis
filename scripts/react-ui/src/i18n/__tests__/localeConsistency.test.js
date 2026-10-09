@@ -94,6 +94,15 @@ const releaseDuplicateValueAllowlist = new Set([
   'steam_workshop.bbcode',
   // ID is a standard identifier label; keep this exception exact.
   'mars_pipeline.source_id',
+  // Natural shared Spanish/Portuguese words and Chinese/Japanese short labels.
+  // Exact keys only; all terminology copy is still required in every locale.
+  'glossary_terminology.context',
+  'glossary_terminology.states.candidate',
+  'glossary_terminology.states.reviewed',
+  'glossary_terminology.states.approved',
+  'glossary_terminology.bands.high',
+  'glossary_terminology.bands.medium',
+  'glossary_terminology.bands.low',
 ]);
 
 const releaseDuplicateValueAllowlistPatterns = [

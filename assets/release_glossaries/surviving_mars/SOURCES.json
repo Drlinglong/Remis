@@ -1,0 +1,28 @@
+{
+  "schema_version": "remis-glossary-sources/1",
+  "game": "Surviving Mars / Surviving Mars: Relaunched",
+  "compiled_by": ["玲珑", "Remis"],
+  "sources": [
+    {
+      "role": "English source and official Simplified Chinese reference",
+      "source_kind": "installed_game_localization",
+      "note": "Terminology extracted from game localization resources. Official wording is reference evidence, not automatic approval of Traditional Chinese wording."
+    },
+    {
+      "role": "Historical Traditional Chinese terminology reference",
+      "author": "forink",
+      "workshop_url": "https://steamcommunity.com/sharedfiles/filedetails/?id=1749276214",
+      "source_kind": "author_public_history",
+      "revision": "249143.cht.200125.1",
+      "commit": "19f10b308317d46604cc1395fe7faa525e09679f",
+      "csv_sha256": "dfdf90c8f2086e4fdce29086a7eb0a10708645f3962e7c4efa74e205bcb8f2fe",
+      "note": "Partial historical terminology reuse and comparison. This does not imply verification of the latest Workshop archive or endorsement by its author."
+    },
+    {
+      "role": "Candidate generation, model review and human terminology decisions",
+      "project_url": "https://github.com/Drlinglong/Remis",
+      "note": "Human decisions take priority. Candidate and model-reviewed terms remain explicitly identified; confidence is not an accuracy measurement."
+    }
+  ],
+  "ownership_note": "Game names and source terminology belong to their respective rights holders. This resource does not claim ownership of the original game or community translation."
+}

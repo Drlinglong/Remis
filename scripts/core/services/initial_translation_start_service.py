@@ -6,6 +6,7 @@ from typing import Any
 
 from scripts.core.services.translation_task_lifecycle import TranslationTaskLifecycle
 from scripts.shared import task_state
+from scripts.shared.task_admission import rollback_unstarted_task
 
 
 class ProjectTranslationLockError(RuntimeError):
@@ -22,10 +23,13 @@ def claim_project_translation_lock(*, task_id: str, project_id: str) -> None:
     if lifecycle.acquire_project_lock(task_id=task_id, project_id=project_id):
         return
     owner = lifecycle.get_project_lock(project_id) or {}
-    lifecycle.transition(
+    # Go through task_state so the in-memory mirror also leaves the active set;
+    # a ledger-only transition left the project write key held until restart.
+    task_state.update_task(
         task_id,
-        "failed",
+        status="failed",
         message="Another translation task acquired the project lock first.",
+        fields={"blocking": False},
     )
     raise ProjectTranslationLockError(owner.get("task_id"))
 
@@ -96,11 +100,12 @@ def create_initial_translation_task(
         dedupe_key=f"project_translation_write:{request.project_id}",
         reject_duplicate=True,
     )
-    claim_project_translation_lock(
-        task_id=task_id,
-        project_id=request.project_id,
-    )
-    archive_recovered_task(
-        previous_task_id=request.resume_from_task_id,
-        replacement_task_id=task_id,
-    )
+    with rollback_unstarted_task(task_id):
+        claim_project_translation_lock(
+            task_id=task_id,
+            project_id=request.project_id,
+        )
+        archive_recovered_task(
+            previous_task_id=request.resume_from_task_id,
+            replacement_task_id=task_id,
+        )

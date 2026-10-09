@@ -3259,5 +3259,37 @@
     "submit_reveal": "Submit and reveal",
     "no_cases": "No cases match the current filters.",
     "submit_error": "Could not save the review record."
+  },
+  "glossary_terminology": {
+    "community_review": "Revisión de coherencia con la comunidad",
+    "community_author_history": "Fuente de referencia: versión histórica pública del autor",
+    "community": "Traducción histórica de la comunidad",
+    "title": "Revisión terminológica",
+    "state": "Estado de revisión",
+    "confidence": "Confianza",
+    "sense": "Significado y contexto",
+    "context": "Identificadores de contexto",
+    "schinese": "Referencia oficial en chino simplificado",
+    "original": "Borrador original",
+    "suggestion": "Propuesta de revisión",
+    "reason": "Justificación",
+    "reviewer": "Origen de la revisión",
+    "human_review": "Decisión manual",
+    "confidence_note": "Estimación cualitativa para priorizar la revisión, no una medida de precisión.",
+    "pending_note": "Pendiente de decisión; se excluye de las instantáneas de traducción.",
+    "reference_locale": "Esta revisión corresponde a {{locale}}. Selecciona ese idioma para editarla.",
+    "states": {
+      "candidate": "Candidato",
+      "reviewed": "Revisado",
+      "pending": "Requiere decisión",
+      "approved": "Confirmado",
+      "rejected": "Rechazado"
+    },
+    "bands": {
+      "high": "Alta",
+      "medium": "Media",
+      "low": "Baja",
+      "unrated": "Sin evaluar"
+    }
   }
 }

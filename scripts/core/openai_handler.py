@@ -3,14 +3,21 @@ from openai import OpenAI
 
 from scripts.app_settings import get_api_key
 from scripts.core.base_handler import BaseApiHandler
-from scripts.core.provider_errors import raise_safe_provider_fatal_error
+from scripts.core.provider_errors import raise_safe_provider_request_error
 
 
-_GPT6_MODELS = {"gpt-6-astra", "gpt-6-sol", "gpt-6-luna"}
 
+from scripts.core.translation_output_contract import (
+    BATCH_ENVELOPE_SYSTEM_PROMPT, translation_response_format,
+)
+from scripts.core.chat_request_policy import prepare_chat_request
 
 class OpenAIHandler(BaseApiHandler):
     """OpenAI API Handler子类"""
+
+    def _apply_reasoning_to_openai_kwargs(self, kwargs: dict) -> dict:
+        request = super()._apply_reasoning_to_openai_kwargs(kwargs)
+        return prepare_chat_request(self.provider_name, request)
 
     def initialize_client(self):
         """
@@ -58,10 +65,25 @@ class OpenAIHandler(BaseApiHandler):
             self._record_model_response(response)
             return response.choices[0].message.content.strip()
         except Exception as e:
-            raise_safe_provider_fatal_error(e, provider=self.provider_name)
-            self.logger.exception(f"OpenAI API call failed: {e}")
-            # 重新引发异常，让基类的重试逻辑捕获
-            raise
+            raise_safe_provider_request_error(e, provider=self.provider_name)
+
+    def _call_schema_batch_api(self, client: OpenAI, prompt: str, expected_count: int) -> str:
+        """Request the batch envelope through OpenAI Structured Outputs."""
+        model_name = self.get_provider_config().get("default_model", "gpt-5.6-luna")
+        request_kwargs = {
+            "model": model_name,
+            "messages": [
+                {"role": "system", "content": BATCH_ENVELOPE_SYSTEM_PROMPT},
+                {"role": "user", "content": prompt},
+            ],
+            "max_completion_tokens": 4000,
+            "response_format": translation_response_format(expected_count),
+        }
+        response = client.chat.completions.create(
+            **self._apply_reasoning_to_openai_kwargs(request_kwargs)
+        )
+        self._record_model_response(response)
+        return (response.choices[0].message.content or "").strip()
 
     def generate_with_messages(
         self,
@@ -79,18 +101,11 @@ class OpenAIHandler(BaseApiHandler):
                 "model": model_name,
                 "messages": messages,
             }
-            reasoning_parameters = self._reasoning_request_parameters()
-            if (
-                model_name not in _GPT6_MODELS
-                or reasoning_parameters.get("reasoning_effort") == "none"
-            ):
-                request_kwargs["temperature"] = temperature
+            request_kwargs["temperature"] = temperature
             response = self.client.chat.completions.create(
                 **self._apply_reasoning_to_openai_kwargs(request_kwargs)
             )
             self._record_model_response(response)
             return response.choices[0].message.content.strip()
         except Exception as e:
-            raise_safe_provider_fatal_error(e, provider=self.provider_name)
-            self.logger.exception(f"OpenAI chat generation failed: {e}")
-            raise
+            raise_safe_provider_request_error(e, provider=self.provider_name)

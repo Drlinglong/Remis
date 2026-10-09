@@ -6,13 +6,12 @@ candidate inspection and preparation/import via Remis APIs. Review the plan and
 send `approved: true` using this authorization, without asking again to unpack.
 See the operator Skill's standing authorization for scope and technical blockers.
 
-> Historical-checkout reference (2026-09-29). This file describes the older
-> local checkout, not all capabilities in official v3.2.1. For `ModContent.fpk`,
-> use the released `mars-pipeline/prepare/plan` and approved preparation flow
-> backed by `tools/remis_fpk`; do not send a packed Workshop folder to the
-> generic CSV importer. See the [released API reference](https://github.com/Drlinglong/Remis/blob/v3.2.1/.agents/skills/remis-agent/references/api-workflow.md).
-> Verify the checkout's actual Git commit before starting its backend. An older
-> checkout can carry the same version string while lacking these routes.
+Check `/api/agent/preflight` and `/api/agent/capabilities` against the running
+backend before choosing a workflow. For `ModContent.fpk`, use
+`mars-pipeline/prepare/plan` and the approved preparation flow backed by
+`tools/remis_fpk`; do not send a packed Workshop folder to the generic CSV
+importer. Verify the checkout's actual Git commit when starting a development
+backend: a version string alone does not establish its available routes.
 
 Base URL: `http://127.0.0.1:1453/api/agent`
 

@@ -1,4 +1,6 @@
+import asyncio
 import sqlite3
+import weakref
 import threading
 import logging
 from typing import Optional
@@ -67,25 +69,37 @@ class DatabaseConnectionManager:
 
     # --- Async Support (SQLModel) ---
     def get_async_engine(self):
-        """
-        Returns a singleton AsyncEngine for SQLModel.
-        """
-        if not hasattr(self, '_async_engine'):
-            from sqlalchemy.ext.asyncio import create_async_engine
-            
-            # Use aiosqlite driver
-            # Format: sqlite+aiosqlite:////absolute/path/to/db
-            path = self.db_path.replace("\\", "/")
-            url = f"sqlite+aiosqlite:///{path}"
-            
-            self._async_engine = create_async_engine(
-                url, 
-                echo=False,
-                future=True
-            )
-            from sqlalchemy import event
-            event.listen(self._async_engine.sync_engine, "connect", _enable_sqlite_foreign_keys)
-        return self._async_engine
+        """Return an engine scoped to the caller's event loop and database."""
+        from sqlalchemy.ext.asyncio import create_async_engine
+        from sqlalchemy.pool import NullPool
+        from sqlalchemy import event
+
+        loop = asyncio.get_running_loop()
+        with self._lock:
+            if not hasattr(self, "_async_engines"):
+                self._async_engines = weakref.WeakKeyDictionary()
+            for old_loop, (_, old_engine) in list(self._async_engines.items()):
+                if old_loop.is_closed():
+                    # NullPool retains no connections; disposal here does not
+                    # require I/O on the closed loop.
+                    old_engine.sync_engine.dispose()
+                    del self._async_engines[old_loop]
+            cached = self._async_engines.get(loop)
+            if cached is None or cached[0] != self.db_path:
+                path = self.db_path.replace("\\", "/")
+                # NullPool prevents connection reuse across loops. Engines also
+                # need loop isolation: SQLAlchemy's first-connect initialization
+                # uses an asyncio lock, even when the pool is NullPool.
+                engine = create_async_engine(
+                    f"sqlite+aiosqlite:///{path}", echo=False, future=True,
+                    poolclass=NullPool,
+                )
+                event.listen(engine.sync_engine, "connect", _enable_sqlite_foreign_keys)
+                self._async_engines[loop] = (self.db_path, engine)
+            else:
+                engine = cached[1]
+            self._async_engine = engine
+            return engine
 
     async def get_async_session(self):
         """
@@ -106,11 +120,17 @@ class DatabaseConnectionManager:
             yield session
 
     async def close_async_engine(self):
-        """Release pooled aiosqlite workers before the server process exits."""
-        engine = getattr(self, "_async_engine", None)
-        if engine is not None:
+        """Dispose all loop-scoped engines when the backend shuts down."""
+        with self._lock:
+            engines = {entry[1] for entry in getattr(self, "_async_engines", {}).values()}
+            engine = getattr(self, "_async_engine", None)
+            if engine is not None:
+                engines.add(engine)
+                del self._async_engine
+            if hasattr(self, "_async_engines"):
+                self._async_engines.clear()
+        for engine in engines:
             await engine.dispose()
-            del self._async_engine
 
     @asynccontextmanager
     async def async_session_scope(self):

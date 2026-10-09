@@ -43,6 +43,10 @@ def build_translation_progress_callback(
             total > 0 and current >= total
         )
         should_push = is_final or current_time - last_update_time[0] >= 0.2
+        if not should_push and not log_message:
+            # Every update rewrites the whole task record in SQLite; skip
+            # intermediate ticks. Logged and final updates are never dropped.
+            return
         if should_push:
             last_update_time[0] = current_time
 

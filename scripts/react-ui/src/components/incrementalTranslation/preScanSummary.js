@@ -1,3 +1,5 @@
+import { normalizePreScanResults } from '../../utils/preScanPayload';
+
 const toFiniteNumber = (value) => {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric : 0;
@@ -24,7 +26,7 @@ const summarizeValues = (values) => {
 };
 
 export const buildPreScanLanguageSummary = ({ scanResults, selectedLangs = [], archiveInfo = null }) => {
-  const fileSummaries = Array.isArray(scanResults?.file_summaries) ? scanResults.file_summaries : [];
+  const fileSummaries = normalizePreScanResults(scanResults).file_summaries;
   const configuredLanguages = (Array.isArray(selectedLangs) && selectedLangs.length > 0
     ? selectedLangs
     : getArchiveLanguages(archiveInfo)).filter(Boolean);

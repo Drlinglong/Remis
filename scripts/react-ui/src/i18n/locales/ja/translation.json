@@ -3262,5 +3262,37 @@
     "submit_reveal": "Submit and reveal",
     "no_cases": "No cases match the current filters.",
     "submit_error": "Could not save the review record."
+  },
+  "glossary_terminology": {
+    "community_review": "コミュニティ訳との整合性確認",
+    "community_author_history": "参照元：作者が公開した過去のバージョン",
+    "community": "コミュニティの従来訳",
+    "title": "用語の確認",
+    "state": "確認状況",
+    "confidence": "確信度",
+    "sense": "意味と文脈",
+    "context": "文脈の識別子",
+    "schinese": "公式の簡体字中国語訳",
+    "original": "元の訳案",
+    "suggestion": "確認時の提案",
+    "reason": "判断の理由",
+    "reviewer": "確認記録の出典",
+    "human_review": "手動の判断",
+    "confidence_note": "確認の優先順位を決めるための定性的な判断であり、実測の正解率ではありません。",
+    "pending_note": "判断待ちです。翻訳用スナップショットには含まれません。",
+    "reference_locale": "この確認は {{locale}} 用です。編集するにはその言語を選択してください。",
+    "states": {
+      "candidate": "候補",
+      "reviewed": "確認済み",
+      "pending": "判断待ち",
+      "approved": "承認済み",
+      "rejected": "不採用"
+    },
+    "bands": {
+      "high": "高",
+      "medium": "中",
+      "low": "低",
+      "unrated": "未評価"
+    }
   }
 }

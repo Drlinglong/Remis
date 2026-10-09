@@ -317,13 +317,18 @@ class TaskRepository:
             task.pop("log", None)
         return task
 
-    def get_task(self, task_id: str) -> Optional[Dict[str, Any]]:
+    def get_task(
+        self,
+        task_id: str,
+        *,
+        include_events: bool = True,
+    ) -> Optional[Dict[str, Any]]:
         with self._lock, self._connect() as connection:
             row = connection.execute(
                 "SELECT * FROM background_tasks WHERE task_id = ?",
                 (task_id,),
             ).fetchone()
-        return self._row_to_task(row) if row else None
+        return self._row_to_task(row, include_events=include_events) if row else None
 
     @staticmethod
     def _in_clause(values: Iterable[str]) -> tuple[str, list[str]]:
@@ -335,9 +340,13 @@ class TaskRepository:
         *,
         statuses: Optional[Iterable[str]] = None,
         include_events: bool = True,
+        parent_task_id: Optional[str] = None,
     ) -> list[Dict[str, Any]]:
         clauses: list[str] = []
         parameters: list[Any] = []
+        if parent_task_id is not None:
+            clauses.append("parent_task_id = ?")
+            parameters.append(parent_task_id)
         if statuses is not None:
             placeholders, normalized = self._in_clause(statuses)
             if not normalized:

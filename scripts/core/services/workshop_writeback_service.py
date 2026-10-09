@@ -6,6 +6,7 @@ from scripts.core.loc_parser import parse_loc_file
 from scripts.core.paradox_localization_parser import parse_text, patch_text
 from scripts.core.project_json_manager import ProjectJsonManager
 from scripts.utils.post_process_validator import PostProcessValidator
+from scripts.utils.text_integrity_findings import REVIEW_ONLY_TEXT_INTEGRITY_CODES
 
 logger = logging.getLogger(__name__)
 
@@ -13,6 +14,7 @@ INVALID_KEY_ERROR_CODE = "validation_invalid_key_format"
 REVIEW_ONLY_ERROR_CODES = {
     "validation_source_format_unbalanced",
     "validation_format_structure_variation",
+    *REVIEW_ONLY_TEXT_INTEGRITY_CODES,
 }
 
 

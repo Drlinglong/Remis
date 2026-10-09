@@ -20,6 +20,15 @@ const baseCase = {
 };
 
 describe('ArchiveABReviewPanel', () => {
+  it.each([{}, [null], [{ ...baseCase, source_entries: {} }]])('shows malformed input without allowing review: %j', (cases) => {
+    const onSubmit = vi.fn();
+    render(<MantineProvider><ArchiveABReviewPanel t={t} cases={cases} activeIndex={0}
+      onSubmit={onSubmit} onChangeCase={vi.fn()} saving={false} /></MantineProvider>);
+    expect(screen.getByText(/Invalid/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'archive_ab_review.choose' })).not.toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
   it('keeps candidates blind and submits a case-level human judgment', async () => {
     const onSubmit = vi.fn().mockResolvedValue({});
     const onChangeCase = vi.fn();

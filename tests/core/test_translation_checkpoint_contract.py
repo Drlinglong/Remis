@@ -569,3 +569,41 @@ def test_source_or_config_mismatch_blocks_resume(tmp_path, field, value, reason)
     assert info["compatibility"] == "incompatible"
     assert info["compatibility_reason"] == reason
     assert info["resume_allowed"] is False
+
+
+def test_checkpoint_directory_failure_is_reported_without_claiming_saved_state(tmp_path, monkeypatch):
+    manager = _manager(tmp_path / "output", tmp_path / "source")
+
+    def denied(*_args, **_kwargs):
+        raise PermissionError("checkpoint folder denied")
+
+    monkeypatch.setattr("scripts.core.checkpoint_manager.os.makedirs", denied)
+    assert manager.save_checkpoint() is False
+    assert manager.last_save_failed is True
+    assert manager.revision == 0
+    assert manager.get_checkpoint_info()["resume_allowed"] is False
+
+
+def test_checkpoint_replace_failure_preserves_durable_revision_then_recovers(tmp_path, monkeypatch):
+    output = tmp_path / "output"
+    manager = _manager(output, tmp_path / "source")
+    manager.mark_file_completed("first.yml")
+    original = (output / manager.CHECKPOINT_FILENAME).read_bytes()
+    revision = manager.revision
+
+    def denied(*_args):
+        raise PermissionError("atomic replacement denied")
+
+    with monkeypatch.context() as patch:
+        patch.setattr("scripts.core.checkpoint_manager.os.replace", denied)
+        manager.mark_file_completed("second.yml")
+        assert manager.last_save_failed is True
+        assert manager.revision == revision
+        assert (output / manager.CHECKPOINT_FILENAME).read_bytes() == original
+        assert len(list(output.iterdir())) == 1
+
+    assert manager.save_checkpoint() is True
+    assert manager.last_save_failed is False
+    restored = _manager(output, tmp_path / "source")
+    assert restored.completed_files == {"first.yml", "second.yml"}
+    assert restored.revision == revision + 1

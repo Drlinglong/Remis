@@ -20,6 +20,7 @@ import GlossaryOverview from '../components/glossary/GlossaryOverview';
 import GlossaryOperations from '../components/glossary/GlossaryOperations';
 import NewGlossaryModal from '../components/glossary/NewGlossaryModal';
 import EditTermForm from '../components/glossary/EditTermForm';
+import TerminologyReviewBadge from '../components/glossary/TerminologyReviewBadge';
 import styles from './GlossaryManager.module.css';
 
 /**
@@ -121,6 +122,11 @@ const GlossaryManagerPage = () => {
             id: 'translation',
             header: () => <Text fw={700}>{t('glossary_translation')}</Text>,
             cell: ({ row }) => <Text>{row.original.translations[glossary.selectedTargetLang] || ''}</Text>
+        },
+        {
+            id: 'terminologyReview',
+            header: () => <Text fw={700}>{t('glossary_terminology.state')}</Text>,
+            cell: ({ row }) => <TerminologyReviewBadge entry={row.original} />
         },
         {
             accessorKey: 'notes',

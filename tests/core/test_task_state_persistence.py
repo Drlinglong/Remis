@@ -193,6 +193,68 @@ def test_cancellation_request_survives_in_memory_state_reset(tmp_path):
         task_state.tasks.update(previous_tasks)
 
 
+def test_startup_interrupts_orphaned_deployment_and_releases_write_key(tmp_path):
+    db_path = tmp_path / "deployment-recovery.sqlite"
+    migrate_main_database(str(db_path))
+    repository = TaskRepository(str(db_path))
+    dedupe_key = "project_translation_write:project-deploy"
+    repository.save_task(
+        {
+            "task_id": "orphan-deployment",
+            "kind": "deployment",
+            "project_id": "project-deploy",
+            "status": "running",
+            "dedupe_key": dedupe_key,
+            "blocking": True,
+            "created_at": "2026-08-31T00:00:00Z",
+            "updated_at": "2026-08-31T00:01:00Z",
+        }
+    )
+
+    previous_repository = task_state.get_repository()
+    previous_tasks = dict(task_state.tasks)
+    try:
+        task_state.tasks.clear()
+        task_state.configure_repository(repository, hydrate=True, replace=True)
+
+        recovered = task_state.get_task("orphan-deployment")
+        assert recovered["status"] == "interrupted"
+        assert "incomplete" in recovered["attention_reason"]
+        assert repository.get_task("orphan-deployment")["status"] == "interrupted"
+        assert task_state.find_active_task_by_dedupe_key(dedupe_key) is None
+    finally:
+        task_state.configure_repository(previous_repository)
+        task_state.tasks.clear()
+        task_state.tasks.update(previous_tasks)
+
+
+def test_cancellation_poll_for_live_task_does_not_read_ledger(tmp_path):
+    db_path = tmp_path / "cancellation-poll.sqlite"
+    migrate_main_database(str(db_path))
+    repository = TaskRepository(str(db_path))
+
+    previous_repository = task_state.get_repository()
+    previous_tasks = dict(task_state.tasks)
+    try:
+        task_state.tasks.clear()
+        task_state.configure_repository(repository)
+        task_state.create_task(
+            "live-poll",
+            status="running",
+            fields={"kind": "translation"},
+        )
+
+        def unexpected_read(*_args, **_kwargs):
+            raise AssertionError("live cancellation poll must not read SQLite")
+
+        repository.get_task = unexpected_read
+        assert task_state.is_task_cancellation_requested("live-poll") is False
+    finally:
+        task_state.configure_repository(previous_repository)
+        task_state.tasks.clear()
+        task_state.tasks.update(previous_tasks)
+
+
 def test_translation_task_cannot_leave_terminal_state():
     previous_repository = task_state.get_repository()
     previous_tasks = dict(task_state.tasks)

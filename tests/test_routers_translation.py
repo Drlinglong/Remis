@@ -616,3 +616,22 @@ def test_cancelled_task_never_enters_translation_workflow():
 
     assert result is None
     assert task_state.get_task("task-cancel-before-start")["status"] == "cancelled"
+
+
+@pytest.mark.asyncio
+async def test_translate_v2_queue_failure_releases_admitted_task(monkeypatch, tmp_path):
+    source = tmp_path / "incoming" / "mod"
+    source.mkdir(parents=True)
+    monkeypatch.setattr(translation, "SOURCE_DIR", str(tmp_path / "managed"))
+    monkeypatch.setattr(translation, "resolve_runtime_or_400", lambda *_args: object())
+    monkeypatch.setattr(translation, "provider_task_fields", lambda _runtime: {})
+
+    class BrokenQueue:
+        def add_task(self, *_args, **_kwargs):
+            raise RuntimeError("queue unavailable")
+
+    with pytest.raises(RuntimeError, match="queue unavailable"):
+        await translation.start_translation_v2(BrokenQueue(), _legacy_translation_request(str(source)))
+
+    assert len(tasks) == 1
+    assert next(iter(tasks.values()))["status"] == "failed"

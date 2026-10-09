@@ -3,10 +3,12 @@ from scripts.core import workshop_formatter, deploy_manager
 from scripts.core.services.validation_sidecar_service import ValidationSidecarService
 from scripts.schemas.tools import WorkshopDescriptionResponse, WorkshopRequest
 from scripts.shared import task_state
+from scripts.shared.task_admission import abandon_unstarted_task
 from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
 from typing import Any, Dict, Optional
 from pathlib import Path
+import asyncio
 import logging
 import threading
 import time
@@ -329,6 +331,28 @@ async def deploy_mod(payload: DeployRequest):
             f"Conflicting task {exc.existing_task.get('task_id')} is already active.",
         ) from exc
 
+    # Shield the execution so a dropped client cannot orphan the task while
+    # the worker thread is still writing. Whatever way the execution ends,
+    # including BaseException or loop-shutdown cancellation, the done callback
+    # releases a task that never reached a terminal state.
+    execution = asyncio.ensure_future(
+        _execute_approved_deployment(
+            task_id, payload, preview, source_path, target_path
+        )
+    )
+    execution.add_done_callback(lambda _: abandon_unstarted_task(task_id, _DEPLOYMENT_STOPPED_REASON))
+    return await asyncio.shield(execution)
+
+
+async def _execute_approved_deployment(
+    task_id: str,
+    payload: DeployRequest,
+    preview: Dict[str, Any],
+    source_path: Path,
+    target_path: Path,
+) -> Dict[str, Any]:
+    from scripts.shared.services import project_manager
+
     try:
         result = await run_in_threadpool(
             deploy_manager.mod_deployer.deploy_mod,
@@ -413,6 +437,13 @@ async def deploy_mod(payload: DeployRequest):
                 "Deployment completed but project history could not be updated"
             )
     return {**result, "task_id": task_id, "preview_id": payload.preview_id}
+
+
+_DEPLOYMENT_STOPPED_REASON = (
+    "Deployment stopped unexpectedly. The target folder may be incomplete. "
+    "Review it, then create a fresh preview and deploy again."
+)
+
 
 class CleanFakeLocRequest(BaseModel):
     workshop_path: str

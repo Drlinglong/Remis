@@ -364,3 +364,83 @@ async def test_deploy_route_does_not_expose_internal_failure_details(
     task = next(iter(task_state.tasks.values()))
     assert task["status"] == "failed"
     assert r"C:\Users\private" not in str(task)
+
+
+def _deploy_request(preview):
+    return tools.DeployRequest(
+        project_id="project-1",
+        output_folder_name="zh-CN-demo",
+        game_id="victoria3",
+        preview_id=preview["preview_id"],
+        approved=True,
+    )
+
+
+@pytest.mark.asyncio
+async def test_unexpected_deploy_result_releases_project_write_key(
+    monkeypatch,
+    tmp_path,
+):
+    _configure_paths(monkeypatch, tmp_path)
+    _configure_project(monkeypatch, tmp_path)
+    preview = await _preview()
+    monkeypatch.setattr(
+        tools.deploy_manager.mod_deployer,
+        "deploy_mod",
+        lambda **_kwargs: None,
+    )
+
+    with pytest.raises(TypeError):
+        await tools.deploy_mod(_deploy_request(preview))
+
+    task = next(iter(task_state.tasks.values()))
+    assert task["status"] == "failed"
+    assert "incomplete" in task["attention_reason"]
+    assert (
+        task_state.find_active_task_by_dedupe_key(
+            "project_translation_write:project-1"
+        )
+        is None
+    )
+
+
+@pytest.mark.asyncio
+async def test_dropped_deploy_request_still_finalizes_task(
+    monkeypatch,
+    tmp_path,
+):
+    import asyncio
+    import threading
+
+    _, target = _configure_paths(monkeypatch, tmp_path)
+    _configure_project(monkeypatch, tmp_path)
+    preview = await _preview()
+    started = threading.Event()
+    release = threading.Event()
+
+    def blocking_deploy(**_kwargs):
+        started.set()
+        release.wait(timeout=5)
+        return {"status": "success", "target_path": str(target)}
+
+    monkeypatch.setattr(
+        tools.deploy_manager.mod_deployer,
+        "deploy_mod",
+        blocking_deploy,
+    )
+
+    request = asyncio.ensure_future(tools.deploy_mod(_deploy_request(preview)))
+    while not started.is_set():
+        await asyncio.sleep(0.01)
+    request.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await request
+
+    task = next(iter(task_state.tasks.values()))
+    assert task["status"] == "running"
+    release.set()
+    for _ in range(500):
+        if task_state.tasks[task["task_id"]]["status"] != "running":
+            break
+        await asyncio.sleep(0.01)
+    assert task_state.tasks[task["task_id"]]["status"] == "completed"

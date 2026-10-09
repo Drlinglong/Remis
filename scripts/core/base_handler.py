@@ -12,30 +12,37 @@ from scripts.core.parallel_types import BatchTask
 from scripts.utils.punctuation_handler import generate_punctuation_prompt
 from scripts.core.glossary_manager import glossary_manager
 from scripts.utils.structured_parser import parse_response
-from scripts.utils.text_clean import mask_special_tokens
+from scripts.utils.text_clean import normalize_model_output
+from scripts.core.translation_input_encoding import (
+    SOURCE_VALUE_ENCODING_NOTE, decode_single_text_response, encode_source_value,
+)
+from scripts.core.translation_output_contract import call_batch_with_contract
 from scripts.core.prompt_manager import prompt_manager
 from scripts.core.vic3_country_adjective_context import prompt_policy
-from scripts.core.provider_errors import classify_provider_fatal_error
+from scripts.core.provider_errors import (
+    classify_provider_fatal_error, provider_failure_task_fields, raise_safe_provider_fatal_error,
+)
 
 
-def _build_numbered_input(task: BatchTask, masked_chunk: list[str]):
+def _build_numbered_input(task: BatchTask, chunk: list[str]):
     semantic_hints = getattr(task.file_task, "semantic_hints", [])
     batch_hints = semantic_hints[task.start_index:task.end_index]
-    if len(batch_hints) != len(masked_chunk):
-        batch_hints = [None] * len(masked_chunk)
+    if len(batch_hints) != len(chunk):
+        batch_hints = [None] * len(chunk)
+    encoded_chunk = [encode_source_value(text) for text in chunk]
     if not any(batch_hints):
         numbered = "\n".join(
-            f'{index + 1}. "{text}"'
-            for index, text in enumerate(masked_chunk)
+            f"{index + 1}. {text}"
+            for index, text in enumerate(encoded_chunk)
         )
         return numbered, batch_hints
     numbered = "\n".join(
         (
-            f'{index + 1}. Semantic hint: "{hint}"; Source value: "{text}"'
+            f'{index + 1}. Semantic hint: "{hint}"; Source value: {text}'
             if hint
-            else f'{index + 1}. Source value: "{text}"'
+            else f"{index + 1}. Source value: {text}"
         )
-        for index, (text, hint) in enumerate(zip(masked_chunk, batch_hints))
+        for index, (text, hint) in enumerate(zip(encoded_chunk, batch_hints))
     )
     return numbered, batch_hints
 
@@ -291,13 +298,7 @@ class BaseApiHandler(ABC):
         mod_context = task.file_task.mod_context
         batch_num = task.batch_index + 1
 
-
-
-        # Apply Token Masking (Newlines & Quotes)
-        masked_chunk = [mask_special_tokens(txt) for txt in chunk]
-        numbered_list, batch_hints = _build_numbered_input(task, masked_chunk)
-
-        effective_target_lang_name = target_lang.get("custom_name", target_lang["name"]) if target_lang.get("is_shell") else target_lang["name"]
+        numbered_list, batch_hints = _build_numbered_input(task, chunk)
 
         effective_target_lang_name = target_lang.get("custom_name", target_lang["name"]) if target_lang.get("is_shell") else target_lang["name"]
 
@@ -381,6 +382,7 @@ class BaseApiHandler(ABC):
             + language_policy_part
             + source_context_prompt
             + release_context_prompt
+            + SOURCE_VALUE_ENCODING_NOTE
             + format_prompt_part
             + punctuation_prompt_part
             + final_warning
@@ -395,8 +397,8 @@ class BaseApiHandler(ABC):
         context_lines = []
         for entry in task.context_entries:
             key = entry.get("key", "")
-            source = mask_special_tokens(entry.get("source", ""))
-            context_lines.append(f'- {key}: "{source}"')
+            source = encode_source_value(entry.get("source", ""))
+            context_lines.append(f"- {key}: {source}")
         return (
             "\nSOURCE-ONLY NEIGHBOR CONTEXT:\n"
             "The following entries are context only. Do not translate them, do not include them in the output, "
@@ -438,6 +440,10 @@ class BaseApiHandler(ABC):
         lines.append("END PROJECT CONTEXT RELEASE\n")
         return "\n".join(lines)
 
+    def _call_batch_api(self, client: any, prompt: str, expected_count: int) -> str:
+        """Provider hook for the batch output contract (native schema where supported)."""
+        return call_batch_with_contract(self, client, prompt, expected_count)
+
     def _parse_response(
         self,
         response: str,
@@ -474,7 +480,7 @@ class BaseApiHandler(ABC):
                 from scripts.utils.rate_limiter import rate_limiter
                 rate_limiter.wait()
 
-                raw_response = self._call_api(self.client, prompt)
+                raw_response = self._call_batch_api(self.client, prompt, len(task.texts))
                 translated_texts = self._parse_response(
                     raw_response,
                     task.texts,
@@ -496,13 +502,15 @@ class BaseApiHandler(ABC):
                     raise ValueError("Response parsing failed, triggering retry.")
 
             except Exception as e:
-                self.logger.exception(f"API call failed for batch {batch_num} on attempt {attempt + 1}: {e}")
-                error_text = str(e)
+                upstream_error_text = str(e)
+                error_text = f"Provider request failed ({type(e).__name__})."
                 fatal_error = classify_provider_fatal_error(
                     e,
                     provider=self.provider_name,
                 )
                 if fatal_error is not None:
+                    error_text = provider_failure_task_fields(fatal_error)["attention_reason"]
+                    self.logger.error("API call failed for batch %s: %s", batch_num, error_text)
                     task.warnings.append({
                         "type": "provider_fatal",
                         "batch_num": batch_num,
@@ -510,9 +518,10 @@ class BaseApiHandler(ABC):
                         "provider": self.provider_name,
                         "message": error_text,
                     })
-                    raise fatal_error from e
+                    raise_safe_provider_fatal_error(e, provider=self.provider_name)
+                self.logger.error("API call failed for batch %s: %s", batch_num, error_text)
                 warning_code = "api_error"
-                if "context size has been exceeded" in error_text.lower() or "context length" in error_text.lower():
+                if "context size has been exceeded" in upstream_error_text.lower() or "context length" in upstream_error_text.lower():
                     warning_code = "context_exceeded"
                 task.warnings.append({
                     "type": warning_code,
@@ -573,9 +582,6 @@ class BaseApiHandler(ABC):
             target_lang["code"]
         )
 
-        # Apply masking to the single text as well
-        masked_text = mask_special_tokens(text)
-
         prompt = (
             base_prompt
             + f"CRITICAL CONTEXT: The mod's theme is '{mod_context}'. Use this to ensure accuracy.\n"
@@ -585,7 +591,8 @@ class BaseApiHandler(ABC):
             "DO NOT include explanations, pinyin, or any other text.\n"
             'For example, if the input is "Flavor Pack", your output must be "风味包" and nothing else.\n\n'
             + (f"PUNCTUATION CONVERSION:\n{punctuation_prompt}\n\n" if punctuation_prompt else "")
-            + f'Translate this: "{masked_text}"'
+            + "The source value is a JSON string literal; its quotes and \\n sequences are part of the text.\n"
+            + f"Translate this: {encode_source_value(text)}"
         )
         return self._apply_model_prompt_adapter(prompt)
 
@@ -619,18 +626,8 @@ class BaseApiHandler(ABC):
 
         try:
             raw_response = self._call_api(self.client, prompt)
-            # Simple cleanup for single text
-            translated_text = raw_response.strip().strip('"')
-            
-            # Restore tokens
-            from scripts.utils.text_clean import restore_special_tokens
-            translated_text = restore_special_tokens(
-                translated_text,
-                target_lang["code"],
-                preserve_newlines=game_profile.get("format_adapter_id") == "surviving_mars_csv",
-            )
-            
-            return translated_text
+            translated_text = decode_single_text_response(raw_response)
+            return normalize_model_output(translated_text, target_lang["code"], preserve_newlines=game_profile.get("format_adapter_id") == "surviving_mars_csv")
         except Exception as e:
             self.logger.exception(f"Single text translation failed for '{text[:30]}...': {e}")
             return text # Fallback to original text
