@@ -7,7 +7,7 @@ from scripts.core.parallel_types import BatchTask, FileTask
 def test_fixer_uses_handler_and_returns_structured_response():
     handler = MagicMock()
     handler.client = MagicMock()
-    handler._call_api.return_value = '["Fixed"]'
+    handler._call_batch_api.return_value = '["Fixed"]'
 
     file_task = MagicMock(spec=FileTask)
     file_task.target_lang = {"name": "Russian", "code": "ru"}
@@ -29,5 +29,7 @@ def test_fixer_uses_handler_and_returns_structured_response():
 
     assert success is True
     assert fixed_texts == ["Fixed"]
-    handler._call_api.assert_called_once()
-    assert handler._call_api.call_args.args[0] is handler.client
+    handler._call_batch_api.assert_called_once()
+    assert handler._call_batch_api.call_args.args[0] is handler.client
+
+    assert handler._call_batch_api.call_args.args[2] == 1

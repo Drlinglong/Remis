@@ -438,6 +438,10 @@ class BaseApiHandler(ABC):
         lines.append("END PROJECT CONTEXT RELEASE\n")
         return "\n".join(lines)
 
+    def _call_batch_api(self, client: any, prompt: str, expected_count: int) -> str:
+        """Provider hook for a batch-specific output contract."""
+        return self._call_api(client, prompt)
+
     def _parse_response(self, response: str, original_texts: list[str], target_lang_code: str) -> list[str] | None:
         """
         【通用逻辑】调用结构化解析器来解析API响应。
@@ -464,7 +468,7 @@ class BaseApiHandler(ABC):
                 from scripts.utils.rate_limiter import rate_limiter
                 rate_limiter.wait()
 
-                raw_response = self._call_api(self.client, prompt)
+                raw_response = self._call_batch_api(self.client, prompt, len(task.texts))
                 translated_texts = self._parse_response(raw_response, task.texts, task.file_task.target_lang["code"])
 
                 # Check for success: must not be None, must not be the original list, and length must match.

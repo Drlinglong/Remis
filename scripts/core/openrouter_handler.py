@@ -6,6 +6,7 @@ from openai import OpenAI
 from scripts.app_settings import get_api_key
 from scripts.core.openai_handler import OpenAIHandler
 from scripts.core.strict_json_schema import strict_json_schema
+from scripts.core.translation_output_contract import translation_response_format, validate_translation_response
 
 
 class OpenRouterHandler(OpenAIHandler):
@@ -61,6 +62,30 @@ class OpenRouterHandler(OpenAIHandler):
         self._record_model_response(response)
         return response.choices[0].message.content.strip()
 
+    def _call_batch_api(self, client: OpenAI, prompt: str, expected_count: int) -> str:
+        options = self._chat_options()
+        extra = dict(options.get("extra_body") or {})
+        extra["provider"] = {
+            **extra.get("provider", {}), "require_parameters": True, "allow_fallbacks": False,
+        }
+        options["extra_body"] = extra
+        response = client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": (
+                    "You are a professional translator for game mods. Return a JSON object "
+                    "with a translations array in input order. This output envelope supersedes "
+                    "any instruction requesting a bare array; preserve all translation rules."
+                )},
+                {"role": "user", "content": prompt},
+            ],
+            response_format=translation_response_format(expected_count),
+            **options,
+        )
+        self._record_model_response(response)
+        raw = response.choices[0].message.content or ""
+        validate_translation_response(raw, expected_count)
+        return raw
+
     def generate_with_messages(
         self,
         messages: list[dict],
@@ -84,7 +109,11 @@ class OpenRouterHandler(OpenAIHandler):
         options = self._chat_options(temperature)
         extra_body = dict(options.get("extra_body") or {})
         extra_body.update({
-            "provider": {"require_parameters": True},
+            "provider": {
+                **extra_body.get("provider", {}),
+                "require_parameters": True,
+                "allow_fallbacks": False,
+            },
             "plugins": [{"id": "response-healing"}],
         })
         options["extra_body"] = extra_body

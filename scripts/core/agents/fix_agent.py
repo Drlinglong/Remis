@@ -239,7 +239,7 @@ class ReflexionFixAgent:
             
             try:
                 # 2. Call LLM for the batch
-                raw_response = self.handler._call_api(self.handler.client, prompt)
+                raw_response = self.handler._call_batch_api(self.handler.client, prompt, len(active_indices))
                 
                 # Use StructuredParser to ensure we get a clean list
                 parsed = parse_response(raw_response, TranslationResponse, "json")

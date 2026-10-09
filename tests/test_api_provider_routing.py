@@ -240,7 +240,7 @@ def test_openrouter_luna_structured_chat_sends_json_schema():
         },
     }
     assert captured["extra_body"] == {
-        "provider": {"require_parameters": True},
+        "provider": {"require_parameters": True, "allow_fallbacks": False},
         "plugins": [{"id": "response-healing"}],
     }
 
