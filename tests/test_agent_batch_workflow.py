@@ -218,7 +218,9 @@ def start_request(plan_id, key="request-1"):
 
 
 @pytest.mark.asyncio
-async def test_plan_submit_restart_collect_and_apply_registers_zh_tw_with_schinese_slot(batch_environment):
+@pytest.mark.parametrize("source_language", ["en", "english", "l_english", "simp_chinese"])
+async def test_plan_submit_restart_collect_and_apply_registers_zh_tw_with_schinese_slot(batch_environment, source_language):
+    batch_environment["manager"].project["source_language"] = source_language
     service = batch_environment["service"]()
     plan = await service.plan(plan_request())
 
@@ -287,7 +289,9 @@ async def test_unknown_submission_is_persisted_and_same_key_does_not_resubmit(ba
 
 
 @pytest.mark.asyncio
-async def test_retry_plan_merges_prior_successes_with_failed_request_results(batch_environment):
+@pytest.mark.parametrize("source_language", ["en", "english", "l_english", "simp_chinese"])
+async def test_retry_plan_merges_prior_successes_with_failed_request_results(batch_environment, source_language):
+    batch_environment["manager"].project["source_language"] = source_language
     transport = FakeTransport(fail_first_suffix=":1")
     service = batch_environment["service"](wire=transport)
     plan = await service.plan(plan_request())
@@ -325,6 +329,18 @@ async def test_source_revision_change_blocks_submission_before_transport(batch_e
     with pytest.raises(BatchConflict) as caught:
         await service.start(start_request(plan["id"]))
 
+    assert caught.value.code == "source_revision_conflict"
+    assert batch_environment["transport"].submissions == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("changed_locale", ["fr", "l_french", "unknown-language", ""])
+async def test_actual_source_locale_change_blocks_submission_before_transport(batch_environment, changed_locale):
+    service = batch_environment["service"]()
+    plan = await service.plan(plan_request())
+    batch_environment["manager"].project["source_language"] = changed_locale
+    with pytest.raises(BatchConflict) as caught:
+        await service.start(start_request(plan["id"]))
     assert caught.value.code == "source_revision_conflict"
     assert batch_environment["transport"].submissions == []
 

@@ -39,6 +39,10 @@ OpenRouter 翻译要求所选模型端点支持严格 JSON Schema；不支持时
 
 本地测试使用模拟transport，不宣称每个云端账号模型都可访问，也不宣称实际游戏加载或Workshop上传已验收。正式Release仍以GitHub发布为准。
 
+
+
+Batch源语言在revision检查前统一规范化，`english`、`l_english`、`simp_chinese`等既有项目别名不会误触发`source_revision_conflict`。回归覆盖提交、重启收集、重试和应用；真实语言变化与无效语言仍拒绝提交。CI完整后端测试分为八个独立Windows作业，只有全部成功才通过原有Python tests门禁；分片回归确认每个用例恰好执行一次。
+
 ## English
 
 ## Highlights
@@ -60,15 +64,19 @@ OpenRouter translation requires an endpoint supporting strict JSON Schema. Unsup
 
 Task admission rollback, ledger-aware updates, owner-safe terminal transitions, loop-scoped database engines and checkpoint failure handling have focused regressions. Structured schemas and reasoning settings share the final request policy; provider failures retain safe retry classification without exposing upstream bodies. Quote protection scans malformed bracket input in linear time while conservatively preserving nested/overlapping semantic tokens, with a 500,000-bracket regression. Malformed review/prescan payloads are rejected. Release glossaries use reviewed static inputs rather than live user databases.
 
-The integrated backend suite passes 2,843 tests with 19 environmental/optional skips; the frontend passes 1,088 tests. Lint has no errors and 13 existing warnings, the production dependency audit has no vulnerabilities, and the stable Windows installer builds successfully. Frozen-backend smoke checks confirm version 3.3.0 and the default experimental API gates. No real paid calls, game loading or Workshop upload acceptance is claimed by these checks.
+
+
+Batch source-language aliases are normalized before revision checks, preventing false `source_revision_conflict` errors for existing projects storing `english`, `l_english` or `simp_chinese`. Regressions cover submission, restart collection, retry and apply; actual language changes and invalid values still block submission. The complete backend CI suite runs in eight independent Windows shards, with the existing Python tests gate requiring every shard to pass; shard regressions verify each case runs exactly once.
+
+The integrated backend suite passes 2,856 tests with 19 environmental/optional skips; the frontend passes 1,088 tests. Lint has no errors and 13 existing warnings, the production dependency audit has no vulnerabilities, and the stable Windows installer builds successfully. Frozen-backend smoke checks confirm version 3.3.0 and the default experimental API gates. No real paid calls, game loading or Workshop upload acceptance is claimed by these checks.
 
 ## 最终验证与安装包
 
-最终构建源码提交：`cfb927efebd2d9de59e7bcd2411a90dffed3632e`，包含发布前CodeQL发现的引号扫描修复。后续收尾仅修改发布文档，没有修改打包代码或资源。
+最终构建源码提交：`bf7b301f0df7914870445a9e86c9a07abc4d9c88`，包含CodeQL引号扫描修复、Batch源语言别名P1修复及完整后端CI分片。构建后收尾仅修改发布文档，没有修改打包代码或资源。
 
 | 检查 | 结果 |
 | --- | --- |
-| 完整后端 pytest | 2843通过、19跳过、746警告；206.53秒 |
+| 完整后端 pytest | 2856通过、19跳过、746警告；228.14秒 |
 | 完整前端 Vitest（独立锁定依赖） | 258文件、1088通过；53.88秒 |
 | 前端 lint／生产依赖审计 | 0错误、13既有警告／0漏洞 |
 | 构建与资源聚焦回归 | 35通过；新增种子导出到freezer调用链回归 |
@@ -86,7 +94,7 @@ The integrated backend suite passes 2,843 tests with 19 environmental/optional s
 
 | 附件 | 字节数 | SHA256 |
 | --- | ---: | --- |
-| remis-mod-factory_3.3.0_x64-setup.exe | 45722087 | `26c4410663ea78798309a8a6dfcf5498f9addfc2124d9b614bb56809ded2062f` |
+| remis-mod-factory_3.3.0_x64-setup.exe | 45721181 | `737cfbaf714121dd823cf0eaa87070398b4860b0faa909ec06834b192e3af839` |
 | Remis-SurvivingMars-Glossary_3.3.0.zip | 415008 | `5430a7713eccad27aa703b6a1b094e5ecc78e3f88936c57be68fe62440d9ce97` |
 
 发布时附带词典`.zip.sha256`和`SHA256SUMS`。生成本地附件不等于GitHub Release已发布；正式发版应把候选代码通过仓库分支保护和CI门禁合入main，并核对最终Release的精确commit。

@@ -4,6 +4,7 @@ from pathlib import Path, PurePosixPath
 from scripts.core.batch_artifacts import digest_file, fingerprint
 from scripts.core.batch_repository import BatchConflict
 from scripts.core.game_adapters.registry import get_adapter
+from scripts.schemas.common import LanguageCode
 
 
 def safe_relative(value):
@@ -94,7 +95,11 @@ async def require_current_sources(manager, snapshot):
     project = await manager.get_project(snapshot["project_id"])
     if not project or project.get("game_id") != snapshot["game_id"] or Path(project["source_path"]).resolve() != Path(snapshot["source_root"]):
         raise BatchConflict("source_revision_conflict", "Project source identity changed.")
-    if project.get("source_language", "en") != snapshot["source_locale"]:
+    try:
+        current_locale = LanguageCode.from_str(project.get("source_language", "en")).value
+    except ValueError as exc:
+        raise BatchConflict("source_revision_conflict", "Project source language changed.") from exc
+    if current_locale != snapshot["source_locale"]:
         raise BatchConflict("source_revision_conflict", "Project source language changed.")
     current = {row["file_id"]: row for row in await manager.get_project_files(snapshot["project_id"]) if row.get("file_type", "source") == "source"}
     if set(current) != {row["file_id"] for row in snapshot["files"]}:

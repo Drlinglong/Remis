@@ -15,10 +15,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  python:
-    name: Python tests
+  python-shards:
+    name: Python shard ${{ matrix.shard }}
     runs-on: windows-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
 
     steps:
       - name: Check out repository
@@ -46,7 +50,18 @@ jobs:
         run: python scripts/developer_tools/check_python_architecture.py
 
       - name: Run backend tests
-        run: python -m pytest --tb=short
+        run: python -m pytest --tb=short -p scripts.developer_tools.pytest_shard --remis-shard-count 8 --remis-shard-index ${{ matrix.shard }}
+
+  python:
+    name: Python tests
+    needs: python-shards
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every backend shard to pass
+        env:
+          SHARD_RESULT: ${{ needs.python-shards.result }}
+        run: test "$SHARD_RESULT" = success
 
   frontend:
     name: Frontend checks
