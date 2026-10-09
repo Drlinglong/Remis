@@ -97,7 +97,7 @@
       "provenance": "wiki"
     },
     "Concept": {
-      "meaning": "concept link with alternate display text: Concept('concept_key','text'); translate only the text argument",
+      "meaning": "concept link with alternate display text: Concept('concept_key','text'); in Remis keep the whole Victoria 3 Concept token exactly as in the source, including the label",
       "provenance": "wiki"
     },
     "GetFullName": {

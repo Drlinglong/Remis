@@ -10,6 +10,7 @@ The text itself is never modified.
 from __future__ import annotations
 
 import json
+import logging
 import re
 from dataclasses import dataclass
 from functools import lru_cache
@@ -20,6 +21,7 @@ from scripts.app_settings import CONFIG_DIR
 from scripts.utils.game_format_contract import normalize_game_id, parse_format_structure
 
 
+logger = logging.getLogger(__name__)
 DICTIONARY_DIR = Path(CONFIG_DIR) / "localization_commands"
 PROVENANCES = {"wiki", "wiki_listed", "vanilla", "inferred", "user"}
 _PROVENANCE_HINTS = {
@@ -191,6 +193,21 @@ def build_command_context(texts: Iterable[str], game_id: str, target_lang: Optio
     return "\n".join(lines)
 
 
+def build_command_prompt_part(texts: Iterable[str], game_id: str, target_lang: Optional[str] = None) -> str:
+    """Framed prompt section for model calls; ``""`` when no command is used."""
+    try:
+        context = build_command_context(texts, game_id, target_lang)
+    except (OSError, ValueError) as exc:  # a broken data file must not stop translation
+        logger.warning("Localization command reference unavailable: %s", exc)
+        return ""
+    if not context:
+        return ""
+    return (
+        "\nLOCALIZATION COMMAND REFERENCE (reference only; never translate or output it):\n"
+        f"{context}\nEND LOCALIZATION COMMAND REFERENCE\n"
+    )
+
+
 def lookup_commands(game_id: str, names: Iterable[str]) -> List[Dict[str, object]]:
     """Agent-tool lookup by command name, e.g. ``GetHerHisCap``."""
     dictionary = load_command_dictionary(game_id)
@@ -212,6 +229,7 @@ def lookup_commands(game_id: str, names: Iterable[str]) -> List[Dict[str, object
 
 __all__ = [
     "build_command_context",
+    "build_command_prompt_part",
     "extract_command_chains",
     "find_command_references",
     "load_command_dictionary",

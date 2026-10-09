@@ -5,6 +5,7 @@ from typing import List, Dict, Any, Optional, Tuple
 
 from scripts.core.base_handler import BaseApiHandler
 from scripts.utils.game_format_contract import compare_format_structure
+from scripts.utils.localization_commands import build_command_prompt_part
 
 logger = logging.getLogger(__name__)
 
@@ -119,7 +120,7 @@ class ReflexionFixAgent:
             
             # 1. Reflect & Fix
             reflection = await self._reflect(source, current_target, current_error_type, current_details)
-            suggested_fix = await self._suggest_fix(source, current_target, reflection, game_id)
+            suggested_fix = await self._suggest_fix(source, current_target, reflection, game_id, target_lang_code)
             
             # 2. Validate using the robust validator mechanism
             results = validator.validate_entry(
@@ -151,10 +152,7 @@ class ReflexionFixAgent:
             ]
             if not blocking and variations:
                 assessment = await self._assess_possible_variation(
-                    source,
-                    suggested_fix,
-                    variations,
-                )
+                    source, suggested_fix, variations, game_id=game_id, target_lang_code=target_lang_code)
                 if assessment["verdict"] == "damage":
                     current_error_type = " | ".join([e.message for e in variations])
                     current_details = " | ".join([e.details for e in variations if e.details])
@@ -382,7 +380,10 @@ class ReflexionFixAgent:
             state["error_messages"] = [result.message for result in source_issues]
             state["error_details"] = [result.details for result in source_issues if result.details]
         elif not blocking and variations:
-            assessment = await self._assess_possible_variation(state["source"], fixed_text, variations)
+            assessment = await self._assess_possible_variation(
+                state["source"], fixed_text, variations,
+                game_id=game_id, target_lang_code=state.get("target_lang"),
+            )
             state["assessment"] = assessment
             if assessment["verdict"] == "damage":
                 state["error_messages"] = [result.message for result in variations]
@@ -508,7 +509,8 @@ class ReflexionFixAgent:
             f"13. **ITEM COUNT**: I will provide {len(active_issues)} items. You MUST provide exactly {len(active_issues)} repaired strings in the array.\n"
             "14. **DIAGNOSTIC REFLECTION**: Some items in this batch may contain a 'Diagnostic Reflection' providing deep analysis of why the previous repair attempt failed. You MUST treat this reflection as highly authoritative guidance to correct the specific tag mismatch or semantic error.\n"
             f"{english_punctuation_rule}\n"
-            f"{game_rules_text}\n\n"
+            f"{game_rules_text}\n"
+            f"{build_command_prompt_part([i.get('source') or '' for i in active_issues], game_id, target_lang_code)}\n"
             "### ITEMS TO REPAIR\n" +
             "\n\n".join(payload_items) + "\n\n"
             "### JSON OUTPUT PREVIEW\n"
@@ -521,6 +523,8 @@ class ReflexionFixAgent:
         source: str,
         target: str,
         results: List[Any],
+        game_id: Optional[str] = None,
+        target_lang_code: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Ask for semantic judgment only after deterministic structure checks."""
         diagnostics = [
@@ -534,7 +538,8 @@ class ReflexionFixAgent:
         prompt = (
             "判断下面的本地化目标文本是否只是语言导致的格式数量变化，还是确实损坏了格式。\n\n"
             f"Source:\n{source}\n\nTarget:\n{target}\n\n"
-            f"Deterministic diagnostics:\n{json.dumps(diagnostics, ensure_ascii=False, indent=2)}\n\n"
+            f"Deterministic diagnostics:\n{json.dumps(diagnostics, ensure_ascii=False, indent=2)}\n"
+            f"{build_command_prompt_part([source, target], game_id or '', target_lang_code)}\n"
             "完整保留 Source 和 Target 中的技术 token；不要发明变量别名或替换 token。"
             "如果目标只是合并/省略了重复的可见表达、且所有 token 身份、边界和嵌套仍正确，"
             "verdict 用 reasonable；如果目标删除、改写或错绑了技术结构，使用 damage；"
@@ -626,13 +631,21 @@ class ReflexionFixAgent:
         response = await self.handler.generate_response(prompt)
         return response.strip()
 
-    async def _suggest_fix(self, source: str, target: str, reflection: str, game_id: str) -> str:
+    async def _suggest_fix(
+        self,
+        source: str,
+        target: str,
+        reflection: str,
+        game_id: str,
+        target_lang_code: Optional[str] = None,
+    ) -> str:
         source_for_prompt = source or "[SOURCE CONTEXT UNAVAILABLE]"
         prompt = (
             "Based on your analysis, provide a RECOVERED version of the translation.\n\n"
             f"Source Text: {source_for_prompt}\n"
             f"Broken Text: {target}\n"
-            f"Analysis: {reflection}\n\n"
+            f"Analysis: {reflection}\n"
+            f"{build_command_prompt_part([source, target], game_id, target_lang_code)}\n"
             "Rules:\n"
             "1. Preserve the intended meaning faithfully.\n"
             "2. Ensure all technical tags are valid for the game engine.\n"

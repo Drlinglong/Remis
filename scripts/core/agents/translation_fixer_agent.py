@@ -5,6 +5,7 @@ from typing import List, Dict, Any, Optional, Tuple
 from scripts.core.base_handler import BaseApiHandler
 from scripts.core.parallel_types import BatchTask
 from scripts.utils import i18n
+from scripts.utils.localization_commands import build_command_prompt_part
 from scripts.utils.structured_parser import parse_response
 from scripts.core.schemas import TranslationResponse
 
@@ -50,7 +51,10 @@ class TranslationFixerAgent:
                 error_context.append(f"Item {i+1} (VALID - DO NOT CHANGE):\n  Source: {source_texts[i]}\n  Current Translation: {broken_translations[i]}\n")
                 
         error_block = "\n".join(error_context)
-        
+        command_reference = build_command_prompt_part(
+            source_texts, task.file_task.game_profile.get("id") or "", task.file_task.target_lang.get("code")
+        )
+
         prompt = (
             f"You are a strict Localization Quality Assurance Engineer. A previous AI translation to {target_lang_name} failed technical validation.\n"
             "Your task is to FIX the formatting errors in the 'Bad Translation' while preserving the translated meaning as much as possible.\n\n"
@@ -61,7 +65,8 @@ class TranslationFixerAgent:
             "4. For items marked '(VALID - DO NOT CHANGE)', you MUST return the EXACT 'Current Translation' as provided. Do not modify valid items.\n\n"
             "--- ERROR REPORT ---\n"
             f"{error_block}\n"
-            "--------------------\n\n"
+            "--------------------\n"
+            f"{command_reference}\n"
             f"You must return the corrected translations in exactly the same length ({len(source_texts)} items) as a JSON Array of strings:\n"
             '[\n  "fixed translation 1",\n  "fixed translation 2"\n]\n'
         )

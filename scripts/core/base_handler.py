@@ -17,6 +17,7 @@ from scripts.core.translation_input_encoding import (
     SOURCE_VALUE_ENCODING_NOTE, decode_single_text_response, encode_source_value,
 )
 from scripts.core.translation_output_contract import call_batch_with_contract
+from scripts.utils.localization_commands import build_command_prompt_part
 from scripts.core.prompt_manager import prompt_manager
 from scripts.core.vic3_country_adjective_context import prompt_policy
 from scripts.core.provider_errors import (
@@ -363,7 +364,8 @@ class BaseApiHandler(ABC):
         )
         source_context_prompt = self._build_source_context_prompt(task)
         release_context_prompt = self._build_context_release_prompt(task)
-        
+        command_reference_part = build_command_prompt_part(chunk, game_profile["id"], target_lang["code"])
+
         # Add a "Final Warning" section for Victoria 3 specifically
         final_warning = ""
         if game_profile["id"] == "victoria3":
@@ -383,6 +385,7 @@ class BaseApiHandler(ABC):
             + source_context_prompt
             + release_context_prompt
             + SOURCE_VALUE_ENCODING_NOTE
+            + command_reference_part
             + format_prompt_part
             + punctuation_prompt_part
             + final_warning
@@ -587,6 +590,7 @@ class BaseApiHandler(ABC):
             + f"CRITICAL CONTEXT: The mod's theme is '{mod_context}'. Use this to ensure accuracy.\n"
             + self._build_custom_global_prompt_part(mod_context)
             + glossary_prompt_part
+            + build_command_prompt_part([text], game_profile.get("id") or "", target_lang.get("code"))
             + "CRITICAL FORMATTING: Your response MUST ONLY contain the translated text. "
             "DO NOT include explanations, pinyin, or any other text.\n"
             'For example, if the input is "Flavor Pack", your output must be "风味包" and nothing else.\n\n'
