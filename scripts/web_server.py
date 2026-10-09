@@ -154,20 +154,22 @@ def setup_app_routers():
     from scripts.routers import (
         projects, project_watches, translation, translation_recovery, glossary, proofreading, docs, tools,
         neologism, validation, config, system, prompts,
-        agent_workshop, agent, agent_incremental,
+        agent_workshop, agent, agent_incremental, agent_batch, agent_glossary_terminology, agent_localization_quality, agent_chinese_conversion,
         tasks,
         model_arena,
         archive_ab_review,
         steam_workshop, agent_steam_workshop, agent_baseline,
     )
     from scripts.core.feature_policy import mod_archive_enabled
+    from scripts.routers.advanced_agent_policy import include_advanced_router
     
-    from scripts.routers import game_support, agent_game_support, translation_packages, mars_pipeline, mars_archive_recovery, translation_collections
+    from scripts.routers import game_support, agent_game_support, translation_packages, mars_pipeline, mars_archive_recovery, translation_collections, agent_mars_base_patch
     app.include_router(game_support.router)
     app.include_router(agent_game_support.router)
     app.include_router(translation_packages.router)
     app.include_router(translation_collections.router)
     app.include_router(mars_pipeline.router)
+    include_advanced_router(app, agent_mars_base_patch.router)
     app.include_router(mars_archive_recovery.router)
     app.include_router(projects.router)
     app.include_router(project_watches.router)
@@ -192,6 +194,10 @@ def setup_app_routers():
     app.include_router(prompts.router)
     app.include_router(agent.router)
     app.include_router(agent_incremental.router)
+    include_advanced_router(app, agent_batch.router)
+    app.include_router(agent_glossary_terminology.router)
+    include_advanced_router(app, agent_localization_quality.router)
+    app.include_router(agent_chinese_conversion.router)
     app.include_router(tasks.router)
     app.include_router(model_arena.router)
     app.include_router(archive_ab_review.router)

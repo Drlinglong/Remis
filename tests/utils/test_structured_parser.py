@@ -158,4 +158,5 @@ def test_parse_deeply_wrapped_translation_items():
     json_string = '{"translations": ["hello", [["[[ _QT_ ]]"]], [["QT_"]]]}'
     result = parse_response(json_string, TranslationResponse)
     assert result is not None
-    assert result.translations == ["hello", "“", "“"]
+    # A lone legacy quote token is unpaired, so it is restored but not styled.
+    assert result.translations == ["hello", '"', '"']

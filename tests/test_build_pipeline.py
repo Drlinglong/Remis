@@ -9,6 +9,52 @@ from scripts.core.mars_pipeline.prepare_source import analyze_source
 from tools.remis_fpk import extract_archive, inspect_archive
 
 
+def test_main_passes_reviewed_cache_to_freezer_without_reading_live_data(tmp_path, monkeypatch):
+    """Exercise the seed-export-to-freezer boundary in an isolated build root."""
+    root = tmp_path / "release"
+    scripts = root / "scripts"
+    scripts.mkdir(parents=True)
+    (root / "data").mkdir()
+    (root / "assets").mkdir()
+    (root / "docs" / "zh" / "user-guides").mkdir(parents=True)
+    cache = root / "assets" / "mods_cache_skeleton.sqlite"
+    cache.touch()
+    env = tmp_path / "env"
+    (env / "Scripts").mkdir(parents=True)
+    (env / "python.exe").touch()
+    (env / "Scripts" / "pyinstaller.exe").touch()
+    commands = []
+
+    class FreezerReached(Exception):
+        pass
+
+    def run(command, **kwargs):
+        commands.append(command)
+        assert kwargs["cwd"] == str(root)
+        if isinstance(command, list):
+            assert command[2:] == ["--source-db", str(root / "assets" / "skeleton.sqlite"),
+                                   "--cache-db", str(cache)]
+            for name in ("seed_data_main.sql", "seed_data_projects.sql"):
+                (root / "data" / name).write_text("-- reviewed seed\n", encoding="utf-8")
+        else:
+            raise FreezerReached
+
+    monkeypatch.setattr(build_pipeline, "__file__", str(scripts / "build_pipeline.py"))
+    monkeypatch.setattr(build_pipeline, "resolve_conda_env_path", lambda _: str(env))
+    monkeypatch.setattr(build_pipeline, "ensure_min_google_genai", lambda _: None)
+    monkeypatch.setattr(build_pipeline, "read_resources", lambda _: None)
+    monkeypatch.setattr(build_pipeline, "run_command", run)
+    monkeypatch.setattr(build_pipeline, "backend_seed_add_data_args", lambda *args: "--reviewed-seeds")
+    monkeypatch.setattr(build_pipeline, "prepare_profile_demo_assets", lambda *args: tmp_path / "demos")
+    monkeypatch.setattr(build_pipeline, "phonetic_package_data_args", lambda _: "")
+
+    with pytest.raises(FreezerReached):
+        build_pipeline.main(["--channel", "stable"])
+
+    assert len(commands) == 2
+    assert f'--add-data "{cache};assets"' in commands[1]
+
+
 def test_parse_version_stops_after_non_numeric_segment():
     assert build_pipeline.parse_version("1.68.0rc1") == (1, 68, 1)
     assert build_pipeline.parse_version("2.0.beta") == (2, 0)
