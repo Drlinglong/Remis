@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "game_id": "eu5",
+  "sources": [
+    {"url": "https://eu5.paradoxwikis.com/Localization", "retrieved": "2026-10-10"}
+  ],
+  "notes": [
+    {"text": "Bracketed [...] data functions are replaced at runtime. Keep them exactly, including saved-scope calls such as [SCOPE.sCountry('name').GetName] and any |modifiers.", "provenance": "wiki"},
+    {"text": "Formatting uses #tag text#! (for example #P, #N, #E, #bold, #italic); a space after the tag key is required but not shown, and no space goes before #!. Icons are @icon_key!; $key$ inserts another localization key.", "provenance": "wiki"},
+    {"text": "[concept_name|e] is a game concept link. Dropping one loses the tooltip even if the plain word is translated.", "provenance": "wiki"}
+  ],
+  "language_notes": {
+    "zh-CN": [
+      {"text": "中文本地化里代词命令输出他/她；中文没有主格宾格之分，任何代词命令都可作主语或宾语。", "provenance": "user"},
+      {"text": "因中文习惯省略重复的代词命令是合理的，前提是指代仍然清楚；不要把代词命令写死成“他”或“她”。没有必要时，应尽量保持与原文相同的命令引用。", "provenance": "user"}
+    ]
+  },
+  "suffixes": {
+    "WithNoTooltip": "same value as plain text without tooltip"
+  },
+  "modifiers": {
+    "=": "always show + or - sign",
+    "+": "positive green, negative red",
+    "-": "positive red, negative green",
+    "D": "abbreviate integers to K/M/B",
+    "U": "first letter uppercase",
+    "%": "multiply by 100 and add %",
+    "0-5": "number of decimals",
+    "e": "concept link"
+  },
+  "scopes": {
+    "SCOPE": "saved-scope accessor, used as SCOPE.sCountry('name'), SCOPE.sCharacter('name') and similar"
+  },
+  "commands": {
+    "GetName": {"meaning": "name as a tooltipped string", "provenance": "wiki"},
+    "GetNameWithFlag": {"meaning": "country name as a tooltipped string with flag", "provenance": "wiki"},
+    "GetAdjective": {"meaning": "country adjective as a tooltipped string", "provenance": "wiki"},
+    "GetAbilityTooltipAsRuler": {"meaning": "character's ability effects if ruler", "provenance": "wiki"},
+    "GetLaw": {"meaning": "the named law as an object for further functions", "provenance": "wiki"},
+    "ScriptValue": {"meaning": "calculated value of the named script value", "provenance": "wiki"},
+    "Custom": {"meaning": "customizable localization call", "provenance": "wiki"},
+    "GetLocalVariable": {"meaning": "script variable accessor; usually followed by .GetValue", "provenance": "wiki"},
+    "GetValue": {"meaning": "numeric value of the preceding object", "provenance": "wiki"},
+    "GetFullName": {"meaning": "character's full name", "provenance": "wiki_listed"},
+    "GetHerHis": {"meaning": "pronoun her or his by gender", "provenance": "wiki_listed"},
+    "sCountry": {"meaning": "saved-scope accessor for a country saved with save_scope_as", "provenance": "wiki"},
+    "sCharacter": {"meaning": "saved-scope accessor for a character saved with save_scope_as", "provenance": "wiki"}
+  }
+}

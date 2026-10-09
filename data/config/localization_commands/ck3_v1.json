@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "game_id": "ck3",
+  "sources": [
+    {"url": "https://ck3.paradoxwikis.com/Localization", "retrieved": "2026-10-10"}
+  ],
+  "notes": [
+    {"text": "Bracketed [...] data functions are replaced at runtime. Keep them exactly; data functions are scoped, usually to a character (for example [ROOT.Char.GetLadyLord]).", "provenance": "wiki"},
+    {"text": "Formatting uses #tag text#! (for example #P, #N, #E, #bold, #italic); tags combine with ';' as in #high;bold. Icons are @icon_name!; $key$ inserts another localization key.", "provenance": "wiki"},
+    {"text": "[concept_key|E] and [Concept('concept_key','text')|E] are game concept links. Dropping one loses the tooltip even if the plain word is translated.", "provenance": "wiki"}
+  ],
+  "language_notes": {
+    "zh-CN": [
+      {"text": "中文本地化里代词命令输出他/她；中文没有主格宾格之分，任何代词命令都可作主语或宾语。", "provenance": "user"},
+      {"text": "因中文习惯省略重复的代词命令是合理的，前提是指代仍然清楚；不要把代词命令写死成“他”或“她”。没有必要时，应尽量保持与原文相同的命令引用。", "provenance": "user"}
+    ]
+  },
+  "suffixes": {
+    "Nicknamed": "includes the nickname",
+    "NoTooltip": "without hover tooltip",
+    "Regnal": "uses the regnal name",
+    "OrMe": "prints 'me' when the character is the player",
+    "OrMy": "prints 'my' when the character is the player",
+    "Possessive": "possessive form",
+    "Base": "base form"
+  },
+  "modifiers": {
+    "U": "first letter uppercase",
+    "L": "first letter lowercase",
+    "E": "concept link, capitalised",
+    "El": "concept link, lowercase first letter",
+    "=": "always show sign",
+    "+": "positive green, negative red",
+    "-": "positive red, negative green",
+    "%": "percentage",
+    "K": "thousands",
+    "O": "ordinal number",
+    "0-9": "number of decimals"
+  },
+  "scopes": {
+    "ROOT": "root scope",
+    "Char": "character promote of the current scope"
+  },
+  "commands": {
+    "GetHerHim": {"meaning": "pronoun her or him by gender", "provenance": "wiki_listed"},
+    "GetHerHis": {"meaning": "pronoun her or his by gender", "provenance": "wiki_listed"},
+    "GetHerHisMy": {"meaning": "her, his, or my when the character is the player", "provenance": "wiki_listed"},
+    "GetHersHis": {"meaning": "possessive pronoun hers or his by gender", "provenance": "wiki_listed"},
+    "GetHerselfHimself": {"meaning": "reflexive pronoun herself or himself by gender", "provenance": "wiki_listed"},
+    "GetLadyLord": {"meaning": "lady or lord by gender", "provenance": "wiki_listed"},
+    "GetSheHe": {"meaning": "pronoun she or he by gender", "provenance": "wiki_listed"},
+    "GetDaughterSon": {"meaning": "daughter or son by gender", "provenance": "wiki_listed"},
+    "GetDaughterSonPossessive": {"meaning": "possessive daughter's or son's by gender", "provenance": "wiki_listed"},
+    "GetFirstName": {"meaning": "character's first name; accepts name suffixes", "provenance": "wiki_listed"},
+    "GetTitledFirstName": {"meaning": "character's first name with title", "provenance": "wiki_listed"},
+    "GetFullName": {"meaning": "character's full name; accepts name suffixes", "provenance": "wiki_listed"},
+    "GetName": {"meaning": "name; accepts name suffixes", "provenance": "wiki_listed"},
+    "GetTrait": {"meaning": "the named trait; usually followed by .GetName(...)", "provenance": "wiki"},
+    "GetTitleByKey": {"meaning": "the named title; usually followed by .GetName", "provenance": "wiki"},
+    "GetNameNoTier": {"meaning": "title name without tier", "provenance": "wiki"},
+    "Concept": {"meaning": "game concept link with custom text: Concept('concept_key','text'); translate only the text argument", "provenance": "wiki"},
+    "Custom": {"meaning": "customizable localization call", "provenance": "inferred"},
+    "GetPlayer": {"meaning": "the player character", "provenance": "inferred"}
+  }
+}
