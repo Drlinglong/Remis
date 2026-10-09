@@ -154,7 +154,10 @@ HELP_SKILLS: dict[str, dict[str, Any]] = {
     "surviving_mars": {
         "title": "火星求生重制版本地化",
         "description": "Surviving Mars / Relaunched 的 CSV 本地化、校验和输出路径。",
-        "resources": ("zh/user-guides/surviving-mars.md",),
+        "resources": (
+            "zh/user-guides/surviving-mars.md",
+            "zh/user-guides/surviving-mars-mod-editor-upload-preflight.md",
+        ),
     },
     "shell_languages": {
         "title": "套壳语言与项目维护",
