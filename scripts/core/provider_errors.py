@@ -152,3 +152,25 @@ def classify_provider_fatal_error(
         status_code=status_code,
         reason_code=_reason_code(status_code, error_code, normalized_message),
     )
+
+
+def raise_for_status_with_detail(response: Any, limit: int = 300) -> None:
+    """Like ``raise_for_status`` but keep the provider's bounded error message.
+
+    Raw HTTP adapters otherwise lose the body that says which request field was
+    refused, which the structured-output capability fallback needs.
+    """
+    import requests
+
+    try:
+        response.raise_for_status()
+    except requests.HTTPError as exc:
+        detail = ""
+        try:
+            payload = response.json()
+            error = payload.get("error") if isinstance(payload, dict) else None
+            detail = error.get("message", "") if isinstance(error, dict) else str(error or "")
+        except Exception:
+            detail = getattr(response, "text", "") or ""
+        message = f"{exc} | {str(detail)[:limit]}" if detail else str(exc)
+        raise requests.HTTPError(message, response=response) from exc

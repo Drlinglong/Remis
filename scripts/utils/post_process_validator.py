@@ -283,12 +283,12 @@ class BaseGameValidator:
         if source_text is None:
             return []
 
-        from scripts.utils.format_structure_validator import structure_findings
+        from scripts.utils.format_structure_validator import structure_findings, text_integrity_findings
 
         contract_id = self.config.get("format_contract_id", self.config.get("game_id", ""))
         diff = compare_format_structure(source_text, text, contract_id)
         results: List[ValidationResult] = []
-        for finding in structure_findings(diff):
+        for finding in structure_findings(diff) + text_integrity_findings(source_text, text):
             message = self._get_i18n_message(finding["code"])
             if message == finding["code"]:
                 message = finding["default_message"]

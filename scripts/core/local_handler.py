@@ -7,6 +7,10 @@ from urllib.parse import urlsplit
 from openai import APIConnectionError, OpenAI
 
 from scripts.core.base_handler import BaseApiHandler
+from scripts.core.provider_errors import raise_for_status_with_detail
+from scripts.core.translation_output_contract import (
+    BATCH_ENVELOPE_SYSTEM_PROMPT, translation_batch_schema, translation_response_format,
+)
 
 
 def _append_system_suffix(system_prompt: str, provider_config: dict) -> str:
@@ -116,6 +120,20 @@ class LocalLLMHandler(BaseApiHandler):
         else:
             return self._call_openai_compatible(client, prompt)
 
+    def _call_schema_batch_api(self, client: Any, prompt: str, expected_count: int) -> str:
+        """Request the batch envelope natively (Ollama ``format``, OpenAI ``response_format``)."""
+        if self.protocol == "ollama":
+            return self._call_ollama_native(
+                f"{BATCH_ENVELOPE_SYSTEM_PROMPT}\n{prompt}",
+                output_format=translation_batch_schema(expected_count),
+            )
+        return self._call_openai_compatible(
+            client,
+            prompt,
+            response_format=translation_response_format(expected_count),
+            system_prompt=BATCH_ENVELOPE_SYSTEM_PROMPT,
+        )
+
     @staticmethod
     def _extract_chat_content(response: Any, model_name: str, base_url: str) -> str:
         choices = getattr(response, "choices", None)
@@ -189,7 +207,7 @@ class LocalLLMHandler(BaseApiHandler):
             self.logger.error(message)
             raise ConnectionError(message) from exc
 
-    def _call_ollama_native(self, prompt: str) -> str:
+    def _call_ollama_native(self, prompt: str, output_format: dict | None = None) -> str:
         provider_config = self.get_provider_config()
         model_name = provider_config.get("default_model", "llama2")
         
@@ -214,6 +232,8 @@ class LocalLLMHandler(BaseApiHandler):
                 "stream": False,
             }
             payload.update(self._reasoning_request_parameters())
+            if output_format is not None:
+                payload["format"] = output_format
 
             response = requests.post(
                 f"{self.base_url}/api/generate",
@@ -228,7 +248,7 @@ class LocalLLMHandler(BaseApiHandler):
                      if err: raise ValueError(f"Ollama Error: {err}. Try pulling model '{model_name}'.")
                  except: pass
 
-            response.raise_for_status()
+            raise_for_status_with_detail(response)
             response_payload = response.json()
             self._record_model_response(response_payload)
             return response_payload.get("response", "").strip()
@@ -241,7 +261,13 @@ class LocalLLMHandler(BaseApiHandler):
             self.logger.exception(f"Ollama Native API call failed: {e}")
             raise
 
-    def _call_openai_compatible(self, client: OpenAI, prompt: str) -> str:
+    def _call_openai_compatible(
+        self,
+        client: OpenAI,
+        prompt: str,
+        response_format: dict | None = None,
+        system_prompt: str = "You are a professional translator for game mods.",
+    ) -> str:
         provider_config = self.get_provider_config()
         model_name = provider_config.get("default_model", "local-model")
         
@@ -249,10 +275,7 @@ class LocalLLMHandler(BaseApiHandler):
             messages = [
                 {
                     "role": "system",
-                    "content": _append_system_suffix(
-                        "You are a professional translator for game mods.",
-                        provider_config,
-                    ),
+                    "content": _append_system_suffix(system_prompt, provider_config),
                 },
                 {"role": "user", "content": prompt}
             ]
@@ -262,6 +285,8 @@ class LocalLLMHandler(BaseApiHandler):
                 "messages": messages,
                 "temperature": 0.3,
             }
+            if response_format is not None:
+                request_kwargs["response_format"] = response_format
             response = client.chat.completions.create(
                 **self._apply_reasoning_to_openai_kwargs(request_kwargs)
             )

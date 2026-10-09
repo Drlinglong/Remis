@@ -6,6 +6,9 @@ from google.genai import types
 
 from scripts.app_settings import API_PROVIDERS
 from scripts.core.base_handler import BaseApiHandler
+from scripts.core.translation_output_contract import (
+    BATCH_ENVELOPE_SYSTEM_PROMPT, gemini_generation_config,
+)
 
 class GeminiHandler(BaseApiHandler):
     """Gemini API Handler子类"""
@@ -53,19 +56,39 @@ class GeminiHandler(BaseApiHandler):
                 config=types.GenerateContentConfig(**generation_config) if generation_config else None,
             )
             self._record_model_response(response)
-            
-            # SAFE EXTRACTION: Avoid the 'thought_signature' warning by extracting only text parts
-            # Response parts can contain Text, Thought, Call, etc.
-            if response.candidates and response.candidates[0].content.parts:
-                text_parts = [part.text for part in response.candidates[0].content.parts if part.text]
-                if text_parts:
-                    return "".join(text_parts).strip()
-            
-            # Fallback to .text if parts extraction fails (will trigger warning but at least returns something)
-            return response.text.strip()
+            return self._response_text(response)
         except Exception as e:
             self.logger.exception(f"Gemini API call failed: {e}")
             raise
+
+    @staticmethod
+    def _response_text(response: Any) -> str:
+        # SAFE EXTRACTION: Avoid the 'thought_signature' warning by extracting only text parts
+        # Response parts can contain Text, Thought, Call, etc.
+        if response.candidates and response.candidates[0].content.parts:
+            text_parts = [part.text for part in response.candidates[0].content.parts if part.text]
+            if text_parts:
+                return "".join(text_parts).strip()
+
+        # Fallback to .text if parts extraction fails (will trigger warning but at least returns something)
+        return (response.text or "").strip()
+
+    def _call_schema_batch_api(self, client: Any, prompt: str, expected_count: int) -> str:
+        """Request the batch envelope through Gemini's native JSON Schema output."""
+        provider_config = self.get_provider_config()
+        config = {
+            **self._reasoning_request_parameters(),
+            **gemini_generation_config(expected_count),
+            "system_instruction": BATCH_ENVELOPE_SYSTEM_PROMPT,
+        }
+        response = self._generate_content(
+            client,
+            model=provider_config.get("default_model", "gemini-3.8-flash"),
+            contents=prompt,
+            config=types.GenerateContentConfig(**config),
+        )
+        self._record_model_response(response)
+        return self._response_text(response)
 
     def generate_with_messages(self, messages: list[dict], temperature: float = 0.7) -> str:
         """

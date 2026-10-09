@@ -19,9 +19,11 @@ operator guide over the product; it is not the product itself.
 - Permanent design prohibition: never replace semantically meaningful Paradox
   tokens such as `$...$`, `[...]`, or formatting tags with generic placeholders
   (for example `变量1` or opaque sentinels) before sending text to an LLM. The
-  complete source context must remain visible. Masking remains allowed only for
-  serialization/layout delimiters that do not carry the token's semantic
-  identity, currently quotes and escaped line breaks.
+  complete source context must remain visible. Quotes and escaped line breaks
+  are no longer masked either: the legacy `[[_QT_]]`/`[[_NL_]]` input masks
+  were retired on 2026-10-09. Source values may only be serialized (for
+  example as JSON string literals), never replaced; outputs are normalized
+  after the model returns them. Do not reintroduce input masks.
 - Leave ambiguous text for human review.
 
 ## Repository workflow
