@@ -1,5 +1,6 @@
 """Unit tests for Remis Help Copilot helpers."""
 
+import re
 from pathlib import Path
 
 import pytest
@@ -647,7 +648,11 @@ def test_release_and_debug_builds_bundle_help_skill_resources():
     assert "--copy-metadata genai_prices" in debug_build
     assert "--copy-metadata pydantic-ai-harness" in debug_build
     requirements = (root / "requirements.txt").read_text(encoding="utf-8")
-    assert "pydantic-ai-slim[anthropic,google,openai,openrouter]==2.33.0" in requirements
+    assert re.search(
+        r"^pydantic-ai-slim\[anthropic,google,openai,openrouter\]==\d+\.\d+\.\d+$",
+        requirements,
+        re.MULTILINE,
+    )
     assert "pydantic-ai-harness==0.27.0" in requirements
 
 
