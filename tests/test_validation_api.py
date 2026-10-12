@@ -1,58 +1,43 @@
-import sys
-import os
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
+import pytest
 
-# Add project root to path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from scripts.routers.validation import router
 
-from scripts.web_server import app
 
-client = TestClient(app)
-
-def test_validation_api():
-    print("Testing /api/validate/localization...")
-    
-    # Test case 1: Valid content
-    valid_content = """
-l_english:
- key_1: "Valid Value"
- key_2: "Another Valid Value"
-"""
-    response = client.post("/api/validate/localization", json={
-        "game_id": "1",
-        "content": valid_content
+@pytest.mark.parametrize("content, expected", [
+    ('l_english:\n broken:0 "unterminated\n', "unterminated_value"),
+    ('l_english:\n good:0 "Good"\n broken:0 "unterminated\n', "unterminated_value"),
+    ('l_english:\n good:0 "Good"\n broken:0 no quotes\n', "missing_opening_quote"),
+    ('l_english:\n good:0 "Good"\n', None),
+    ('l_english:\n # empty locale\n', None),
+])
+def test_validate_file_preserves_parse_diagnostics(tmp_path, content, expected):
+    path = tmp_path / "demo_l_english.yml"
+    path.write_text(content, encoding="utf-8-sig")
+    before = path.read_bytes()
+    app = FastAPI()
+    app.include_router(router)
+    response = TestClient(app).post("/api/validate_file", json={
+        "file_path": str(path), "game_id": "stellaris",
     })
-    
-    if response.status_code == 200:
-        results = response.json()
-        print(f"Valid content results: {len(results)} issues found (Expected 0 or low info)")
-        for r in results:
-            print(f" - {r['level']}: {r['message']}")
+    assert response.status_code == 200
+    issues = response.json()["issues"]
+    if expected:
+        issue = next(issue for issue in issues if issue["code"] == expected)
+        assert issue["is_valid"] is False
+        assert issue["level"] == "error"
+        assert issue["key"] == "broken:0"
+        assert issue["line_number"] == content.count("\n")
     else:
-        print(f"Failed to call API: {response.status_code} {response.text}")
+        assert issues == []
+    assert path.read_bytes() == before
 
-    # Test case 2: Invalid content (Bad key, missing quotes, etc.)
-    invalid_content = """
-l_english:
- bad key with spaces: "Value"
- key_3: Value without quotes
- key_4: "Unclosed quotes
-"""
-    response = client.post("/api/validate/localization", json={
-        "game_id": "1",
-        "content": invalid_content
+
+def test_validate_file_missing_returns_404(tmp_path):
+    app = FastAPI()
+    app.include_router(router)
+    response = TestClient(app).post("/api/validate_file", json={
+        "file_path": str(tmp_path / "missing.yml"), "game_id": "stellaris",
     })
-    
-    if response.status_code == 200:
-        results = response.json()
-        print(f"\nInvalid content results: {len(results)} issues found")
-        for r in results:
-            print(f" - Line {r['line_number']} [{r['level']}]: {r['message']} (Key: {r.get('key')})")
-    else:
-        print(f"Failed to call API: {response.status_code} {response.text}")
-
-if __name__ == "__main__":
-    try:
-        test_validation_api()
-    except Exception as e:
-        print(f"Test failed with exception: {e}")
+    assert response.status_code == 404

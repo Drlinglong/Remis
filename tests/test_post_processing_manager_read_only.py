@@ -40,3 +40,19 @@ def test_validation_cannot_report_success_without_scanning_files(tmp_path, exist
         {"code": "en", "key": "l_english"},
     ) is False
     assert manager.total_files == 0
+
+
+@pytest.mark.parametrize("mixed", [False, True])
+def test_validation_reports_syntax_errors_without_mutating_file(tmp_path, mixed):
+    output = tmp_path / "output"
+    path = output / "localization/english/demo_l_english.yml"
+    path.parent.mkdir(parents=True)
+    content = 'l_english:\n' + (' good:0 "Good"\n' if mixed else '') + ' broken:0 "unterminated\n'
+    path.write_text(content, encoding="utf-8-sig")
+    before = path.read_bytes()
+    manager = PostProcessingManager({"id": "stellaris"}, str(output))
+    assert manager.run_validation({"code": "en", "key": "l_english"}, {"code": "en"}) is False
+    assert manager.total_errors == 1
+    assert manager.valid_files == 0
+    assert manager.validation_results[str(path)][0].code == "unterminated_value"
+    assert path.read_bytes() == before

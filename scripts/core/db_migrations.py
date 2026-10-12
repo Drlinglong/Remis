@@ -25,9 +25,11 @@ from scripts.core.steam_workshop_sequence_migration import (
     enforce_steam_workshop_sequence_constraint,
     validate_steam_workshop_foreign_keys,
 )
+from scripts.core.status_contract_migration import enforce_nonnull_status_contracts
+
 logger = logging.getLogger("remis_init")
 
-MAIN_DB_TARGET_VERSION = 27
+MAIN_DB_TARGET_VERSION = 28
 
 
 class UnsupportedDatabaseVersionError(RuntimeError):
@@ -531,61 +533,7 @@ def _migration_009_add_model_arena_history(db_path: str) -> None:
             """
         )
 def _migration_010_enforce_status_contracts(db_path: str) -> None:
-    """Reject invalid workflow states at the SQLite boundary."""
-    triggers = [
-        (
-            "trg_projects_status_insert",
-            "projects",
-            "INSERT",
-            "NEW.status NOT IN ('active', 'archived', 'deleted')",
-        ),
-        (
-            "trg_projects_status_update",
-            "projects",
-            "UPDATE OF status",
-            "NEW.status NOT IN ('active', 'archived', 'deleted')",
-        ),
-        (
-            "trg_project_files_status_insert",
-            "project_files",
-            "INSERT",
-            "NEW.status NOT IN ('todo', 'in_progress', 'proofreading', 'paused', 'done')",
-        ),
-        (
-            "trg_project_files_status_update",
-            "project_files",
-            "UPDATE OF status",
-            "NEW.status NOT IN ('todo', 'in_progress', 'proofreading', 'paused', 'done')",
-        ),
-        (
-            "trg_project_watches_status_insert",
-            "project_watches",
-            "INSERT",
-            "NEW.status NOT IN ('never_scanned', 'baseline', 'clean', 'changed', 'no_localization', 'error')",
-        ),
-        (
-            "trg_project_watches_status_update",
-            "project_watches",
-            "UPDATE OF status",
-            "NEW.status NOT IN ('never_scanned', 'baseline', 'clean', 'changed', 'no_localization', 'error')",
-        ),
-    ]
-    with _connect(db_path) as conn:
-        conn.execute(
-            "UPDATE project_files SET status = 'done' WHERE status = 'translated'"
-        )
-        for trigger_name, table_name, operation, predicate in triggers:
-            conn.execute(
-                f"""
-                CREATE TRIGGER IF NOT EXISTS {trigger_name}
-                BEFORE {operation} ON {table_name}
-                FOR EACH ROW WHEN {predicate}
-                BEGIN
-                    SELECT RAISE(ABORT, 'invalid {table_name}.status');
-                END
-                """
-            )
-        conn.commit()
+    enforce_nonnull_status_contracts(db_path)
 
 
 def _migration_011_add_steam_workshop_assets(db_path: str) -> None:
@@ -749,6 +697,7 @@ MAIN_DB_MIGRATIONS: list[tuple[int, str, Callable[[str], None]]] = [
     (25, "enforce_steam_workshop_sequence", enforce_steam_workshop_sequence_constraint),
     (26, "validate_steam_workshop_foreign_keys", validate_steam_workshop_foreign_keys),
     (27, "enforce_steam_workshop_parent_foreign_key", enforce_steam_workshop_sequence_constraint),
+    (28, "enforce_nonnull_status_contracts", enforce_nonnull_status_contracts),
 ]
 
 

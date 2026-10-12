@@ -192,3 +192,24 @@ def test_workshop_writeback_uses_canonical_span_for_raw_quotes(tmp_path: Path):
     report = parse_file(path)
     assert report.eligible_entries[0].value == 'Translated "name"'
     assert "# preserve" in path.read_text(encoding="utf-8-sig")
+
+
+@pytest.mark.parametrize("line, key", [(" broken:0 no quotes", "broken:0"), (" broken: no quotes", "broken"), (" broken:0", "broken:0")])
+def test_missing_opening_quote_is_diagnosed(line, key):
+    report = parse_text('l_english:\n good:0 "Good"\n' + line + '\n')
+    assert [entry.key for entry in report.entries] == ["good:0"]
+    assert len(report.diagnostics) == 1
+    assert report.diagnostics[0].code == "missing_opening_quote"
+    assert report.diagnostics[0].key == key
+    assert report.diagnostics[0].line_number == 3
+
+
+def test_comments_headers_and_unrelated_lines_are_not_missing_quotes():
+    report = parse_text('l_english:\n # key:0 missing\n unrelated prose\n')
+    assert report.diagnostics == ()
+
+
+def test_bom_language_header_is_not_a_malformed_entry():
+    report = parse_text('\ufeffl_english:\n good:0 "Good"\n')
+    assert report.diagnostics == ()
+    assert len(report.entries) == 1

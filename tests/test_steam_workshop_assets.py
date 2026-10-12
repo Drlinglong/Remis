@@ -139,7 +139,9 @@ def test_migration_upgrades_managed_database_with_asset_tables(tmp_path):
     with sqlite3.connect(db_path) as connection:
         connection.executescript(
             """
-            CREATE TABLE projects (project_id TEXT PRIMARY KEY);
+            CREATE TABLE projects (project_id TEXT PRIMARY KEY, status TEXT NOT NULL DEFAULT 'active');
+            CREATE TABLE project_files (file_id TEXT PRIMARY KEY, status TEXT NOT NULL DEFAULT 'todo');
+            CREATE TABLE project_watches (watch_id TEXT PRIMARY KEY, status TEXT NOT NULL DEFAULT 'never_scanned');
             CREATE TABLE background_tasks (
                 task_id TEXT PRIMARY KEY,
                 idempotency_key TEXT,
@@ -179,6 +181,9 @@ def _create_v24_asset_database(db_path, *, sequence=1):
     with sqlite3.connect(db_path) as connection:
         connection.executescript(
             """
+            CREATE TABLE projects (project_id TEXT PRIMARY KEY, status TEXT NOT NULL DEFAULT 'active');
+            CREATE TABLE project_files (file_id TEXT PRIMARY KEY, status TEXT NOT NULL DEFAULT 'todo');
+            CREATE TABLE project_watches (watch_id TEXT PRIMARY KEY, status TEXT NOT NULL DEFAULT 'never_scanned');
             CREATE TABLE schema_migrations (
                 version INTEGER PRIMARY KEY,
                 name TEXT NOT NULL,

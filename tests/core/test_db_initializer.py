@@ -128,6 +128,7 @@ def test_initialize_database_builds_schema_and_imports_seed(tmp_path, monkeypatc
         (25, "enforce_steam_workshop_sequence"),
         (26, "validate_steam_workshop_foreign_keys"),
         (27, "enforce_steam_workshop_parent_foreign_key"),
+        (28, "enforce_nonnull_status_contracts"),
     ]
 
     cursor.execute("PRAGMA index_list(background_tasks)")
@@ -432,7 +433,7 @@ def test_run_projects_db_migrations_upgrades_legacy_schema(tmp_path):
         (24,),
         (25,),
         (26,),
-        (27,),
+        (27,), (28,),
     ]
 
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='project_watches'")

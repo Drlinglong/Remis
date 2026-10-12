@@ -19,7 +19,8 @@ ENTRY_PREFIX_RE = re.compile(
     r"^(?P<indent>[ \t]*)(?P<base_key>[^:\s]+)\s*:\s*"
     r"(?P<version>\d*)\s*\""
 )
-LANGUAGE_HEADER_RE = re.compile(r"^\s*l_[\w-]+:\s*(?:#.*)?$")
+UNQUOTED_ENTRY_RE = re.compile(r"^[ \t]*(?P<base_key>[^:\s]+)\s*:\s*(?P<version>\d*)\s*(?P<tail>.*)$")
+LANGUAGE_HEADER_RE = re.compile(r"^[\ufeff\s]*l_[\w-]+:\s*(?:#.*)?$")
 PURE_VARIABLE_RE = re.compile(r"^\$[^$\r\n]+\$")
 
 
@@ -271,6 +272,16 @@ def parse_text(text: str) -> ParseReport:
 
         match = ENTRY_PREFIX_RE.match(line)
         if not match:
+            candidate = UNQUOTED_ENTRY_RE.match(line)
+            if candidate:
+                key = candidate.group("base_key")
+                version = candidate.group("version")
+                diagnostics.append(ParseDiagnostic(
+                    code="missing_opening_quote",
+                    message="Localization value has no opening quote.",
+                    line_number=line_index + 1,
+                    key=f"{key}:{version}" if version else key,
+                ))
             line_index += 1
             continue
 

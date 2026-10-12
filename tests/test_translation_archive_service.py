@@ -446,3 +446,13 @@ def test_get_entries_prefers_latest_version_with_translations(temp_archive_db):
     entries = temp_archive_db.get_entries(project_id="archive-mod-project", language="zh-CN")
     assert entries[0]["original"] == "Alpha"
     assert entries[0]["translation"] == "阿尔法"
+
+
+def test_missing_opening_quote_blocks_archive_baseline(temp_archive_db, tmp_path):
+    source, _target = _translation_project(tmp_path)
+    _write_text(source / "localization/english/demo_l_english.yml", 'l_english:\n good:0 "Good"\n broken:0 no quotes\n')
+    result = TranslationArchiveService(am=temp_archive_db).upload_project_translations("probe", "Probe", str(source), "en")
+    assert result["status"] == "error"
+    assert result["code"] == "source_scan_failed"
+    assert result["issues"][0]["code"] == "missing_opening_quote"
+    assert temp_archive_db.connection.execute("SELECT COUNT(*) FROM source_versions").fetchone()[0] == 0
