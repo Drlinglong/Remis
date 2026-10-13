@@ -161,7 +161,7 @@ export default function MarsPipelineImport({ opened, onClose, onCreated, name, s
           </Accordion.Item>
         </Accordion>}
         {flow.plan && <Group justify="flex-end">
-          <Button disabled={flow.busy || pending.length > 0
+          <Button disabled={flow.busy
             || (flow.plan.source_blockers || []).length > 0} onClick={flow.execute}>
             {t('mars_pipeline.prepare', 'Create isolated translation project')}
           </Button>

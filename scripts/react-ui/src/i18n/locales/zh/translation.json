@@ -113,7 +113,14 @@
     "publication_id": "你的创意工坊项目 ID",
     "publication_local_only": "仅保存到此项目的本地记录中；不会上传或修改 Steam 上的内容。",
     "publication_locked": "此创意工坊关联在 Remis 中已锁定。",
-    "publication_bind": "保存创意工坊项目关联"
+    "publication_bind": "保存创意工坊项目关联",
+    "folder_help": "选择包含 ModContent.fpk 的创意工坊 Mod 文件夹，也可选择已有的可编辑 Mod 文件夹。Remis 会自动发现可翻译文本。",
+    "automatic_help": "Remis 会在隔离项目中解包并准备文本。不确定的候选项保留原样，创建后会在项目页面提示你复核。",
+    "manual_source_options": "高级源文选项",
+    "creation_inspect": "正在检查 Mod 并发现可翻译文本…",
+    "creation_prepare": "正在解包 Mod 并创建翻译项目…",
+    "pending_after_creation": "有 {{count}} 条文本候选项需要复核。项目已创建，可先翻译已确认的文本；这些候选项保持原样。",
+    "review_later_help": "请在改写 Lua 或确认完整覆盖前复核这些候选项。更新此项目时，请保留下方的准备记录编号。"
   },
   "shell_language_notice.recommendation": "强烈建议为套壳翻译单独新建一个项目，专门翻译这一种语言。",
   "shell_language_notice.learn_more": "了解原因",

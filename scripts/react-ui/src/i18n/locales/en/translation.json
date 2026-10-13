@@ -117,7 +117,14 @@
     "publication_id": "Your Workshop item ID",
     "publication_local_only": "Saved locally for this project. This does not upload or change anything on Steam.",
     "publication_locked": "This Workshop link is locked in Remis.",
-    "publication_bind": "Save Workshop item link"
+    "publication_bind": "Save Workshop item link",
+    "folder_help": "Choose the Workshop Mod folder containing ModContent.fpk, or an editable Mod folder. Remis discovers the translation text automatically.",
+    "automatic_help": "Remis unpacks the Mod and prepares its text in an isolated project. Uncertain text stays unchanged and is listed for review after creation.",
+    "manual_source_options": "Advanced source options",
+    "creation_inspect": "Checking the Mod and discovering translation text…",
+    "creation_prepare": "Unpacking the Mod and creating the translation project…",
+    "pending_after_creation": "{{count}} text candidates need review. Your project is ready for the confirmed text; these candidates remain unchanged in the original Mod.",
+    "review_later_help": "Review these candidates before preparing Lua changes or claiming complete coverage. Keep the preparation run shown below when updating this project."
   },
   "shell_language_notice.recommendation": "We strongly recommend creating a separate project for this shell translation and using it for just this language.",
   "shell_language_notice.learn_more": "Why separate projects?",

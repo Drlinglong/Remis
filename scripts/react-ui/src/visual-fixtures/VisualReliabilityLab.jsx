@@ -1,4 +1,5 @@
 import React from 'react';
+import MarsProjectCreationVisualFixture from './MarsProjectCreationVisualFixture';
 import {
   Alert,
   Badge,
@@ -250,6 +251,7 @@ function PublishedArchiveVisualFixture() {
 }
 
 export default function VisualReliabilityLab({ themeId, contract }) {
+  if (contract === 'mars-project-creation') return <MarsProjectCreationVisualFixture />;
   if (contract === 'project-glossary') {
     return <ProjectGlossaryContrastFixture themeId={themeId} />;
   }

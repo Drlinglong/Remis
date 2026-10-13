@@ -49,6 +49,23 @@ def _add_table_entries(manifest: dict, rows: list, relative: str) -> None:
         }
 
 
+def _discover_original_text(manifest: dict, documents: dict) -> list[dict]:
+    """Collect CSV-only originals without choosing a translated language column."""
+    values = {key: entry["text"] for key, entry in manifest["entries"].items()}
+    conflicts = set()
+    for relative, rows in documents.items():
+        for row in rows:
+            key, text = row[:2]
+            if key in values and values[key] != text:
+                conflicts.add(key)
+            else:
+                values[key] = text
+        _add_table_entries(manifest, rows, relative)
+    return [{"id": key, "code": "ambiguous_source_text",
+             "message": f"Localization tables disagree on the original text for ID {key}. Select the source table in Advanced options."}
+            for key in sorted(conflicts, key=int)]
+
+
 def select_source(root: Path, manifest: dict, request: dict) -> dict:
     """Bind source language, table, column and selected values to the plan fingerprint."""
     result = copy.deepcopy(manifest)
@@ -62,6 +79,8 @@ def select_source(root: Path, manifest: dict, request: dict) -> dict:
         raise ValueError("Source column must be Text or Translation")
     inventory, documents = _tables(root)
     result["source_tables"] = inventory
+    if not table and column == "Text":
+        blockers.extend(_discover_original_text(result, documents))
     selection = {"language": language, "table": table, "column": column}
     result["source_selection"] = selection
     if column == "Translation" and not table:

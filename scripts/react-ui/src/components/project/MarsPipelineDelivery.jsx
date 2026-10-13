@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useMarsPipelineDelivery } from '../../hooks/useMarsPipelineDelivery';
 import MarsTranslationPackagePanel from './MarsTranslationPackagePanel';
 import MarsPublicationIdentity from './MarsPublicationIdentity';
+import MarsSourceReviewNotice from './MarsSourceReviewNotice';
 
 const countOf = (items) => Array.isArray(items) ? items.length : 0;
 const entryLabel = (item) => (typeof item === 'string' ? item
@@ -74,6 +75,7 @@ export default function MarsPipelineDelivery({ projectId, gameId }) {
   return (
     <Paper withBorder p="md" mb="md" data-remis-surface="paper">
       <Stack gap="sm">
+        <MarsSourceReviewNotice items={flow.options?.source_review_items} t={t} />
         <Title order={3}>{t('mars_pipeline.delivery_title', 'Internationalized Mod delivery')}</Title>
         {flow.mode === 'source_copy' && <MarsPublicationIdentity projectId={projectId} onBindingChanged={flow.publicationChanged} />}
         {flow.error && <Alert color="red" role="alert">{flow.error}</Alert>}

@@ -35,6 +35,9 @@ async def options(project_id: str) -> dict:
             "modes": ["text_only", "source_copy"], "languages": _language_options(),
             "selected_delivery_mode": receipt.get("delivery_mode", "source_copy") if receipt else None,
             "hardcoded_entry_count": len(hardcoded_ids),
+            "source_review_items": [{"id": key, "text": entry["text"],
+                                     "reason": entry.get("review_reason"), "refs": entry.get("refs", [])}
+                                    for key, entry in entries.items() if key not in approved_ids],
             "source_copy_requires_preparation": bool(receipt and not hardcoded_ids.issubset(approved_ids)),
             "translation_outputs": _outputs(project), "runtime_verified": False}
 
