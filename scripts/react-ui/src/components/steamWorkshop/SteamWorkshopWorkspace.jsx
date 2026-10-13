@@ -19,6 +19,7 @@ import {
   IconHistory,
   IconPencil,
   IconPhoto,
+  IconUpload,
 } from '@tabler/icons-react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
@@ -29,6 +30,7 @@ import { usePublishingWorkspaceDetail } from './usePublishingWorkspaceDetail';
 
 const ThumbnailGenerator = lazy(() => import('../tools/ThumbnailGenerator'));
 const WorkshopGenerator = lazy(() => import('../tools/WorkshopGenerator'));
+const WorkshopPublicationPanel = lazy(() => import('./publication/WorkshopPublicationPanel'));
 
 const EditorFallback = () => (
   <Center h={240}>
@@ -43,6 +45,7 @@ export default function SteamWorkshopWorkspace({ activeSection, workspaceId }) {
     { value: 'cover', label: t('steam_workshop.cover_label'), icon: IconPhoto },
     { value: 'description', label: t('steam_workshop.description'), icon: IconFileDescription },
     { value: 'history', label: t('steam_workshop.history'), icon: IconHistory },
+    { value: 'publish', label: t('workshop_publication.title'), icon: IconUpload },
   ];
   const [searchParams] = useSearchParams();
   const [editOpen, setEditOpen] = useState(false);
@@ -165,6 +168,11 @@ export default function SteamWorkshopWorkspace({ activeSection, workspaceId }) {
               {section === 'history' && (
                 <PublishingVersionHistory workspaceId={workspace.workspace_id} />
               )}
+            </Tabs.Panel>
+            <Tabs.Panel value="publish">
+              <Suspense fallback={<EditorFallback />}>
+                {section === 'publish' && <WorkshopPublicationPanel key={workspaceId} workspaceId={workspaceId} />}
+              </Suspense>
             </Tabs.Panel>
           </Tabs>
 

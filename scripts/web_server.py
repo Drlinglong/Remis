@@ -158,7 +158,7 @@ def setup_app_routers():
         tasks,
         model_arena,
         archive_ab_review,
-        steam_workshop, agent_steam_workshop, agent_baseline,
+        steam_workshop, agent_steam_workshop, agent_baseline, workshop_publication,
     )
     from scripts.core.feature_policy import mod_archive_enabled
     from scripts.routers.advanced_agent_policy import include_advanced_router
@@ -202,6 +202,7 @@ def setup_app_routers():
     app.include_router(model_arena.router)
     app.include_router(archive_ab_review.router)
     app.include_router(steam_workshop.router)
+    app.include_router(workshop_publication.router)
     app.include_router(agent_steam_workshop.router)
     app.include_router(agent_baseline.router)
     if copilot_router_enabled():

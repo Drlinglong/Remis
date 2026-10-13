@@ -1,0 +1,80 @@
+import { useState } from 'react';
+import { Alert, Button, Checkbox, NumberInput, Paper, Select, Stack, Text, Textarea, TextInput, Title } from '@mantine/core';
+import { useTranslation } from 'react-i18next';
+import PublicationPreview, { PublicationOutcome } from './PublicationPreview';
+import { useWorkshopPublication } from './useWorkshopPublication';
+import PublicationRecoveryForm from './PublicationRecoveryForm';
+
+const initialValues = {
+  output_folder_name: '', app_id: '', mode: 'create', published_file_id: '', title: '',
+  change_note: '', visibility: 'private', language: 'english', tags: '',
+};
+
+export default function WorkshopPublicationPanel({ workspaceId }) {
+  const { t } = useTranslation();
+  const controller = useWorkshopPublication(workspaceId);
+  const [values, setValues] = useState(initialValues);
+  const [approved, setApproved] = useState(false);
+  const change = (key, value) => {
+    setValues((current) => ({ ...current, [key]: value }));
+    setApproved(false);
+    controller.invalidate();
+  };
+  const request = () => ({
+    ...values, app_id: Number(values.app_id),
+    published_file_id: values.mode === 'update' ? values.published_file_id : null,
+    tags: values.tags.split(',').map((item) => item.trim()).filter(Boolean),
+  });
+  const canPreview = !!values.output_folder_name && !!values.title.trim()
+    && Number(values.app_id) > 0 && (values.mode !== 'update' || /^[1-9][0-9]*$/.test(values.published_file_id));
+  return (
+    <Stack data-remis-surface="surface">
+      <Title order={3}>{t('workshop_publication.title')}</Title>
+      <Text c="dimmed">{t('workshop_publication.intro')}</Text>
+      {controller.error && <Alert color="red">{controller.error}</Alert>}
+      <Paper withBorder p="md" data-remis-surface="paper">
+        <Stack>
+          <Select label={t('workshop_publication.output')} value={values.output_folder_name || null}
+            data={(controller.options?.outputs || []).map((item) => ({ value: item.output_folder_name, label: item.output_folder_name }))}
+            onChange={(value) => change('output_folder_name', value || '')} disabled={controller.busy} />
+          <NumberInput label={t('workshop_publication.app_id')} value={values.app_id} min={1} max={4294967295}
+            allowDecimal={false} allowNegative={false} onChange={(value) => change('app_id', value)} disabled={controller.busy} />
+          <Select label={t('workshop_publication.mode_label')} value={values.mode} allowDeselect={false}
+            data={['create', 'update'].map((value) => ({ value, label: t(`workshop_publication.mode.${value}`) }))}
+            onChange={(value) => change('mode', value)} disabled={controller.busy} />
+          {values.mode === 'update' && <TextInput label={t('workshop_publication.item_id')} description={t('workshop_publication.target_warning')}
+            value={values.published_file_id} onChange={(event) => change('published_file_id', event.currentTarget.value)} disabled={controller.busy} />}
+          <TextInput label={t('workshop_publication.mod_title')} value={values.title} onChange={(event) => change('title', event.currentTarget.value)} disabled={controller.busy} />
+          <Select label={t('workshop_publication.visibility_label')} value={values.visibility} allowDeselect={false}
+            data={['private', 'public', 'friends_only', 'unlisted'].map((value) => ({ value, label: t(`workshop_publication.visibility.${value}`) }))}
+            onChange={(value) => change('visibility', value)} disabled={controller.busy} />
+          <TextInput label={t('workshop_publication.language')} value={values.language} onChange={(event) => change('language', event.currentTarget.value)} disabled={controller.busy} />
+          <TextInput label={t('workshop_publication.tags')} value={values.tags} onChange={(event) => change('tags', event.currentTarget.value)} disabled={controller.busy} />
+          <Textarea label={t('workshop_publication.change_note')} value={values.change_note} onChange={(event) => change('change_note', event.currentTarget.value)} disabled={controller.busy} />
+          <Button disabled={!canPreview || controller.busy} loading={controller.busy}
+            onClick={() => { setApproved(false); controller.createPreview(request()); }}>{t('workshop_publication.preview')}</Button>
+        </Stack>
+      </Paper>
+      {controller.preview && <>
+        <PublicationPreview plan={controller.preview} />
+        {controller.preview.status === 'preview' && <>
+          <Checkbox label={t('workshop_publication.approval')} checked={approved} onChange={(event) => setApproved(event.currentTarget.checked)} />
+          <Button color="orange" loading={controller.busy}
+            disabled={!approved || controller.busy || !controller.preview.allowed_actions.includes('approve_publication')}
+            onClick={controller.submit}>{t('workshop_publication.submit')}</Button>
+        </>}
+      </>}
+      <Title order={4}>{t('workshop_publication.history')}</Title>
+      <Button variant="default" onClick={controller.refresh}>{t('workshop_publication.refresh')}</Button>
+      {controller.history.map((plan) => <Paper key={plan.plan_id} withBorder p="md" data-remis-surface="paper">
+        <PublicationOutcome plan={plan} />
+        {plan.allowed_actions?.includes('verify_remote_outcome') && <PublicationRecoveryForm
+          plan={plan} busy={controller.busy} onVerify={controller.verify}
+          onRecovered={(request) => {
+            if (request.resolution === 'item_present') setValues((current) => ({ ...current, mode: 'update', published_file_id: request.published_file_id }));
+            setApproved(false);
+          }} />}
+      </Paper>)}
+    </Stack>
+  );
+}

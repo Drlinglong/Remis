@@ -21,6 +21,7 @@ from scripts.core.db_models import (
 )
 from scripts.core.context_db_migrations import CONTEXT_DB_MIGRATIONS
 from scripts.core.task_idempotency_migration import add_task_idempotency_uniqueness
+from scripts.core.workshop_publication_migration import add_workshop_publication
 from scripts.core.steam_workshop_sequence_migration import (
     enforce_steam_workshop_sequence_constraint,
     validate_steam_workshop_foreign_keys,
@@ -29,7 +30,7 @@ from scripts.core.status_contract_migration import enforce_nonnull_status_contra
 
 logger = logging.getLogger("remis_init")
 
-MAIN_DB_TARGET_VERSION = 28
+MAIN_DB_TARGET_VERSION = 29
 
 
 class UnsupportedDatabaseVersionError(RuntimeError):
@@ -698,6 +699,7 @@ MAIN_DB_MIGRATIONS: list[tuple[int, str, Callable[[str], None]]] = [
     (26, "validate_steam_workshop_foreign_keys", validate_steam_workshop_foreign_keys),
     (27, "enforce_steam_workshop_parent_foreign_key", enforce_steam_workshop_sequence_constraint),
     (28, "enforce_nonnull_status_contracts", enforce_nonnull_status_contracts),
+    (29, "add_workshop_publication", add_workshop_publication),
 ]
 
 
