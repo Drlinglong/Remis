@@ -19,6 +19,25 @@ from scripts.schemas.workshop_publication import PublicationError, PublicationPl
 from tests.test_steam_workshop_assets import _png
 
 
+def test_publication_options_include_supported_games_and_project_default(publication, monkeypatch):
+    from unittest.mock import AsyncMock
+    from scripts.routers import workshop_publication as routes
+
+    service, workspace_id, project, *_ = publication
+    monkeypatch.setattr(routes, "service", service)
+    monkeypatch.setattr(routes, "_project", AsyncMock(return_value=project))
+    app = FastAPI()
+    app.include_router(routes.router)
+    response = TestClient(app).get(f"/api/steam-workshop/workspaces/{workspace_id}/publication/options")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["default_app_id"] == "529340"
+    games = {item["game_id"]: item["app_id"] for item in payload["game_options"]}
+    assert games == {"victoria3": 529340, "stellaris": 281990, "hoi4": 394360,
+                     "eu4": 236850, "ck3": 1158310, "eu5": 3450310}
+    assert payload["outputs"][0]["output_folder_name"] == "translation"
+
+
 class FakeSteam:
     def __init__(self):
         self.calls = []

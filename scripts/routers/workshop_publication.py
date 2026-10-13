@@ -3,7 +3,8 @@ import asyncio
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 
-from scripts.core.services.workshop_publication_inputs import output_options
+from scripts.core.services.workshop_publication_inputs import PARADOX_GAMES, output_options
+from scripts.core.steam_game_catalog import GAME_STEAM_APP_IDS, publication_game_options
 from scripts.core.services.workshop_publication_runtime import publication_runtime
 from scripts.schemas.workshop_publication import PublicationApprovalRequest, PublicationError, PublicationPlanRequest, PublicationVerificationRequest
 from scripts.shared.services import project_manager
@@ -37,6 +38,8 @@ async def options(workspace_id: str):
         project = await _project(workspace_id)
         outputs = await asyncio.to_thread(output_options, project)
         return {"outputs": outputs, "runtime": service.adapter.availability(),
+                "game_options": publication_game_options(PARADOX_GAMES),
+                "default_app_id": GAME_STEAM_APP_IDS.get(project.get("game_id")),
                 "default_visibility": "private", "default_mode": "create"}
     except Exception as exc:
         raise _error(exc) from exc

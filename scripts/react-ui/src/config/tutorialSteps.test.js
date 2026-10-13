@@ -44,6 +44,7 @@ describe('tutorialSteps', () => {
       ],
       'steam-workshop-description': ['#steam-workshop-content textarea'],
       'steam-workshop-history': ['#steam-workshop-content'],
+      'steam-workshop-publish': ['#workshop-publication-setup', '#workshop-publication-game', '#workshop-publication-preview'],
     };
 
     Object.entries(contexts).forEach(([pageName, expectedElements]) => {

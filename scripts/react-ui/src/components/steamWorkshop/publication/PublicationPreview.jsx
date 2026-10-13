@@ -1,11 +1,12 @@
 import { Alert, Anchor, Badge, Code, Group, Image, Paper, ScrollArea, Stack, Table, Text } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import { BbcodePreview } from '../description/BbcodePreview';
+import styles from './PublicationPreview.module.css';
 
 export function PublicationOutcome({ plan }) {
   const { t } = useTranslation();
   return (
-    <Stack gap="xs">
+    <Stack gap="xs" className={styles.outcome}>
       <Group>
         <Badge color={plan.status === 'succeeded' ? 'green' : plan.status === 'preview' ? 'gray' : 'orange'}>
           {t(`workshop_publication.status.${plan.status}`)}
@@ -26,7 +27,7 @@ export function PublicationOutcome({ plan }) {
 export default function PublicationPreview({ plan }) {
   const { t } = useTranslation();
   return (
-    <Paper withBorder p="md" data-remis-surface="paper">
+    <Paper withBorder p="md" data-remis-surface="paper" className={styles.preview}>
       <Stack>
         <PublicationOutcome plan={plan} />
         <Text fw={600}>{t('workshop_publication.target_summary', {

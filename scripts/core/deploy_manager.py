@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Optional
 
 from scripts.app_settings import DEST_DIR
+from scripts.core.steam_game_catalog import GAME_STEAM_APP_IDS
 from scripts.utils import i18n
 from scripts.utils.system_utils import slugify_to_ascii
 
@@ -36,14 +37,7 @@ class ModDeployer:
     }
 
     # Steam AppIDs mapping
-    GAME_APPIDS = {
-        "victoria3": "529340",
-        "stellaris": "281990",
-        "hoi4": "394360",
-        "eu4": "236850",
-        "ck3": "1158310",
-        "eu5": "3450310"
-    }
+    GAME_APPIDS = GAME_STEAM_APP_IDS
 
     def get_documents_path(self) -> Path:
         """Returns the user's Documents path, handling Windows specifically."""

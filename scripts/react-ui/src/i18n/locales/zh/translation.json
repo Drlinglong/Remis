@@ -3342,6 +3342,16 @@
     "human_review": "人工决定"
   },
   "workshop_publication": {
+    "custom_app": "手动输入其他 App ID",
+    "setup_title": "首次上传：准备与操作引导",
+    "setup_missing": "上传环境尚未就绪。请按下面的步骤准备；生成预览本身不会上传。",
+    "setup_steam": "安装并登录 Steam 桌面客户端；登录账户需要拥有所选游戏。",
+    "setup_sdk": "当前开发版还需要官方 Steamworks SDK。请下载并解压到本机。",
+    "setup_sdk_link": "官方 SDK 获取说明",
+    "setup_configure": "启动 Remis 前，在 PowerShell 中设置 SDK 目录（将示例路径换成你的实际路径）。选择包含 public/steam/steam_api.json 和 redistributable_bin/win64/steam_api64.dll 的 sdk 文件夹，然后重启 Remis。",
+    "setup_package": "绑定项目，选择已有翻译输出包，并采用封面和描述版本。游戏会自动选中，请确认目标正确。",
+    "setup_upload": "首次测试选择“新建”和“私密”。生成预览，核对账户和内容，再明确批准上传。",
+    "setup_unknown": "收到 Steam 成功回调后，还要打开条目页面核对内容。若结果未知或需要接受协议，先检查 Steam，不要再次新建条目。",
     "output_loading": "正在读取输出包…",
     "output_placeholder": "选择已有翻译输出包",
     "output_empty": "没有找到已生成的翻译输出包。请先为绑定项目生成输出，或在项目管理中检查输出目录是否存在。",

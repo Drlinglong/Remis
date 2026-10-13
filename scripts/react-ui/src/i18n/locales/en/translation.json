@@ -3327,6 +3327,16 @@
     "human_review": "Manual decision"
   },
   "workshop_publication": {
+    "custom_app": "Enter another App ID",
+    "setup_title": "First upload: setup and walkthrough",
+    "setup_missing": "The upload environment is not ready. Follow the setup steps below; a preview alone does not upload.",
+    "setup_steam": "Install and sign in to the Steam desktop client. Your account must own the selected game.",
+    "setup_sdk": "This development build also needs the official Steamworks SDK. Download and extract it on your PC.",
+    "setup_sdk_link": "Official SDK download instructions",
+    "setup_configure": "Before launching Remis, set the SDK directory in PowerShell (replace this example path). Use the sdk folder containing public/steam/steam_api.json and redistributable_bin/win64/steam_api64.dll; then restart Remis.",
+    "setup_package": "Bind a project, select an existing translation output, and adopt a cover and description version. The game is selected automatically; check it before proceeding.",
+    "setup_upload": "Choose Create and Private for your first test. Generate a preview, verify the account and content, then approve and upload.",
+    "setup_unknown": "Success requires the Steam success callback plus a correct Workshop page. If the outcome is unknown or an agreement is required, inspect Steam before creating another item.",
     "output_loading": "Loading output packages…",
     "output_placeholder": "Select an existing translation output",
     "output_empty": "No existing translation output was found. Generate an output for the linked project, or check its output directory in Project Management.",

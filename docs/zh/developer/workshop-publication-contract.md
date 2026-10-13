@@ -52,7 +52,7 @@ Steam 账户、App ID、目标 item ID、可见性、语言、标签、标题与
 
 ## 持久状态和故障语义
 
-主数据库迁移 28 添加 `workshop_publication_plans` 和 `workshop_publication_attempts`。
+主数据库迁移 29 添加 `workshop_publication_plans` 和 `workshop_publication_attempts`。
 每个计划只能创建一次 attempt；DB 原子准入与唯一索引只允许一个活动发布。
 另有单次执行租约阻止相同任务的重复 Worker 执行。Windows 命名互斥锁阻止跨 Remis
 实例并发进入 Steam API，也保护后端崩溃后仍然存活的子进程。
@@ -130,3 +130,10 @@ focused tests 覆盖 hook 的编辑失效、过期响应、重复点击、失败
 compileall、Python 架构门禁、前端 build 和 Git diff 检查通过。全量 ESLint 为 0 error、
 13 个未修改文件中的既有 warning，新发布模块没有新增 warning。此复核没有重新上传
 或创建 Steam 条目，也没有把 SDK、隔离运行数据、node_modules 或 dist 纳入提交。
+
+
+## 2026-10-14 本地整合验收
+
+用户完成了 Victoria 3 私密新建条目的真实上传：持久记录为 `succeeded`，用户确认 Steam 页面可访问且内容正确。此证据仅覆盖本次开发版新建上传，不扩展为全部游戏、更新、异常恢复或发行包验收。用户操作见[Steam 工坊指南](../user-guides/steam-workshop.md)。
+
+发布选项接口现在返回共享 Steam 游戏目录及绑定项目的默认 App ID；部署和发布共用同一 ID 映射。发布页提供 SDK 准备说明与独立教学上下文，并保留手动 App ID 和标签输入。

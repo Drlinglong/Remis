@@ -1,13 +1,15 @@
 import { useState } from 'react';
-import { Alert, Button, Checkbox, NumberInput, Paper, Select, Stack, Text, Textarea, TextInput, Title } from '@mantine/core';
+import { Alert, Button, Checkbox, Paper, Select, Stack, Text, Textarea, TextInput, Title } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import PublicationPreview, { PublicationOutcome } from './PublicationPreview';
 import { useWorkshopPublication } from './useWorkshopPublication';
 import PublicationRecoveryForm from './PublicationRecoveryForm';
 import PublicationTagsInput from './PublicationTagsInput';
+import PublicationGameSelect from './PublicationGameSelect';
+import PublicationSetupGuide from './PublicationSetupGuide';
 
 const initialValues = {
-  output_folder_name: '', app_id: '', mode: 'create', published_file_id: '', title: '',
+  output_folder_name: '', app_id: null, mode: 'create', published_file_id: '', title: '',
   change_note: '', visibility: 'private', language: 'english', tags: [],
 };
 
@@ -16,24 +18,26 @@ export default function WorkshopPublicationPanel({ workspaceId }) {
   const controller = useWorkshopPublication(workspaceId);
   const [values, setValues] = useState(initialValues);
   const [approved, setApproved] = useState(false);
+  const appId = values.app_id ?? controller.options?.default_app_id ?? '';
   const change = (key, value) => {
     setValues((current) => ({ ...current, [key]: value }));
     setApproved(false);
     controller.invalidate();
   };
   const request = () => ({
-    ...values, app_id: Number(values.app_id),
+    ...values, app_id: Number(appId),
     published_file_id: values.mode === 'update' ? values.published_file_id : null,
     tags: values.tags,
   });
   const outputs = controller.options?.outputs || [];
   const loadingOutputs = controller.options === null && !controller.error;
   const canPreview = !!values.output_folder_name && !!values.title.trim()
-    && Number(values.app_id) > 0 && (values.mode !== 'update' || /^[1-9][0-9]*$/.test(values.published_file_id));
+    && Number(appId) > 0 && (values.mode !== 'update' || /^[1-9][0-9]*$/.test(values.published_file_id));
   return (
     <Stack data-remis-surface="surface">
       <Title order={3}>{t('workshop_publication.title')}</Title>
       <Text c="dimmed">{t('workshop_publication.intro')}</Text>
+      <PublicationSetupGuide runtime={controller.options?.runtime} />
       {controller.error && <Alert color="red">{controller.error}</Alert>}
       <Paper withBorder p="md" data-remis-surface="paper">
         <Stack>
@@ -45,8 +49,8 @@ export default function WorkshopPublicationPanel({ workspaceId }) {
               'No existing translation output was found. Generate an output for the linked project, or check its output directory in Project Management.')}
             onChange={(value) => change('output_folder_name', value || '')}
             disabled={controller.busy || loadingOutputs || !outputs.length} />
-          <NumberInput label={t('workshop_publication.app_id')} value={values.app_id} min={1} max={4294967295}
-            allowDecimal={false} allowNegative={false} onChange={(value) => change('app_id', value)} disabled={controller.busy} />
+          <PublicationGameSelect value={appId} games={controller.options?.game_options || []}
+            onChange={(value) => change('app_id', value)} disabled={controller.busy} />
           <Select label={t('workshop_publication.mode_label')} value={values.mode} allowDeselect={false}
             data={['create', 'update'].map((value) => ({ value, label: t(`workshop_publication.mode.${value}`) }))}
             onChange={(value) => change('mode', value)} disabled={controller.busy} />
@@ -60,6 +64,7 @@ export default function WorkshopPublicationPanel({ workspaceId }) {
           <PublicationTagsInput value={values.tags} onChange={(tags) => change('tags', tags)} disabled={controller.busy} />
           <Textarea label={t('workshop_publication.change_note')} value={values.change_note} onChange={(event) => change('change_note', event.currentTarget.value)} disabled={controller.busy} />
           <Button disabled={!canPreview || controller.busy} loading={controller.busy}
+            id="workshop-publication-preview"
             onClick={() => { setApproved(false); controller.createPreview(request()); }}>{t('workshop_publication.preview')}</Button>
         </Stack>
       </Paper>
