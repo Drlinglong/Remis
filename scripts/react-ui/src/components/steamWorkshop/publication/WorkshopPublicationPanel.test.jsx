@@ -57,4 +57,22 @@ describe('publication GUI explicit approval', () => {
     expect(screen.queryByRole('button', { name: 'workshop_publication.submit' })).not.toBeInTheDocument();
     expect(controller.submit).not.toHaveBeenCalled();
   });
+
+  it('only permits update previews with an ID within the server length limit', () => {
+    controller.options = { outputs: [{ output_folder_name: 'translated' }], default_app_id: 3650 };
+    show();
+    fireEvent.click(screen.getByRole('textbox', { name: 'workshop_publication.output' }));
+    fireEvent.click(screen.getByRole('option', { name: 'translated' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'workshop_publication.mod_title' }), { target: { value: 'Translation' } });
+    fireEvent.click(screen.getByRole('textbox', { name: 'workshop_publication.mode_label' }));
+    fireEvent.click(screen.getByRole('option', { name: 'workshop_publication.mode.update' }));
+    const input = screen.getByRole('textbox', { name: 'workshop_publication.item_id' });
+    const button = screen.getByRole('button', { name: 'workshop_publication.preview' });
+    fireEvent.change(input, { target: { value: '12345678901234567890' } });
+    expect(button).toBeEnabled();
+    fireEvent.change(input, { target: { value: '123456789012345678901' } });
+    expect(button).toBeDisabled();
+    fireEvent.click(button);
+    expect(controller.createPreview).not.toHaveBeenCalled();
+  });
 });

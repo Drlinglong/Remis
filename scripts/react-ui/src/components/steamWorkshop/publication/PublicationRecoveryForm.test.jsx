@@ -31,4 +31,21 @@ describe('manual remote verification', () => {
     await waitFor(() => expect(verify).toHaveBeenCalled());
     expect(recovered).not.toHaveBeenCalled();
   });
+
+  it('accepts 20-digit IDs and blocks 21-digit IDs without sending verification', () => {
+    const verify = vi.fn();
+    render(<MantineProvider><PublicationRecoveryForm
+      plan={{ plan_id: 'one' }} busy={false} onVerify={verify} onRecovered={vi.fn()}
+    /></MantineProvider>);
+    const input = screen.getByRole('textbox', { name: 'workshop_publication.item_id' });
+    const button = screen.getByRole('button', { name: 'workshop_publication.record_verification' });
+    fireEvent.change(input, { target: { value: '12345678901234567890' } });
+    fireEvent.click(screen.getByRole('checkbox'));
+    expect(button).toBeEnabled();
+    fireEvent.change(input, { target: { value: '123456789012345678901' } });
+    fireEvent.click(screen.getByRole('checkbox'));
+    expect(button).toBeDisabled();
+    fireEvent.click(button);
+    expect(verify).not.toHaveBeenCalled();
+  });
 });

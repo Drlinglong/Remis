@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { workshopPublicationService as service } from '../../../services/workshopPublicationService';
-
-const errorDetail = (error) => {
-  const detail = error.response?.data?.detail;
-  return typeof detail === 'string' ? detail : detail?.message || error.message;
-};
+import { publicationErrorDetail as errorDetail } from './publicationValidation';
+import { latestPublicationRecord, mergePublicationHistory } from './publicationHistory';
 
 export function useWorkshopPublication(workspaceId) {
   const [options, setOptions] = useState(null);
@@ -15,13 +12,22 @@ export function useWorkshopPublication(workspaceId) {
   const revision = useRef(0);
   const mounted = useRef(false);
   const submitting = useRef(false);
+  const historyRequest = useRef(0);
+  const historyPending = useRef(false);
+  const current = latestPublicationRecord(preview, history.find((record) => record.plan_id === preview?.plan_id));
 
   const refresh = useCallback(async () => {
+    const request = ++historyRequest.current;
+    historyPending.current = true;
     try {
       const records = await service.history(workspaceId);
-      if (mounted.current) setHistory(Array.isArray(records) ? records : []);
+      if (mounted.current && request === historyRequest.current) {
+        setHistory((previous) => mergePublicationHistory(previous, Array.isArray(records) ? records : []));
+      }
     } catch (requestError) {
-      if (mounted.current) setError(errorDetail(requestError));
+      if (mounted.current && request === historyRequest.current) setError(errorDetail(requestError));
+    } finally {
+      if (request === historyRequest.current) historyPending.current = false;
     }
   }, [workspaceId]);
 
@@ -38,12 +44,15 @@ export function useWorkshopPublication(workspaceId) {
       active = false;
       mounted.current = false;
       revision.current += 1;
+      historyRequest.current += 1;
     };
   }, [refresh, workspaceId]);
 
   useEffect(() => {
     if (!history.some((record) => record.status === 'running')) return undefined;
-    const interval = setInterval(refresh, 2000);
+    const interval = setInterval(() => {
+      if (!historyPending.current) refresh();
+    }, 2000);
     return () => clearInterval(interval);
   }, [history, refresh]);
 
@@ -70,13 +79,19 @@ export function useWorkshopPublication(workspaceId) {
   }, [refresh, workspaceId]);
 
   const submit = useCallback(async () => {
-    if (!preview?.allowed_actions?.includes('approve_publication') || submitting.current) return;
+    if (!current?.allowed_actions?.includes('approve_publication') || submitting.current) return;
     submitting.current = true;
+    historyRequest.current += 1;
     setBusy(true);
     setError('');
     try {
-      const result = await service.submit(workspaceId, preview);
-      if (mounted.current) setPreview(result);
+      const result = await service.submit(workspaceId, current);
+      historyRequest.current += 1;
+      if (mounted.current) {
+        setPreview(result);
+        setHistory((previous) => previous.map((record) => record.plan_id === result.plan_id
+          ? latestPublicationRecord(record, result) : record));
+      }
     } catch (requestError) {
       if (mounted.current) {
         setPreview(null);
@@ -87,14 +102,15 @@ export function useWorkshopPublication(workspaceId) {
       if (mounted.current) setBusy(false);
       await refresh();
     }
-  }, [preview, refresh, workspaceId]);
+  }, [current, refresh, workspaceId]);
 
-  const current = history.find((record) => record.plan_id === preview?.plan_id) || preview;
   const verify = useCallback(async (planId, request) => {
     setBusy(true);
     setError('');
+    historyRequest.current += 1;
     try {
       await service.verify(workspaceId, planId, request);
+      if (!mounted.current) return false;
       invalidate();
       await refresh();
       return true;

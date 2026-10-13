@@ -1,4 +1,4 @@
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../services/marsPipelineService', () => ({ default: {
@@ -71,5 +71,31 @@ describe('Mars folder project creation', () => {
     await act(async () => { resolve({ data: { kind: 'archive', archive_path: 'J:/old.fpk' } }); await pending; });
     expect(service.planImport).not.toHaveBeenCalled();
     expect(options.onCreated).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['plan', 'close'], ['plan', 'folder change'], ['plan', 'unmount'],
+    ['import', 'close'], ['import', 'folder change'], ['import', 'unmount'],
+  ])('ignores a late %s response after %s', async (phase, invalidation) => {
+    let resolve;
+    const operation = phase === 'plan' ? service.planImport : service.import;
+    operation.mockReturnValue(new Promise((done) => { resolve = done; }));
+    const options = props();
+    const { result, rerender, unmount } = renderHook((input) => useMarsProjectCreation(input), { initialProps: options });
+    let pending;
+    act(() => { pending = result.current.create(); });
+    await waitFor(() => expect(operation).toHaveBeenCalledOnce());
+    if (invalidation === 'unmount') unmount();
+    else rerender({ ...options, ...(invalidation === 'close' ? { opened: false } : { path: 'J:/other' }) });
+    await act(async () => {
+      resolve({ data: phase === 'plan'
+        ? { plan_id: 'old-plan', source_blockers: [], allowed_actions: ['approve_preparation'] }
+        : { status: 'prepared', project_id: 'old-project' } });
+      await pending;
+    });
+    if (phase === 'plan') expect(service.import).not.toHaveBeenCalled();
+    expect(options.onCreated).not.toHaveBeenCalled();
+    expect(options.createEditable).not.toHaveBeenCalled();
+    if (invalidation !== 'unmount') expect(result.current).toMatchObject({ busy: false, error: '', stage: '' });
   });
 });

@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { Button, Checkbox, Select, Stack, Text, TextInput } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
+import { isPublishedFileId } from './publicationValidation';
 
 export default function PublicationRecoveryForm({ plan, busy, onVerify, onRecovered }) {
   const { t } = useTranslation();
   const [resolution, setResolution] = useState('item_present');
   const [itemId, setItemId] = useState(plan.result?.published_file_id || plan.progress?.published_file_id || '');
   const [verified, setVerified] = useState(false);
-  const canVerify = verified && (resolution === 'item_absent' || /^[1-9][0-9]*$/.test(itemId));
+  const canVerify = verified && (resolution === 'item_absent' || isPublishedFileId(itemId));
   const submit = async () => {
     const request = { verified: true, resolution, published_file_id: resolution === 'item_present' ? itemId : null };
     if (await onVerify(plan.plan_id, request)) onRecovered(request);

@@ -7,6 +7,7 @@ import PublicationRecoveryForm from './PublicationRecoveryForm';
 import PublicationTagsInput from './PublicationTagsInput';
 import PublicationGameSelect from './PublicationGameSelect';
 import PublicationSetupGuide from './PublicationSetupGuide';
+import { isPublishedFileId } from './publicationValidation';
 
 const initialValues = {
   output_folder_name: '', app_id: null, mode: 'create', published_file_id: '', title: '',
@@ -32,7 +33,7 @@ export default function WorkshopPublicationPanel({ workspaceId }) {
   const outputs = controller.options?.outputs || [];
   const loadingOutputs = controller.options === null && !controller.error;
   const canPreview = !!values.output_folder_name && !!values.title.trim()
-    && Number(appId) > 0 && (values.mode !== 'update' || /^[1-9][0-9]*$/.test(values.published_file_id));
+    && Number(appId) > 0 && (values.mode !== 'update' || isPublishedFileId(values.published_file_id));
   return (
     <Stack data-remis-surface="surface">
       <Title order={3}>{t('workshop_publication.title')}</Title>

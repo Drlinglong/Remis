@@ -3365,7 +3365,7 @@
     "title": "发布到 Steam 创意工坊",
     "intro": "通过已登录的 Steam 客户端发布审核后的翻译包。请先选定已保存的封面和描述版本。",
     "output": "翻译输出包",
-    "app_id": "Steam App ID",
+    "app_id": "Steam 应用 ID",
     "mode_label": "发布操作",
     "mode": {
       "create": "新建创意工坊条目",

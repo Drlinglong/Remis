@@ -113,7 +113,14 @@
     "publication_id": "ID de elemento del Workshop",
     "publication_local_only": "Guardado localmente para este proyecto. No sube ni modifica nada en Steam.",
     "publication_locked": "Este vínculo del Workshop está bloqueado en Remis.",
-    "publication_bind": "Guardar vínculo del Workshop"
+    "publication_bind": "Guardar vínculo del Workshop",
+      "automatic_help": "Remis desempaqueta el Mod y prepara sus textos en un proyecto aislado. Los textos dudosos permanecen sin cambios y se indican para revisión después de crear el proyecto.",
+      "creation_inspect": "Revisando el Mod y buscando textos traducibles…",
+      "creation_prepare": "Desempaquetando el Mod y creando el proyecto de traducción…",
+      "folder_help": "Selecciona la carpeta del Mod de Steam Workshop que contiene ModContent.fpk o una carpeta de Mod editable. Remis detecta automáticamente los textos traducibles.",
+      "manual_source_options": "Opciones avanzadas del origen",
+      "pending_after_creation": "{{count}} candidatos de texto necesitan revisión. El proyecto está listo para el texto confirmado; estos candidatos permanecen sin cambios en el Mod original.",
+      "review_later_help": "Revisa estos candidatos antes de preparar cambios de Lua o afirmar que la cobertura es completa. Conserva la ejecución de preparación que aparece abajo al actualizar este proyecto."
   }
 ,
 "shell_language_notice.recommendation": "Recomendamos encarecidamente crear un proyecto separado para traducir a un idioma no admitido por el juego y dedicarlo solo a ese idioma.",
@@ -3291,5 +3298,86 @@
       "low": "Baja",
       "unrated": "Sin evaluar"
     }
+  },
+  "workshop_publication": {
+    "account": "Cuenta de Steam: {{id}}",
+    "app_id": "Identificador de la aplicación de Steam",
+    "approval": "Apruebo la carga de este paquete exacto y sus metadatos al destino y a la cuenta de Steam mostrados; al actualizar, también apruebo sustituir el contenido remoto.",
+    "change_note": "Nota de cambios",
+    "code": {
+      "backend_restarted": "Remis se reinició durante la publicación. Verifica el elemento remoto antes de continuar.",
+      "packaged_worker_not_configured": "La publicación en Steam no está disponible en esta compilación instalada. La integración de escritorio aún está pendiente.",
+      "steam_legal_agreement_required": "Acepta en Steam el acuerdo legal de Workshop y revisa el elemento.",
+      "steam_probe_failed": "Falló la inicialización de Steam. Comprueba que Steam esté en ejecución, que hayas iniciado sesión y que tu cuenta tenga el juego seleccionado.",
+      "steam_sdk_incomplete": "El entorno de ejecución de publicación de Steam está incompleto. Comprueba la configuración de desarrollo antes de cargar.",
+      "steam_sdk_not_configured": "El entorno de ejecución de publicación de Steam no está configurado. Esta compilación de desarrollo todavía no puede cargar; consulta la guía de desarrollo para prepararlo.",
+      "steam_submit_confirmed": "Steam devolvió una notificación de carga correcta.",
+      "steam_submit_rejected": "Steam rechazó la actualización; revisa el código del resultado y el elemento remoto.",
+      "windows_runtime_required": "El adaptador de carga actual de Steam requiere Windows x64.",
+      "worker_interrupted": "El proceso de Steam se interrumpió. Se desconoce el resultado remoto."
+    },
+    "custom_app": "Introduce otro App ID",
+    "file": "Archivo",
+    "file_summary": "{{count}} archivos · {{bytes}} bytes",
+    "history": "Historial de publicaciones",
+    "intro": "Publica un paquete de traducción revisado desde el cliente de Steam donde has iniciado sesión. Primero selecciona las versiones guardadas de la portada y la descripción.",
+    "item_id": "ID del archivo publicado de destino",
+    "language": "Código de idioma de Steam API",
+    "manual_verification_recorded": "Se registró la verificación manual. Para continuar, crea y aprueba una nueva vista previa; este registro no es un resultado de carga confirmado por Steam.",
+    "mod_title": "Título de Workshop",
+    "mode": {
+      "create": "Crear un elemento nuevo",
+      "update": "Actualizar mi elemento existente"
+    },
+    "mode_label": "Operación",
+    "new_item": "Elemento nuevo",
+    "open_item": "Abrir elemento de Workshop",
+    "output": "Paquete de salida de traducción",
+    "output_empty": "No se encontró ninguna salida de traducción existente. Genera una salida para el proyecto vinculado o comprueba su directorio de salida en Gestión de proyectos.",
+    "output_loading": "Cargando paquetes de salida…",
+    "output_placeholder": "Selecciona una salida de traducción existente",
+    "preview": "Crear vista previa de publicación inmutable",
+    "record_verification": "Registrar verificación manual",
+    "recovery_intro": "Revisa el elemento de Workshop en Steam y registra lo que encontraste. Esto solo registra tu observación; no carga nada ni reintenta el plan anterior.",
+    "recovery_outcome": "Resultado observado en Steam",
+    "refresh": "Actualizar estado",
+    "resolution": {
+      "item_absent": "No existe ningún elemento; se permite crear una nueva vista previa",
+      "item_present": "El elemento existe; continúa actualizándolo"
+    },
+    "setup_configure": "Antes de iniciar Remis, configura en PowerShell el directorio del SDK (sustituye esta ruta de ejemplo). Usa la carpeta sdk que contiene public/steam/steam_api.json y redistributable_bin/win64/steam_api64.dll; después reinicia Remis.",
+    "setup_missing": "El entorno de carga no está listo. Sigue los pasos de abajo; una vista previa por sí sola no carga nada.",
+    "setup_package": "Vincula un proyecto, selecciona una salida de traducción existente y adopta una versión de portada y descripción. El juego se selecciona automáticamente; compruébalo antes de continuar.",
+    "setup_sdk": "Esta compilación de desarrollo también necesita el SDK oficial de Steamworks. Descárgalo y descomprímelo en tu PC.",
+    "setup_sdk_link": "Instrucciones para descargar el SDK oficial",
+    "setup_steam": "Instala e inicia sesión en el cliente de escritorio de Steam. La cuenta debe tener el juego seleccionado.",
+    "setup_title": "Primera carga: configuración y guía",
+    "setup_unknown": "Para confirmar el éxito se necesita la notificación de éxito de Steam y una página correcta de Workshop. Si el resultado es desconocido o se requiere un acuerdo, revisa Steam antes de crear otro elemento.",
+    "setup_upload": "Para tu primera prueba, elige Crear y Privado. Genera una vista previa, verifica la cuenta y el contenido y, después, aprueba la carga.",
+    "status": {
+      "failed": "Fallido",
+      "legal_agreement_required": "Se requiere el acuerdo de Steam",
+      "preview": "Pendiente de aprobación",
+      "resolved": "Verificado manualmente",
+      "running": "Subiendo",
+      "succeeded": "Carga confirmada por Steam",
+      "unknown": "Resultado desconocido"
+    },
+    "submit": "Aprobar y cargar",
+    "tags": "Etiquetas (separadas por comas)",
+    "tags_hint": "Elige una etiqueta sugerida o escribe una y pulsa Intro para añadirla. Las comas también separan etiquetas.",
+    "target_summary": "App {{app}} · Elemento {{item}} · {{visibility}}",
+    "target_warning": "Introduce el ID de tu propio elemento de traducción. El ID del Mod original no se selecciona automáticamente.",
+    "title": "Publicar en Steam Workshop",
+    "validation_scope": "Se comprobaron {{count}} entradas de localización con el analizador de Paradox y el validador de tokens de origen. No se ha verificado el comportamiento en el juego.",
+    "verification_approval": "He revisado el elemento en Steam y confirmé este resultado; acepté cualquier acuerdo de Workshop que se requiriera.",
+    "verify_remote": "Antes de otra publicación, verifica este elemento en Steam. No vuelvas a intentar crear un elemento si el resultado es incierto. Steam podría exigir que aceptes su acuerdo de Workshop.",
+    "visibility": {
+      "friends_only": "Solo amigos",
+      "private": "Privado",
+      "public": "Público",
+      "unlisted": "No listado"
+    },
+    "visibility_label": "Visibilidad"
   }
 }
