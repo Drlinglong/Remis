@@ -3327,6 +3327,10 @@
     "human_review": "Manual decision"
   },
   "workshop_publication": {
+    "output_loading": "Loading output packages…",
+    "output_placeholder": "Select an existing translation output",
+    "output_empty": "No existing translation output was found. Generate an output for the linked project, or check its output directory in Project Management.",
+    "tags_hint": "Choose a suggested tag or type your own and press Enter. Commas also separate tags.",
     "recovery_intro": "Inspect the Workshop item in Steam and register what you found. This records your observation; it does not upload or retry the previous plan.",
     "recovery_outcome": "Observed remote outcome",
     "resolution": { "item_present": "An item exists; continue by updating it", "item_absent": "No item exists; allow a new creation preview" },

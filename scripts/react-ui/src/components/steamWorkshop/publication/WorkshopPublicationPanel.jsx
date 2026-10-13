@@ -4,10 +4,11 @@ import { useTranslation } from 'react-i18next';
 import PublicationPreview, { PublicationOutcome } from './PublicationPreview';
 import { useWorkshopPublication } from './useWorkshopPublication';
 import PublicationRecoveryForm from './PublicationRecoveryForm';
+import PublicationTagsInput from './PublicationTagsInput';
 
 const initialValues = {
   output_folder_name: '', app_id: '', mode: 'create', published_file_id: '', title: '',
-  change_note: '', visibility: 'private', language: 'english', tags: '',
+  change_note: '', visibility: 'private', language: 'english', tags: [],
 };
 
 export default function WorkshopPublicationPanel({ workspaceId }) {
@@ -23,8 +24,10 @@ export default function WorkshopPublicationPanel({ workspaceId }) {
   const request = () => ({
     ...values, app_id: Number(values.app_id),
     published_file_id: values.mode === 'update' ? values.published_file_id : null,
-    tags: values.tags.split(',').map((item) => item.trim()).filter(Boolean),
+    tags: values.tags,
   });
+  const outputs = controller.options?.outputs || [];
+  const loadingOutputs = controller.options === null && !controller.error;
   const canPreview = !!values.output_folder_name && !!values.title.trim()
     && Number(values.app_id) > 0 && (values.mode !== 'update' || /^[1-9][0-9]*$/.test(values.published_file_id));
   return (
@@ -35,8 +38,13 @@ export default function WorkshopPublicationPanel({ workspaceId }) {
       <Paper withBorder p="md" data-remis-surface="paper">
         <Stack>
           <Select label={t('workshop_publication.output')} value={values.output_folder_name || null}
-            data={(controller.options?.outputs || []).map((item) => ({ value: item.output_folder_name, label: item.output_folder_name }))}
-            onChange={(value) => change('output_folder_name', value || '')} disabled={controller.busy} />
+            data={outputs.map((item) => ({ value: item.output_folder_name, label: item.output_folder_name }))}
+            placeholder={loadingOutputs ? t('workshop_publication.output_loading', 'Loading output packages…')
+              : t('workshop_publication.output_placeholder', 'Select an existing translation output')}
+            description={outputs.length ? null : t('workshop_publication.output_empty',
+              'No existing translation output was found. Generate an output for the linked project, or check its output directory in Project Management.')}
+            onChange={(value) => change('output_folder_name', value || '')}
+            disabled={controller.busy || loadingOutputs || !outputs.length} />
           <NumberInput label={t('workshop_publication.app_id')} value={values.app_id} min={1} max={4294967295}
             allowDecimal={false} allowNegative={false} onChange={(value) => change('app_id', value)} disabled={controller.busy} />
           <Select label={t('workshop_publication.mode_label')} value={values.mode} allowDeselect={false}
@@ -49,7 +57,7 @@ export default function WorkshopPublicationPanel({ workspaceId }) {
             data={['private', 'public', 'friends_only', 'unlisted'].map((value) => ({ value, label: t(`workshop_publication.visibility.${value}`) }))}
             onChange={(value) => change('visibility', value)} disabled={controller.busy} />
           <TextInput label={t('workshop_publication.language')} value={values.language} onChange={(event) => change('language', event.currentTarget.value)} disabled={controller.busy} />
-          <TextInput label={t('workshop_publication.tags')} value={values.tags} onChange={(event) => change('tags', event.currentTarget.value)} disabled={controller.busy} />
+          <PublicationTagsInput value={values.tags} onChange={(tags) => change('tags', tags)} disabled={controller.busy} />
           <Textarea label={t('workshop_publication.change_note')} value={values.change_note} onChange={(event) => change('change_note', event.currentTarget.value)} disabled={controller.busy} />
           <Button disabled={!canPreview || controller.busy} loading={controller.busy}
             onClick={() => { setApproved(false); controller.createPreview(request()); }}>{t('workshop_publication.preview')}</Button>

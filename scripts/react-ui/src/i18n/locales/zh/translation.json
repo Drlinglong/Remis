@@ -3342,6 +3342,10 @@
     "human_review": "人工决定"
   },
   "workshop_publication": {
+    "output_loading": "正在读取输出包…",
+    "output_placeholder": "选择已有翻译输出包",
+    "output_empty": "没有找到已生成的翻译输出包。请先为绑定项目生成输出，或在项目管理中检查输出目录是否存在。",
+    "tags_hint": "选择建议标签，或手动输入后按回车添加；也支持逗号分隔。",
     "recovery_intro": "在 Steam 中核验条目后登记实际情况。此操作只记录你的观察，不会上传或重试旧计划。",
     "recovery_outcome": "观察到的远端情况",
     "resolution": { "item_present": "条目已存在，继续更新该条目", "item_absent": "条目不存在，允许重新预览新建" },

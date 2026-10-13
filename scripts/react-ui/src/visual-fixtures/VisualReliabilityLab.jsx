@@ -1,5 +1,6 @@
 import React from 'react';
 import MarsProjectCreationVisualFixture from './MarsProjectCreationVisualFixture';
+import WorkshopPublicationVisualFixture from './WorkshopPublicationVisualFixture';
 import {
   Alert,
   Badge,
@@ -260,6 +261,9 @@ export default function VisualReliabilityLab({ themeId, contract }) {
   }
   if (contract === 'context-tree') {
     return <ContextArchiveTreeVisualFixture />;
+  }
+  if (contract === 'workshop-publication') {
+    return <WorkshopPublicationVisualFixture />;
   }
   if (contract?.startsWith('home-dashboard-')) {
     return (

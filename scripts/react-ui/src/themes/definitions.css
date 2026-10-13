@@ -867,13 +867,17 @@ html[data-theme] :is(button, a, input, select, textarea, [role='button']):focus-
 }
 
 /* Mantine mounts dropdowns in a portal under body, outside page components. */
-html[data-theme] :is(.mantine-Select-input, .mantine-MultiSelect-input, .mantine-NativeSelect-input) {
+html[data-theme] :is(.mantine-Select-input, .mantine-MultiSelect-input, .mantine-NativeSelect-input,
+  .mantine-TextInput-input, .mantine-NumberInput-input, .mantine-Textarea-input,
+  .mantine-TagsInput-input, .mantine-Autocomplete-input) {
   background: var(--menu-bg) !important;
   border-color: var(--menu-border) !important;
   color: var(--menu-text) !important;
 }
 
-html[data-theme] :is(.mantine-Select-input, .mantine-MultiSelect-input, .mantine-NativeSelect-input)::placeholder {
+html[data-theme] :is(.mantine-Select-input, .mantine-MultiSelect-input, .mantine-NativeSelect-input,
+  .mantine-TextInput-input, .mantine-NumberInput-input, .mantine-Textarea-input,
+  .mantine-TagsInput-input, .mantine-Autocomplete-input)::placeholder {
   color: var(--menu-muted) !important;
   opacity: 1;
 }

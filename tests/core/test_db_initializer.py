@@ -81,8 +81,11 @@ def test_initialize_database_builds_schema_and_imports_seed(tmp_path, monkeypatc
     )
 
     os.makedirs(resource_dir / "demos" / "Test_Project_Remis_EU5", exist_ok=True)
-    os.makedirs(resource_dir / "my_translation" / "zh-CN-Test_Project_Remis_EU5", exist_ok=True)
-    _write_file(resource_dir / "my_translation" / "zh-CN-Test_Project_Remis_EU5" / "demo.yml", "demo")
+    # Development checkouts keep release fixtures under assets; the root
+    # my_translation directory may contain only README/.gitkeep.
+    os.makedirs(resource_dir / "my_translation", exist_ok=True)
+    _write_file(resource_dir / "assets" / "release_demo_content" / "translations"
+                / "zh-CN-Test_Project_Remis_EU5" / "demo.yml", "demo")
     _write_file(app_data_dir / "my_translation" / "user-output" / "keep.yml", "keep")
 
     monkeypatch.setattr(app_settings, "APP_DATA_DIR", str(app_data_dir).replace("\\", "/"))

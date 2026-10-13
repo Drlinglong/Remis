@@ -14,9 +14,17 @@ vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key) => key }) })
 describe('publication GUI explicit approval', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    controller.options = { outputs: [] };
     controller.preview = { status: 'preview', allowed_actions: ['approve_publication'] };
   });
   const show = () => render(<MantineProvider><WorkshopPublicationPanel workspaceId="workspace" /></MantineProvider>);
+
+  it('explains an empty output list instead of presenting a blank active dropdown', () => {
+    show();
+    expect(screen.getByRole('textbox', { name: 'workshop_publication.output' })).toBeDisabled();
+    expect(screen.getByText('workshop_publication.output_empty')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'workshop_publication.preview' })).toBeDisabled();
+  });
 
   it('requires a checked approval before upload', () => {
     show();
