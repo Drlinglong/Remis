@@ -70,7 +70,7 @@ Data/XDef/SearchLandingSpotWindow.lua
 
 ## Remis 必要兼容修复
 
-在用户明确允许修改项目源码后，于独立工作树 `J:\V3_Mod_Localization_Factory-worktrees\grom-export-sidecar-20261014` 实施下列修复，验证后同步至运行任务的 batch 工作树。未提交 Git、未推送；保留两个工作树已有的无关改动。
+在用户明确允许修改项目源码后，于独立工作树 `J:\V3_Mod_Localization_Factory-worktrees\grom-export-sidecar-20261014` 实施下列修复，验证后同步至运行任务的 batch 工作树。交付时尚未提交 Git。后续已在 batch 工作树提交为 `6f4a485c`，并整合到 `codex/release-next-20261014-integration`；未推送或发布。原独立修复工作树已清理，补丁和新增测试另有清理归档，batch 源码及运行数据保留。
 
 | 文件 | 修复内容 |
 | --- | --- |
@@ -80,7 +80,7 @@ Data/XDef/SearchLandingSpotWindow.lua
 
 对应测试修改：`tests/test_translation_package_api.py`、`tests/test_mars_prepare_source.py`，新增 `tests/test_mars_existing_loctables.py`。没有修改 FPK 阅读器边界，没有提高架构基线或关闭严格校验。
 
-[Remis 修复差异](<J:/V3_Mod_Localization_Factory-worktrees/batch-term-workflow-20261005/.runtime/app/diagnostics/grom-remis-fixes.diff>)记录已跟踪文件的修改；新增测试源码位于独立修复工作树的 `tests/test_mars_existing_loctables.py`，不在该 Git diff 内。
+[Remis 修复差异](<J:/V3_Mod_Localization_Factory-worktrees/batch-term-workflow-20261005/.runtime/app/diagnostics/grom-remis-fixes.diff>)记录已跟踪文件的修改；新增测试源码位于 batch 与整合工作树的 `tests/test_mars_existing_loctables.py`，已纳入上述提交。
 
 这些是本案例的必要兼容修复，不代表讨论文档中的通用 Agent 语义审查架构已经实现。
 

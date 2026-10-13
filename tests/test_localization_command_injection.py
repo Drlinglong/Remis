@@ -1,4 +1,6 @@
 from unittest.mock import AsyncMock, MagicMock
+from types import SimpleNamespace
+import logging
 
 import pytest
 
@@ -10,6 +12,39 @@ from scripts.core.parallel_types import BatchTask, FileTask
 
 PRONOUN_SOURCE = "Even in [questing_knight_15.GetHerHis] synthetic form, [questing_knight_15.GetSheHe] waited."
 REFERENCE_HEADER = "LOCALIZATION COMMAND REFERENCE"
+
+
+def test_batch_prompt_keeps_unmasked_source_encoding_with_command_reference(monkeypatch):
+    from scripts.core import base_handler
+    from scripts.core.translation_input_encoding import SOURCE_VALUE_ENCODING_NOTE, encode_source_value
+
+    source = '[questing_knight_15.GetHerHis] says "Hi"\\n$NAME$'
+    task = SimpleNamespace(
+        texts=[source], start_index=0, end_index=1, batch_index=0,
+        file_task=SimpleNamespace(
+            source_lang={"code": "en", "name": "English"},
+            target_lang={"code": "zh-CN", "name": "Simplified Chinese"},
+            game_profile={"id": "stellaris"}, mod_context="Fixture", semantic_hints=[],
+        ),
+    )
+    monkeypatch.setattr(base_handler.prompt_manager, "get_effective_prompt", lambda _: "Translate.")
+    monkeypatch.setattr(base_handler.prompt_manager, "get_effective_format_prompt", lambda _: "{numbered_list}")
+    monkeypatch.setattr(base_handler.glossary_manager, "get_glossary_for_translation", lambda: None)
+    monkeypatch.setattr(base_handler, "generate_punctuation_prompt", lambda *_: "")
+    handler = SimpleNamespace(
+        logger=logging.getLogger("integration-prompt-test"),
+        _build_custom_global_prompt_part=lambda _: "",
+        _build_source_context_prompt=lambda _: "",
+        _build_context_release_prompt=lambda _: "",
+        _apply_model_prompt_adapter=lambda prompt: prompt,
+    )
+
+    prompt = base_handler.BaseApiHandler._build_prompt(handler, task)
+
+    assert SOURCE_VALUE_ENCODING_NOTE in prompt
+    assert encode_source_value(source) in prompt
+    assert "GetHerHis: pronoun her or his by gender" in prompt
+    assert "[[_QT_]]" not in prompt and "[[_NL_]]" not in prompt
 
 
 def _batch_task(texts, game_id="stellaris", target_code="zh-CN"):

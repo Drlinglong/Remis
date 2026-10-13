@@ -106,8 +106,8 @@ def test_v27_nullable_status_upgrade_repairs_null_and_rejects_future_writes(tmp_
         conn.execute(f"INSERT INTO {table} VALUES ('null',NULL)")
         conn.execute(f"INSERT INTO {table} VALUES ('valid','{default}')")
         conn.execute("DELETE FROM schema_migrations WHERE version=28")
-    assert migrate_main_database(str(path)) == MAIN_DB_TARGET_VERSION == 28
-    assert migrate_main_database(str(path)) == 28
+    assert migrate_main_database(str(path)) == MAIN_DB_TARGET_VERSION == 29
+    assert migrate_main_database(str(path)) == MAIN_DB_TARGET_VERSION
     with sqlite3.connect(path) as conn:
         assert conn.execute(f"SELECT status FROM {table} WHERE identity='null'").fetchone()[0] == default
         with pytest.raises(sqlite3.IntegrityError):
@@ -129,8 +129,8 @@ def test_status_migration_recovers_commit_before_ledger_write(tmp_path):
     with sqlite3.connect(path) as conn:
         assert conn.execute("SELECT COUNT(*) FROM schema_migrations WHERE version=28").fetchone()[0] == 0
         assert conn.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='trigger' AND name LIKE 'trg_%_status_%'").fetchone()[0] == 6
-    assert migrate_main_database(str(path)) == 28
-    assert migrate_main_database(str(path)) == 28
+    assert migrate_main_database(str(path)) == MAIN_DB_TARGET_VERSION
+    assert migrate_main_database(str(path)) == MAIN_DB_TARGET_VERSION
 
 
 def test_status_migration_failure_rolls_back_data_and_trigger_replacement(tmp_path):
