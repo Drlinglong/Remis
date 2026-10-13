@@ -9,6 +9,7 @@ import re
 from scripts.app_settings import APP_DATA_DIR, resolve_path
 from scripts.core.agent_service import agent_registry
 from scripts.core.services import mars_translation_package as mars
+from scripts.core.services.project_version_context import read_project_sidecar
 from scripts.shared.services import project_manager
 
 
@@ -28,7 +29,7 @@ async def _project(project_id: str) -> dict:
 
 
 def _outputs(project: dict) -> list[dict]:
-    sidecar = project_manager._read_project_sidecar(project["source_path"])
+    sidecar = read_project_sidecar(project["source_path"])
     config = sidecar.get("config") or {}
     if not isinstance(config, dict):
         return []

@@ -1,6 +1,7 @@
 """Approval, ownership, snapshot and GUI/Agent route contract checks."""
 from copy import deepcopy
 import hashlib
+import json
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
@@ -27,9 +28,9 @@ def package_api(tmp_path, monkeypatch):
     projects = {key: {"project_id": key, "game_id": "surviving_mars", "source_path": str(source)}
                 for key in ("project-a", "project-b")}
     sidecar = {"config": {"translation_dirs": [str(output)]}}
-    manager = SimpleNamespace(get_project=AsyncMock(side_effect=lambda key: deepcopy(projects.get(key))),
-                              _read_project_sidecar=Mock(side_effect=lambda _: deepcopy(sidecar)))
+    manager = SimpleNamespace(get_project=AsyncMock(side_effect=lambda key: deepcopy(projects.get(key))))
     monkeypatch.setattr(workflow, "project_manager", manager)
+    monkeypatch.setattr(workflow, "read_project_sidecar", lambda _: deepcopy(sidecar))
     monkeypatch.setattr(workflow, "APP_DATA_DIR", str(tmp_path / "runtime"))
     registry = AgentRegistry(str(tmp_path / "registry.json"))
     monkeypatch.setattr(workflow, "agent_registry", registry)
@@ -57,6 +58,20 @@ def package_api(tmp_path, monkeypatch):
     return SimpleNamespace(client=TestClient(app), output=output, source=source, projects=projects,
                            sidecar=sidecar, registry=registry, build=build_mock, root=tmp_path,
                            real_inspect=real_inspect, real_build=real_build)
+
+
+def test_outputs_reads_real_sidecar_without_private_manager_method(tmp_path):
+    source = tmp_path / "source"
+    output = tmp_path / "fr-example"
+    source.mkdir()
+    output.mkdir()
+    (source / ".remis_project.json").write_text(json.dumps({
+        "config": {"translation_dirs": [str(output)]}
+    }), encoding="utf-8")
+
+    assert workflow._outputs({"source_path": str(source)}) == [{
+        "output_folder_name": "fr-example", "path": str(output), "language_code": "fr"
+    }]
 
 
 def _plan(api, prefix="/api/agent", **overrides):

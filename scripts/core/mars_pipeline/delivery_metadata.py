@@ -45,6 +45,41 @@ def _append_loc_items(items_raw: bytes, source_id: str, tables: list[dict[str, s
     rendered = before + separator + ending + ending.join(additions) + ending + source[close_offset:]
     data = rendered.encode("utf-8")
     return (b"\xef\xbb\xbf" + data) if bom else data
+def _literal_loctables_close(tokens, pairs, opening: int, outer_close: int) -> int:
+    """Accept only a literal array of filename/language registration records."""
+    closing = pairs.get(opening) if tokens[opening].value == "{" else None
+    if closing is None or closing >= outer_close:
+        raise DeliveryMetadataError("Existing loctables must be a literal registration array.")
+    cursor = opening + 1
+    while cursor < closing:
+        record_close = pairs.get(cursor) if tokens[cursor].value == "{" else None
+        if record_close is None or record_close >= closing:
+            raise DeliveryMetadataError("Existing loctables contains a nonliteral registration.")
+        cursor += 1
+        fields = set()
+        while cursor < record_close:
+            field = tokens[cursor].value
+            if (field not in {"filename", "language"} or field in fields
+                    or cursor + 2 >= record_close or tokens[cursor + 1].value != "="
+                    or tokens[cursor + 2].kind not in {"string", "long_string"}):
+                raise DeliveryMetadataError("Existing loctable fields must be literal filename and language strings.")
+            fields.add(field)
+            mars_lua_discovery._literal_text(tokens[cursor + 2])
+            cursor += 3
+            if cursor < record_close:
+                if tokens[cursor].value != ",":
+                    raise DeliveryMetadataError("Existing loctable fields lack a separator.")
+                cursor += 1
+        if fields != {"filename", "language"}:
+            raise DeliveryMetadataError("Existing loctable registration is incomplete.")
+        cursor = record_close + 1
+        if cursor < closing:
+            if tokens[cursor].value != ",":
+                raise DeliveryMetadataError("Existing loctable registrations lack a separator.")
+            cursor += 1
+    return closing
+
+
 def _append_metadata_loctables(metadata_raw: bytes, source_id: str,
                                tables: list[dict[str, str]]) -> bytes:
     bom = metadata_raw.startswith(b"\xef\xbb\xbf")
@@ -65,6 +100,7 @@ def _append_metadata_loctables(metadata_raw: bytes, source_id: str,
             or call_close + 1 != len(tokens) or tokens[call_close].value != ")"):
         raise DeliveryMetadataError("metadata.lua ModDef table is not a single safe return expression.")
     cursor = 6
+    existing_close = None
     while cursor + 1 < close_index:
         if tokens[cursor].kind not in {"string", "long_string"} or tokens[cursor + 1].value != ",":
             raise DeliveryMetadataError("metadata.lua top-level fields are outside the supported literal format.")
@@ -73,7 +109,9 @@ def _append_metadata_loctables(metadata_raw: bytes, source_id: str,
         except ValueError as error:
             raise DeliveryMetadataError("metadata.lua contains an unreadable top-level field.") from error
         if field == "loctables":
-            raise DeliveryMetadataError("metadata.lua already defines loctables; merge requires a reviewed adapter.")
+            if existing_close is not None:
+                raise DeliveryMetadataError("metadata.lua has duplicate loctables fields.")
+            existing_close = _literal_loctables_close(tokens, pairs, cursor + 2, close_index)
         value_cursor = cursor + 2
         while value_cursor < close_index and tokens[value_cursor].value != ",":
             if tokens[value_cursor].value in {"{", "[", "("}:
@@ -86,16 +124,17 @@ def _append_metadata_loctables(metadata_raw: bytes, source_id: str,
         if value_cursor >= close_index:
             raise DeliveryMetadataError("metadata.lua top-level field lacks a separator.")
         cursor = value_cursor + 1
-    close_offset = tokens[close_index].start
+    close_offset = tokens[existing_close if existing_close is not None else close_index].start
     before = source[:close_offset].rstrip()
     ending = "\r\n" if "\r\n" in source else "\n"
-    rows = ["\t'loctables', {"]
+    rows = [] if existing_close is not None else ["\t'loctables', {"]
     for table in tables:
         mounted = f"Mod/{source_id}/{table['path']}"
         rows.append(
             f"\t\t{{ filename = {package._lua_string(mounted)}, language = {package._lua_string(table['language'])} }},"
         )
-    rows.append("\t},")
+    if existing_close is None:
+        rows.append("\t},")
     separator = "" if before.endswith((",", "{")) else ","
     rendered = before + separator + ending + ending.join(rows) + ending + source[close_offset:]
     result = rendered.encode("utf-8")
