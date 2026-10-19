@@ -429,6 +429,12 @@ def resolve_conda_env_path(env_name):
 
     return os.path.join(os.path.expanduser("~"), "miniconda3", "envs", env_name)
 
+def resolve_build_python(env_path):
+    """Support an isolated Windows venv without changing the shared Conda env."""
+    executable_dir = "Scripts" if Path(env_path, "pyvenv.cfg").is_file() else ""
+    return os.path.join(env_path, executable_dir, "python.exe")
+
+
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="Build a governed Remis desktop profile.")
     parser.add_argument(
@@ -587,7 +593,7 @@ def main(argv=None):
 
     # Resolved paths to the dedicated conda env's executables
     conda_env_path = resolve_conda_env_path(CONDA_ENV_NAME)
-    env_python = os.path.join(conda_env_path, "python.exe")
+    env_python = resolve_build_python(conda_env_path)
     env_pyinstaller = os.path.join(conda_env_path, "Scripts", "pyinstaller.exe")
 
     if not os.path.exists(env_python):
