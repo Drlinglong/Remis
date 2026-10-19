@@ -14,11 +14,11 @@ from __future__ import annotations
 
 from collections import Counter
 from dataclasses import dataclass, field
-from difflib import SequenceMatcher
 import re
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 from scripts.utils.concept_identity import concept_identity
 from scripts.utils.format_span_permutation import spans_are_permutation
+from scripts.utils.runtime_token_comparison import compare_runtime_tokens
 
 
 GAME_ALIASES = {
@@ -512,46 +512,6 @@ def parse_format_structure(text: str, game_id: str) -> ParsedFormatStructure:
     )
 
 
-def _sequence_diff(
-    source: Sequence[FormatToken],
-    target: Sequence[FormatToken],
-) -> Tuple[List[str], List[str], List[Dict[str, Any]], bool]:
-    source_keys = [token.canonical for token in source]
-    target_keys = [token.canonical for token in target]
-    missing: List[str] = []
-    extra: List[str] = []
-    changed: List[Dict[str, Any]] = []
-    order_changed = False
-    matcher = SequenceMatcher(None, source_keys, target_keys, autojunk=False)
-    for opcode, source_start, source_end, target_start, target_end in matcher.get_opcodes():
-        if opcode == "delete":
-            missing.extend(token.raw for token in source[source_start:source_end])
-        elif opcode == "insert":
-            extra.extend(token.raw for token in target[target_start:target_end])
-        elif opcode == "replace":
-            source_part = source[source_start:source_end]
-            target_part = target[target_start:target_end]
-            if len(source_part) == len(target_part):
-                for source_token, target_token in zip(source_part, target_part):
-                    changed.append(
-                        {
-                            "source": source_token.raw,
-                            "target": target_token.raw,
-                            "source_start": source_token.start,
-                            "target_start": target_token.start,
-                            "kind": source_token.kind,
-                        }
-                    )
-            else:
-                missing.extend(token.raw for token in source_part)
-                extra.extend(token.raw for token in target_part)
-        elif opcode == "equal":
-            continue
-    if Counter(source_keys) == Counter(target_keys) and source_keys != target_keys:
-        order_changed = True
-    return missing, extra, changed, order_changed
-
-
 def _runtime_token_reduction_variations(
     source: ParsedFormatStructure,
     target: ParsedFormatStructure,
@@ -707,14 +667,12 @@ def compare_format_structure(source: str, target: str, game_id: str) -> FormatSt
     # Source syntax is a separate diagnostic. Never make a target repair chase
     # a missing source close marker, but retain independent target diagnostics.
     if not diff.source_issue:
-        source_runtime = source_parsed.runtime_tokens
-        target_runtime = target_parsed.runtime_tokens
         (
             diff.missing_protected,
             diff.extra_protected,
             diff.protected_identity_changes,
             diff.protected_order_changed,
-        ) = _sequence_diff(source_runtime, target_runtime)
+        ) = compare_runtime_tokens(source_parsed, target_parsed)
 
         # Whole spans moved by target word order keep identity and binding.
         if not spans_are_permutation(source_parsed, target_parsed):
