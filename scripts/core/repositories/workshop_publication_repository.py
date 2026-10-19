@@ -54,9 +54,16 @@ class WorkshopPublicationRepository:
     def list_plans(self, workspace_id):
         with self._connect() as conn:
             ids = [row[0] for row in conn.execute("""
-                SELECT plan_id FROM workshop_publication_plans
-                WHERE workspace_id = ? ORDER BY created_at DESC LIMIT 50
-            """, (workspace_id,))]
+                WITH recent AS (
+                    SELECT plan_id FROM workshop_publication_plans
+                    WHERE workspace_id = ? ORDER BY created_at DESC LIMIT 50
+                )
+                SELECT p.plan_id FROM workshop_publication_plans p
+                LEFT JOIN workshop_publication_attempts a USING(plan_id)
+                WHERE p.workspace_id = ? AND (p.plan_id IN (SELECT plan_id FROM recent)
+                    OR a.status IN ('running', 'unknown', 'legal_agreement_required'))
+                ORDER BY p.created_at DESC
+            """, (workspace_id, workspace_id))]
         return [self.get(plan_id) for plan_id in ids]
 
     def claim(self, plan_id):
@@ -89,13 +96,26 @@ class WorkshopPublicationRepository:
     @staticmethod
     def _guard_recovered_item(conn, plan):
         rows = conn.execute("""
-            SELECT a.result_json FROM workshop_publication_attempts a
+            SELECT a.result_json, a.finished_at, p.payload_json FROM workshop_publication_attempts a
             JOIN workshop_publication_plans p USING(plan_id)
             WHERE p.workspace_id = ? AND a.status = 'resolved'
-            ORDER BY a.finished_at DESC
         """, (plan["workspace_id"],)).fetchall()
-        present = next((value for row in rows
-                        if (value := json.loads(row["result_json"])).get("manual_resolution") == "item_present"), None)
+        resolutions = [(json.loads(row["result_json"]), row) for row in rows]
+        resolutions.sort(key=lambda item: datetime.fromisoformat(
+            item[0].get("verified_at") or item[1]["finished_at"]), reverse=True)
+        seen = set()
+        present = None
+        for value, row in resolutions:
+            # Older absent records cleared published_file_id; the immutable
+            # update target still identifies which item's absence was verified.
+            target = (value.get("verification_target_id") or value.get("published_file_id")
+                      or json.loads(row["payload_json"])["request"].get("published_file_id"))
+            if not target or target in seen:
+                continue
+            seen.add(target)
+            if value.get("manual_resolution") == "item_present":
+                present = value
+                break
         if not present:
             return
         request = json.loads(plan["payload_json"])["request"]
@@ -106,15 +126,20 @@ class WorkshopPublicationRepository:
     def verify_remote(self, plan_id, resolution, published_file_id):
         with self._connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
-            row = conn.execute("SELECT status, result_json FROM workshop_publication_attempts WHERE plan_id = ?", (plan_id,)).fetchone()
+            row = conn.execute("""
+                SELECT a.status, a.result_json, p.payload_json FROM workshop_publication_attempts a
+                JOIN workshop_publication_plans p USING(plan_id) WHERE plan_id = ?
+            """, (plan_id,)).fetchone()
             if not row or row["status"] not in {"unknown", "legal_agreement_required"}:
                 raise PublicationError("verification_not_applicable", "Only uncertain or legal-agreement outcomes require verification")
             previous = json.loads(row["result_json"])
-            known_id = previous.get("published_file_id")
+            known_id = (previous.get("published_file_id")
+                        or json.loads(row["payload_json"])["request"].get("published_file_id"))
             if resolution == "item_present" and known_id and known_id != published_file_id:
                 raise PublicationError("verification_target_mismatch", "Verify the item ID already returned by Steam")
             result = {**previous, "previous_status": row["status"], "verification_source": "user",
                       "manual_resolution": resolution, "verified_at": now(),
+                      "verification_target_id": known_id or published_file_id,
                       "published_file_id": published_file_id, "requires_remote_verification": False}
             result.pop("workshop_url", None)
             if published_file_id:

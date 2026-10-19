@@ -359,3 +359,99 @@ def test_known_remote_id_cannot_be_replaced_during_verification(publication):
     service.recover()
     with pytest.raises(PublicationError, match="already returned"):
         service.verify_remote(publication[1], plan["plan_id"], {"verified": True, "resolution": "item_present", "published_file_id": "99999"})
+
+
+@pytest.mark.parametrize("legacy_record", [False, True])
+def test_newer_absence_of_recovered_item_allows_create(publication, legacy_record):
+    service, workspace, project, request, *_ = publication
+    original = preview(publication)
+    approve(publication, original)
+    service.recover()
+    service.verify_remote(workspace, original["plan_id"], {
+        "verified": True, "resolution": "item_present", "published_file_id": "12345"})
+    update = service.plan(workspace, project, {**request, "mode": "update", "published_file_id": "12345"})
+    approve(publication, update)
+    service.recover()
+    absent = service.verify_remote(workspace, update["plan_id"], {
+        "verified": True, "resolution": "item_absent", "published_file_id": None})
+    assert absent["result"]["verification_target_id"] == "12345"
+    assert absent["result"]["published_file_id"] is None
+    # Resolution order must use verification time, even if attempt completion
+    # order differs. Existing records may lack the newly preserved target ID.
+    with sqlite3.connect(service.repository.db_path) as conn:
+        conn.execute("UPDATE workshop_publication_attempts SET finished_at = ? WHERE plan_id = ?",
+                     ("2099-01-01T00:00:00+00:00", original["plan_id"]))
+        if legacy_record:
+            result = dict(absent["result"])
+            result.pop("verification_target_id")
+            conn.execute("UPDATE workshop_publication_attempts SET result_json = ? WHERE plan_id = ?",
+                         (json.dumps(result), update["plan_id"]))
+    assert approve(publication, update)[1] is False
+    assert approve(publication, preview(publication))[1] is True
+    assert publication[-1].calls == []
+
+
+@pytest.mark.parametrize("unrelated_target", [None, "99999"])
+def test_unrelated_absence_does_not_clear_existing_item_guard(publication, unrelated_target):
+    service, workspace, project, request, *_ = publication
+    original = preview(publication)
+    approve(publication, original)
+    service.recover()
+    service.verify_remote(workspace, original["plan_id"], {
+        "verified": True, "resolution": "item_present", "published_file_id": "12345"})
+    # Seed an unrelated historical uncertain attempt without bypassing the
+    # existing-item admission guard in production.
+    payload = dict(service.repository.get(original["plan_id"])["payload"])
+    payload["request"] = {**request, "mode": "update" if unrelated_target else "create",
+                          "published_file_id": unrelated_target}
+    other = service.repository.save_plan(workspace, "a" * 64, payload)
+    with sqlite3.connect(service.repository.db_path) as conn:
+        conn.execute("""INSERT INTO workshop_publication_attempts
+            (plan_id, task_id, status, started_at, finished_at) VALUES (?, ?, 'unknown', ?, ?)""",
+            (other["plan_id"], other["plan_id"], original["created_at"], original["created_at"]))
+    absent = service.verify_remote(workspace, other["plan_id"], {
+        "verified": True, "resolution": "item_absent", "published_file_id": None})
+    assert absent["result"]["verification_target_id"] == unrelated_target
+    with pytest.raises(PublicationError, match="update preview"):
+        approve(publication, preview(publication))
+    update = service.plan(workspace, project, {**request, "mode": "update", "published_file_id": "12345"})
+    assert approve(publication, update)[1] is True
+
+
+def test_update_verification_cannot_replace_immutable_target_after_restart(publication):
+    service, workspace, project, request, *_ = publication
+    update = service.plan(workspace, project, {**request, "mode": "update", "published_file_id": "12345"})
+    approve(publication, update)
+    service.recover()
+    assert service.repository.get(update["plan_id"])["result"]["published_file_id"] is None
+    with pytest.raises(PublicationError, match="already returned"):
+        service.verify_remote(workspace, update["plan_id"], {
+            "verified": True, "resolution": "item_present", "published_file_id": "99999"})
+
+
+@pytest.mark.parametrize("status", ["running", "unknown", "legal_agreement_required"])
+def test_history_retains_unresolved_plans_beyond_latest_fifty(publication, status):
+    service, workspace, *_ = publication
+    unresolved = preview(publication)
+    approve(publication, unresolved)
+    if status != "running":
+        service.repository.finish(unresolved["plan_id"], status, {})
+    payload = service.repository.get(unresolved["plan_id"])["payload"]
+    expired_preview = service.repository.save_plan(workspace, "b" * 64, payload)
+    other_workspace = service.inputs.workshop.create_workspace({"name": "Other", "project_id": "project-1"})
+    other = service.repository.save_plan(other_workspace["workspace_id"], "c" * 64, payload)
+    with sqlite3.connect(service.repository.db_path) as conn:
+        conn.execute("""INSERT INTO workshop_publication_attempts
+            (plan_id, task_id, status, started_at) VALUES (?, ?, 'unknown', ?)""",
+            (other["plan_id"], other["plan_id"], unresolved["created_at"]))
+    fresh = [service.repository.save_plan(workspace, "d" * 64, payload)["plan_id"] for _ in range(55)]
+    history = service.repository.list_plans(workspace)
+    ids = [record["plan_id"] for record in history]
+    assert len(ids) == len(set(ids)) == 51
+    assert set(ids) == {*fresh[-50:], unresolved["plan_id"]}
+    assert expired_preview["plan_id"] not in ids
+    assert other["plan_id"] not in ids
+    assert [record["plan_id"] for record in service.repository.list_plans(other_workspace["workspace_id"])] == [other["plan_id"]]
+    record = next(record for record in history if record["plan_id"] == unresolved["plan_id"])
+    if status != "running":
+        assert service.public(record)["allowed_actions"] == ["verify_remote_outcome"]
