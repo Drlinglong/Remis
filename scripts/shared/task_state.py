@@ -537,6 +537,24 @@ def update_task(
     return snapshot
 
 
+
+def set_task_archived_at(task_id, archived_at):
+    """Commit visibility before publishing it to the live task projection."""
+    with _LOCK:
+        task = deepcopy(_task_for_update(task_id))
+        task["archived_at"] = archived_at
+        task["updated_at"] = _utc_now_iso()
+        message = "Task archived from the task center." if archived_at else "Task restored to the task center."
+        _append_log(task, message)
+        if not _persist_task(task, event_message=message):
+            raise TaskPersistenceError(task_id, task["persistence_failure"])
+        if task_id in tasks:
+            tasks[task_id] = task
+        snapshot = deepcopy(task)
+    _notify_task_update_listeners(task_id, snapshot)
+    push_task_update(task_id)
+    return snapshot
+
 def request_task_cancellation(task_id: str) -> Dict[str, Any]:
     """Request cooperative cancellation without releasing the task's lock early."""
     with _LOCK:

@@ -685,6 +685,23 @@ export const getTutorialSteps = (t, pageName) => {
                 },
             },
         ],
+        'steam-workshop-publish': [
+            { element: '#workshop-publication-setup', popover: {
+                title: t('tutorial.steam_workshop.publish.requirements.title', { defaultValue: t('workshop_publication.setup_title') }),
+                description: t('tutorial.steam_workshop.publish.requirements.desc', { defaultValue: t('workshop_publication.setup_sdk') }),
+                side: 'bottom', align: 'start',
+            } },
+            { element: '#workshop-publication-game', popover: {
+                title: t('tutorial.steam_workshop.publish.game.title', { defaultValue: t('workshop_publication.app_id') }),
+                description: t('tutorial.steam_workshop.publish.game.desc', { defaultValue: t('workshop_publication.setup_package') }),
+                side: 'bottom', align: 'start',
+            } },
+            { element: '#workshop-publication-preview', popover: {
+                title: t('tutorial.steam_workshop.publish.preview.title', { defaultValue: t('workshop_publication.preview') }),
+                description: t('tutorial.steam_workshop.publish.preview.desc', { defaultValue: t('workshop_publication.setup_upload') }),
+                side: 'bottom', align: 'start',
+            } },
+        ],
         'steam-workshop-history': [
             {
                 element: '#steam-workshop-content [role="tablist"]',

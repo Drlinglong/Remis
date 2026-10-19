@@ -9,7 +9,8 @@ from scripts.core.mars_pipeline.prepare_source import analyze_source
 from tools.remis_fpk import extract_archive, inspect_archive
 
 
-def test_main_passes_reviewed_cache_to_freezer_without_reading_live_data(tmp_path, monkeypatch):
+@pytest.mark.parametrize("venv_layout", [False, True], ids=["conda", "isolated-venv"])
+def test_main_passes_reviewed_cache_to_freezer_without_reading_live_data(tmp_path, monkeypatch, venv_layout):
     """Exercise the seed-export-to-freezer boundary in an isolated build root."""
     root = tmp_path / "release"
     scripts = root / "scripts"
@@ -21,7 +22,10 @@ def test_main_passes_reviewed_cache_to_freezer_without_reading_live_data(tmp_pat
     cache.touch()
     env = tmp_path / "env"
     (env / "Scripts").mkdir(parents=True)
-    (env / "python.exe").touch()
+    env_python = env / "Scripts" / "python.exe" if venv_layout else env / "python.exe"
+    env_python.touch()
+    if venv_layout:
+        (env / "pyvenv.cfg").write_text("include-system-site-packages = true\n", encoding="utf-8")
     (env / "Scripts" / "pyinstaller.exe").touch()
     commands = []
 
@@ -32,6 +36,7 @@ def test_main_passes_reviewed_cache_to_freezer_without_reading_live_data(tmp_pat
         commands.append(command)
         assert kwargs["cwd"] == str(root)
         if isinstance(command, list):
+            assert command[0] == str(env_python)
             assert command[2:] == ["--source-db", str(root / "assets" / "skeleton.sqlite"),
                                    "--cache-db", str(cache)]
             for name in ("seed_data_main.sql", "seed_data_projects.sql"):

@@ -46,7 +46,7 @@ describe('CreateProjectModal existing-CSV route', () => {
       </MantineProvider>
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Open FPK preparation' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Advanced source options' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Use existing CSV folder' }));
 
     expect(setSourceLanguage).toHaveBeenCalledWith('en');

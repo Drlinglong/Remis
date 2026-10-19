@@ -113,7 +113,14 @@
     "publication_id": "Workshop-Element-ID",
     "publication_local_only": "Lokal für dieses Projekt gespeichert. Es wird nichts auf Steam hochgeladen oder geändert.",
     "publication_locked": "Diese Workshop-Verknüpfung ist in Remis gesperrt.",
-    "publication_bind": "Workshop-Element verknüpfen"
+    "publication_bind": "Workshop-Element verknüpfen",
+      "automatic_help": "Remis entpackt den Mod und bereitet dessen Texte in einem isolierten Projekt vor. Unsichere Textkandidaten bleiben unverändert und werden nach der Erstellung zur Prüfung angezeigt.",
+      "creation_inspect": "Der Mod wird geprüft und übersetzbare Texte werden gesucht…",
+      "creation_prepare": "Der Mod wird entpackt und das Übersetzungsprojekt wird erstellt…",
+      "folder_help": "Wählen Sie den Steam-Workshop-Mod-Ordner mit ModContent.fpk oder einen bearbeitbaren Mod-Ordner aus. Remis sucht die übersetzbaren Texte automatisch.",
+      "manual_source_options": "Erweiterte Quellenoptionen",
+      "pending_after_creation": "{{count}} Textkandidaten müssen geprüft werden. Ihr Projekt ist für die bestätigten Texte bereit; diese Kandidaten bleiben im Original-Mod unverändert.",
+      "review_later_help": "Prüfen Sie diese Kandidaten, bevor Sie Lua-Änderungen vorbereiten oder eine vollständige Abdeckung angeben. Behalten Sie den unten angezeigten Vorbereitungslauf bei, wenn Sie dieses Projekt aktualisieren."
   }
 ,
 "shell_language_notice.recommendation": "Wir empfehlen dringend, für die Übersetzung in eine vom Spiel nicht unterstützte Sprache ein eigenes Projekt anzulegen und darin nur diese Sprache zu pflegen.",
@@ -3290,5 +3297,86 @@
       "low": "Niedrig",
       "unrated": "Nicht bewertet"
     }
+  },
+  "workshop_publication": {
+    "account": "Steam-Konto: {{id}}",
+    "app_id": "Steam-Anwendungs-ID",
+    "approval": "Ich genehmige den Upload genau dieses Pakets und dieser Metadaten an das angezeigte Steam-Ziel und -Konto. Bei einer Aktualisierung genehmige ich auch das Ersetzen der Inhalte am Steam-Ziel.",
+    "change_note": "Änderungsnotiz",
+    "code": {
+      "backend_restarted": "Remis wurde während der Veröffentlichung neu gestartet. Prüfen Sie den Remote-Eintrag, bevor Sie fortfahren.",
+      "packaged_worker_not_configured": "Steam-Veröffentlichungen sind in diesem installierten Build nicht verfügbar. Die Desktop-Integration steht noch aus.",
+      "steam_legal_agreement_required": "Akzeptieren Sie in Steam die Workshop-Nutzungsvereinbarung und prüfen Sie den Eintrag.",
+      "steam_probe_failed": "Die Steam-Initialisierung ist fehlgeschlagen. Prüfen Sie, ob Steam läuft, Sie angemeldet sind und Ihnen das ausgewählte Spiel gehört.",
+      "steam_sdk_incomplete": "Die Steam-Veröffentlichungs-Laufzeitumgebung ist unvollständig. Prüfen Sie vor dem Upload die Entwicklungseinrichtung.",
+      "steam_sdk_not_configured": "Die Steam-Veröffentlichungs-Laufzeitumgebung ist nicht konfiguriert. Dieser Entwicklungs-Build kann noch nicht hochladen; Hinweise zur Vorbereitung finden Sie in der Entwicklungsanleitung.",
+      "steam_submit_confirmed": "Steam hat einen erfolgreichen Upload-Callback zurückgegeben.",
+      "steam_submit_rejected": "Steam hat die Aktualisierung abgelehnt. Prüfen Sie den Ergebniscode und den Remote-Eintrag.",
+      "windows_runtime_required": "Der aktuelle Steam-Uploadadapter erfordert Windows x64.",
+      "worker_interrupted": "Der Steam-Worker wurde unterbrochen. Das Ergebnis auf Steam ist unbekannt."
+    },
+    "custom_app": "Andere App-ID eingeben",
+    "file": "Datei",
+    "file_summary": "{{count}} Dateien · {{bytes}} Bytes",
+    "history": "Veröffentlichungsverlauf",
+    "intro": "Testfunktion: Übersetzungspakete vorbereiten und in der Vorschau prüfen. Direkte Uploads erfordern derzeit eine eingerichtete Testumgebung. Die Upload-Unterstützung in der installierten App und die Abnahme mit echten Uploads sind noch nicht abgeschlossen. Wählen Sie zuerst gespeicherte Cover- und Beschreibungsversionen aus.",
+    "item_id": "ID des veröffentlichten Zieldateieintrags",
+    "language": "Sprachcode der Steam-API",
+    "manual_verification_recorded": "Manuelle Prüfung erfasst. Erstellen und genehmigen Sie eine neue Vorschau, um fortzufahren; dies ist kein von Steam bestätigtes Upload-Ergebnis.",
+    "mod_title": "Workshop-Titel",
+    "mode": {
+      "create": "Neuen Eintrag erstellen",
+      "update": "Meinen vorhandenen Eintrag aktualisieren"
+    },
+    "mode_label": "Vorgang",
+    "new_item": "Neuer Eintrag",
+    "open_item": "Workshop-Eintrag öffnen",
+    "output": "Übersetzungsausgabepaket",
+    "output_empty": "Es wurde keine vorhandene Übersetzungsausgabe gefunden. Erstellen Sie eine Ausgabe für das verknüpfte Projekt oder prüfen Sie dessen Ausgabeverzeichnis in der Projektverwaltung.",
+    "output_loading": "Ausgabepakete werden geladen…",
+    "output_placeholder": "Vorhandene Übersetzungsausgabe auswählen",
+    "preview": "Unveränderliche Veröffentlichungsvorschau erstellen",
+    "record_verification": "Manuelle Prüfung erfassen",
+    "recovery_intro": "Prüfen Sie den Workshop-Eintrag in Steam und erfassen Sie Ihren Befund. Damit wird Ihre Beobachtung festgehalten; es wird nichts hochgeladen und der vorherige Plan nicht erneut ausgeführt.",
+    "recovery_outcome": "Beobachtetes Ergebnis auf Steam",
+    "refresh": "Status aktualisieren",
+    "resolution": {
+      "item_absent": "Es ist kein Eintrag vorhanden; eine neue Erstellungsvorschau ist möglich.",
+      "item_present": "Ein Eintrag ist vorhanden; fahren Sie mit seiner Aktualisierung fort."
+    },
+    "setup_configure": "Legen Sie vor dem Start von Remis das SDK-Verzeichnis in PowerShell fest (ersetzen Sie diesen Beispielpfad). Verwenden Sie den Ordner sdk mit public/steam/steam_api.json und redistributable_bin/win64/steam_api64.dll; starten Sie Remis anschließend neu.",
+    "setup_missing": "Die Upload-Umgebung ist noch nicht bereit. Folgen Sie den Einrichtungsschritten unten; eine Vorschau allein lädt nichts hoch.",
+    "setup_package": "Verknüpfen Sie ein Projekt, wählen Sie eine vorhandene Übersetzungsausgabe aus und übernehmen Sie eine Cover- und Beschreibungsversion. Das Spiel wird automatisch ausgewählt; prüfen Sie es vor dem Fortfahren.",
+    "setup_sdk": "Dieser Entwicklungs-Build benötigt außerdem das offizielle Steamworks SDK. Laden Sie es herunter und entpacken Sie es auf Ihrem PC.",
+    "setup_sdk_link": "Anleitung zum Herunterladen des offiziellen SDK",
+    "setup_steam": "Installieren Sie den Steam-Desktopclient und melden Sie sich an. Ihr Konto muss das ausgewählte Spiel besitzen.",
+    "setup_title": "Erster Upload: Einrichtung und Anleitung",
+    "setup_unknown": "Für den Erfolg sind der Erfolgs-Callback von Steam und eine korrekte Workshop-Seite erforderlich. Prüfen Sie Steam, bevor Sie einen weiteren Eintrag erstellen, wenn das Ergebnis unbekannt ist oder eine Vereinbarung erforderlich ist.",
+    "setup_upload": "Wählen Sie für Ihren ersten Test Erstellen und Privat. Erstellen Sie eine Vorschau, prüfen Sie Konto und Inhalt und genehmigen Sie anschließend den Upload.",
+    "status": {
+      "failed": "Fehlgeschlagen",
+      "legal_agreement_required": "Steam-Vereinbarung erforderlich",
+      "preview": "Genehmigung ausstehend",
+      "resolved": "Manuell geprüft",
+      "running": "Wird hochgeladen",
+      "succeeded": "Upload von Steam bestätigt",
+      "unknown": "Ergebnis unbekannt"
+    },
+    "submit": "Genehmigen und hochladen",
+    "tags": "Tags (durch Kommas getrennt)",
+    "tags_hint": "Wählen Sie einen vorgeschlagenen Tag oder geben Sie einen eigenen ein und drücken Sie die Eingabetaste. Kommas trennen Tags ebenfalls.",
+    "target_summary": "App {{app}} · Eintrag {{item}} · {{visibility}}",
+    "target_warning": "Geben Sie die ID Ihres eigenen Übersetzungseintrags ein. Die ID des Original-Mods wird nicht automatisch ausgewählt.",
+    "title": "In Steam Workshop veröffentlichen (Beta)",
+    "validation_scope": "{{count}} Lokalisierungseinträge wurden mit dem Paradox-Parser und der Tokenprüfung des Quelltexts geprüft. Das Verhalten im Spiel wurde nicht überprüft.",
+    "verification_approval": "Ich habe das Ergebnis in Steam geprüft und bestätigt; eine gegebenenfalls erforderliche Workshop-Vereinbarung habe ich angenommen.",
+    "verify_remote": "Prüfen Sie diesen Eintrag in Steam vor einer weiteren Veröffentlichung. Wiederholen Sie eine Erstellung nicht, wenn ihr Ergebnis unklar ist. Steam verlangt möglicherweise die Annahme der Workshop-Vereinbarung.",
+    "visibility": {
+      "friends_only": "Nur Freunde",
+      "private": "Privat",
+      "public": "Öffentlich",
+      "unlisted": "Nicht gelistet"
+    },
+    "visibility_label": "Sichtbarkeit"
   }
 }

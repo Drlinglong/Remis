@@ -22,7 +22,7 @@ export default function SteamWorkshopPage() {
   const { setPageContext, startTour } = useTutorial();
   const [showTutorialPrompt, setShowTutorialPrompt] = useState(false);
   const tutorialContext = workspaceId
-    ? `steam-workshop-${['cover', 'description', 'history'].includes(section) ? section : 'cover'}`
+    ? `steam-workshop-${['cover', 'description', 'history', 'publish'].includes(section) ? section : 'cover'}`
     : 'steam-workshop';
 
   useEffect(() => {

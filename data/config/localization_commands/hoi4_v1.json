@@ -1,0 +1,324 @@
+{
+  "schema_version": 1,
+  "game_id": "hoi4",
+  "sources": [
+    {
+      "url": "https://hoi4.paradoxwikis.com/Localisation",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "kind": "vanilla",
+      "description": "English vanilla localization of Hearts of Iron IV (commands observed in use; meanings inferred from name and usage)",
+      "retrieved": "2026-10-10"
+    }
+  ],
+  "notes": [
+    {
+      "text": "Bracketed [Scope.Command] text is replaced at runtime. Keep every command exactly; scopes such as ROOT, FROM, country tags (GER), state IDs ([608.GetName]) and owner/controller/capital are script identifiers, not translatable text.",
+      "provenance": "wiki"
+    },
+    {
+      "text": "[?variable] prints a variable's value; keep the whole token including its |format characters (for example |%, |0, |+).",
+      "provenance": "wiki"
+    },
+    {
+      "text": "Formatting uses §X ... §! colour codes; £icon£ and @TAG are icons and flags. Hash markers such as #P are not HoI4 formatting and display as literal text.",
+      "provenance": "inferred"
+    }
+  ],
+  "language_notes": {
+    "zh-CN": [
+      {
+        "text": "中文本地化里代词命令输出他/她；中文没有主格宾格之分，任何代词命令都可作主语或宾语。",
+        "provenance": "user"
+      },
+      {
+        "text": "因中文习惯省略重复的代词命令是合理的，前提是指代仍然清楚；不要把代词命令写死成“他”或“她”。没有必要时，应尽量保持与原文相同的命令引用。",
+        "provenance": "user"
+      }
+    ]
+  },
+  "suffixes": {
+    "Cap": "same output with the first letter capitalised",
+    "Long": "long form",
+    "Noun": "noun form",
+    "Short": "short form",
+    "CAP": "same output with the first letter capitalised",
+    "WithCaps": "capitalised form"
+  },
+  "scopes": {
+    "ROOT": "root scope",
+    "THIS": "current scope",
+    "FROM": "the scope that triggered the event",
+    "PREV": "previous scope",
+    "Owner": "owner of a state",
+    "Controller": "controller of a state",
+    "Capital": "capital of a country"
+  },
+  "commands": {
+    "GetName": {
+      "meaning": "name of the country, state, character, operative, ace or MIO",
+      "provenance": "wiki"
+    },
+    "GetTag": {
+      "meaning": "country tag",
+      "provenance": "wiki"
+    },
+    "GetLeader": {
+      "meaning": "country leader's name; pronoun commands can be chained after it",
+      "provenance": "wiki"
+    },
+    "GetManpower": {
+      "meaning": "total population including civilians",
+      "provenance": "wiki"
+    },
+    "GetFactionName": {
+      "meaning": "name of the faction the country is in",
+      "provenance": "wiki"
+    },
+    "GetAgency": {
+      "meaning": "intelligence agency name",
+      "provenance": "wiki"
+    },
+    "GetFlag": {
+      "meaning": "current flag",
+      "provenance": "wiki"
+    },
+    "GetNameWithFlag": {
+      "meaning": "flag followed by name",
+      "provenance": "wiki"
+    },
+    "GetNameDef": {
+      "meaning": "definite-form country name (handles English 'the')",
+      "provenance": "wiki"
+    },
+    "GetAdjective": {
+      "meaning": "country adjective",
+      "provenance": "wiki"
+    },
+    "GetOldName": {
+      "meaning": "country name without cosmetic tags",
+      "provenance": "wiki"
+    },
+    "GetOldNameDef": {
+      "meaning": "definite-form country name without cosmetic tags",
+      "provenance": "wiki"
+    },
+    "GetOldAdjective": {
+      "meaning": "country adjective without cosmetic tags",
+      "provenance": "wiki"
+    },
+    "GetNonIdeologyName": {
+      "meaning": "base country name from the TAG:0 definition",
+      "provenance": "wiki"
+    },
+    "GetNonIdeologyNameDef": {
+      "meaning": "definite-form base country name",
+      "provenance": "wiki"
+    },
+    "GetNonIdeologyAdjective": {
+      "meaning": "base country adjective",
+      "provenance": "wiki"
+    },
+    "GetPartySupport": {
+      "meaning": "ruling party support 0-100, without % sign",
+      "provenance": "wiki"
+    },
+    "GetLastElection": {
+      "meaning": "date of the last election",
+      "provenance": "wiki"
+    },
+    "GetRulingParty": {
+      "meaning": "ruling party name (short)",
+      "provenance": "wiki"
+    },
+    "GetRulingIdeology": {
+      "meaning": "ruling ideology group, adjective form",
+      "provenance": "wiki"
+    },
+    "GetCommunistParty": {
+      "meaning": "name of the communist party",
+      "provenance": "wiki"
+    },
+    "GetDemocraticParty": {
+      "meaning": "name of the democratic party",
+      "provenance": "wiki"
+    },
+    "GetFascistParty": {
+      "meaning": "name of the fascist party",
+      "provenance": "wiki"
+    },
+    "GetNeutralParty": {
+      "meaning": "name of the non-aligned party",
+      "provenance": "wiki"
+    },
+    "GetCommunistLeader": {
+      "meaning": "leader of the communist party",
+      "provenance": "wiki"
+    },
+    "GetDemocraticLeader": {
+      "meaning": "leader of the democratic party",
+      "provenance": "wiki"
+    },
+    "GetFascistLeader": {
+      "meaning": "leader of the fascist party",
+      "provenance": "wiki"
+    },
+    "GetNeutralLeader": {
+      "meaning": "leader of the non-aligned party",
+      "provenance": "wiki"
+    },
+    "GetPowerBalanceName": {
+      "meaning": "current balance-of-power name",
+      "provenance": "wiki"
+    },
+    "GetRightSideName": {
+      "meaning": "balance-of-power right side name",
+      "provenance": "wiki"
+    },
+    "GetLeftSideName": {
+      "meaning": "balance-of-power left side name",
+      "provenance": "wiki"
+    },
+    "GetActiveSideName": {
+      "meaning": "balance-of-power side currently holding more power",
+      "provenance": "wiki"
+    },
+    "GetDateText": {
+      "meaning": "date as 'HH:00, DD Month, YYYY'",
+      "provenance": "wiki"
+    },
+    "GetDate": {
+      "meaning": "date as YYYY.MM.DD.HH",
+      "provenance": "wiki"
+    },
+    "GetMonth": {
+      "meaning": "current month",
+      "provenance": "wiki"
+    },
+    "GetYear": {
+      "meaning": "current year",
+      "provenance": "wiki"
+    },
+    "GetID": {
+      "meaning": "state ID",
+      "provenance": "wiki"
+    },
+    "GetCapitalVictoryPointName": {
+      "meaning": "name of the state's capital victory point",
+      "provenance": "wiki"
+    },
+    "GetSheHe": {
+      "meaning": "pronoun she or he by gender",
+      "provenance": "wiki"
+    },
+    "GetHerHim": {
+      "meaning": "pronoun her or him by gender",
+      "provenance": "wiki"
+    },
+    "GetHerHis": {
+      "meaning": "pronoun her or his by gender",
+      "provenance": "wiki"
+    },
+    "GetHersHis": {
+      "meaning": "possessive pronoun hers or his by gender",
+      "provenance": "wiki"
+    },
+    "GetHerselfHimself": {
+      "meaning": "reflexive pronoun herself or himself by gender",
+      "provenance": "wiki"
+    },
+    "GetIdeology": {
+      "meaning": "country leader's ideology group",
+      "provenance": "wiki"
+    },
+    "GetIdeologyGroup": {
+      "meaning": "country leader's ideology type",
+      "provenance": "wiki"
+    },
+    "GetRank": {
+      "meaning": "unit leader rank",
+      "provenance": "wiki"
+    },
+    "GetCodeName": {
+      "meaning": "operative codename",
+      "provenance": "wiki"
+    },
+    "GetCallsign": {
+      "meaning": "operative callsign",
+      "provenance": "wiki"
+    },
+    "GetSurname": {
+      "meaning": "ace's last name",
+      "provenance": "wiki"
+    },
+    "GetFullName": {
+      "meaning": "full name (ace or character)",
+      "provenance": "wiki"
+    },
+    "GetWing": {
+      "meaning": "ace's wing",
+      "provenance": "wiki"
+    },
+    "GetAceType": {
+      "meaning": "ace type",
+      "provenance": "wiki"
+    },
+    "GetMissionRegion": {
+      "meaning": "ace's assigned region",
+      "provenance": "wiki"
+    },
+    "GetTokenKey": {
+      "meaning": "token name of a token variable",
+      "provenance": "wiki"
+    },
+    "GetTokenLocalizedKey": {
+      "meaning": "localised name of a token variable",
+      "provenance": "wiki"
+    },
+    "GetDateString": {
+      "meaning": "date as 'HH:00, DD Month, YYYY'",
+      "provenance": "wiki"
+    },
+    "GetDateStringShortMonth": {
+      "meaning": "date as 'HH:00, DD Mon., YYYY'",
+      "provenance": "wiki"
+    },
+    "GetDateStringNoHour": {
+      "meaning": "date as YYYY.MM.DD",
+      "provenance": "wiki"
+    },
+    "GetDateStringNoHourLong": {
+      "meaning": "date as 'DD Month, YYYY'",
+      "provenance": "wiki"
+    },
+    "Getname": {
+      "meaning": "same as GetName (lower-case spelling seen in vanilla)",
+      "provenance": "vanilla"
+    },
+    "GetnameDef": {
+      "meaning": "same as GetNameDef (lower-case spelling seen in vanilla)",
+      "provenance": "vanilla"
+    },
+    "GetOppositionPartyName": {
+      "meaning": "name of the main opposition party",
+      "provenance": "vanilla"
+    },
+    "GetOppositionPartyAdjective": {
+      "meaning": "adjective of the main opposition party",
+      "provenance": "vanilla"
+    },
+    "GetStateMajorityCountryName": {
+      "meaning": "name of the country whose culture is the state's majority",
+      "provenance": "vanilla"
+    },
+    "GetCountryContinent": {
+      "meaning": "continent of the country",
+      "provenance": "vanilla"
+    },
+    "GetIdeologyName": {
+      "meaning": "name of the ideology",
+      "provenance": "vanilla"
+    }
+  }
+}

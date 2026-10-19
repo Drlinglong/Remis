@@ -21,6 +21,15 @@ async def test_get_or_create_project_glossary_serializes_first_creation(monkeypa
                 value.glossary_id = 41
                 created["glossary"] = value.model_dump()
 
+        async def get(self, model, _key):
+            return Glossary.model_validate(created["glossary"]) if model is Glossary else None
+
+        async def flush(self):
+            await asyncio.sleep(0)
+
+        async def rollback(self):
+            return None
+
         async def commit(self):
             await asyncio.sleep(0)
 

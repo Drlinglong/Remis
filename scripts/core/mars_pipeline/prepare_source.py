@@ -237,7 +237,9 @@ def _existing_t_records(source: str, relative: str, source_hash: str) -> tuple[l
     for index, token in enumerate(tokens):
         if token.kind != "ident" or token.value != "T" or index + 1 >= len(tokens):
             continue
-        if index and tokens[index - 1].value in {".", ":"}:
+        if index and (tokens[index - 1].value == ":" or (
+                tokens[index - 1].value == "."
+                and not (index > 1 and tokens[index - 2].value == "."))):
             continue
         opening = index + 1
         if tokens[opening].value not in {"(", "{"}:

@@ -21,6 +21,9 @@ from scripts.core.copilot.game_support import (
 )
 from scripts.core.copilot.task_status import get_copilot_task_status
 from scripts.core.services.provider_runtime import ProviderRuntimeSnapshot
+from scripts.utils.localization_commands import lookup_commands
+
+MAX_COMMAND_LOOKUPS = 20
 
 HelpSkillId = Enum("HelpSkillId", {skill_id.upper(): skill_id for skill_id in HELP_SKILLS}, type=str)
 
@@ -78,6 +81,7 @@ class HelpDeps:
     required_task_ids: list[str] = field(default_factory=list)
     task_status_results: dict[str, dict[str, Any]] = field(default_factory=dict)
     game_support_results: dict[str, dict[str, Any]] = field(default_factory=dict)
+    command_lookups: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
     incremental_workflow_requested: bool = False
 
 
@@ -137,6 +141,18 @@ def _register_game_support_tools(agent: Agent[HelpDeps, HelpAnswer]) -> None:
         return result
 
 
+def _register_localization_command_tool(agent: Agent[HelpDeps, HelpAnswer]) -> None:
+    @agent.tool
+    async def lookup_localization_commands(
+        ctx: RunContext[HelpDeps], game_id: str, names: list[str]
+    ) -> dict[str, Any]:
+        """Look up Paradox localization commands such as GetHerHis or GetNameDefCap for one game."""
+        names = [str(name)[:80] for name in names[:MAX_COMMAND_LOOKUPS]]
+        results = lookup_commands(game_id, names)
+        ctx.deps.command_lookups[game_id] = results
+        return {"game_id": game_id, "results": results}
+
+
 def build_help_agent(
     provider: str,
     model_name: str | None = None,
@@ -167,6 +183,8 @@ def build_help_agent(
             "询问游戏格式、输出包或支持范围时调用 get_game_support；询问已有项目识别到的资源时，"
             "先调用 inspect_workflow_entities，再用目录中的 project_id 调用 inspect_project_game_support。"
             "只报告扫描识别范围；runtime_verified=false 表示尚未游戏内验收。"
+            "用户询问方括号本地化命令（如 [Root.GetHerHis]）的含义时，调用 lookup_localization_commands；"
+            "found=false 时如实说明词典未收录，不要猜测输出，并注明结果的 provenance。"
             "内置 Copilot 工作流当前只创建和启动初次翻译；可解释增量能力，但不得声称能从聊天创建或启动增量任务。"
             "只建议允许的 Remis action ID。\n\n"
             f"{AGENT_OPS_SUMMARY}\n\n可用帮助技能：\n{catalog}"
@@ -209,12 +227,14 @@ def build_help_agent(
         return result
 
     _register_game_support_tools(agent)
+    _register_localization_command_tool(agent)
 
     @agent.output_validator
     async def validate_help_answer(ctx: RunContext[HelpDeps], output: HelpAnswer) -> HelpAnswer:
-        if not ctx.deps.loaded_excerpts and not ctx.deps.no_match_reason:
+        grounded = ctx.deps.loaded_excerpts or ctx.deps.command_lookups
+        if not grounded and not ctx.deps.no_match_reason:
             raise ModelRetry("Read a help skill or call report_no_help_skill before answering")
-        if not ctx.deps.loaded_excerpts:
+        if not grounded:
             output.confidence = "low"
         missing_task_ids = [
             task_id for task_id in ctx.deps.required_task_ids
@@ -288,6 +308,7 @@ def run_pydantic_help_agent(
         "workflow_entities_inspected": deps.inspected_workflow_entities,
         "task_status_lookups": deps.task_status_results,
         "game_support_results": deps.game_support_results,
+        "command_lookups": deps.command_lookups,
         "excerpts": deps.loaded_excerpts,
         "no_match_reason": deps.no_match_reason,
         "usage": asdict(result.usage if not callable(result.usage) else result.usage()),

@@ -2,7 +2,7 @@
 
 ## 概述
 
-3.3.0 Windows 正式发布使用 `scripts/build_pipeline.py` 构建 Tauri NSIS
+当前 Windows 发布使用 `scripts/build_pipeline.py` 构建 Tauri NSIS
 安装包。`archive/build_release_scripts/build_release.bat` 只保留用于历史便携
 ZIP 格式；当前 EXE 发版不能使用它。
 
@@ -70,7 +70,7 @@ python -m pytest -q tests/test_release_metadata.py
 
 ## 使用方法
 
-## 3.3.0 Tauri 桌面安装包的数据规则
+## Tauri 桌面安装包的数据规则
 
 当前 Tauri 桌面安装包由 `scripts/build_pipeline.py` 构建。数据库初始化分成三层：
 
@@ -112,8 +112,14 @@ python scripts/build_pipeline.py --channel stable
 
 流水线使用 `local_factory` Conda 环境，冻结并健康检查 Python sidecar，构建前端，
 最后执行 Tauri 打包。stable NSIS 安装包会复制到：
-`archive/release/stable/remis-mod-factory_3.2.1_x64-setup.exe`。只有明确要生成隔离的
+`archive/release/stable/remis-mod-factory_<version>_x64-setup.exe`。只有明确要生成隔离的
 `3.2.0-agent-preview.1` 预览安装包时，才使用 `--channel agent-preview`。
+
+为避免更新共享 Conda 环境影响其他工作，可在 J:／K: 创建独立 Windows venv，安装与
+候选源码 `requirements.txt` 一致的依赖及 PyInstaller，再将 `REMIS_CONDA_ENV_PATH`
+设为该 venv 根目录。流水线在存在 `pyvenv.cfg` 时使用 `Scripts/python.exe`，常规
+Conda 布局继续使用根目录 `python.exe`。不要复制 Python 启动器来伪造另一种目录布局。
+构建使用的依赖版本必须单独核验；主开发环境测试通过不代表构建环境已同步。
 
 ### 每个 release 必须附带火星求生词典
 

@@ -3,6 +3,7 @@ import api from '../utils/api';
 const base = '/api/mars-pipeline';
 const project = (id) => `/api/projects/${encodeURIComponent(id)}/mars-pipeline`;
 export default {
+  inspectInput: (path) => api.post(`${base}/input/inspect`, { path }),
   planImport: (payload) => api.post(`${base}/prepare/plan`, payload),
   import: (planId) => api.post(`${base}/prepare`, { plan_id: planId, approved: true }),
   options: (id, config) => api.get(project(id), config),

@@ -1,13 +1,26 @@
 """Shared desktop and Agent API for isolated FPK preparation and delivery."""
+import asyncio
 from typing import Literal
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from scripts.core.mars_pipeline import workflow, workflow_delivery, publication_identity
+from scripts.core.mars_pipeline.archive_input import inspect_input
 from scripts.routers.translation_packages import _respond
 
 router = APIRouter(tags=["Mars pipeline"])
+
+
+class InputInspection(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    path: str = Field(min_length=1, max_length=4096)
+
+
+@router.post("/api/mars-pipeline/input/inspect")
+@router.post("/api/agent/mars-pipeline/input/inspect")
+async def inspect_project_input(request: InputInspection):
+    return await _respond(asyncio.to_thread(inspect_input, request.path))
 
 
 class PreparePlan(BaseModel):

@@ -9,6 +9,20 @@ def _add_metadata(source, mod_id="mod-1"):
     (source / "metadata.lua").write_text(f"return PlaceObj('ModDef', {{'id', '{mod_id}'}})", encoding="utf-8")
 
 
+def test_existing_t_after_concat_is_collected_but_member_calls_are_not(tmp_path):
+    source = tmp_path / "mod"
+    source.mkdir()
+    _add_metadata(source)
+    (source / "Code.lua").write_text(
+        'local text = "prefix" .. T(123456, "Description") .. T{123457, "Details"}\n'
+        'local ignored = object.T(123458, "Member") .. object:T(123459, "Method")\n',
+        encoding="utf-8",
+    )
+    manifest = analyze_source(source)
+    assert {key for key, entry in manifest["entries"].items()
+            if entry["kind"] == "existing_t"} == {"123456", "123457"}
+
+
 def test_analyze_builds_stable_entries_and_reports_untranslated_option_values(tmp_path):
     source = tmp_path / "mod"
     source.mkdir()

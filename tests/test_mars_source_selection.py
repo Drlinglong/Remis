@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from scripts.core.mars_pipeline import delivery, workflow, workflow_store as store
+from scripts.core.mars_pipeline import archive_input
 from scripts.core.mars_pipeline.prepare_source import analyze_source
 from scripts.core.mars_pipeline.source_selection import select_source, write_prepared_source
 from scripts.routers.mars_pipeline import PreparePlan
@@ -29,6 +30,22 @@ def source(tmp_path):
 def request(**kwargs):
     return {"source_language": "en", "source_table": "English.csv", "source_column": "Translation",
             "delivery_mode": "text_only", **kwargs}
+
+
+def test_default_discovers_csv_only_originals_without_user_table_selection(source):
+    before = {path.name: path.read_bytes() for path in source.iterdir()}
+    selected = select_source(source, analyze_source(source), request(source_table=None, source_column="Text"))
+    assert selected["source_blockers"] == []
+    assert selected["entries"]["100000000002"]["text"] == "Helio por turno"
+    assert "translation_source_text" not in selected["entries"]["100000000002"]
+    assert {path.name: path.read_bytes() for path in source.iterdir()} == before
+
+
+def test_default_discovery_surfaces_conflicting_originals(source):
+    (source / "Other.csv").write_text(
+        'ID,Text,Translation,VoiceActor,Context\n100000000002,Different source,,,\n', encoding="utf-8")
+    selected = select_source(source, analyze_source(source), request(source_table=None, source_column="Text"))
+    assert selected["source_blockers"][0]["code"] == "ambiguous_source_text"
 
 
 def test_pivot_preserves_originals_adds_csv_only_ids_and_writes_english(source, tmp_path):
@@ -114,6 +131,50 @@ def flat_archive(source):
         payloads.append(data)
         offset += len(data)
     return b"FLPK" + struct.pack("<7I", 32, 1, 32, 0, index_size, index_size, 4) + b"".join(records + payloads)
+
+
+@pytest.mark.asyncio
+async def test_folder_preparation_discovers_csv_and_persists_unresolved_text(source, tmp_path, monkeypatch):
+    (source / "code.lua").write_text(
+        'local name = T(100000000001, "Colonia lunar")\n'
+        'local dynamic = Untranslated("Range " .. bonus)\n', encoding="utf-8")
+    folder = tmp_path / "3816401225"
+    folder.mkdir()
+    archive = folder / "ModContent.fpk"
+    archive.write_bytes(flat_archive(source))
+    original_hash = hashlib.sha256(archive.read_bytes()).hexdigest()
+    monkeypatch.setattr(store, "APP_DATA_DIR", tmp_path / "app")
+    monkeypatch.setattr(workflow, "_resolve_allowed_mod_folder", lambda path: Path(path).resolve())
+    monkeypatch.setattr(archive_input, "_resolve_allowed_mod_folder", lambda path: Path(path).resolve())
+    record = {}
+    plan_id = "plan_" + "d" * 32
+
+    def create_plan(**kwargs):
+        record.update(kwargs)
+        return {"plan_id": plan_id, "expires_at": "later"}
+
+    monkeypatch.setattr(workflow.agent_registry, "create_plan", create_plan)
+    monkeypatch.setattr(workflow.agent_registry, "record_event", lambda *a, **k: None)
+    plan = await workflow.plan_prepare({"source_language": "es", "delivery_mode": "source_copy",
+                                       "archive_path": str(folder), "name": "Folder Mod"})
+    assert plan["source_blockers"] == []
+    assert plan["review_items"]
+    assert "100000000002" in plan["approved_ids"]
+    assert plan["allowed_actions"] == ["approve_preparation"]
+    monkeypatch.setattr(workflow, "_consume", lambda *_: record)
+
+    async def create_project(**kwargs):
+        assert Path(kwargs["folder_path"]).joinpath("ModTexts.csv").is_file()
+        return {"project_id": "folder-project"}
+
+    monkeypatch.setattr(workflow.project_manager, "create_project", create_project)
+    result = await workflow.execute_prepare(plan_id, True)
+    receipt = store.read_receipt(plan_id)
+    assert result["status"] == "prepared"
+    assert receipt["project_id"] == "folder-project"
+    assert any(entry["review_required"] for entry in receipt["manifest"]["entries"].values())
+    assert len(receipt["manifest"]["approved_ids"]) < len(receipt["manifest"]["entries"])
+    assert hashlib.sha256(archive.read_bytes()).hexdigest() == original_hash
 
 
 @pytest.mark.asyncio

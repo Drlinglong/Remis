@@ -114,7 +114,14 @@
     "publication_id": "Workshop 항목 ID",
     "publication_local_only": "이 프로젝트에 로컬로 저장됩니다. Steam에 업로드하거나 변경하지 않습니다.",
     "publication_locked": "이 Workshop 연결은 Remis에서 잠겨 있습니다.",
-    "publication_bind": "Workshop 항목 연결 저장"
+    "publication_bind": "Workshop 항목 연결 저장",
+      "automatic_help": "Remis가 Mod의 압축을 풀고 격리된 프로젝트에서 텍스트를 준비합니다. 불확실한 텍스트 후보는 변경하지 않고 프로젝트 생성 후 검토 항목으로 표시합니다.",
+      "creation_inspect": "Mod를 확인하고 번역할 텍스트를 찾는 중…",
+      "creation_prepare": "Mod의 압축을 풀고 번역 프로젝트를 만드는 중…",
+      "folder_help": "ModContent.fpk가 있는 Steam Workshop Mod 폴더 또는 편집 가능한 Mod 폴더를 선택하세요. Remis가 번역할 텍스트를 자동으로 찾습니다.",
+      "manual_source_options": "고급 원본 옵션",
+      "pending_after_creation": "{{count}}개의 텍스트 후보를 검토해야 합니다. 프로젝트는 확인된 텍스트에 대해 준비되었으며, 이 후보들은 원본 Mod에서 변경되지 않습니다.",
+      "review_later_help": "Lua 변경을 준비하거나 전체 범위를 다뤘다고 판단하기 전에 이 후보들을 검토하세요. 프로젝트를 업데이트할 때 아래에 표시된 준비 실행 기록을 유지하세요."
   }
 ,
 "shell_language_notice.recommendation": "게임에서 지원하지 않는 언어로 번역할 때는 새 프로젝트를 만들어 해당 언어만 관리하는 것을 강력히 권장합니다.",
@@ -3294,5 +3301,86 @@
       "low": "낮음",
       "unrated": "미평가"
     }
+  },
+  "workshop_publication": {
+    "account": "Steam 계정: {{id}}",
+    "app_id": "Steam 앱 ID",
+    "approval": "표시된 Steam 대상과 계정에 이 패키지와 메타데이터를 그대로 업로드하는 것을 승인합니다. 업데이트할 때 원격 콘텐츠를 교체하는 것도 승인합니다.",
+    "change_note": "변경 사항",
+    "code": {
+      "backend_restarted": "게시 중 Remis가 다시 시작되었습니다. 계속하기 전에 Steam의 항목을 확인하세요.",
+      "packaged_worker_not_configured": "이 설치 빌드에서는 Steam 게시를 사용할 수 없습니다. 데스크톱 연동은 아직 준비 중입니다.",
+      "steam_legal_agreement_required": "Steam에서 Workshop 법적 계약에 동의하고 항목을 확인하세요.",
+      "steam_probe_failed": "Steam 초기화에 실패했습니다. Steam이 실행 중이고 로그인되어 있으며 선택한 게임을 소유하고 있는지 확인하세요.",
+      "steam_sdk_incomplete": "Steam 게시 런타임이 완전하지 않습니다. 업로드하기 전에 개발 환경 설정을 확인하세요.",
+      "steam_sdk_not_configured": "Steam 게시 런타임이 설정되지 않았습니다. 이 개발 빌드는 아직 업로드할 수 없습니다. 런타임 준비 방법은 개발 가이드를 확인하세요.",
+      "steam_submit_confirmed": "Steam에서 업로드 성공 콜백을 반환했습니다.",
+      "steam_submit_rejected": "Steam이 업데이트를 거부했습니다. 결과 코드와 Steam의 항목을 확인하세요.",
+      "windows_runtime_required": "현재 Steam 업로드 어댑터에는 Windows x64가 필요합니다.",
+      "worker_interrupted": "Steam Worker가 중단되었습니다. 원격 결과를 알 수 없습니다."
+    },
+    "custom_app": "다른 App ID 입력",
+    "file": "파일",
+    "file_summary": "{{count}}개 파일 · {{bytes}}바이트",
+    "history": "게시 기록",
+    "intro": "테스트 기능: 번역 패키지를 준비하고 미리 볼 수 있습니다. 직접 업로드하려면 현재 설정된 테스트 환경이 필요합니다. 설치 버전의 업로드 지원과 실제 업로드 검증은 아직 완료되지 않았습니다. 먼저 저장된 표지와 설명 버전을 선택하세요.",
+    "item_id": "대상 게시 파일 ID",
+    "language": "Steam API 언어 코드",
+    "manual_verification_recorded": "수동 검증을 기록했습니다. 계속하려면 새 미리보기를 만들고 승인하세요. 이 기록은 Steam이 확인한 업로드 결과가 아닙니다.",
+    "mod_title": "Workshop 제목",
+    "mode": {
+      "create": "새 항목 만들기",
+      "update": "기존 항목 업데이트"
+    },
+    "mode_label": "작업",
+    "new_item": "새 항목",
+    "open_item": "Workshop 항목 열기",
+    "output": "번역 출력 패키지",
+    "output_empty": "기존 번역 출력이 없습니다. 연결된 프로젝트의 출력을 생성하거나 프로젝트 관리에서 출력 디렉터리를 확인하세요.",
+    "output_loading": "출력 패키지를 불러오는 중…",
+    "output_placeholder": "기존 번역 출력 선택",
+    "preview": "변경할 수 없는 게시 미리보기 만들기",
+    "record_verification": "수동 검증 기록",
+    "recovery_intro": "Steam에서 Workshop 항목을 확인한 뒤 확인한 내용을 등록하세요. 이 작업은 관찰 내용만 기록하며, 업로드하거나 이전 계획을 다시 시도하지 않습니다.",
+    "recovery_outcome": "관찰된 원격 결과",
+    "refresh": "상태 새로 고침",
+    "resolution": {
+      "item_absent": "항목이 없습니다. 새 항목 생성 미리보기를 진행할 수 있습니다",
+      "item_present": "항목이 있습니다. 업데이트하여 계속하세요"
+    },
+    "setup_configure": "Remis를 실행하기 전에 PowerShell에서 SDK 디렉터리를 설정하세요(예시 경로를 실제 경로로 바꾸세요). public/steam/steam_api.json 및 redistributable_bin/win64/steam_api64.dll이 들어 있는 sdk 폴더를 사용한 다음 Remis를 다시 시작하세요.",
+    "setup_missing": "업로드 환경이 준비되지 않았습니다. 아래 설정 단계를 따르세요. 미리보기만으로는 업로드되지 않습니다.",
+    "setup_package": "프로젝트를 연결하고 기존 번역 출력을 선택한 다음 표지와 설명 버전을 적용하세요. 게임은 자동으로 선택됩니다. 계속하기 전에 확인하세요.",
+    "setup_sdk": "이 개발 빌드에는 공식 Steamworks SDK도 필요합니다. PC에 다운로드하고 압축을 푸세요.",
+    "setup_sdk_link": "공식 SDK 다운로드 안내",
+    "setup_steam": "Steam 데스크톱 클라이언트를 설치하고 로그인하세요. 계정이 선택한 게임을 소유해야 합니다.",
+    "setup_title": "첫 업로드: 설정 및 안내",
+    "setup_unknown": "성공으로 처리하려면 Steam 성공 콜백과 올바른 Workshop 페이지를 모두 확인해야 합니다. 결과를 알 수 없거나 계약 동의가 필요한 경우 다른 항목을 만들기 전에 Steam에서 확인하세요.",
+    "setup_upload": "첫 테스트에서는 새 항목과 비공개를 선택하세요. 미리보기를 만들고 계정과 콘텐츠를 확인한 뒤 승인하여 업로드하세요.",
+    "status": {
+      "failed": "실패",
+      "legal_agreement_required": "Steam 계약 동의 필요",
+      "preview": "승인 대기",
+      "resolved": "수동 확인됨",
+      "running": "업로드 중",
+      "succeeded": "Steam에서 업로드 확인됨",
+      "unknown": "결과를 알 수 없음"
+    },
+    "submit": "승인 및 업로드",
+    "tags": "태그(쉼표로 구분)",
+    "tags_hint": "추천 태그를 선택하거나 직접 입력한 후 Enter 키를 눌러 추가하세요. 쉼표로도 태그를 구분할 수 있습니다.",
+    "target_summary": "App {{app}} · 항목 {{item}} · {{visibility}}",
+    "target_warning": "본인 번역 항목의 ID를 입력하세요. 원본 Mod의 ID는 자동으로 선택되지 않습니다.",
+    "title": "Steam Workshop에 게시 (베타)",
+    "validation_scope": "Paradox 파서와 원본 토큰 검사기로 현지화 항목 {{count}}개를 확인했습니다. 게임 내 동작은 검증되지 않았습니다.",
+    "verification_approval": "Steam에서 항목을 확인하고 이 결과를 확인했습니다. 필요한 Workshop 계약에도 동의했습니다.",
+    "verify_remote": "다시 게시하기 전에 Steam에서 이 항목을 확인하세요. 결과가 불확실한 새 항목 생성을 재시도하지 마세요. Steam에서 Workshop 계약 동의를 요구할 수 있습니다.",
+    "visibility": {
+      "friends_only": "친구만",
+      "private": "비공개",
+      "public": "공개",
+      "unlisted": "미등록"
+    },
+    "visibility_label": "공개 범위"
   }
 }

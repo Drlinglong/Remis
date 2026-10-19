@@ -15,6 +15,7 @@ import {
 import { IconCopy, IconFolder, IconLink } from '@tabler/icons-react';
 import styles from './CreateProjectModal.module.css';
 import MarsPipelineImport from '../project/MarsPipelineImport';
+import { useMarsProjectCreation } from '../../hooks/useMarsProjectCreation';
 import {
   getSourceLanguageOptions,
   resolveSupportedSourceLanguage,
@@ -59,8 +60,11 @@ export function CreateProjectModal({
   onPipelineCreated,
 }) {
   const [marsImportOpened, setMarsImportOpened] = useState(false);
-  const [marsCsvMode, setMarsCsvMode] = useState(false);
   const isMars = newProjectGame === 'surviving_mars';
+  const mars = useMarsProjectCreation({ opened, game: newProjectGame, path: newProjectPath,
+    name: newProjectName, language: newProjectSourceLang,
+    onCreated: onPipelineCreated, createEditable: handleCreateProject });
+  const busy = isCreatingProject || mars.busy;
   const marsLanguageCodes = availableGames.find((game) => game.value === 'surviving_mars')
     ?.supported_language_codes;
   const sourceLanguageOptions = getSourceLanguageOptions(
@@ -69,25 +73,29 @@ export function CreateProjectModal({
     marsLanguageCodes,
     t
   );
-  const useFpkFlow = isMars && !marsCsvMode;
   const handleGameChange = (gameId) => {
     setNewProjectGame(gameId);
-    setMarsCsvMode(false);
-    if (gameId === 'surviving_mars') setMarsImportOpened(true);
-    else setMarsImportOpened(false);
+    setMarsImportOpened(false);
+    if (gameId === 'surviving_mars') {
+      setNewProjectImportMode('copy');
+      setNewProjectSourceLang(resolveSupportedSourceLanguage(
+        newProjectSourceLang, marsLanguageCodes || ['en', 'zh-CN']
+      ));
+    }
   };
   const handlePrimaryAction = () => {
-    if (useFpkFlow) setMarsImportOpened(true);
+    if (isMars) mars.create();
     else handleCreateProject();
   };
   return (
     <Modal
       opened={opened}
-      onClose={onClose}
+      onClose={busy ? () => {} : onClose}
       title={t('project_management.actions.create_new')}
       size="lg"
-      closeOnClickOutside={!isCreatingProject}
-      closeOnEscape={!isCreatingProject}
+      closeOnClickOutside={!busy}
+      closeOnEscape={!busy}
+      withCloseButton={!busy}
       classNames={{
         content: styles.modalContent,
         header: styles.modalHeader,
@@ -102,6 +110,7 @@ export function CreateProjectModal({
           label={t('form_label_project_name')}
           placeholder={t('form_placeholder_project_name')}
           value={newProjectName}
+          disabled={busy}
           onChange={(event) => setNewProjectName(event.currentTarget.value)}
         />
         <Select
@@ -109,33 +118,24 @@ export function CreateProjectModal({
           data={availableGames.length > 0 ? availableGames : getFallbackGames(t)}
           value={newProjectGame}
           onChange={handleGameChange}
-          disabled={isCreatingProject}
+          disabled={busy}
         />
-        {useFpkFlow && (
-          <Alert className={styles.importModeAlert} color="blue" variant="light">
-            <Text size="sm">{t('mars_pipeline.game_selected_help', 'Next, choose a compiled Mod archive to prepare an isolated translation project.')}</Text>
-            <Button variant="light" mt="sm" onClick={() => setMarsImportOpened(true)}>
-              {t('mars_pipeline.reopen_import', 'Reopen FPK preparation')}
-            </Button>
-          </Alert>
-        )}
-        {(!isMars || marsCsvMode) && <>
         <Group align="flex-end">
           <TextInput
             classNames={{ input: styles.modalInput }}
             label={t('form_label_folder_path')}
             placeholder={t('form_placeholder_folder_path')}
-            description={t('form_desc_folder_path')}
+            description={isMars ? t('mars_pipeline.folder_help', 'Choose the Workshop Mod folder containing ModContent.fpk, or an editable Mod folder. Remis discovers the translation text automatically.') : t('form_desc_folder_path')}
             value={newProjectPath}
             onChange={(event) => setNewProjectPath(event.currentTarget.value)}
             style={{ flex: 1 }}
-            disabled={isCreatingProject}
+            disabled={busy}
           />
-          <Button onClick={handleBrowseFolder} leftSection={<IconFolder size={16} />} disabled={isCreatingProject}>
+          <Button onClick={handleBrowseFolder} leftSection={<IconFolder size={16} />} disabled={busy}>
             {t('btn_browse')}
           </Button>
         </Group>
-        <SegmentedControl
+        {!isMars && <SegmentedControl
           classNames={{
             root: styles.importModeRoot,
             label: styles.importModeLabel,
@@ -144,20 +144,20 @@ export function CreateProjectModal({
           fullWidth
           value={newProjectImportMode}
           onChange={setNewProjectImportMode}
-          disabled={isCreatingProject}
+          disabled={busy}
           data={[
             { value: 'copy', label: t('project_management.import_mode_copy') },
             { value: 'reference', label: t('project_management.import_mode_reference') },
           ]}
-        />
+        />}
         <Alert
           className={styles.importModeAlert}
-          color={newProjectImportMode === 'reference' ? 'yellow' : 'blue'}
+          color={!isMars && newProjectImportMode === 'reference' ? 'yellow' : 'blue'}
           variant="light"
-          icon={newProjectImportMode === 'reference' ? <IconLink size={16} /> : <IconCopy size={16} />}
+          icon={!isMars && newProjectImportMode === 'reference' ? <IconLink size={16} /> : <IconCopy size={16} />}
         >
           <Text size="sm">
-            {newProjectImportMode === 'reference'
+            {isMars ? t('mars_pipeline.automatic_help', 'Remis unpacks the Mod and prepares its text in an isolated project. Uncertain text stays unchanged and is listed for review after creation.') : newProjectImportMode === 'reference'
               ? t('project_management.import_mode_reference_desc')
               : t('project_management.import_mode_copy_desc')}
           </Text>
@@ -168,31 +168,30 @@ export function CreateProjectModal({
           data={sourceLanguageOptions.length > 0 ? sourceLanguageOptions : fallbackLanguages}
           value={newProjectSourceLang}
           onChange={(value) => setNewProjectSourceLang(value)}
-          disabled={isCreatingProject}
+          disabled={busy}
         />
-        {isMars && <Button variant="subtle" onClick={() => {
-          setMarsCsvMode(false);
-          setMarsImportOpened(true);
-        }}>{t('mars_pipeline.open_import', 'Open FPK preparation')}</Button>}
-        </>}
-        {isCreatingProject && (
+        {isMars && mars.error && <Alert color="red" role="alert">{mars.error}</Alert>}
+        {isMars && !busy && <Button variant="subtle" onClick={() => setMarsImportOpened(true)}>
+          {t('mars_pipeline.manual_source_options', 'Advanced source options')}
+        </Button>}
+        {busy && (
           <Box>
             <Progress value={100} animated striped />
-            <Text size="sm" c="dimmed" mt="xs">{createProgressMessage}</Text>
+            <Text size="sm" c="dimmed" mt="xs">{mars.busy
+              ? t(`mars_pipeline.creation_${mars.stage}`, 'Preparing the Mod and translation text…') : createProgressMessage}</Text>
           </Box>
         )}
-        {!isCreatingProject && createProgressMessage && (
+        {!busy && createProgressMessage && (
           <Text size="sm" c="yellow">{createProgressMessage}</Text>
         )}
         <Button
           onClick={handlePrimaryAction}
           fullWidth
           mt="md"
-          loading={isCreatingProject}
-          disabled={isCreatingProject || (!useFpkFlow && (!newProjectName || !newProjectPath))}
+          loading={busy}
+          disabled={busy || !newProjectName.trim() || !newProjectPath.trim() || !newProjectSourceLang}
         >
-          {isCreatingProject ? t('project_management.create_progress_title')
-            : useFpkFlow ? t('mars_pipeline.open_import', 'Open FPK preparation') : t('project_management.actions.create_new')}
+          {busy ? t('project_management.create_progress_title') : t('project_management.actions.create_new')}
         </Button>
       </Stack>
       <MarsPipelineImport opened={marsImportOpened} onClose={() => setMarsImportOpened(false)}
@@ -203,7 +202,6 @@ export function CreateProjectModal({
             newProjectSourceLang,
             marsLanguageCodes || []
           ));
-          setMarsCsvMode(true);
           setMarsImportOpened(false);
         }}
         name={newProjectName} onCreated={(projectId) => {

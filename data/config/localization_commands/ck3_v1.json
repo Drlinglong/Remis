@@ -1,0 +1,278 @@
+{
+  "schema_version": 1,
+  "game_id": "ck3",
+  "sources": [
+    {
+      "url": "https://ck3.paradoxwikis.com/Localization",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "kind": "vanilla",
+      "description": "English vanilla localization of Crusader Kings III (commands observed in use; meanings inferred from name and usage)",
+      "retrieved": "2026-10-10"
+    }
+  ],
+  "notes": [
+    {
+      "text": "Bracketed [...] data functions are replaced at runtime. Keep them exactly; data functions are scoped, usually to a character (for example [ROOT.Char.GetLadyLord]).",
+      "provenance": "wiki"
+    },
+    {
+      "text": "Formatting uses #tag text#! (for example #P, #N, #E, #bold, #italic); tags combine with ';' as in #high;bold. Icons are @icon_name!; $key$ inserts another localization key.",
+      "provenance": "wiki"
+    },
+    {
+      "text": "[concept_key|E] and [Concept('concept_key','text')|E] are game concept links. Dropping one loses the tooltip even if the plain word is translated.",
+      "provenance": "wiki"
+    }
+  ],
+  "language_notes": {
+    "zh-CN": [
+      {
+        "text": "中文本地化里代词命令输出他/她；中文没有主格宾格之分，任何代词命令都可作主语或宾语。",
+        "provenance": "user"
+      },
+      {
+        "text": "因中文习惯省略重复的代词命令是合理的，前提是指代仍然清楚；不要把代词命令写死成“他”或“她”。没有必要时，应尽量保持与原文相同的命令引用。",
+        "provenance": "user"
+      }
+    ]
+  },
+  "suffixes": {
+    "Nicknamed": "includes the nickname",
+    "NoTooltip": "without hover tooltip",
+    "Regnal": "uses the regnal name",
+    "OrMe": "prints 'me' when the character is the player",
+    "OrMy": "prints 'my' when the character is the player",
+    "Possessive": "possessive form",
+    "Base": "base form",
+    "NoFormat": "without formatting",
+    "NoTier": "without the title tier",
+    "NotMe": "never replaced by 'me'",
+    "Alternate": "alternate form",
+    "Plural": "plural form"
+  },
+  "modifiers": {
+    "U": "first letter uppercase",
+    "L": "first letter lowercase",
+    "E": "concept link, capitalised",
+    "El": "concept link, lowercase first letter",
+    "=": "always show sign",
+    "+": "positive green, negative red",
+    "-": "positive red, negative green",
+    "%": "percentage",
+    "K": "thousands",
+    "O": "ordinal number",
+    "0-9": "number of decimals"
+  },
+  "scopes": {
+    "ROOT": "root scope",
+    "Char": "character promote of the current scope"
+  },
+  "commands": {
+    "GetHerHim": {
+      "meaning": "pronoun her or him by gender",
+      "provenance": "wiki_listed"
+    },
+    "GetHerHis": {
+      "meaning": "pronoun her or his by gender",
+      "provenance": "wiki_listed"
+    },
+    "GetHerHisMy": {
+      "meaning": "her, his, or my when the character is the player",
+      "provenance": "wiki_listed"
+    },
+    "GetHersHis": {
+      "meaning": "possessive pronoun hers or his by gender",
+      "provenance": "wiki_listed"
+    },
+    "GetHerselfHimself": {
+      "meaning": "reflexive pronoun herself or himself by gender",
+      "provenance": "wiki_listed"
+    },
+    "GetLadyLord": {
+      "meaning": "lady or lord by gender",
+      "provenance": "wiki_listed"
+    },
+    "GetSheHe": {
+      "meaning": "pronoun she or he by gender",
+      "provenance": "wiki_listed"
+    },
+    "GetDaughterSon": {
+      "meaning": "daughter or son by gender",
+      "provenance": "wiki_listed"
+    },
+    "GetDaughterSonPossessive": {
+      "meaning": "possessive daughter's or son's by gender",
+      "provenance": "wiki_listed"
+    },
+    "GetFirstName": {
+      "meaning": "character's first name; accepts name suffixes",
+      "provenance": "wiki_listed"
+    },
+    "GetTitledFirstName": {
+      "meaning": "character's first name with title",
+      "provenance": "wiki_listed"
+    },
+    "GetFullName": {
+      "meaning": "character's full name; accepts name suffixes",
+      "provenance": "wiki_listed"
+    },
+    "GetName": {
+      "meaning": "name; accepts name suffixes",
+      "provenance": "wiki_listed"
+    },
+    "GetTrait": {
+      "meaning": "the named trait; usually followed by .GetName(...)",
+      "provenance": "wiki"
+    },
+    "GetTitleByKey": {
+      "meaning": "the named title; usually followed by .GetName",
+      "provenance": "wiki"
+    },
+    "GetNameNoTier": {
+      "meaning": "title name without tier",
+      "provenance": "wiki"
+    },
+    "Concept": {
+      "meaning": "game concept link with custom text: Concept('concept_key','text'); translate only the text argument",
+      "provenance": "wiki"
+    },
+    "Custom": {
+      "meaning": "customizable localization call",
+      "provenance": "inferred"
+    },
+    "GetPlayer": {
+      "meaning": "the player character",
+      "provenance": "inferred"
+    },
+    "GetShortUIName": {
+      "meaning": "character's short display name",
+      "provenance": "vanilla"
+    },
+    "GetUIName": {
+      "meaning": "character's display name",
+      "provenance": "vanilla"
+    },
+    "GetBaseName": {
+      "meaning": "title's base name",
+      "provenance": "vanilla"
+    },
+    "GetTitleAsName": {
+      "meaning": "title name used as a name",
+      "provenance": "vanilla"
+    },
+    "GetTierAsName": {
+      "meaning": "title tier word used as a name",
+      "provenance": "vanilla"
+    },
+    "GetTitleTierName": {
+      "meaning": "name of the title tier (for example duchy, kingdom)",
+      "provenance": "vanilla"
+    },
+    "GetDefinitiveName": {
+      "meaning": "definitive (with article) form of the name",
+      "provenance": "vanilla"
+    },
+    "GetAdjective": {
+      "meaning": "adjective form (culture, faith or title)",
+      "provenance": "vanilla"
+    },
+    "GetNameWithTooltip": {
+      "meaning": "name with hover tooltip",
+      "provenance": "vanilla"
+    },
+    "GetTypeName": {
+      "meaning": "name of the object's type",
+      "provenance": "vanilla"
+    },
+    "GetCouncilTitle": {
+      "meaning": "title of a council position",
+      "provenance": "vanilla"
+    },
+    "GetDiarchTitle": {
+      "meaning": "title of the diarch",
+      "provenance": "vanilla"
+    },
+    "GetCollectiveNoun": {
+      "meaning": "collective noun for the group",
+      "provenance": "vanilla"
+    },
+    "GetAdherentName": {
+      "meaning": "word for an adherent of the faith",
+      "provenance": "vanilla"
+    },
+    "GetWomanMan": {
+      "meaning": "the word woman or man by gender",
+      "provenance": "vanilla"
+    },
+    "GetWomenMen": {
+      "meaning": "the word women or men by gender",
+      "provenance": "vanilla"
+    },
+    "GetMotherFather": {
+      "meaning": "the word mother or father by gender",
+      "provenance": "vanilla"
+    },
+    "GetWifeHusband": {
+      "meaning": "the word wife or husband by gender",
+      "provenance": "vanilla"
+    },
+    "HighGodName": {
+      "meaning": "name of the faith's high god",
+      "provenance": "vanilla"
+    },
+    "GetDesc": {
+      "meaning": "description text of the object",
+      "provenance": "vanilla"
+    },
+    "GetDescription": {
+      "meaning": "description text of the object",
+      "provenance": "vanilla"
+    },
+    "GetTextIcon": {
+      "meaning": "text icon of the object",
+      "provenance": "vanilla"
+    },
+    "GetString": {
+      "meaning": "string value",
+      "provenance": "vanilla"
+    },
+    "ScriptValue": {
+      "meaning": "calculated value of the named script value",
+      "provenance": "vanilla"
+    },
+    "GetValue": {
+      "meaning": "numeric value of the preceding object",
+      "provenance": "vanilla"
+    },
+    "CharAreIs": {
+      "meaning": "English are or is, depending on whether the character is the player (you are / he is)",
+      "provenance": "vanilla"
+    },
+    "CharYourHerHis": {
+      "meaning": "your, her or his, depending on whether the character is the player and gender",
+      "provenance": "vanilla"
+    },
+    "CharYouSheHe": {
+      "meaning": "you, she or he, depending on whether the character is the player and gender",
+      "provenance": "vanilla"
+    },
+    "Custom2": {
+      "meaning": "customizable localization with a second scope: Custom2('name', target); its arguments are conditions and localization keys or markup, not translatable text",
+      "provenance": "vanilla"
+    },
+    "SelectLocalization": {
+      "meaning": "chooses one of the given localization keys by a condition; its arguments are conditions and localization keys or markup, not translatable text",
+      "provenance": "vanilla"
+    },
+    "Select_CString": {
+      "meaning": "chooses one of the given strings or formatting tags by a condition; its arguments are conditions and localization keys or markup, not translatable text",
+      "provenance": "vanilla"
+    },
+    "Glossary": {
+      "meaning": "glossary link: Glossary('display text','GLOSSARY_KEY'); translate only the display text argument",
+      "provenance": "vanilla"
+    }
+  }
+}

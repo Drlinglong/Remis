@@ -114,7 +114,14 @@
     "publication_id": "ID elementu Workshopu",
     "publication_local_only": "Zapisano lokalnie dla tego projektu. Nic nie jest wysyłane ani zmieniane na Steam.",
     "publication_locked": "To powiązanie Workshopu jest zablokowane w Remis.",
-    "publication_bind": "Zapisz powiązanie Workshopu"
+    "publication_bind": "Zapisz powiązanie Workshopu",
+      "automatic_help": "Remis rozpakowuje Mod i przygotowuje jego teksty w odizolowanym projekcie. Niepewne teksty pozostają bez zmian i po utworzeniu są wyświetlane do weryfikacji.",
+      "creation_inspect": "Sprawdzanie Modu i wyszukiwanie tekstu do tłumaczenia…",
+      "creation_prepare": "Rozpakowywanie Modu i tworzenie projektu tłumaczenia…",
+      "folder_help": "Wybierz folder Modu ze Steam Workshop zawierający ModContent.fpk albo edytowalny folder Modu. Remis automatycznie wykryje tekst do tłumaczenia.",
+      "manual_source_options": "Zaawansowane opcje źródła",
+      "pending_after_creation": "{{count}} kandydatów tekstowych wymaga weryfikacji. Projekt jest gotowy dla potwierdzonych tekstów; kandydaci pozostają bez zmian w oryginalnym Modzie.",
+      "review_later_help": "Sprawdź tych kandydatów przed przygotowaniem zmian Lua lub stwierdzeniem pełnego pokrycia. Podczas aktualizowania projektu zachowaj widoczne poniżej uruchomienie przygotowania."
   }
 ,
 "shell_language_notice.recommendation": "Zdecydowanie zalecamy utworzenie osobnego projektu dla tłumaczenia na język nieobsługiwany przez grę i używanie go wyłącznie do tego języka.",
@@ -3289,5 +3296,86 @@
       "low": "Niska",
       "unrated": "Nieocenione"
     }
+  },
+  "workshop_publication": {
+    "account": "Konto Steam: {{id}}",
+    "app_id": "Identyfikator aplikacji Steam",
+    "approval": "Zatwierdzam przesłanie dokładnie tego pakietu i tych metadanych do wskazanego celu Steam i na wskazane konto; przy aktualizacji zatwierdzam również zastąpienie zdalnej zawartości.",
+    "change_note": "Opis zmian",
+    "code": {
+      "backend_restarted": "Remis uruchomił się ponownie podczas publikowania. Przed kontynuowaniem sprawdź element w Steam.",
+      "packaged_worker_not_configured": "Publikowanie w Steam jest niedostępne w tej zainstalowanej kompilacji. Integracja z aplikacją desktopową jest wciąż w przygotowaniu.",
+      "steam_legal_agreement_required": "Zaakceptuj w Steam umowę Workshop i sprawdź element.",
+      "steam_probe_failed": "Inicjalizacja Steam nie powiodła się. Sprawdź, czy Steam jest uruchomiony, konto jest zalogowane i posiada wybraną grę.",
+      "steam_sdk_incomplete": "Środowisko uruchomieniowe publikowania Steam jest niekompletne. Przed przesłaniem sprawdź konfigurację programistyczną.",
+      "steam_sdk_not_configured": "Środowisko uruchomieniowe publikowania Steam nie jest skonfigurowane. Ta kompilacja programistyczna nie może jeszcze przesyłać; przygotowanie środowiska opisano w przewodniku dla programistów.",
+      "steam_submit_confirmed": "Steam zwrócił potwierdzenie pomyślnego przesłania.",
+      "steam_submit_rejected": "Steam odrzucił aktualizację; sprawdź kod wyniku i element w Steam.",
+      "windows_runtime_required": "Obecny adapter przesyłania Steam wymaga systemu Windows x64.",
+      "worker_interrupted": "Proces Steam Worker został przerwany. Wynik zdalny jest nieznany."
+    },
+    "custom_app": "Wprowadź inne App ID",
+    "file": "Plik",
+    "file_summary": "{{count}} plików · {{bytes}} bajtów",
+    "history": "Historia publikacji",
+    "intro": "Funkcja testowa: przygotuj i podejrzyj pakiety tłumaczeń. Bezpośrednie przesyłanie wymaga obecnie skonfigurowanego środowiska testowego. Obsługa przesyłania w zainstalowanej aplikacji i testy odbiorcze rzeczywistego przesyłania nie są jeszcze ukończone. Najpierw wybierz zapisane wersje okładki i opisu.",
+    "item_id": "ID opublikowanego elementu docelowego",
+    "language": "Kod języka Steam API",
+    "manual_verification_recorded": "Zapisano ręczną weryfikację. Aby kontynuować, utwórz i zatwierdź nowy podgląd; ten zapis nie jest potwierdzeniem przesłania przez Steam.",
+    "mod_title": "Tytuł Workshop",
+    "mode": {
+      "create": "Utwórz nowy element",
+      "update": "Zaktualizuj mój istniejący element"
+    },
+    "mode_label": "Operacja",
+    "new_item": "Nowy element",
+    "open_item": "Otwórz element Workshop",
+    "output": "Pakiet wyjściowy tłumaczenia",
+    "output_empty": "Nie znaleziono istniejącego wyjścia tłumaczenia. Wygeneruj wyjście dla powiązanego projektu lub sprawdź jego katalog w Zarządzaniu projektami.",
+    "output_loading": "Wczytywanie pakietów wyjściowych…",
+    "output_placeholder": "Wybierz istniejące wyjście tłumaczenia",
+    "preview": "Utwórz niezmienny podgląd publikacji",
+    "record_verification": "Zapisz ręczną weryfikację",
+    "recovery_intro": "Sprawdź element Workshop w Steam i zapisz zaobserwowany stan. To zapis obserwacji; nie przesyła danych ani nie ponawia poprzedniego planu.",
+    "recovery_outcome": "Zaobserwowany wynik zdalny",
+    "refresh": "Odśwież stan",
+    "resolution": {
+      "item_absent": "Element nie istnieje; można utworzyć podgląd nowego elementu",
+      "item_present": "Element istnieje; kontynuuj, aktualizując go"
+    },
+    "setup_configure": "Przed uruchomieniem Remis ustaw w PowerShell katalog SDK (zastąp tę przykładową ścieżkę). Użyj folderu sdk zawierającego public/steam/steam_api.json i redistributable_bin/win64/steam_api64.dll, a następnie uruchom ponownie Remis.",
+    "setup_missing": "Środowisko przesyłania nie jest gotowe. Wykonaj poniższe kroki konfiguracji; sam podgląd nie przesyła danych.",
+    "setup_package": "Powiąż projekt, wybierz istniejące wyjście tłumaczenia i zastosuj wersję okładki oraz opisu. Gra zostanie wybrana automatycznie; sprawdź ją przed kontynuowaniem.",
+    "setup_sdk": "Ta kompilacja programistyczna wymaga również oficjalnego Steamworks SDK. Pobierz je i rozpakuj na komputerze.",
+    "setup_sdk_link": "Instrukcja pobierania oficjalnego SDK",
+    "setup_steam": "Zainstaluj i zaloguj się w kliencie Steam na komputer. Twoje konto musi posiadać wybraną grę.",
+    "setup_title": "Pierwsze przesłanie: konfiguracja i instrukcja",
+    "setup_unknown": "Powodzenie wymaga potwierdzenia Steam oraz poprawnej strony Workshop. Jeśli wynik jest nieznany lub wymagana jest umowa, sprawdź Steam przed utworzeniem kolejnego elementu.",
+    "setup_upload": "Przy pierwszym teście wybierz Utwórz i Prywatny. Wygeneruj podgląd, sprawdź konto i zawartość, a następnie zatwierdź przesłanie.",
+    "status": {
+      "failed": "Niepowodzenie",
+      "legal_agreement_required": "Wymagana umowa Steam",
+      "preview": "Oczekuje na zatwierdzenie",
+      "resolved": "Zweryfikowano ręcznie",
+      "running": "Przesyłanie",
+      "succeeded": "Steam potwierdził przesłanie",
+      "unknown": "Wynik nieznany"
+    },
+    "submit": "Zatwierdź i prześlij",
+    "tags": "Tagi (oddzielone przecinkami)",
+    "tags_hint": "Wybierz sugerowany tag albo wpisz własny i naciśnij Enter, aby go dodać. Tagi można też oddzielać przecinkami.",
+    "target_summary": "App {{app}} · Element {{item}} · {{visibility}}",
+    "target_warning": "Wpisz ID własnego elementu z tłumaczeniem. ID oryginalnego Modu nie jest wybierane automatycznie.",
+    "title": "Publikuj w Steam Workshop (beta)",
+    "validation_scope": "Sprawdzono {{count}} wpisów lokalizacji za pomocą parsera Paradox i walidatora tokenów źródłowych. Działanie w grze nie zostało zweryfikowane.",
+    "verification_approval": "Potwierdzam, że sprawdzono ten wynik w Steam i zaakceptowano wymaganą umowę Workshop.",
+    "verify_remote": "Przed kolejną publikacją sprawdź ten element w Steam. Nie ponawiaj tworzenia, jeśli wynik jest niepewny. Steam może wymagać zaakceptowania umowy Workshop.",
+    "visibility": {
+      "friends_only": "Tylko znajomi",
+      "private": "Prywatny",
+      "public": "Publiczny",
+      "unlisted": "Niepubliczny"
+    },
+    "visibility_label": "Widoczność"
   }
 }

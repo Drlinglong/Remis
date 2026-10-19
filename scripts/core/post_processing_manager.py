@@ -16,7 +16,8 @@ from scripts.utils.post_process_validator import PostProcessValidator, Validatio
 from scripts.app_settings import GAME_PROFILES
 from scripts.utils import i18n
 from scripts.utils.quote_extractor import QuoteExtractor
-from scripts.core.loc_parser import parse_loc_file, parse_loc_file_with_lines
+from scripts.core.loc_parser import parse_loc_file
+from scripts.core.localization_validation import read_validation_entries
 from scripts.core import surviving_mars_csv
 
 
@@ -48,6 +49,7 @@ class PostProcessingManager:
         self.valid_files = 0
         self.files_with_issues = 0
         self.total_errors = 0
+        self.parse_errors = 0
         self.total_warnings = 0
         self.total_info = 0
         
@@ -75,6 +77,7 @@ class PostProcessingManager:
         try:
             if source_root:
                 self.source_root = Path(source_root).resolve()
+            self.parse_errors = 0
             # 启动验证
             self.logger.info(i18n.t("post_processing_start"))
             self.logger.info(i18n.t("post_processing_game", game_name=self.game_name))
@@ -102,7 +105,7 @@ class PostProcessingManager:
             self._generate_validation_report(target_lang)
             
             self.logger.info(i18n.t("post_processing_validation_complete"))
-            return True
+            return self.parse_errors == 0
             
         except Exception as e:
             self.logger.error(i18n.t("post_processing_validation_error", error=str(e)))
@@ -320,14 +323,8 @@ class PostProcessingManager:
                 )
 
             source_entries = self._load_source_entries(file_path, target_lang, source_lang)
-            file_results = []
-            if self.game_profile.get("format_adapter_id") == surviving_mars_csv.FORMAT_ADAPTER_ID:
-                parsed_entries = [
-                    entry.as_legacy_tuple()
-                    for entry in surviving_mars_csv.entries(file_path, "Translation")
-                ]
-            else:
-                parsed_entries = parse_loc_file_with_lines(Path(file_path))
+            parsed_entries, file_results = read_validation_entries(Path(file_path))
+            self.parse_errors += len(file_results)
             if parsed_entries:
                 for key, translatable_content, line_num in parsed_entries:
                     results = self.validator.validate_entry(
@@ -342,7 +339,7 @@ class PostProcessingManager:
                     )
                     if results:
                         file_results.extend(results)
-            else:
+            elif not file_results:
                 # Fallback for malformed files that the loc parser cannot parse.
                 lines = content.split('\n')
                 for line_num, line in enumerate(lines, 1):

@@ -442,6 +442,9 @@ def initialize_database():
     if not demo_extracted and not os.path.exists(b_demos):
         demo_extracted = sync_development_demo_sources(os.path.join(resource_dir, "source_mod"), p_demos)
     trans_extracted = extract_bundled_demo_translations(b_trans, p_trans)
+    trans_extracted = extract_bundled_demo_translations(
+        os.path.join(resource_dir, "assets", "release_demo_content", "translations"), p_trans
+    ) or trans_extracted
 
     config_dir = app_settings.CONFIG_DIR
     bundled_config_dir = os.path.join(resource_dir, "data", "config")

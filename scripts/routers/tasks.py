@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import PlainTextResponse
 
 from scripts.core.agent_service import agent_registry
+from scripts.routers.task_visibility import persist_visibility
 from scripts.schemas.tasks import (
     TaskCheckpoint,
     TaskChildAggregate,
@@ -609,11 +610,7 @@ async def archive_task(task_id: str):
         raise HTTPException(status_code=409, detail="Active tasks cannot be archived")
     archived_at = task_state.utc_now_iso()
     if task_state.get_task(task_id) is not None:
-        updated = task_state.update_task(
-            task_id,
-            fields={"archived_at": archived_at},
-            append_log="Task archived from the task center.",
-        )
+        updated = persist_visibility(task_id, archived_at)
     else:
         updated = {**task, "archived_at": archived_at, "updated_at": archived_at}
     if job is not None:
@@ -646,11 +643,7 @@ async def restore_task(task_id: str):
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found")
     if task_state.get_task(task_id) is not None:
-        updated = task_state.update_task(
-            task_id,
-            fields={"archived_at": None},
-            append_log="Task restored to the task center.",
-        )
+        updated = persist_visibility(task_id, None)
     else:
         updated = {**task, "archived_at": None, "updated_at": task_state.utc_now_iso()}
     if job is not None:

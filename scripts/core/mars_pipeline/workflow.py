@@ -8,6 +8,7 @@ import tempfile
 from scripts.core.agent_service import agent_registry
 from scripts.core.copilot.workflow import _resolve_allowed_mod_folder
 from scripts.core.mars_pipeline import workflow_store as store
+from scripts.core.mars_pipeline.archive_input import inspect_input
 from scripts.core.mars_pipeline.prepare_source import analyze_source
 from scripts.core.mars_pipeline.source_selection import select_source, write_prepared_source
 from scripts.core.services.translation_package_workflow import PackageWorkflowError, _consume
@@ -20,6 +21,11 @@ MARS_ARCHIVE_LIMITS = ArchiveLimits(total_output_bytes=256 * 1024 * 1024)
 
 def _archive_path(raw: str) -> Path:
     path = Path(raw).absolute()
+    if path.is_dir():
+        result = inspect_input(raw)
+        if result["kind"] != "archive":
+            raise ValueError("This folder has no .fpk archive; use the editable-folder project import.")
+        path = Path(result["archive_path"])
     allowed_parent = _resolve_allowed_mod_folder(str(path.parent))
     if path.parent != allowed_parent:
         raise ValueError("Archive path must use its canonical allowed parent")

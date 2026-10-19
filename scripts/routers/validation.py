@@ -34,22 +34,14 @@ def validate_localization(payload: ValidationRequest):
 def validate_file(payload: ValidateFileRequest):
     try:
         from pathlib import Path
-        from scripts.core.loc_parser import parse_loc_file_with_lines
+        from scripts.core.localization_validation import read_validation_entries
         
         file_path = Path(payload.file_path)
         if not file_path.exists():
             raise HTTPException(status_code=404, detail="File not found")
 
-        from scripts.core import surviving_mars_csv
-        if surviving_mars_csv.is_table_file(file_path):
-            entries = [
-                entry.as_legacy_tuple()
-                for entry in surviving_mars_csv.entries(file_path, "Translation")
-            ]
-        else:
-            entries = parse_loc_file_with_lines(file_path)
-        all_results = []
-        
+        entries, all_results = read_validation_entries(file_path)
+
         # Validate each entry
         for key, value, line_number in entries:
             # Validate value
@@ -65,6 +57,8 @@ def validate_file(payload: ValidateFileRequest):
             "issues": [
                 {
                     "is_valid": r.is_valid,
+                    "code": r.code,
+                    "key": r.key,
                     "level": r.level.value,
                     "message": r.message,
                     "details": r.details,

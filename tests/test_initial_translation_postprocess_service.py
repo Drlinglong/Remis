@@ -170,3 +170,17 @@ def test_real_empty_output_validation_does_not_mark_progress_completed(monkeypat
         )
     assert events == []
     assert tracker.attached is False
+
+
+def test_real_malformed_output_does_not_save_completed_progress(monkeypatch, tmp_path):
+    path = tmp_path / "dest/output/localization/english/demo_l_english.yml"
+    path.parent.mkdir(parents=True)
+    path.write_text('l_english:\n good:0 "Good"\n broken:0 "unterminated\n', encoding="utf-8-sig")
+    monkeypatch.setattr(postprocess_service, "DEST_DIR", str(tmp_path / "dest"))
+    tracker = FakeTracker()
+    with pytest.raises(postprocess_service.PostProcessingValidationError):
+        postprocess_service.finalize_language_run(
+            "Demo", {"id": "stellaris"}, {"code": "en", "key": "l_english"},
+            {"code": "en"}, "output", tracker, None, override_path=str(tmp_path / "source"),
+        )
+    assert tracker.saved is False

@@ -114,7 +114,14 @@
     "publication_id": "Workshop öğesi Kimliği",
     "publication_local_only": "Bu proje için yerel olarak kaydedildi. Steam'e yükleme veya Steam'de değişiklik yapılmaz.",
     "publication_locked": "Bu Workshop bağlantısı Remis'te kilitli.",
-    "publication_bind": "Workshop öğesi bağlantısını kaydet"
+    "publication_bind": "Workshop öğesi bağlantısını kaydet",
+      "automatic_help": "Remis, Mod'u paketinden çıkarır ve metinlerini yalıtılmış bir projede hazırlar. Belirsiz metin adayları değiştirilmeden kalır ve proje oluşturulduktan sonra incelenmek üzere listelenir.",
+      "creation_inspect": "Mod denetleniyor ve çevrilebilir metinler bulunuyor…",
+      "creation_prepare": "Mod paketten çıkarılıyor ve çeviri projesi oluşturuluyor…",
+      "folder_help": "ModContent.fpk içeren Steam Workshop Mod klasörünü veya düzenlenebilir bir Mod klasörünü seçin. Remis çevrilebilir metinleri otomatik olarak bulur.",
+      "manual_source_options": "Gelişmiş kaynak seçenekleri",
+      "pending_after_creation": "{{count}} metin adayı incelenmeli. Proje, doğrulanmış metinler için hazır; bu adaylar özgün Mod'da değiştirilmeden kalır.",
+      "review_later_help": "Lua değişikliklerini hazırlamadan veya kapsamın tamamlandığını belirtmeden önce bu adayları inceleyin. Bu projeyi güncellerken aşağıda gösterilen hazırlık çalıştırmasını koruyun."
   }
 ,
 "shell_language_notice.recommendation": "Oyunun desteklemediği bir dile çeviri yaparken ayrı bir proje oluşturmanızı ve bu projeyi yalnızca o dil için kullanmanızı önemle öneririz.",
@@ -3289,5 +3296,86 @@
       "low": "Düşük",
       "unrated": "Değerlendirilmedi"
     }
+  },
+  "workshop_publication": {
+    "account": "Steam hesabı: {{id}}",
+    "app_id": "Steam uygulama kimliği",
+    "approval": "Bu paketin ve meta verilerin, gösterilen Steam hedefine ve hesabına aynen yüklenmesini onaylıyorum; güncelleme sırasında uzaktaki içeriğin değiştirilmesini de onaylıyorum.",
+    "change_note": "Değişiklik notu",
+    "code": {
+      "backend_restarted": "Yayınlama sırasında Remis yeniden başlatıldı. Devam etmeden önce Steam'deki öğeyi doğrulayın.",
+      "packaged_worker_not_configured": "Bu kurulu derlemede Steam yayını kullanılamıyor. Masaüstü entegrasyonu henüz hazır değil.",
+      "steam_legal_agreement_required": "Steam'de Workshop yasal sözleşmesini kabul edin ve öğeyi inceleyin.",
+      "steam_probe_failed": "Steam başlatılamadı. Steam'in çalıştığını, oturum açtığınızı ve seçili oyuna sahip olduğunuzu kontrol edin.",
+      "steam_sdk_incomplete": "Steam yayınlama çalışma zamanı eksik. Yüklemeden önce geliştirme kurulumunu kontrol edin.",
+      "steam_sdk_not_configured": "Steam yayınlama çalışma zamanı yapılandırılmamış. Bu geliştirme derlemesi henüz yükleme yapamaz; çalışma zamanını hazırlamak için geliştirme kılavuzuna bakın.",
+      "steam_submit_confirmed": "Steam, başarılı yükleme geri çağrısı döndürdü.",
+      "steam_submit_rejected": "Steam güncellemeyi reddetti; sonuç kodunu ve Steam'deki öğeyi inceleyin.",
+      "windows_runtime_required": "Geçerli Steam yükleme bağdaştırıcısı Windows x64 gerektirir.",
+      "worker_interrupted": "Steam Worker kesintiye uğradı. Uzak sonuç bilinmiyor."
+    },
+    "custom_app": "Başka bir App ID girin",
+    "file": "Dosya",
+    "file_summary": "{{count}} dosya · {{bytes}} bayt",
+    "history": "Yayınlama geçmişi",
+    "intro": "Test özelliği: çeviri paketlerini hazırlayın ve önizleyin. Doğrudan yükleme şimdilik yapılandırılmış bir test ortamı gerektirir. Kurulu uygulamada yükleme desteği ve gerçek yükleme kabul testleri henüz tamamlanmadı. Önce kaydedilmiş kapak ve açıklama sürümlerini seçin.",
+    "item_id": "Hedef yayımlanmış dosya kimliği",
+    "language": "Steam API dil kodu",
+    "manual_verification_recorded": "Elle doğrulama kaydedildi. Devam etmek için yeni bir önizleme oluşturup onaylayın; bu kayıt Steam tarafından doğrulanmış bir yükleme sonucu değildir.",
+    "mod_title": "Workshop başlığı",
+    "mode": {
+      "create": "Yeni öğe oluştur",
+      "update": "Mevcut öğemi güncelle"
+    },
+    "mode_label": "İşlem",
+    "new_item": "Yeni öğe",
+    "open_item": "Workshop öğesini aç",
+    "output": "Çeviri çıktı paketi",
+    "output_empty": "Mevcut çeviri çıktısı bulunamadı. Bağlı proje için çıktı oluşturun veya Proje Yönetimi'ndeki çıktı dizinini kontrol edin.",
+    "output_loading": "Çıktı paketleri yükleniyor…",
+    "output_placeholder": "Mevcut bir çeviri çıktısı seçin",
+    "preview": "Değiştirilemez yayın önizlemesi oluştur",
+    "record_verification": "Elle doğrulamayı kaydet",
+    "recovery_intro": "Steam'deki Workshop öğesini inceleyip bulduklarınızı kaydedin. Bu işlem yalnızca gözleminizi kaydeder; yükleme yapmaz veya önceki planı yeniden denemez.",
+    "recovery_outcome": "Gözlemlenen uzak sonuç",
+    "refresh": "Durumu yenile",
+    "resolution": {
+      "item_absent": "Öğe yok; yeni oluşturma önizlemesine izin ver",
+      "item_present": "Öğe mevcut; güncelleyerek devam edin"
+    },
+    "setup_configure": "Remis'i başlatmadan önce PowerShell'de SDK dizinini ayarlayın (bu örnek yolu değiştirin). public/steam/steam_api.json ve redistributable_bin/win64/steam_api64.dll dosyalarını içeren sdk klasörünü kullanın; ardından Remis'i yeniden başlatın.",
+    "setup_missing": "Yükleme ortamı hazır değil. Aşağıdaki kurulum adımlarını izleyin; tek başına önizleme yükleme yapmaz.",
+    "setup_package": "Bir proje bağlayın, mevcut bir çeviri çıktısı seçin ve kapak ile açıklama sürümünü kullanıma alın. Oyun otomatik seçilir; devam etmeden önce kontrol edin.",
+    "setup_sdk": "Bu geliştirme derlemesi resmi Steamworks SDK'yı da gerektirir. Bilgisayarınıza indirip çıkarın.",
+    "setup_sdk_link": "Resmi SDK indirme yönergeleri",
+    "setup_steam": "Steam masaüstü istemcisini yükleyip oturum açın. Hesabınız seçili oyuna sahip olmalıdır.",
+    "setup_title": "İlk yükleme: kurulum ve kullanım",
+    "setup_unknown": "Başarılı sayılması için Steam başarı geri çağrısı ve doğru bir Workshop sayfası gerekir. Sonuç bilinmiyorsa veya sözleşme gerekiyorsa başka bir öğe oluşturmadan önce Steam'i inceleyin.",
+    "setup_upload": "İlk testiniz için Oluştur ve Gizli seçeneklerini belirleyin. Önizleme oluşturun, hesabı ve içeriği doğrulayın, ardından onaylayıp yükleyin.",
+    "status": {
+      "failed": "Başarısız",
+      "legal_agreement_required": "Steam sözleşmesi gerekli",
+      "preview": "Onay bekleniyor",
+      "resolved": "Elle doğrulandı",
+      "running": "Yükleniyor",
+      "succeeded": "Steam yüklemeyi doğruladı",
+      "unknown": "Sonuç bilinmiyor"
+    },
+    "submit": "Onayla ve yükle",
+    "tags": "Etiketler (virgülle ayrılır)",
+    "tags_hint": "Önerilen bir etiketi seçin veya kendiniz yazıp eklemek için Enter'a basın. Etiketleri virgülle de ayırabilirsiniz.",
+    "target_summary": "App {{app}} · Öğe {{item}} · {{visibility}}",
+    "target_warning": "Kendi çeviri öğenizin kimliğini girin. Özgün Mod'un kimliği otomatik seçilmez.",
+    "title": "Steam Workshop'ta yayınla (Beta)",
+    "validation_scope": "{{count}} yerelleştirme girdisi Paradox ayrıştırıcısı ve kaynak belirteci doğrulayıcısıyla kontrol edildi. Oyun içi davranış doğrulanmadı.",
+    "verification_approval": "Steam'deki öğeyi inceledim ve bu sonucu doğruladım; gerekiyorsa Workshop sözleşmesini kabul ettim.",
+    "verify_remote": "Başka bir yayınlamadan önce bu öğeyi Steam'de doğrulayın. Sonucu belirsiz olan bir oluşturma işlemini yeniden denemeyin. Steam, Workshop sözleşmesini kabul etmenizi isteyebilir.",
+    "visibility": {
+      "friends_only": "Yalnızca arkadaşlar",
+      "private": "Gizli",
+      "public": "Herkese açık",
+      "unlisted": "Liste dışı"
+    },
+    "visibility_label": "Görünürlük"
   }
 }

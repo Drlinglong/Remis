@@ -11,6 +11,9 @@ vi.mock('react-i18next', () => ({
 vi.mock('../hooks/useMarsPipelineImport', () => ({
   useMarsPipelineImport: vi.fn(),
 }));
+vi.mock('../hooks/useMarsProjectCreation', () => ({
+  useMarsProjectCreation: () => ({ busy: false, error: '', create: vi.fn() }),
+}));
 vi.mock('../hooks/useMarsPipelineDelivery', () => ({
   useMarsPipelineDelivery: vi.fn(),
 }));
@@ -36,7 +39,7 @@ describe('Mars pipeline components', () => {
       saving: false, error: '', updateSteamId: vi.fn(), bind: vi.fn() });
   });
 
-  it('keeps FPK preparation behind an explicit Surviving Mars action', async () => {
+  it('uses the same name, folder and language form for Mars without opening another window', async () => {
     useMarsPipelineImport.mockReturnValue({
       path: '', name: 'Example Mod', previousRun: '', deliveryMode: 'source_copy',
       plan: null, busy: false, error: '', approved: [],
@@ -56,11 +59,11 @@ describe('Mars pipeline components', () => {
 
     renderWithMantine(<CreateProjectModal {...props} />);
     expect(useMarsPipelineImport).toHaveBeenCalledWith(expect.anything(), 'Example Mod', 'en');
-    expect(screen.getByRole('button', { name: 'Open FPK preparation' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Reopen FPK preparation' })).toBeInTheDocument();
-    expect(screen.queryByLabelText('Folder path')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Open FPK preparation' })).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Folder path')).toBeInTheDocument();
     expect(screen.getAllByDisplayValue('Example Mod')).toHaveLength(1);
-    fireEvent.click(screen.getByRole('button', { name: 'Open FPK preparation' }));
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Advanced source options' }));
     expect(await screen.findByText('Remis extracts the complete FPK into an isolated project. It leaves the archive and installed Mods unchanged.')).toBeInTheDocument();
     expect(screen.getAllByDisplayValue('Example Mod')).toHaveLength(1);
   });
@@ -157,6 +160,7 @@ describe('Mars pipeline components', () => {
     expect(screen.getByRole('button', { name: 'Review 41 remaining text candidates' })).toBeInTheDocument();
     expect(screen.getByText('Hidden candidate 0')).not.toBeVisible();
     expect(screen.getAllByRole('alert')).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Create isolated translation project' })).toBeEnabled();
   });
 
   it('keeps export disabled when the source-copy preview has blockers', () => {

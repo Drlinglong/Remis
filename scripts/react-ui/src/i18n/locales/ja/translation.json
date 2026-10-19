@@ -114,7 +114,14 @@
     "publication_id": "Workshop アイテム ID",
     "publication_local_only": "このプロジェクト用にローカル保存しました。Steam へのアップロードや変更は行いません。",
     "publication_locked": "この Workshop の関連付けは Remis でロックされています。",
-    "publication_bind": "Workshop アイテムの関連付けを保存"
+    "publication_bind": "Workshop アイテムの関連付けを保存",
+      "automatic_help": "Remis は Mod を展開し、分離されたプロジェクト内でテキストを準備します。不確かなテキスト候補は変更せず、作成後に確認対象として表示します。",
+      "creation_inspect": "Mod を確認し、翻訳対象のテキストを検出しています…",
+      "creation_prepare": "Mod を展開し、翻訳プロジェクトを作成しています…",
+      "folder_help": "ModContent.fpk を含む Steam Workshop の Mod フォルダー、または編集可能な Mod フォルダーを選択してください。Remis が翻訳対象テキストを自動で検出します。",
+      "manual_source_options": "詳細なソース設定",
+      "pending_after_creation": "{{count}} 件のテキスト候補を確認する必要があります。確定済みテキストのプロジェクトは準備できています。これらの候補は元の Mod で変更されません。",
+      "review_later_help": "Lua の変更を準備したり、網羅できたと判断したりする前に候補を確認してください。このプロジェクトを更新するときは、下に表示されている準備実行を維持してください。"
   }
 ,
 "shell_language_notice.recommendation": "ゲームが対応していない言語への翻訳には、専用のプロジェクトを新しく作り、その言語だけを管理することを強くおすすめします。",
@@ -3294,5 +3301,86 @@
       "low": "低",
       "unrated": "未評価"
     }
+  },
+  "workshop_publication": {
+    "account": "Steam アカウント: {{id}}",
+    "app_id": "Steam アプリ ID",
+    "approval": "表示されている Steam の送信先とアカウントに、このパッケージとメタデータをそのままアップロードすることを承認します。更新時にリモートの内容を置き換えることも承認します。",
+    "change_note": "更新メモ",
+    "code": {
+      "backend_restarted": "公開処理中に Remis が再起動しました。続行する前に Steam 上の項目を確認してください。",
+      "packaged_worker_not_configured": "このインストール版では Steam への公開を利用できません。デスクトップ連携はまだ準備中です。",
+      "steam_legal_agreement_required": "Steam で Workshop の利用規約に同意し、項目を確認してください。",
+      "steam_probe_failed": "Steam の初期化に失敗しました。Steam が起動中で、サインイン済みであり、選択したゲームを所有していることを確認してください。",
+      "steam_sdk_incomplete": "Steam 公開ランタイムが不完全です。アップロードする前に開発環境の設定を確認してください。",
+      "steam_sdk_not_configured": "Steam 公開ランタイムが設定されていません。この開発版ではまだアップロードできません。ランタイムの準備方法は開発ガイドを確認してください。",
+      "steam_submit_confirmed": "Steam からアップロード成功のコールバックが返されました。",
+      "steam_submit_rejected": "Steam が更新を拒否しました。結果コードと Steam 上の項目を確認してください。",
+      "windows_runtime_required": "現在の Steam アップロードアダプターには Windows x64 が必要です。",
+      "worker_interrupted": "Steam Worker が中断されました。リモートでの結果は不明です。"
+    },
+    "custom_app": "別の App ID を入力",
+    "file": "ファイル",
+    "file_summary": "{{count}} ファイル · {{bytes}} バイト",
+    "history": "公開履歴",
+    "intro": "テスト機能：翻訳パッケージの準備とプレビューができます。直接アップロードは、現在、設定済みのテスト環境に限られます。インストール版のアップロード対応と実際のアップロード検証は未完了です。先に保存済みのカバー画像と説明のバージョンを選択してください。",
+    "item_id": "公開先のファイル ID",
+    "language": "Steam API の言語コード",
+    "manual_verification_recorded": "手動確認を記録しました。続行するには新しいプレビューを作成して承認してください。この記録は Steam が確認したアップロード結果ではありません。",
+    "mod_title": "Workshop のタイトル",
+    "mode": {
+      "create": "新しい項目を作成",
+      "update": "既存の項目を更新"
+    },
+    "mode_label": "操作",
+    "new_item": "新しい項目",
+    "open_item": "Workshop の項目を開く",
+    "output": "翻訳出力パッケージ",
+    "output_empty": "既存の翻訳出力が見つかりません。紐付けられたプロジェクトの出力を生成するか、プロジェクト管理で出力フォルダーを確認してください。",
+    "output_loading": "出力パッケージを読み込んでいます…",
+    "output_placeholder": "既存の翻訳出力を選択",
+    "preview": "変更できない公開プレビューを作成",
+    "record_verification": "手動確認を記録",
+    "recovery_intro": "Steam で Workshop の項目を確認し、確認した内容を登録します。これは観察内容の記録のみで、アップロードや前回のプランの再試行は行いません。",
+    "recovery_outcome": "確認したリモートの結果",
+    "refresh": "状態を更新",
+    "resolution": {
+      "item_absent": "項目が存在しません。新規作成のプレビューに進めます",
+      "item_present": "項目が存在します。更新して続行してください"
+    },
+    "setup_configure": "Remis を起動する前に、PowerShell で SDK ディレクトリを設定してください（この例のパスは置き換えてください）。public/steam/steam_api.json と redistributable_bin/win64/steam_api64.dll を含む sdk フォルダーを指定し、その後 Remis を再起動してください。",
+    "setup_missing": "アップロード環境がまだ準備できていません。以下の手順に従ってください。プレビューを作成しただけではアップロードされません。",
+    "setup_package": "プロジェクトを紐付け、既存の翻訳出力を選び、カバー画像と説明のバージョンを適用してください。ゲームは自動選択されます。続行前に確認してください。",
+    "setup_sdk": "この開発版では公式 Steamworks SDK も必要です。PC にダウンロードして展開してください。",
+    "setup_sdk_link": "公式 SDK のダウンロード手順",
+    "setup_steam": "Steam デスクトップクライアントをインストールしてサインインしてください。アカウントは選択したゲームを所有している必要があります。",
+    "setup_title": "初回アップロード: 設定と手順",
+    "setup_unknown": "成功には Steam の成功コールバックと正しい Workshop ページの両方が必要です。結果が不明な場合や規約への同意が必要な場合は、別の項目を作成する前に Steam を確認してください。",
+    "setup_upload": "初回テストでは「新規作成」と「非公開」を選択してください。プレビューを作成し、アカウントと内容を確認してから承認してアップロードします。",
+    "status": {
+      "failed": "失敗",
+      "legal_agreement_required": "Steam の規約への同意が必要です",
+      "preview": "承認待ち",
+      "resolved": "手動確認済み",
+      "running": "アップロード中",
+      "succeeded": "Steam がアップロードを確認済み",
+      "unknown": "結果不明"
+    },
+    "submit": "承認してアップロード",
+    "tags": "タグ（カンマ区切り）",
+    "tags_hint": "候補からタグを選ぶか、入力して Enter キーで追加してください。カンマでもタグを区切れます。",
+    "target_summary": "App {{app}} · 項目 {{item}} · {{visibility}}",
+    "target_warning": "翻訳した Mod 項目の ID を入力してください。元の Mod の ID は自動選択されません。",
+    "title": "Steam Workshop に公開（テスト）",
+    "validation_scope": "Paradox パーサーとソーストークン検証器で {{count}} 件のローカライズ項目を確認しました。ゲーム内の動作は検証していません。",
+    "verification_approval": "Steam で項目を確認し、この結果を確認しました。必要な Workshop の規約にも同意しました。",
+    "verify_remote": "次に公開する前に Steam でこの項目を確認してください。結果が不明な新規作成を再試行しないでください。Steam で Workshop の規約への同意が必要な場合があります。",
+    "visibility": {
+      "friends_only": "フレンドのみ",
+      "private": "非公開",
+      "public": "公開",
+      "unlisted": "一覧に表示しない"
+    },
+    "visibility_label": "公開範囲"
   }
 }

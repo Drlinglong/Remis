@@ -1,0 +1,15 @@
+.preview :global(.mantine-Code-root) {
+  background: var(--menu-bg) !important;
+  color: var(--menu-text) !important;
+}
+
+.preview :global(.mantine-Table-th),
+.preview :global(.mantine-Table-td) {
+  background: var(--paper-bg) !important;
+  color: var(--paper-text-main) !important;
+}
+
+.outcome :global(.mantine-Text-root) {
+  color: var(--remis-content-text, var(--canvas-text-main)) !important;
+  background: transparent !important;
+}

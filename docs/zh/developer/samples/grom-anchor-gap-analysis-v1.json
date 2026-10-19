@@ -1,0 +1,2002 @@
+{
+  "schema_version": "grom-anchor-gap-analysis/1",
+  "scope": "Read-only v1 re-analysis, not a change to decision library or Remis",
+  "lua_decisions": 46,
+  "categories": {
+    "extraction_missing_display_literal": 18,
+    "genuine_indistinguishable_anonymous_siblings": 8,
+    "extraction_missing_named_object_id": 6,
+    "extraction_missing_named_object_id_and_property_path": 6,
+    "rule_extension_control_flow_role": 6,
+    "extraction_missing_moditem_name_identity": 2
+  },
+  "extraction_incomplete": 32,
+  "control_flow_extension": 6,
+  "irreducible_anonymous_sites": 8,
+  "resolved_after_proposed_extraction_and_role_extension": 38,
+  "rows": [
+    {
+      "decision_id": "grom-review-v1-0005",
+      "target_file": "Code/XDef/FastOptionsWindow.generated.lua",
+      "category": "extraction_missing_display_literal",
+      "original_match_count": 11,
+      "proposed_context": {
+        "visible_text": [
+          "Disable voiced \"Heavy Shuttle workload\""
+        ],
+        "owners": [
+          {
+            "kind": "Method",
+            "name": "FastOptionsWindow:Init"
+          }
+        ],
+        "field_path": [
+          "Text"
+        ],
+        "operation_target_role": "named_property",
+        "outer_parameter": {
+          "call": "XTextButton:new",
+          "ordinal": 1
+        },
+        "control_flow": []
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "e4873680d1f2bb683109dbd1be0d31db5312eb945112b83f1ef61fc90bbd660e"
+      ],
+      "ast_path_reference": "$/body/body[2]/body/body[6]/args[0]/fields[18]"
+    },
+    {
+      "decision_id": "grom-review-v1-0006",
+      "target_file": "Code/XDef/FastOptionsWindow.generated.lua",
+      "category": "extraction_missing_display_literal",
+      "original_match_count": 11,
+      "proposed_context": {
+        "visible_text": [
+          "Disable \"Heavy Drone Workload\" for Rockets"
+        ],
+        "owners": [
+          {
+            "kind": "Method",
+            "name": "FastOptionsWindow:Init"
+          }
+        ],
+        "field_path": [
+          "Text"
+        ],
+        "operation_target_role": "named_property",
+        "outer_parameter": {
+          "call": "XTextButton:new",
+          "ordinal": 1
+        },
+        "control_flow": []
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "c09982c36cf45d9aa91a5c53bced3a7dd4d155347a4b13aada1fee14659084a6"
+      ],
+      "ast_path_reference": "$/body/body[2]/body/body[7]/args[0]/fields[18]"
+    },
+    {
+      "decision_id": "grom-review-v1-0007",
+      "target_file": "Code/XDef/FastOptionsWindow.generated.lua",
+      "category": "extraction_missing_display_literal",
+      "original_match_count": 11,
+      "proposed_context": {
+        "visible_text": [
+          "Disable voiced \"Split Power Grid\""
+        ],
+        "owners": [
+          {
+            "kind": "Method",
+            "name": "FastOptionsWindow:Init"
+          }
+        ],
+        "field_path": [
+          "Text"
+        ],
+        "operation_target_role": "named_property",
+        "outer_parameter": {
+          "call": "XTextButton:new",
+          "ordinal": 1
+        },
+        "control_flow": []
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "f37feb8adbf49ea8398d807e8f9ca803f6884f00b368c2af290eb37152073d68"
+      ],
+      "ast_path_reference": "$/body/body[2]/body/body[8]/args[0]/fields[17]"
+    },
+    {
+      "decision_id": "grom-review-v1-0008",
+      "target_file": "Code/XDef/FastOptionsWindow.generated.lua",
+      "category": "extraction_missing_display_literal",
+      "original_match_count": 11,
+      "proposed_context": {
+        "visible_text": [
+          "Disable voiced \"Rocket has arrived\""
+        ],
+        "owners": [
+          {
+            "kind": "Method",
+            "name": "FastOptionsWindow:Init"
+          }
+        ],
+        "field_path": [
+          "Text"
+        ],
+        "operation_target_role": "named_property",
+        "outer_parameter": {
+          "call": "XTextButton:new",
+          "ordinal": 1
+        },
+        "control_flow": []
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "4762f733fe136f34f4d9637433006f5907e3e1f3fb9ec3c494e9d13192b07607"
+      ],
+      "ast_path_reference": "$/body/body[2]/body/body[9]/args[0]/fields[17]"
+    },
+    {
+      "decision_id": "grom-review-v1-0009",
+      "target_file": "Code/XDef/FastOptionsWindow.generated.lua",
+      "category": "extraction_missing_display_literal",
+      "original_match_count": 11,
+      "proposed_context": {
+        "visible_text": [
+          "Disable voiced \"Colonists have arrived\""
+        ],
+        "owners": [
+          {
+            "kind": "Method",
+            "name": "FastOptionsWindow:Init"
+          }
+        ],
+        "field_path": [
+          "Text"
+        ],
+        "operation_target_role": "named_property",
+        "outer_parameter": {
+          "call": "XTextButton:new",
+          "ordinal": 1
+        },
+        "control_flow": []
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "57f23ff6fea1d01e7d97e69838270626f334e76f5a26d6bb2cb5cb42d2c9c2c1"
+      ],
+      "ast_path_reference": "$/body/body[2]/body/body[10]/args[0]/fields[17]"
+    },
+    {
+      "decision_id": "grom-review-v1-0010",
+      "target_file": "Code/XDef/FastOptionsWindow.generated.lua",
+      "category": "extraction_missing_display_literal",
+      "original_match_count": 11,
+      "proposed_context": {
+        "visible_text": [
+          "Disable voiced \"Sector scanned\""
+        ],
+        "owners": [
+          {
+            "kind": "Method",
+            "name": "FastOptionsWindow:Init"
+          }
+        ],
+        "field_path": [
+          "Text"
+        ],
+        "operation_target_role": "named_property",
+        "outer_parameter": {
+          "call": "XTextButton:new",
+          "ordinal": 1
+        },
+        "control_flow": []
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "0a715f34780b891c8fa4bd94156e131dd990d737a8a0c5568239e3d16fb2f8cb"
+      ],
+      "ast_path_reference": "$/body/body[2]/body/body[11]/args[0]/fields[17]"
+    },
+    {
+      "decision_id": "grom-review-v1-0012",
+      "target_file": "Code/XDef/FastOptionsWindow.generated.lua",
+      "category": "genuine_indistinguishable_anonymous_siblings",
+      "original_match_count": 4,
+      "proposed_context": {
+        "visible_text": [
+          "Button"
+        ],
+        "owners": [
+          {
+            "kind": "Method",
+            "name": "FastOptionsWindow:Init"
+          }
+        ],
+        "field_path": [
+          "Text"
+        ],
+        "operation_target_role": "node",
+        "outer_parameter": {
+          "call": "XTextButton:new",
+          "ordinal": 1
+        },
+        "control_flow": []
+      },
+      "proposed_match_count": 4,
+      "same_context_original_code_hashes": [
+        "6155e37f26790fb058aa85d4dcb7390320bde3986733c348dab16ec76f28cfa3",
+        "6155e37f26790fb058aa85d4dcb7390320bde3986733c348dab16ec76f28cfa3",
+        "6155e37f26790fb058aa85d4dcb7390320bde3986733c348dab16ec76f28cfa3",
+        "6155e37f26790fb058aa85d4dcb7390320bde3986733c348dab16ec76f28cfa3"
+      ],
+      "ast_path_reference": "$/body/body[2]/body/body[16]/args[0]"
+    },
+    {
+      "decision_id": "grom-review-v1-0013",
+      "target_file": "Code/XDef/FastOptionsWindow.generated.lua",
+      "category": "genuine_indistinguishable_anonymous_siblings",
+      "original_match_count": 4,
+      "proposed_context": {
+        "visible_text": [
+          "Button"
+        ],
+        "owners": [
+          {
+            "kind": "Method",
+            "name": "FastOptionsWindow:Init"
+          }
+        ],
+        "field_path": [
+          "Text"
+        ],
+        "operation_target_role": "node",
+        "outer_parameter": {
+          "call": "XTextButton:new",
+          "ordinal": 1
+        },
+        "control_flow": []
+      },
+      "proposed_match_count": 4,
+      "same_context_original_code_hashes": [
+        "6155e37f26790fb058aa85d4dcb7390320bde3986733c348dab16ec76f28cfa3",
+        "6155e37f26790fb058aa85d4dcb7390320bde3986733c348dab16ec76f28cfa3",
+        "6155e37f26790fb058aa85d4dcb7390320bde3986733c348dab16ec76f28cfa3",
+        "6155e37f26790fb058aa85d4dcb7390320bde3986733c348dab16ec76f28cfa3"
+      ],
+      "ast_path_reference": "$/body/body[2]/body/body[17]/args[0]"
+    },
+    {
+      "decision_id": "grom-review-v1-0014",
+      "target_file": "Code/XDef/FastOptionsWindow.generated.lua",
+      "category": "genuine_indistinguishable_anonymous_siblings",
+      "original_match_count": 4,
+      "proposed_context": {
+        "visible_text": [
+          "Button"
+        ],
+        "owners": [
+          {
+            "kind": "Method",
+            "name": "FastOptionsWindow:Init"
+          }
+        ],
+        "field_path": [
+          "Text"
+        ],
+        "operation_target_role": "node",
+        "outer_parameter": {
+          "call": "XTextButton:new",
+          "ordinal": 1
+        },
+        "control_flow": []
+      },
+      "proposed_match_count": 4,
+      "same_context_original_code_hashes": [
+        "6155e37f26790fb058aa85d4dcb7390320bde3986733c348dab16ec76f28cfa3",
+        "6155e37f26790fb058aa85d4dcb7390320bde3986733c348dab16ec76f28cfa3",
+        "6155e37f26790fb058aa85d4dcb7390320bde3986733c348dab16ec76f28cfa3",
+        "6155e37f26790fb058aa85d4dcb7390320bde3986733c348dab16ec76f28cfa3"
+      ],
+      "ast_path_reference": "$/body/body[2]/body/body[18]/args[0]"
+    },
+    {
+      "decision_id": "grom-review-v1-0015",
+      "target_file": "Code/XDef/FastOptionsWindow.generated.lua",
+      "category": "genuine_indistinguishable_anonymous_siblings",
+      "original_match_count": 4,
+      "proposed_context": {
+        "visible_text": [
+          "Button"
+        ],
+        "owners": [
+          {
+            "kind": "Method",
+            "name": "FastOptionsWindow:Init"
+          }
+        ],
+        "field_path": [
+          "Text"
+        ],
+        "operation_target_role": "node",
+        "outer_parameter": {
+          "call": "XTextButton:new",
+          "ordinal": 1
+        },
+        "control_flow": []
+      },
+      "proposed_match_count": 4,
+      "same_context_original_code_hashes": [
+        "6155e37f26790fb058aa85d4dcb7390320bde3986733c348dab16ec76f28cfa3",
+        "6155e37f26790fb058aa85d4dcb7390320bde3986733c348dab16ec76f28cfa3",
+        "6155e37f26790fb058aa85d4dcb7390320bde3986733c348dab16ec76f28cfa3",
+        "6155e37f26790fb058aa85d4dcb7390320bde3986733c348dab16ec76f28cfa3"
+      ],
+      "ast_path_reference": "$/body/body[2]/body/body[19]/args[0]"
+    },
+    {
+      "decision_id": "grom-review-v1-0043",
+      "target_file": "Code/encyclopedia.lua",
+      "category": "extraction_missing_named_object_id",
+      "original_match_count": 3,
+      "proposed_context": {
+        "visible_text": [
+          "<text>"
+        ],
+        "owners": [
+          {
+            "kind": "Function",
+            "name": "OnMsg.ReadyToMod"
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "EncyclopediaArticle",
+            "identity": {
+              "id": "TradePads"
+            }
+          }
+        ],
+        "field_path": [
+          "text"
+        ],
+        "operation_target_role": "node",
+        "outer_parameter": {
+          "call": "PlaceObj",
+          "ordinal": 2
+        },
+        "control_flow": []
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "b27a33e16840013d9f5bfe4eb1b487119955119dba720deabe067850a0bf67ea"
+      ],
+      "ast_path_reference": "$/body/body[1]/body/body[5]/args[1]/fields[3]/value"
+    },
+    {
+      "decision_id": "grom-review-v1-0044",
+      "target_file": "Code/encyclopedia.lua",
+      "category": "extraction_missing_named_object_id",
+      "original_match_count": 3,
+      "proposed_context": {
+        "visible_text": [
+          "<text>"
+        ],
+        "owners": [
+          {
+            "kind": "Function",
+            "name": "OnMsg.ReadyToMod"
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "EncyclopediaArticle",
+            "identity": {
+              "id": "DronePrefabs"
+            }
+          }
+        ],
+        "field_path": [
+          "text"
+        ],
+        "operation_target_role": "node",
+        "outer_parameter": {
+          "call": "PlaceObj",
+          "ordinal": 2
+        },
+        "control_flow": []
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "dc4086fac83d008e649717640888f01cdf1bacb416a29f419758b4804554ad8c"
+      ],
+      "ast_path_reference": "$/body/body[1]/body/body[6]/args[1]/fields[3]/value"
+    },
+    {
+      "decision_id": "grom-review-v1-0045",
+      "target_file": "Code/encyclopedia.lua",
+      "category": "extraction_missing_named_object_id",
+      "original_match_count": 3,
+      "proposed_context": {
+        "visible_text": [
+          "<text>"
+        ],
+        "owners": [
+          {
+            "kind": "Function",
+            "name": "OnMsg.ReadyToMod"
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "EncyclopediaArticle",
+            "identity": {
+              "id": "Stirlings"
+            }
+          }
+        ],
+        "field_path": [
+          "text"
+        ],
+        "operation_target_role": "node",
+        "outer_parameter": {
+          "call": "PlaceObj",
+          "ordinal": 2
+        },
+        "control_flow": []
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "b69c51fc82df7ec38f0fe6d1d9e5ddc22915a7f0b3a7ffab64d7f5175232e1d8"
+      ],
+      "ast_path_reference": "$/body/body[1]/body/body[7]/args[1]/fields[3]/value"
+    },
+    {
+      "decision_id": "grom-review-v1-0062",
+      "target_file": "Code/notifications.lua",
+      "category": "extraction_missing_named_object_id_and_property_path",
+      "original_match_count": 3,
+      "proposed_context": {
+        "visible_text": [
+          "<display_name>"
+        ],
+        "owners": [
+          {
+            "kind": "Function",
+            "name": "OnMsg.ClassesPostprocess"
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "NotificationPreset",
+            "identity": {
+              "id": "RoverAlarm"
+            }
+          }
+        ],
+        "field_path": [
+          "GetObjectItem",
+          "ItemText"
+        ],
+        "operation_target_role": "node",
+        "outer_parameter": {
+          "call": "SubContext",
+          "ordinal": 2
+        },
+        "control_flow": [
+          {
+            "kind": "If",
+            "test_expression": "not table.find(Presets.NotificationPreset.Grom,\"id\",\"RoverAlarm\")",
+            "edge": "body"
+          }
+        ]
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "e805bb86e5195fd7513491549f907f9def52d193b78f266d8d8701c534a8a243"
+      ],
+      "ast_path_reference": "$/body/body[2]/body/body[0]/body/body[0]/args[1]/fields[3]/value/body/body[0]/values[0]/args[1]/fields[1]/value"
+    },
+    {
+      "decision_id": "grom-review-v1-0063",
+      "target_file": "Code/notifications.lua",
+      "category": "extraction_missing_named_object_id_and_property_path",
+      "original_match_count": 3,
+      "proposed_context": {
+        "visible_text": [
+          "<display_name>"
+        ],
+        "owners": [
+          {
+            "kind": "Function",
+            "name": "OnMsg.ClassesPostprocess"
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "NotificationPreset",
+            "identity": {
+              "id": "NanoScanCompleted"
+            }
+          }
+        ],
+        "field_path": [
+          "GetObjectItem",
+          "ItemText"
+        ],
+        "operation_target_role": "node",
+        "outer_parameter": {
+          "call": "SubContext",
+          "ordinal": 2
+        },
+        "control_flow": [
+          {
+            "kind": "If",
+            "test_expression": "not table.find(Presets.NotificationPreset.Grom,\"id\",\"NanoScanCompleted\")",
+            "edge": "body"
+          }
+        ]
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "e805bb86e5195fd7513491549f907f9def52d193b78f266d8d8701c534a8a243"
+      ],
+      "ast_path_reference": "$/body/body[2]/body/body[1]/body/body[0]/args[1]/fields[4]/value/body/body[0]/values[0]/args[1]/fields[2]/value"
+    },
+    {
+      "decision_id": "grom-review-v1-0064",
+      "target_file": "Code/notifications.lua",
+      "category": "extraction_missing_named_object_id_and_property_path",
+      "original_match_count": 3,
+      "proposed_context": {
+        "visible_text": [
+          "<display_name>"
+        ],
+        "owners": [
+          {
+            "kind": "Function",
+            "name": "OnMsg.ClassesPostprocess"
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "NotificationPreset",
+            "identity": {
+              "id": "GromNewTech"
+            }
+          }
+        ],
+        "field_path": [
+          "GetObjectItem",
+          "ItemText"
+        ],
+        "operation_target_role": "node",
+        "outer_parameter": {
+          "call": "SubContext",
+          "ordinal": 2
+        },
+        "control_flow": [
+          {
+            "kind": "If",
+            "test_expression": "not table.find(Presets.NotificationPreset.Grom,\"id\",\"GromNewTech\")",
+            "edge": "body"
+          }
+        ]
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "e805bb86e5195fd7513491549f907f9def52d193b78f266d8d8701c534a8a243"
+      ],
+      "ast_path_reference": "$/body/body[3]/body/body[0]/body/body[0]/args[1]/fields[2]/value/body/body[0]/values[0]/args[1]/fields[2]/value"
+    },
+    {
+      "decision_id": "grom-review-v1-0100",
+      "target_file": "Code/speed.lua",
+      "category": "rule_extension_control_flow_role",
+      "original_match_count": 2,
+      "proposed_context": {
+        "visible_text": [
+          "<center>You are currently playing at speed <cur><newline><newline>"
+        ],
+        "owners": [
+          {
+            "kind": "Function",
+            "name": "getSpeedRolloverText"
+          }
+        ],
+        "field_path": [],
+        "operation_target_role": "node",
+        "outer_parameter": null,
+        "control_flow": [
+          {
+            "kind": "If",
+            "test_expression": "curSpeed == math.floor(curSpeed)",
+            "edge": "body"
+          }
+        ]
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "bdc4af028fa7b7ca41610f13a4dec331bea204190b6182f76e2af79926933ab3"
+      ],
+      "ast_path_reference": "$/body/body[7]/body/body[3]/body/body[0]/values[0]"
+    },
+    {
+      "decision_id": "grom-review-v1-0101",
+      "target_file": "Code/speed.lua",
+      "category": "rule_extension_control_flow_role",
+      "original_match_count": 2,
+      "proposed_context": {
+        "visible_text": [
+          "<center>You are currently playing at speed <cur><newline><newline>"
+        ],
+        "owners": [
+          {
+            "kind": "Function",
+            "name": "getSpeedRolloverText"
+          }
+        ],
+        "field_path": [],
+        "operation_target_role": "node",
+        "outer_parameter": null,
+        "control_flow": [
+          {
+            "kind": "If",
+            "test_expression": "curSpeed == math.floor(curSpeed)",
+            "edge": "orelse"
+          }
+        ]
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "5ed91cd19421811215f09cc04571bbb9d09e3bbf342c7c2f42e73d3d7bfa11e2"
+      ],
+      "ast_path_reference": "$/body/body[7]/body/body[3]/orelse/body[0]/values[0]"
+    },
+    {
+      "decision_id": "grom-review-v1-0102",
+      "target_file": "Code/speed.lua",
+      "category": "rule_extension_control_flow_role",
+      "original_match_count": 4,
+      "proposed_context": {
+        "visible_text": [
+          "<center><orange>Play at speed <sp></orange>"
+        ],
+        "owners": [
+          {
+            "kind": "Function",
+            "name": "getSpeedRolloverText"
+          }
+        ],
+        "field_path": [],
+        "operation_target_role": "node",
+        "outer_parameter": null,
+        "control_flow": [
+          {
+            "kind": "If",
+            "test_expression": "button == \"slow\"",
+            "edge": "body"
+          }
+        ]
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "7b80b55c13e73e48ace5ed76dabbb84966c9f9831b960d2ed713a9645cb8ec6e"
+      ],
+      "ast_path_reference": "$/body/body[7]/body/body[4]/body/body[0]/values[0]/right"
+    },
+    {
+      "decision_id": "grom-review-v1-0103",
+      "target_file": "Code/speed.lua",
+      "category": "rule_extension_control_flow_role",
+      "original_match_count": 4,
+      "proposed_context": {
+        "visible_text": [
+          "<center><orange>Play at speed <sp></orange>"
+        ],
+        "owners": [
+          {
+            "kind": "Function",
+            "name": "getSpeedRolloverText"
+          }
+        ],
+        "field_path": [],
+        "operation_target_role": "node",
+        "outer_parameter": null,
+        "control_flow": [
+          {
+            "kind": "If",
+            "test_expression": "button == \"slow\"",
+            "edge": "orelse"
+          },
+          {
+            "kind": "ElseIf",
+            "test_expression": "button == \"normal\"",
+            "edge": "body"
+          }
+        ]
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "e173460fdbc375494e2c3d33921b32d4094888b4e2c1a91639ef5402c0430b4b"
+      ],
+      "ast_path_reference": "$/body/body[7]/body/body[4]/orelse/body/body[0]/values[0]/right"
+    },
+    {
+      "decision_id": "grom-review-v1-0104",
+      "target_file": "Code/speed.lua",
+      "category": "rule_extension_control_flow_role",
+      "original_match_count": 4,
+      "proposed_context": {
+        "visible_text": [
+          "<center><orange>Play at speed <sp></orange>"
+        ],
+        "owners": [
+          {
+            "kind": "Function",
+            "name": "getSpeedRolloverText"
+          }
+        ],
+        "field_path": [],
+        "operation_target_role": "node",
+        "outer_parameter": null,
+        "control_flow": [
+          {
+            "kind": "If",
+            "test_expression": "button == \"slow\"",
+            "edge": "orelse"
+          },
+          {
+            "kind": "ElseIf",
+            "test_expression": "button == \"normal\"",
+            "edge": "orelse"
+          },
+          {
+            "kind": "ElseIf",
+            "test_expression": "button == \"medium\"",
+            "edge": "body"
+          }
+        ]
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "b5d42b8b184263a3e5a1b055c37411fde644e798f8d4afc96ee128f60cd9ec8a"
+      ],
+      "ast_path_reference": "$/body/body[7]/body/body[4]/orelse/orelse/body/body[0]/values[0]/right"
+    },
+    {
+      "decision_id": "grom-review-v1-0105",
+      "target_file": "Code/speed.lua",
+      "category": "rule_extension_control_flow_role",
+      "original_match_count": 4,
+      "proposed_context": {
+        "visible_text": [
+          "<center><orange>Play at speed <sp></orange>"
+        ],
+        "owners": [
+          {
+            "kind": "Function",
+            "name": "getSpeedRolloverText"
+          }
+        ],
+        "field_path": [],
+        "operation_target_role": "node",
+        "outer_parameter": null,
+        "control_flow": [
+          {
+            "kind": "If",
+            "test_expression": "button == \"slow\"",
+            "edge": "orelse"
+          },
+          {
+            "kind": "ElseIf",
+            "test_expression": "button == \"normal\"",
+            "edge": "orelse"
+          },
+          {
+            "kind": "ElseIf",
+            "test_expression": "button == \"medium\"",
+            "edge": "orelse"
+          },
+          {
+            "kind": "ElseIf",
+            "test_expression": "button == \"fast\"",
+            "edge": "body"
+          }
+        ]
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "67c4a1ec61718ee62e3dbc0c85df00876485b886c5d3140af2c1166a19b5d45d"
+      ],
+      "ast_path_reference": "$/body/body[7]/body/body[4]/orelse/orelse/orelse/body/body[0]/values[0]/right"
+    },
+    {
+      "decision_id": "grom-review-v1-0126",
+      "target_file": "Data/XDef/FastOptionsWindow.lua",
+      "category": "extraction_missing_display_literal",
+      "original_match_count": 368,
+      "proposed_context": {
+        "visible_text": [
+          "Disable voiced \"Heavy Shuttle workload\""
+        ],
+        "owners": [
+          {
+            "kind": "PlaceObj",
+            "class": "ModItemXDef",
+            "identity": {
+              "id": "FastOptionsWindow"
+            }
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "XDefWindowRoot",
+            "identity": {}
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "XDefWindow",
+            "identity": {
+              "__class": "XTextButton"
+            }
+          }
+        ],
+        "field_path": [
+          "Text"
+        ],
+        "operation_target_role": "property_key",
+        "outer_parameter": {
+          "call": "PlaceObj",
+          "ordinal": 2
+        },
+        "control_flow": []
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "ddcd8b0aea6aa2a90a78c2574006e4c403d746b34285207e9647ee6e65b868f0"
+      ],
+      "ast_path_reference": "$/body/body[0]/args[1]/fields[4]/value/args[2]/fields[6]/value/args[1]/fields[38]"
+    },
+    {
+      "decision_id": "grom-review-v1-0127",
+      "target_file": "Data/XDef/FastOptionsWindow.lua",
+      "category": "extraction_missing_display_literal",
+      "original_match_count": 11,
+      "proposed_context": {
+        "visible_text": [
+          "Disable voiced \"Heavy Shuttle workload\""
+        ],
+        "owners": [
+          {
+            "kind": "PlaceObj",
+            "class": "ModItemXDef",
+            "identity": {
+              "id": "FastOptionsWindow"
+            }
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "XDefWindowRoot",
+            "identity": {}
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "XDefWindow",
+            "identity": {
+              "__class": "XTextButton"
+            }
+          }
+        ],
+        "field_path": [
+          "Text"
+        ],
+        "operation_target_role": "property_value",
+        "outer_parameter": {
+          "call": "PlaceObj",
+          "ordinal": 2
+        },
+        "control_flow": []
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "220c503f1d25378695ad58536e701cbf583d0720de9e94efa3a98a8a140799cc"
+      ],
+      "ast_path_reference": "$/body/body[0]/args[1]/fields[4]/value/args[2]/fields[6]/value/args[1]/fields[39]"
+    },
+    {
+      "decision_id": "grom-review-v1-0128",
+      "target_file": "Data/XDef/FastOptionsWindow.lua",
+      "category": "extraction_missing_display_literal",
+      "original_match_count": 368,
+      "proposed_context": {
+        "visible_text": [
+          "Disable \"Heavy Drone Workload\" for Rockets"
+        ],
+        "owners": [
+          {
+            "kind": "PlaceObj",
+            "class": "ModItemXDef",
+            "identity": {
+              "id": "FastOptionsWindow"
+            }
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "XDefWindowRoot",
+            "identity": {}
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "XDefWindow",
+            "identity": {
+              "__class": "XTextButton"
+            }
+          }
+        ],
+        "field_path": [
+          "Text"
+        ],
+        "operation_target_role": "property_key",
+        "outer_parameter": {
+          "call": "PlaceObj",
+          "ordinal": 2
+        },
+        "control_flow": []
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "ddcd8b0aea6aa2a90a78c2574006e4c403d746b34285207e9647ee6e65b868f0"
+      ],
+      "ast_path_reference": "$/body/body[0]/args[1]/fields[4]/value/args[2]/fields[7]/value/args[1]/fields[38]"
+    },
+    {
+      "decision_id": "grom-review-v1-0129",
+      "target_file": "Data/XDef/FastOptionsWindow.lua",
+      "category": "extraction_missing_display_literal",
+      "original_match_count": 11,
+      "proposed_context": {
+        "visible_text": [
+          "Disable \"Heavy Drone Workload\" for Rockets"
+        ],
+        "owners": [
+          {
+            "kind": "PlaceObj",
+            "class": "ModItemXDef",
+            "identity": {
+              "id": "FastOptionsWindow"
+            }
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "XDefWindowRoot",
+            "identity": {}
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "XDefWindow",
+            "identity": {
+              "__class": "XTextButton"
+            }
+          }
+        ],
+        "field_path": [
+          "Text"
+        ],
+        "operation_target_role": "property_value",
+        "outer_parameter": {
+          "call": "PlaceObj",
+          "ordinal": 2
+        },
+        "control_flow": []
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "173d5c2f9bbae4ce542649eff32f018206cdc804fa5f5f0964ea8ce8ec89f67f"
+      ],
+      "ast_path_reference": "$/body/body[0]/args[1]/fields[4]/value/args[2]/fields[7]/value/args[1]/fields[39]"
+    },
+    {
+      "decision_id": "grom-review-v1-0130",
+      "target_file": "Data/XDef/FastOptionsWindow.lua",
+      "category": "extraction_missing_display_literal",
+      "original_match_count": 368,
+      "proposed_context": {
+        "visible_text": [
+          "Disable voiced \"Split Power Grid\""
+        ],
+        "owners": [
+          {
+            "kind": "PlaceObj",
+            "class": "ModItemXDef",
+            "identity": {
+              "id": "FastOptionsWindow"
+            }
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "XDefWindowRoot",
+            "identity": {}
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "XDefWindow",
+            "identity": {
+              "__class": "XTextButton"
+            }
+          }
+        ],
+        "field_path": [
+          "Text"
+        ],
+        "operation_target_role": "property_key",
+        "outer_parameter": {
+          "call": "PlaceObj",
+          "ordinal": 2
+        },
+        "control_flow": []
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "ddcd8b0aea6aa2a90a78c2574006e4c403d746b34285207e9647ee6e65b868f0"
+      ],
+      "ast_path_reference": "$/body/body[0]/args[1]/fields[4]/value/args[2]/fields[8]/value/args[1]/fields[36]"
+    },
+    {
+      "decision_id": "grom-review-v1-0131",
+      "target_file": "Data/XDef/FastOptionsWindow.lua",
+      "category": "extraction_missing_display_literal",
+      "original_match_count": 11,
+      "proposed_context": {
+        "visible_text": [
+          "Disable voiced \"Split Power Grid\""
+        ],
+        "owners": [
+          {
+            "kind": "PlaceObj",
+            "class": "ModItemXDef",
+            "identity": {
+              "id": "FastOptionsWindow"
+            }
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "XDefWindowRoot",
+            "identity": {}
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "XDefWindow",
+            "identity": {
+              "__class": "XTextButton"
+            }
+          }
+        ],
+        "field_path": [
+          "Text"
+        ],
+        "operation_target_role": "property_value",
+        "outer_parameter": {
+          "call": "PlaceObj",
+          "ordinal": 2
+        },
+        "control_flow": []
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "27ffc2ef099069c3ae62c7ed47249bf8d61505f74ebb7ca99de243a28f1152c8"
+      ],
+      "ast_path_reference": "$/body/body[0]/args[1]/fields[4]/value/args[2]/fields[8]/value/args[1]/fields[37]"
+    },
+    {
+      "decision_id": "grom-review-v1-0132",
+      "target_file": "Data/XDef/FastOptionsWindow.lua",
+      "category": "extraction_missing_display_literal",
+      "original_match_count": 368,
+      "proposed_context": {
+        "visible_text": [
+          "Disable voiced \"Rocket has arrived\""
+        ],
+        "owners": [
+          {
+            "kind": "PlaceObj",
+            "class": "ModItemXDef",
+            "identity": {
+              "id": "FastOptionsWindow"
+            }
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "XDefWindowRoot",
+            "identity": {}
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "XDefWindow",
+            "identity": {
+              "__class": "XTextButton"
+            }
+          }
+        ],
+        "field_path": [
+          "Text"
+        ],
+        "operation_target_role": "property_key",
+        "outer_parameter": {
+          "call": "PlaceObj",
+          "ordinal": 2
+        },
+        "control_flow": []
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "ddcd8b0aea6aa2a90a78c2574006e4c403d746b34285207e9647ee6e65b868f0"
+      ],
+      "ast_path_reference": "$/body/body[0]/args[1]/fields[4]/value/args[2]/fields[9]/value/args[1]/fields[36]"
+    },
+    {
+      "decision_id": "grom-review-v1-0133",
+      "target_file": "Data/XDef/FastOptionsWindow.lua",
+      "category": "extraction_missing_display_literal",
+      "original_match_count": 11,
+      "proposed_context": {
+        "visible_text": [
+          "Disable voiced \"Rocket has arrived\""
+        ],
+        "owners": [
+          {
+            "kind": "PlaceObj",
+            "class": "ModItemXDef",
+            "identity": {
+              "id": "FastOptionsWindow"
+            }
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "XDefWindowRoot",
+            "identity": {}
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "XDefWindow",
+            "identity": {
+              "__class": "XTextButton"
+            }
+          }
+        ],
+        "field_path": [
+          "Text"
+        ],
+        "operation_target_role": "property_value",
+        "outer_parameter": {
+          "call": "PlaceObj",
+          "ordinal": 2
+        },
+        "control_flow": []
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "1f06198c920e27778d88d6d3264d2b13568267734039c69de99c69cf8fa9eb24"
+      ],
+      "ast_path_reference": "$/body/body[0]/args[1]/fields[4]/value/args[2]/fields[9]/value/args[1]/fields[37]"
+    },
+    {
+      "decision_id": "grom-review-v1-0134",
+      "target_file": "Data/XDef/FastOptionsWindow.lua",
+      "category": "extraction_missing_display_literal",
+      "original_match_count": 368,
+      "proposed_context": {
+        "visible_text": [
+          "Disable voiced \"Colonists have arrived\""
+        ],
+        "owners": [
+          {
+            "kind": "PlaceObj",
+            "class": "ModItemXDef",
+            "identity": {
+              "id": "FastOptionsWindow"
+            }
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "XDefWindowRoot",
+            "identity": {}
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "XDefWindow",
+            "identity": {
+              "__class": "XTextButton"
+            }
+          }
+        ],
+        "field_path": [
+          "Text"
+        ],
+        "operation_target_role": "property_key",
+        "outer_parameter": {
+          "call": "PlaceObj",
+          "ordinal": 2
+        },
+        "control_flow": []
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "ddcd8b0aea6aa2a90a78c2574006e4c403d746b34285207e9647ee6e65b868f0"
+      ],
+      "ast_path_reference": "$/body/body[0]/args[1]/fields[4]/value/args[2]/fields[10]/value/args[1]/fields[36]"
+    },
+    {
+      "decision_id": "grom-review-v1-0135",
+      "target_file": "Data/XDef/FastOptionsWindow.lua",
+      "category": "extraction_missing_display_literal",
+      "original_match_count": 11,
+      "proposed_context": {
+        "visible_text": [
+          "Disable voiced \"Colonists have arrived\""
+        ],
+        "owners": [
+          {
+            "kind": "PlaceObj",
+            "class": "ModItemXDef",
+            "identity": {
+              "id": "FastOptionsWindow"
+            }
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "XDefWindowRoot",
+            "identity": {}
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "XDefWindow",
+            "identity": {
+              "__class": "XTextButton"
+            }
+          }
+        ],
+        "field_path": [
+          "Text"
+        ],
+        "operation_target_role": "property_value",
+        "outer_parameter": {
+          "call": "PlaceObj",
+          "ordinal": 2
+        },
+        "control_flow": []
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "92e81d9c0eacc762efff584d2a10e4a2e643a9e445e4d620bd32b93db50cd094"
+      ],
+      "ast_path_reference": "$/body/body[0]/args[1]/fields[4]/value/args[2]/fields[10]/value/args[1]/fields[37]"
+    },
+    {
+      "decision_id": "grom-review-v1-0136",
+      "target_file": "Data/XDef/FastOptionsWindow.lua",
+      "category": "extraction_missing_display_literal",
+      "original_match_count": 368,
+      "proposed_context": {
+        "visible_text": [
+          "Disable voiced \"Sector scanned\""
+        ],
+        "owners": [
+          {
+            "kind": "PlaceObj",
+            "class": "ModItemXDef",
+            "identity": {
+              "id": "FastOptionsWindow"
+            }
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "XDefWindowRoot",
+            "identity": {}
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "XDefWindow",
+            "identity": {
+              "__class": "XTextButton"
+            }
+          }
+        ],
+        "field_path": [
+          "Text"
+        ],
+        "operation_target_role": "property_key",
+        "outer_parameter": {
+          "call": "PlaceObj",
+          "ordinal": 2
+        },
+        "control_flow": []
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "ddcd8b0aea6aa2a90a78c2574006e4c403d746b34285207e9647ee6e65b868f0"
+      ],
+      "ast_path_reference": "$/body/body[0]/args[1]/fields[4]/value/args[2]/fields[11]/value/args[1]/fields[36]"
+    },
+    {
+      "decision_id": "grom-review-v1-0137",
+      "target_file": "Data/XDef/FastOptionsWindow.lua",
+      "category": "extraction_missing_display_literal",
+      "original_match_count": 11,
+      "proposed_context": {
+        "visible_text": [
+          "Disable voiced \"Sector scanned\""
+        ],
+        "owners": [
+          {
+            "kind": "PlaceObj",
+            "class": "ModItemXDef",
+            "identity": {
+              "id": "FastOptionsWindow"
+            }
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "XDefWindowRoot",
+            "identity": {}
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "XDefWindow",
+            "identity": {
+              "__class": "XTextButton"
+            }
+          }
+        ],
+        "field_path": [
+          "Text"
+        ],
+        "operation_target_role": "property_value",
+        "outer_parameter": {
+          "call": "PlaceObj",
+          "ordinal": 2
+        },
+        "control_flow": []
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "111dcc0ca3ad9e1e9b383b2598e680afda69d0cad6586b8de7237f26f5f2fcd6"
+      ],
+      "ast_path_reference": "$/body/body[0]/args[1]/fields[4]/value/args[2]/fields[11]/value/args[1]/fields[37]"
+    },
+    {
+      "decision_id": "grom-review-v1-0139",
+      "target_file": "Data/XDef/FastOptionsWindow.lua",
+      "category": "genuine_indistinguishable_anonymous_siblings",
+      "original_match_count": 4,
+      "proposed_context": {
+        "visible_text": [
+          "Button"
+        ],
+        "owners": [
+          {
+            "kind": "PlaceObj",
+            "class": "ModItemXDef",
+            "identity": {
+              "id": "FastOptionsWindow"
+            }
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "XDefWindowRoot",
+            "identity": {}
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "XDefWindow",
+            "identity": {
+              "__class": "XTextButton"
+            }
+          }
+        ],
+        "field_path": [
+          "Text"
+        ],
+        "operation_target_role": "node",
+        "outer_parameter": {
+          "call": "PlaceObj",
+          "ordinal": 2
+        },
+        "control_flow": []
+      },
+      "proposed_match_count": 4,
+      "same_context_original_code_hashes": [
+        "cc173efcfe384195f2c6dcf7b12ef58d94c67a74f6f89eae0008f5b11e082a4f",
+        "cc173efcfe384195f2c6dcf7b12ef58d94c67a74f6f89eae0008f5b11e082a4f",
+        "cc173efcfe384195f2c6dcf7b12ef58d94c67a74f6f89eae0008f5b11e082a4f",
+        "cc173efcfe384195f2c6dcf7b12ef58d94c67a74f6f89eae0008f5b11e082a4f"
+      ],
+      "ast_path_reference": "$/body/body[0]/args[1]/fields[4]/value/args[2]/fields[15]/value/args[1]"
+    },
+    {
+      "decision_id": "grom-review-v1-0140",
+      "target_file": "Data/XDef/FastOptionsWindow.lua",
+      "category": "genuine_indistinguishable_anonymous_siblings",
+      "original_match_count": 4,
+      "proposed_context": {
+        "visible_text": [
+          "Button"
+        ],
+        "owners": [
+          {
+            "kind": "PlaceObj",
+            "class": "ModItemXDef",
+            "identity": {
+              "id": "FastOptionsWindow"
+            }
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "XDefWindowRoot",
+            "identity": {}
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "XDefWindow",
+            "identity": {
+              "__class": "XTextButton"
+            }
+          }
+        ],
+        "field_path": [
+          "Text"
+        ],
+        "operation_target_role": "node",
+        "outer_parameter": {
+          "call": "PlaceObj",
+          "ordinal": 2
+        },
+        "control_flow": []
+      },
+      "proposed_match_count": 4,
+      "same_context_original_code_hashes": [
+        "cc173efcfe384195f2c6dcf7b12ef58d94c67a74f6f89eae0008f5b11e082a4f",
+        "cc173efcfe384195f2c6dcf7b12ef58d94c67a74f6f89eae0008f5b11e082a4f",
+        "cc173efcfe384195f2c6dcf7b12ef58d94c67a74f6f89eae0008f5b11e082a4f",
+        "cc173efcfe384195f2c6dcf7b12ef58d94c67a74f6f89eae0008f5b11e082a4f"
+      ],
+      "ast_path_reference": "$/body/body[0]/args[1]/fields[4]/value/args[2]/fields[16]/value/args[1]"
+    },
+    {
+      "decision_id": "grom-review-v1-0141",
+      "target_file": "Data/XDef/FastOptionsWindow.lua",
+      "category": "genuine_indistinguishable_anonymous_siblings",
+      "original_match_count": 4,
+      "proposed_context": {
+        "visible_text": [
+          "Button"
+        ],
+        "owners": [
+          {
+            "kind": "PlaceObj",
+            "class": "ModItemXDef",
+            "identity": {
+              "id": "FastOptionsWindow"
+            }
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "XDefWindowRoot",
+            "identity": {}
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "XDefWindow",
+            "identity": {
+              "__class": "XTextButton"
+            }
+          }
+        ],
+        "field_path": [
+          "Text"
+        ],
+        "operation_target_role": "node",
+        "outer_parameter": {
+          "call": "PlaceObj",
+          "ordinal": 2
+        },
+        "control_flow": []
+      },
+      "proposed_match_count": 4,
+      "same_context_original_code_hashes": [
+        "cc173efcfe384195f2c6dcf7b12ef58d94c67a74f6f89eae0008f5b11e082a4f",
+        "cc173efcfe384195f2c6dcf7b12ef58d94c67a74f6f89eae0008f5b11e082a4f",
+        "cc173efcfe384195f2c6dcf7b12ef58d94c67a74f6f89eae0008f5b11e082a4f",
+        "cc173efcfe384195f2c6dcf7b12ef58d94c67a74f6f89eae0008f5b11e082a4f"
+      ],
+      "ast_path_reference": "$/body/body[0]/args[1]/fields[4]/value/args[2]/fields[17]/value/args[1]"
+    },
+    {
+      "decision_id": "grom-review-v1-0142",
+      "target_file": "Data/XDef/FastOptionsWindow.lua",
+      "category": "genuine_indistinguishable_anonymous_siblings",
+      "original_match_count": 4,
+      "proposed_context": {
+        "visible_text": [
+          "Button"
+        ],
+        "owners": [
+          {
+            "kind": "PlaceObj",
+            "class": "ModItemXDef",
+            "identity": {
+              "id": "FastOptionsWindow"
+            }
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "XDefWindowRoot",
+            "identity": {}
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "XDefWindow",
+            "identity": {
+              "__class": "XTextButton"
+            }
+          }
+        ],
+        "field_path": [
+          "Text"
+        ],
+        "operation_target_role": "node",
+        "outer_parameter": {
+          "call": "PlaceObj",
+          "ordinal": 2
+        },
+        "control_flow": []
+      },
+      "proposed_match_count": 4,
+      "same_context_original_code_hashes": [
+        "cc173efcfe384195f2c6dcf7b12ef58d94c67a74f6f89eae0008f5b11e082a4f",
+        "cc173efcfe384195f2c6dcf7b12ef58d94c67a74f6f89eae0008f5b11e082a4f",
+        "cc173efcfe384195f2c6dcf7b12ef58d94c67a74f6f89eae0008f5b11e082a4f",
+        "cc173efcfe384195f2c6dcf7b12ef58d94c67a74f6f89eae0008f5b11e082a4f"
+      ],
+      "ast_path_reference": "$/body/body[0]/args[1]/fields[4]/value/args[2]/fields[18]/value/args[1]"
+    },
+    {
+      "decision_id": "grom-review-v1-0148",
+      "target_file": "Code/encyclopedia.lua",
+      "category": "extraction_missing_named_object_id",
+      "original_match_count": 3,
+      "proposed_context": {
+        "visible_text": [
+          "<text>"
+        ],
+        "owners": [
+          {
+            "kind": "Function",
+            "name": "OnMsg.ReadyToMod"
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "EncyclopediaArticle",
+            "identity": {
+              "id": "TradePads"
+            }
+          }
+        ],
+        "field_path": [
+          "text"
+        ],
+        "operation_target_role": "node",
+        "outer_parameter": {
+          "call": "PlaceObj",
+          "ordinal": 2
+        },
+        "control_flow": []
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "b27a33e16840013d9f5bfe4eb1b487119955119dba720deabe067850a0bf67ea"
+      ],
+      "ast_path_reference": "$/body/body[1]/body/body[5]/args[1]/fields[3]/value"
+    },
+    {
+      "decision_id": "grom-review-v1-0149",
+      "target_file": "Code/encyclopedia.lua",
+      "category": "extraction_missing_named_object_id",
+      "original_match_count": 3,
+      "proposed_context": {
+        "visible_text": [
+          "<text>"
+        ],
+        "owners": [
+          {
+            "kind": "Function",
+            "name": "OnMsg.ReadyToMod"
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "EncyclopediaArticle",
+            "identity": {
+              "id": "DronePrefabs"
+            }
+          }
+        ],
+        "field_path": [
+          "text"
+        ],
+        "operation_target_role": "node",
+        "outer_parameter": {
+          "call": "PlaceObj",
+          "ordinal": 2
+        },
+        "control_flow": []
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "dc4086fac83d008e649717640888f01cdf1bacb416a29f419758b4804554ad8c"
+      ],
+      "ast_path_reference": "$/body/body[1]/body/body[6]/args[1]/fields[3]/value"
+    },
+    {
+      "decision_id": "grom-review-v1-0150",
+      "target_file": "Code/encyclopedia.lua",
+      "category": "extraction_missing_named_object_id",
+      "original_match_count": 3,
+      "proposed_context": {
+        "visible_text": [
+          "<text>"
+        ],
+        "owners": [
+          {
+            "kind": "Function",
+            "name": "OnMsg.ReadyToMod"
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "EncyclopediaArticle",
+            "identity": {
+              "id": "Stirlings"
+            }
+          }
+        ],
+        "field_path": [
+          "text"
+        ],
+        "operation_target_role": "node",
+        "outer_parameter": {
+          "call": "PlaceObj",
+          "ordinal": 2
+        },
+        "control_flow": []
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "b69c51fc82df7ec38f0fe6d1d9e5ddc22915a7f0b3a7ffab64d7f5175232e1d8"
+      ],
+      "ast_path_reference": "$/body/body[1]/body/body[7]/args[1]/fields[3]/value"
+    },
+    {
+      "decision_id": "grom-review-v1-0154",
+      "target_file": "Code/notifications.lua",
+      "category": "extraction_missing_named_object_id_and_property_path",
+      "original_match_count": 3,
+      "proposed_context": {
+        "visible_text": [
+          "<display_name>"
+        ],
+        "owners": [
+          {
+            "kind": "Function",
+            "name": "OnMsg.ClassesPostprocess"
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "NotificationPreset",
+            "identity": {
+              "id": "RoverAlarm"
+            }
+          }
+        ],
+        "field_path": [
+          "GetObjectItem",
+          "ItemText"
+        ],
+        "operation_target_role": "node",
+        "outer_parameter": {
+          "call": "SubContext",
+          "ordinal": 2
+        },
+        "control_flow": [
+          {
+            "kind": "If",
+            "test_expression": "not table.find(Presets.NotificationPreset.Grom,\"id\",\"RoverAlarm\")",
+            "edge": "body"
+          }
+        ]
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "e805bb86e5195fd7513491549f907f9def52d193b78f266d8d8701c534a8a243"
+      ],
+      "ast_path_reference": "$/body/body[2]/body/body[0]/body/body[0]/args[1]/fields[3]/value/body/body[0]/values[0]/args[1]/fields[1]/value"
+    },
+    {
+      "decision_id": "grom-review-v1-0155",
+      "target_file": "Code/notifications.lua",
+      "category": "extraction_missing_named_object_id_and_property_path",
+      "original_match_count": 3,
+      "proposed_context": {
+        "visible_text": [
+          "<display_name>"
+        ],
+        "owners": [
+          {
+            "kind": "Function",
+            "name": "OnMsg.ClassesPostprocess"
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "NotificationPreset",
+            "identity": {
+              "id": "NanoScanCompleted"
+            }
+          }
+        ],
+        "field_path": [
+          "GetObjectItem",
+          "ItemText"
+        ],
+        "operation_target_role": "node",
+        "outer_parameter": {
+          "call": "SubContext",
+          "ordinal": 2
+        },
+        "control_flow": [
+          {
+            "kind": "If",
+            "test_expression": "not table.find(Presets.NotificationPreset.Grom,\"id\",\"NanoScanCompleted\")",
+            "edge": "body"
+          }
+        ]
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "e805bb86e5195fd7513491549f907f9def52d193b78f266d8d8701c534a8a243"
+      ],
+      "ast_path_reference": "$/body/body[2]/body/body[1]/body/body[0]/args[1]/fields[4]/value/body/body[0]/values[0]/args[1]/fields[2]/value"
+    },
+    {
+      "decision_id": "grom-review-v1-0156",
+      "target_file": "Code/notifications.lua",
+      "category": "extraction_missing_named_object_id_and_property_path",
+      "original_match_count": 3,
+      "proposed_context": {
+        "visible_text": [
+          "<display_name>"
+        ],
+        "owners": [
+          {
+            "kind": "Function",
+            "name": "OnMsg.ClassesPostprocess"
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "NotificationPreset",
+            "identity": {
+              "id": "GromNewTech"
+            }
+          }
+        ],
+        "field_path": [
+          "GetObjectItem",
+          "ItemText"
+        ],
+        "operation_target_role": "node",
+        "outer_parameter": {
+          "call": "SubContext",
+          "ordinal": 2
+        },
+        "control_flow": [
+          {
+            "kind": "If",
+            "test_expression": "not table.find(Presets.NotificationPreset.Grom,\"id\",\"GromNewTech\")",
+            "edge": "body"
+          }
+        ]
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "e805bb86e5195fd7513491549f907f9def52d193b78f266d8d8701c534a8a243"
+      ],
+      "ast_path_reference": "$/body/body[3]/body/body[0]/body/body[0]/args[1]/fields[2]/value/body/body[0]/values[0]/args[1]/fields[2]/value"
+    },
+    {
+      "decision_id": "grom-review-v1-0171",
+      "target_file": "items.lua",
+      "category": "extraction_missing_moditem_name_identity",
+      "original_match_count": 2,
+      "proposed_context": {
+        "visible_text": [
+          "Off"
+        ],
+        "owners": [
+          {
+            "kind": "PlaceObj",
+            "class": "ModItemFolder",
+            "identity": {
+              "name": "Options"
+            }
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "ModItemOptionChoice",
+            "identity": {
+              "name": "AutoExploration"
+            }
+          }
+        ],
+        "field_path": [
+          "ChoiceList"
+        ],
+        "operation_target_role": "node",
+        "outer_parameter": {
+          "call": "PlaceObj",
+          "ordinal": 2
+        },
+        "control_flow": []
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "50accd740fa2e73672bf5a001c51fa3ae563dd2f6bea130a310ebef0abb93de3"
+      ],
+      "ast_path_reference": "$/body/body[0]/values[0]/fields[7]/value/args[2]/fields[20]/value/args[1]/fields[9]/value/fields[0]/value"
+    },
+    {
+      "decision_id": "grom-review-v1-0175",
+      "target_file": "items.lua",
+      "category": "extraction_missing_moditem_name_identity",
+      "original_match_count": 2,
+      "proposed_context": {
+        "visible_text": [
+          "Off"
+        ],
+        "owners": [
+          {
+            "kind": "PlaceObj",
+            "class": "ModItemFolder",
+            "identity": {
+              "name": "Options"
+            }
+          },
+          {
+            "kind": "PlaceObj",
+            "class": "ModItemOptionChoice",
+            "identity": {
+              "name": "FastVegetation"
+            }
+          }
+        ],
+        "field_path": [
+          "ChoiceList"
+        ],
+        "operation_target_role": "node",
+        "outer_parameter": {
+          "call": "PlaceObj",
+          "ordinal": 2
+        },
+        "control_flow": []
+      },
+      "proposed_match_count": 1,
+      "same_context_original_code_hashes": [
+        "50accd740fa2e73672bf5a001c51fa3ae563dd2f6bea130a310ebef0abb93de3"
+      ],
+      "ast_path_reference": "$/body/body[0]/values[0]/fields[7]/value/args[2]/fields[21]/value/args[1]/fields[9]/value/fields[0]/value"
+    }
+  ],
+  "nontext_operations": [
+    {
+      "decision_id": "grom-review-v1-0003",
+      "target_file": "Code/AlchemyLaboratory.lua",
+      "type": "文件序列化",
+      "operation_anchor_kind": "file_serialization"
+    },
+    {
+      "decision_id": "grom-review-v1-0017",
+      "target_file": "Code/XDefs.lua",
+      "type": "辅助代码注入",
+      "operation_anchor_kind": "module_boundary"
+    },
+    {
+      "decision_id": "grom-review-v1-0030",
+      "target_file": "Code/XDefs.lua",
+      "type": "文件序列化",
+      "operation_anchor_kind": "file_serialization"
+    },
+    {
+      "decision_id": "grom-review-v1-0031",
+      "target_file": "Code/common.lua",
+      "type": "辅助代码注入",
+      "operation_anchor_kind": "module_boundary"
+    },
+    {
+      "decision_id": "grom-review-v1-0032",
+      "target_file": "Code/common.lua",
+      "type": "文件序列化",
+      "operation_anchor_kind": "file_serialization"
+    },
+    {
+      "decision_id": "grom-review-v1-0037",
+      "target_file": "Code/droneHub.lua",
+      "type": "文件序列化",
+      "operation_anchor_kind": "file_serialization"
+    },
+    {
+      "decision_id": "grom-review-v1-0057",
+      "target_file": "Code/encyclopedia.lua",
+      "type": "文件序列化",
+      "operation_anchor_kind": "file_serialization"
+    },
+    {
+      "decision_id": "grom-review-v1-0061",
+      "target_file": "Code/names.lua",
+      "type": "文件序列化",
+      "operation_anchor_kind": "file_serialization"
+    },
+    {
+      "decision_id": "grom-review-v1-0065",
+      "target_file": "Code/notifications.lua",
+      "type": "文件序列化",
+      "operation_anchor_kind": "file_serialization"
+    },
+    {
+      "decision_id": "grom-review-v1-0094",
+      "target_file": "Code/rivals.lua",
+      "type": "文件序列化",
+      "operation_anchor_kind": "file_serialization"
+    },
+    {
+      "decision_id": "grom-review-v1-0095",
+      "target_file": "Code/someScript.lua",
+      "type": "辅助代码注入",
+      "operation_anchor_kind": "module_boundary"
+    },
+    {
+      "decision_id": "grom-review-v1-0099",
+      "target_file": "Code/someScript.lua",
+      "type": "文件序列化",
+      "operation_anchor_kind": "file_serialization"
+    },
+    {
+      "decision_id": "grom-review-v1-0106",
+      "target_file": "Code/speed.lua",
+      "type": "文件序列化",
+      "operation_anchor_kind": "file_serialization"
+    },
+    {
+      "decision_id": "grom-review-v1-0108",
+      "target_file": "Code/stirling.lua",
+      "type": "文件序列化",
+      "operation_anchor_kind": "file_serialization"
+    },
+    {
+      "decision_id": "grom-review-v1-0112",
+      "target_file": "Code/tech.lua",
+      "type": "文件序列化",
+      "operation_anchor_kind": "file_serialization"
+    },
+    {
+      "decision_id": "grom-review-v1-0119",
+      "target_file": "Code/techsTrading.lua",
+      "type": "文件序列化",
+      "operation_anchor_kind": "file_serialization"
+    },
+    {
+      "decision_id": "grom-review-v1-0122",
+      "target_file": "Code/tradePad.lua",
+      "type": "文件序列化",
+      "operation_anchor_kind": "file_serialization"
+    },
+    {
+      "decision_id": "grom-review-v1-0144",
+      "target_file": "local.csv",
+      "type": "CSV 重建",
+      "operation_anchor_kind": "csv_document"
+    }
+  ],
+  "nontext_count": 18
+}

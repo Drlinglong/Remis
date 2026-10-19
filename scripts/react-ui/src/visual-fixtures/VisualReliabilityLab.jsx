@@ -1,4 +1,6 @@
 import React from 'react';
+import MarsProjectCreationVisualFixture from './MarsProjectCreationVisualFixture';
+import WorkshopPublicationVisualFixture from './WorkshopPublicationVisualFixture';
 import {
   Alert,
   Badge,
@@ -250,6 +252,7 @@ function PublishedArchiveVisualFixture() {
 }
 
 export default function VisualReliabilityLab({ themeId, contract }) {
+  if (contract === 'mars-project-creation') return <MarsProjectCreationVisualFixture />;
   if (contract === 'project-glossary') {
     return <ProjectGlossaryContrastFixture themeId={themeId} />;
   }
@@ -258,6 +261,9 @@ export default function VisualReliabilityLab({ themeId, contract }) {
   }
   if (contract === 'context-tree') {
     return <ContextArchiveTreeVisualFixture />;
+  }
+  if (contract === 'workshop-publication') {
+    return <WorkshopPublicationVisualFixture />;
   }
   if (contract?.startsWith('home-dashboard-')) {
     return (

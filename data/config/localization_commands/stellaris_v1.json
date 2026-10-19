@@ -1,0 +1,410 @@
+{
+  "schema_version": 1,
+  "game_id": "stellaris",
+  "sources": [
+    {
+      "url": "https://stellaris.paradoxwikis.com/Localisation_modding",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "kind": "vanilla",
+      "description": "English vanilla localization of Stellaris (commands observed in use; meanings inferred from name and usage)",
+      "retrieved": "2026-10-10"
+    }
+  ],
+  "notes": [
+    {
+      "text": "Bracketed [Scope.Command] text is replaced at runtime. Keep every command exactly; the scope chain before the command (Root, From, event targets, IDs such as questing_knight_1) is a script identifier, not translatable text.",
+      "provenance": "wiki"
+    },
+    {
+      "text": "Formatting uses §X ... §! colour codes. Hash markers such as #P or #bold are not Stellaris formatting and display as literal text.",
+      "provenance": "user"
+    }
+  ],
+  "language_notes": {
+    "zh-CN": [
+      {
+        "text": "中文本地化里代词命令输出他/她；中文没有主格宾格之分，任何代词命令都可作主语或宾语。",
+        "provenance": "user"
+      },
+      {
+        "text": "因中文习惯省略重复的代词命令是合理的，前提是指代仍然清楚；不要把代词命令写死成“他”或“她”。没有必要时，应尽量保持与原文相同的命令引用。",
+        "provenance": "user"
+      }
+    ]
+  },
+  "suffixes": {
+    "Cap": "same output with the first letter capitalised",
+    "Plural": "plural form",
+    "Lower": "lower-case form",
+    "Upper": "upper-case form",
+    "Capital": "capitalised form"
+  },
+  "scopes": {
+    "Root": "the event's root scope",
+    "This": "the current scope",
+    "From": "the calling event's root scope; can be chained further back",
+    "Prev": "the previous scope",
+    "Actor": "the faction initiating a diplomatic action",
+    "Recipient": "the faction targeted by a diplomatic action",
+    "Third_party": "the third party in a diplomatic action",
+    "Capital": "capital of the current country or sector",
+    "Leader": "leader of the current scope",
+    "MainAttacker": "main attacker of a war",
+    "MainDefender": "main defender of a war",
+    "Owner": "owner of the current scope",
+    "System": "the system containing the scope",
+    "Planet": "the planet containing the scope"
+  },
+  "commands": {
+    "GetName": {
+      "meaning": "name of the scope",
+      "provenance": "wiki"
+    },
+    "GetRealName": {
+      "meaning": "name of the scope, ignoring whether it is identified",
+      "provenance": "wiki"
+    },
+    "GetAdj": {
+      "meaning": "adjective associated with the scope",
+      "provenance": "wiki"
+    },
+    "GetAdjective": {
+      "meaning": "adjective associated with the scope",
+      "provenance": "wiki"
+    },
+    "GetAAnPlanetClass": {
+      "meaning": "English article a/an chosen by planet class",
+      "provenance": "wiki"
+    },
+    "GetAAnSpeciesClass": {
+      "meaning": "English article a/an chosen by species class",
+      "provenance": "wiki"
+    },
+    "GetAllianceName": {
+      "meaning": "name of the scope's alliance",
+      "provenance": "wiki"
+    },
+    "GetControllerName": {
+      "meaning": "name of the current controller (planets)",
+      "provenance": "wiki"
+    },
+    "GetClassName": {
+      "meaning": "planet class name",
+      "provenance": "wiki"
+    },
+    "GetEngineer": {
+      "meaning": "word for engineer, varying by empire type (normal, hive mind, machine)",
+      "provenance": "wiki"
+    },
+    "GetEngineerPlural": {
+      "meaning": "plural word for engineers, varying by empire type",
+      "provenance": "wiki"
+    },
+    "GetFleetName": {
+      "meaning": "fleet name",
+      "provenance": "wiki"
+    },
+    "GetHasHave": {
+      "meaning": "English has/have chosen by the leader's gender (subject-verb agreement)",
+      "provenance": "wiki"
+    },
+    "GetIsAre": {
+      "meaning": "English is/are chosen by the leader's gender (subject-verb agreement)",
+      "provenance": "wiki"
+    },
+    "GetWasWere": {
+      "meaning": "English was/were chosen by the scoped leader's gender or lack of gender; pairs with pronoun commands for subject-verb agreement",
+      "provenance": "wiki"
+    },
+    "GetHeirName": {
+      "meaning": "heir's name",
+      "provenance": "wiki"
+    },
+    "GetHeirTitle": {
+      "meaning": "heir's title",
+      "provenance": "wiki"
+    },
+    "GetHomeWorldName": {
+      "meaning": "home world name",
+      "provenance": "wiki"
+    },
+    "GetLeaderName": {
+      "meaning": "leader name",
+      "provenance": "wiki"
+    },
+    "GetLinguists": {
+      "meaning": "word for linguists, varying by empire type",
+      "provenance": "wiki"
+    },
+    "GetFirstName": {
+      "meaning": "leader's first name",
+      "provenance": "wiki"
+    },
+    "GetSecondName": {
+      "meaning": "leader's second name",
+      "provenance": "wiki"
+    },
+    "GetAge": {
+      "meaning": "leader's age",
+      "provenance": "wiki"
+    },
+    "GetNamePlural": {
+      "meaning": "plural species name",
+      "provenance": "wiki"
+    },
+    "GetOwnerName": {
+      "meaning": "owner's name",
+      "provenance": "wiki"
+    },
+    "GetPersonalityName": {
+      "meaning": "AI personality name",
+      "provenance": "wiki"
+    },
+    "GetPlanetHabitat": {
+      "meaning": "the word planet, moon or habitat",
+      "provenance": "wiki"
+    },
+    "GetPlanetMoon": {
+      "meaning": "the word planet or moon",
+      "provenance": "wiki"
+    },
+    "GetPopFactionName": {
+      "meaning": "pop faction name",
+      "provenance": "wiki"
+    },
+    "GetRandomSpeciesSound": {
+      "meaning": "a random species sound",
+      "provenance": "wiki"
+    },
+    "GetRegnalName": {
+      "meaning": "regnal name",
+      "provenance": "wiki"
+    },
+    "GetResearchers": {
+      "meaning": "word for researchers, varying by empire type",
+      "provenance": "wiki"
+    },
+    "GetRulerName": {
+      "meaning": "ruler's name",
+      "provenance": "wiki"
+    },
+    "GetRulerTitle": {
+      "meaning": "ruler's title",
+      "provenance": "wiki"
+    },
+    "GetScientist": {
+      "meaning": "word for scientist, varying by empire type",
+      "provenance": "wiki"
+    },
+    "GetSpeciesAdj": {
+      "meaning": "species adjective",
+      "provenance": "wiki"
+    },
+    "GetSpeciesClass": {
+      "meaning": "species class",
+      "provenance": "wiki"
+    },
+    "GetSpeciesMouthName": {
+      "meaning": "the species' word for mouth",
+      "provenance": "wiki"
+    },
+    "GetSpeciesName": {
+      "meaning": "species name",
+      "provenance": "wiki"
+    },
+    "GetSpeciesNameCompliment": {
+      "meaning": "a compliment for the species",
+      "provenance": "wiki"
+    },
+    "GetSpeciesNamePluralCompliment": {
+      "meaning": "a compliment for the species, plural",
+      "provenance": "wiki"
+    },
+    "GetSpeciesNameInsult": {
+      "meaning": "an insult for the species",
+      "provenance": "wiki"
+    },
+    "GetSpeciesNamePluralInsult": {
+      "meaning": "an insult for the species, plural",
+      "provenance": "wiki"
+    },
+    "GetSpeciesHandName": {
+      "meaning": "the species' word for hand",
+      "provenance": "wiki"
+    },
+    "GetSpeciesOrganName": {
+      "meaning": "the species' word for an internal organ",
+      "provenance": "wiki"
+    },
+    "GetSpeciesSpawnName": {
+      "meaning": "the species' word for offspring",
+      "provenance": "wiki"
+    },
+    "GetStarName": {
+      "meaning": "name of the star of the scope's system",
+      "provenance": "wiki"
+    },
+    "GetTerraformer": {
+      "meaning": "word for terraformer, varying by empire type",
+      "provenance": "wiki"
+    },
+    "GetHerHim": {
+      "meaning": "pronoun her or him by gender",
+      "provenance": "wiki"
+    },
+    "GetHerHis": {
+      "meaning": "pronoun her or his by gender",
+      "provenance": "wiki"
+    },
+    "GetSheHe": {
+      "meaning": "pronoun she or he by gender",
+      "provenance": "wiki"
+    },
+    "GetHimHer": {
+      "meaning": "pronoun him or her by gender (word-order variant of GetHerHim)",
+      "provenance": "inferred"
+    },
+    "GetHisHer": {
+      "meaning": "pronoun his or her by gender (word-order variant of GetHerHis)",
+      "provenance": "inferred"
+    },
+    "GetHeShe": {
+      "meaning": "pronoun he or she by gender (word-order variant of GetSheHe)",
+      "provenance": "inferred"
+    },
+    "GetHerselfHimself": {
+      "meaning": "reflexive pronoun herself or himself by gender",
+      "provenance": "inferred"
+    },
+    "LastKilledCountryName": {
+      "meaning": "name of the last killed country",
+      "provenance": "wiki"
+    },
+    "GetDate": {
+      "meaning": "current date (unscoped)",
+      "provenance": "wiki"
+    },
+    "GetYear": {
+      "meaning": "current year (unscoped)",
+      "provenance": "wiki"
+    },
+    "GetMidGameDate": {
+      "meaning": "mid-game start date (unscoped)",
+      "provenance": "wiki"
+    },
+    "GetLateGameDate": {
+      "meaning": "late-game start date (unscoped)",
+      "provenance": "wiki"
+    },
+    "GetIcon": {
+      "meaning": "icon of the scoped object",
+      "provenance": "vanilla"
+    },
+    "GetTitle": {
+      "meaning": "leader's or ruler's title",
+      "provenance": "vanilla"
+    },
+    "GetIndividualName": {
+      "meaning": "word for one individual of the species (varies by empire type)",
+      "provenance": "vanilla"
+    },
+    "GetGalCommunityOrGalImperium": {
+      "meaning": "the name Galactic Community or Galactic Imperium, whichever exists",
+      "provenance": "vanilla"
+    },
+    "GetCommunityOrImperium": {
+      "meaning": "the word Community or Imperium, whichever exists",
+      "provenance": "vanilla"
+    },
+    "GetPreFTL": {
+      "meaning": "word for pre-FTL civilizations",
+      "provenance": "vanilla"
+    },
+    "GetPreCommunicationName": {
+      "meaning": "word for pre-communication civilizations",
+      "provenance": "vanilla"
+    },
+    "GetTelepath": {
+      "meaning": "word for telepath, varying by empire type",
+      "provenance": "vanilla"
+    },
+    "GetColonist": {
+      "meaning": "word for colonist, varying by empire type",
+      "provenance": "vanilla"
+    },
+    "GetArchaeologist": {
+      "meaning": "word for archaeologist, varying by empire type",
+      "provenance": "vanilla"
+    },
+    "GetExperimentalEngineer": {
+      "meaning": "word for experimental engineer, varying by empire type",
+      "provenance": "vanilla"
+    },
+    "GetResearcher": {
+      "meaning": "word for researcher, varying by empire type",
+      "provenance": "vanilla"
+    },
+    "GetTeamMember": {
+      "meaning": "word for team member, varying by empire type",
+      "provenance": "vanilla"
+    },
+    "GetEnvoy": {
+      "meaning": "word for envoy, varying by empire type",
+      "provenance": "vanilla"
+    },
+    "GetPsychicNoun": {
+      "meaning": "word for psychic, varying by species",
+      "provenance": "vanilla"
+    },
+    "GetGovernmentName": {
+      "meaning": "name of the empire's government type",
+      "provenance": "vanilla"
+    },
+    "GetGestaltEntityName": {
+      "meaning": "word for the gestalt entity (hive mind or machine intelligence)",
+      "provenance": "vanilla"
+    },
+    "GetClass": {
+      "meaning": "species class name",
+      "provenance": "vanilla"
+    },
+    "GetClassAdj": {
+      "meaning": "species class adjective",
+      "provenance": "vanilla"
+    },
+    "GetHandName": {
+      "meaning": "the species' word for hand",
+      "provenance": "vanilla"
+    },
+    "GetBrainName": {
+      "meaning": "the species' word for brain",
+      "provenance": "vanilla"
+    },
+    "GetEyeName": {
+      "meaning": "the species' word for eye",
+      "provenance": "vanilla"
+    },
+    "GetSpeciesEarName": {
+      "meaning": "the species' word for ear",
+      "provenance": "vanilla"
+    },
+    "GetBloodType": {
+      "meaning": "the species' word for blood",
+      "provenance": "vanilla"
+    },
+    "GetSXX": {
+      "meaning": "species-specific body word (vanilla uses it in archaeology events)",
+      "provenance": "vanilla"
+    },
+    "GetBuildGrow": {
+      "meaning": "the verb build or grow, depending on whether the empire grows ships",
+      "provenance": "vanilla"
+    },
+    "GetHimselfHerself": {
+      "meaning": "reflexive pronoun himself or herself by gender",
+      "provenance": "vanilla"
+    }
+  }
+}

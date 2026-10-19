@@ -241,3 +241,106 @@ def test_eu5_uses_the_same_hash_contract_as_its_validator_profile():
     diff = compare_format_structure("#BOLD Important#! @gold!", "#bold 重要#! @gold!", "eu5")
 
     assert "format_tag_identity" in diff.hard_issues
+
+
+HOI4_SPAN_REORDER_CASES = [
+    (
+        r"因§Y日本§!完成的§G解密研究§!获得相关加成。\n",
+        r"Receive related bonuses for §G Decryption Research§! completed by §Y Japan§!.\n",
+    ),
+    (
+        r"将走上对§Y[608.Owner.GetNameDef]§!的§R战争§!之路。\n",
+        r"Will embark on the path of §R war§! against §Y [608.Owner.GetNameDef]§!. \n",
+    ),
+    (
+        r"我们的渗透部队将在§Y唐山§!对§Y[608.Owner.GetName]§!造成以下修正：\n"
+        r"对敌泄露情报：§R+200%§!\n$MODIFIERS_ARMY_DEFENCE_FACTOR$：§R-80.0%§!\n",
+        r"Our infiltration units will cause the following modifiers to §Y [608.Owner.GetName]§! "
+        r"in §Y Tangshan§!:\nIntel Leaked to Enemy: §R +200%§!\n"
+        r"$MODIFIERS_ARMY_DEFENCE_FACTOR$: §R -80.0%§!\n",
+    ),
+]
+
+
+@pytest.mark.parametrize(("source", "target"), HOI4_SPAN_REORDER_CASES)
+def test_whole_format_span_reorder_for_word_order_passes(source, target):
+    diff = compare_format_structure(source, target, "hoi4")
+
+    assert diff.hard_issues == []
+    assert diff.passed
+    assert not diff.format_identity_changes
+    assert not diff.format_order_changed
+    assert not diff.boundary_changes
+    assert not diff.possible_variations
+
+
+@pytest.mark.parametrize(("source", "target"), HOI4_SPAN_REORDER_CASES)
+def test_validator_does_not_flag_whole_format_span_reorder(source, target):
+    results = PostProcessValidator().validate_entry("hoi4", "demo_key", target, source_value=source)
+
+    format_codes = {
+        "validation_format_tag_identity_mismatch",
+        "validation_format_tag_order_mismatch",
+        "validation_format_boundary_mismatch",
+        "validation_format_nesting_mismatch",
+        "validation_format_structure_mismatch",
+        "validation_format_structure_variation",
+    }
+    assert not [result.code for result in results if result.code in format_codes]
+
+
+def test_nested_span_reorder_with_same_nesting_passes():
+    diff = compare_format_structure(
+        "#bold A #v [Root.GetName]#!#! then #italic B#!",
+        "#italic B#! then #bold A #v [Root.GetName]#!#!",
+        "vic3",
+    )
+
+    assert diff.passed
+
+
+@pytest.mark.parametrize(
+    ("game_id", "source", "target", "expected"),
+    [
+        # Same protected content, but the colour identity changed while moving.
+        (
+            "hoi4",
+            "将走上对§Y[608.Owner.GetNameDef]§!的§R战争§!之路。",
+            "Will embark on the path of §Y war§! against §R [608.Owner.GetNameDef]§!.",
+            "format_boundary",
+        ),
+        # A colour span was rebound to a different protected token.
+        (
+            "hoi4",
+            "§Y[608.Owner.GetName]§!在§G[ROOT.GetName]§!",
+            "§Y [ROOT.GetName]§! in §G [608.Owner.GetName]§!",
+            "format_boundary",
+        ),
+        # Reordered spans that are also nested differently.
+        (
+            "vic3",
+            "#bold A#! then #v B#!",
+            "#v B #bold A#!#!",
+            "format_tag_order",
+        ),
+        # Same opener order, but the second span is now nested in the first.
+        (
+            "vic3",
+            "#bold A#! #v B#!",
+            "#bold A #v B#!#!",
+            "format_tag_order",
+        ),
+        # A reorder that also changed the identity of a span is still blocked.
+        (
+            "vic3",
+            "#italic A#! and #bold B#!",
+            "#bold B#! and #b A#!",
+            "format_tag_identity",
+        ),
+    ],
+)
+def test_span_reorder_does_not_hide_genuine_structure_changes(game_id, source, target, expected):
+    diff = compare_format_structure(source, target, game_id)
+
+    assert expected in diff.hard_issues
+    assert not diff.passed
