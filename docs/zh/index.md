@@ -88,6 +88,7 @@
 - [RAG 架构与模型选型](technical/rag-design.md) - 本地/云端双轨制 RAG 设计与模型选型方案（工程选型，非用户语料）
 - [重构决策指南](developer/refactor_decision_guide.md) - 什么时候该补丁，什么时候该重构
 - [v3.3.0 发布准备](developer/release-v3.3.0.md) - 修复、高级 Agent API、实验功能边界与词典附件
+- [v3.4.0 候选与验证](developer/release-v3.4.0.md) - token 换序修复、命令参考、火星项目创建与工坊上传测试功能
 - [发布构建脚本指南](developer/build-release-script-guide.md) - Tauri 安装包流水线与历史便携 ZIP 流程
 - [Feature Flags 说明](developer/feature_flags.md) - 前端实验功能开关
 - [动态标签验证器与工具](developer/dynamic_tag_validator_and_tools.md) - 当前验证器相关说明
