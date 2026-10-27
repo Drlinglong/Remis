@@ -12,7 +12,7 @@ from __future__ import annotations
 import json
 import logging
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any, Iterable, Mapping, Optional
 
@@ -203,7 +203,7 @@ class ContextSelection:
     source_snapshot_hash: str | None
     release_source_snapshot_hash: str | None
     project_summary: tuple[dict[str, Any], ...] = ()
-    direct_index: Mapping[tuple[str, str], tuple[dict[str, Any], ...]] = MappingProxyType({})
+    direct_index: Mapping[tuple[str, str], tuple[dict[str, Any], ...]] = field(default_factory=lambda: MappingProxyType({}))
     character_budget: int = DEFAULT_CONTEXT_CHARACTER_BUDGET
     warning: dict[str, Any] | None = None
     user_choice: str | None = None

@@ -16,7 +16,7 @@ flake8
 
 # Refactoring Dependencies
 pydantic
-pydantic-ai-slim[anthropic,google,openai,openrouter]==2.53.0
+pydantic-ai-slim[anthropic,google,openai,openrouter]==2.59.0
 pydantic-ai-harness==0.59.0
 anthropic>=1.0.0,<2
 json-repair
@@ -39,5 +39,6 @@ python-Levenshtein
 
 # Database
 sqlmodel
+sqlalchemy[asyncio]
 aiosqlite
 pytest-asyncio

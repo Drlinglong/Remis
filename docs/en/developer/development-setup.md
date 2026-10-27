@@ -22,7 +22,7 @@ cd Remis
 
 ```bash
 # Create Conda environment
-conda create -n local_factory python=3.10 -y
+conda create -n local_factory python=3.11 -y
 conda activate local_factory
 
 # Install dependencies
