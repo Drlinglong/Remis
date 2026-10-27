@@ -18,7 +18,7 @@ Remis 使用 GitHub Actions 作为权威持续集成环境。本地检查用于�
 
 `.github/workflows/ci.yml` 在 pull request、`main` push 和手动触发时运行三个稳定检查：
 
-- **Python tests**：Windows + Python 3.10，安装 `requirements.txt`，运行源码编译、关键 Flake8 错误检查和完整 Pytest；
+- **Python tests**：Windows + Python 3.11，安装 `requirements.txt`，运行源码编译、关键 Flake8 错误检查和完整 Pytest；
 - **Frontend checks**：Ubuntu + Node.js 22，执行 `npm ci`、ESLint、Vitest 和 production build；
 - **Rust checks**：Windows + stable Rust，执行 `cargo fmt --check` 和 `cargo check --locked`。
 

@@ -653,7 +653,7 @@ def test_release_and_debug_builds_bundle_help_skill_resources():
         requirements,
         re.MULTILINE,
     )
-    assert "pydantic-ai-harness==0.27.0" in requirements
+    assert "pydantic-ai-harness==0.59.0" in requirements
 
 
 def test_clamp_confidence_none_and_weak():
