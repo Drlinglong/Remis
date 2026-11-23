@@ -31,3 +31,17 @@ def validate_target_language_codes(game_id: str, target_codes: list[str]) -> Non
             "Unsupported Surviving Mars target language(s): " + ", ".join(unsupported)
             + ". Supported: " + ", ".join(supported_language_codes(normalized))
         )
+
+
+def incremental_target_languages(game_profile, codes, custom_config):
+    from scripts.app_settings import LANGUAGE_BY_CODE
+    from scripts.core.services.game_support_service import get_game_support
+    from scripts.schemas.agent_language import validate_shell_targets
+
+    target_codes = [code.value for code in codes]
+    shell = validate_shell_targets(target_codes, custom_config)
+    if shell is not None:
+        if not get_game_support(game_profile["id"])["shell_languages_supported"]:
+            raise ValueError("This game does not support Paradox shell languages")
+        return [shell]
+    return [LANGUAGE_BY_CODE[code] for code in target_codes if code in LANGUAGE_BY_CODE]

@@ -623,6 +623,7 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
         config = MagicMock()
         config.project_id = project_id
         config.target_lang_codes = [MagicMock(value="zh-CN"), MagicMock(value="missing-lang")]
+        config.custom_lang_config = None
         config.api_provider = "test-provider"
         config.model = "test-model"
         config.batch_size_limit = None
@@ -701,6 +702,7 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
         config = MagicMock()
         config.project_id = project_id
         config.target_lang_codes = [MagicMock(value="zh-CN")]
+        config.custom_lang_config = None
         config.api_provider = "test-provider"
         config.provider = None
         config.model = "test-model"

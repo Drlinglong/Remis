@@ -519,10 +519,9 @@ class ProjectManager:
     async def run_incremental_update_workflow(self, config: Any, progress_callback: Optional[Callable] = None, provider_runtime: Any = None):
         """Orchestrates the incremental update workflow."""
         from scripts.workflows.update_translate import run_incremental_update
+        from scripts.core.services.game_language_policy import incremental_target_languages
         from scripts.core.services.translation_context_service import context_workflow_kwargs
         from scripts.app_settings import LANGUAGE_BY_CODE, GAME_PROFILES, GAME_PROFILES_BY_ID
-        provider = config.api_provider or config.provider or "gemini"
-        model = config.model
         
         project_id = config.project_id
         project = await self.get_project(project_id)
@@ -539,13 +538,6 @@ class ProjectManager:
         if not source_lang_info:
              if source_lang_code.lower() == 'english': source_lang_info = LANGUAGE_BY_CODE.get("en")
              else: source_lang_info = LANGUAGE_BY_CODE.get("en") # Ultimate fallback
-        # Target language handling (from config list)
-        target_lang_infos = []
-        for code in config.target_lang_codes:
-            info = LANGUAGE_BY_CODE.get(code.value)
-            if info:
-                target_lang_infos.append(info)
-        
         game_id = project.get("game_id", "victoria3")
         
         # 1. Try string ID lookup first (e.g. "victoria3")
@@ -563,6 +555,10 @@ class ProjectManager:
         if project.get("game_version"):
             game_profile = {**game_profile, "game_version": project["game_version"]}
 
+        custom_config = getattr(config, "custom_lang_config", None)
+        target_lang_infos = incremental_target_languages(
+            game_profile, config.target_lang_codes, custom_config.model_dump() if custom_config else None
+        )
         result = await run_incremental_update(
             project_id=project_id,
             target_lang_infos=target_lang_infos,

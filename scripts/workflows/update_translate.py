@@ -430,7 +430,7 @@ async def run_incremental_update(
             f"{project_name} ({target_lang_code}) to {export_result.get('issues_path')}"
         )
 
-        metadata_handler = None if resource_adapter(game_profile) else handler_for_selection(selected_provider, model_name, provider_runtime)
+        metadata_handler = None if any((resource_adapter(game_profile), target_lang_code == "custom")) else handler_for_selection(selected_provider, model_name, provider_runtime)
         if metadata_handler and metadata_handler.client and (not is_multilang or target_lang_info == target_lang_infos[0]):
             metadata_started_at = perf_counter()
             package_service.process_metadata(
