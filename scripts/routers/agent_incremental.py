@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from scripts.schemas.common import LanguageCode
+from scripts.schemas.agent_language import AgentCustomLangConfig
 from scripts.shared.services import project_manager
 from scripts.core.services.agent_incremental_preview_service import build_incremental_preview
 
@@ -12,6 +13,7 @@ router = APIRouter(prefix="/api/agent", tags=["agent-incremental"])
 class IncrementalPreviewRequest(BaseModel):
     custom_source_path: str | None = None
     target_lang_codes: list[LanguageCode] = Field(min_length=1)
+    custom_lang_config: AgentCustomLangConfig | None = None
 
 
 @router.post("/projects/{project_id}/incremental-preview")
@@ -20,6 +22,7 @@ async def preview_incremental(project_id: str, request: IncrementalPreviewReques
         return await build_incremental_preview(
             project_id, request.custom_source_path,
             [code.value for code in request.target_lang_codes], project_manager=project_manager,
+            custom_lang_config=request.custom_lang_config,
         )
     except (ValueError, FileNotFoundError) as exc:
         raise HTTPException(400, detail={"code": "incremental_preview_invalid", "message": str(exc)}) from exc

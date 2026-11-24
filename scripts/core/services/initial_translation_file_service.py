@@ -218,6 +218,7 @@ def handle_empty_file(
             {temp_task.file_path or temp_task.filename: recovered_values},
             all_files_content or [file_info],
             target_lang.get("code"),
+            **({"shell_config": target_lang} if target_lang.get("code") == "custom" else {}),
         )
 
 
@@ -278,11 +279,15 @@ def finalize_translated_file(
     if version_id and not is_failed:
         archive_values = list(translated_texts)
         archive_values.extend("" for _ in file_task.recovered_entries)
+        options = (
+            {"shell_config": target_lang} if target_lang.get("code") == "custom" else {}
+        )
         archive_manager.archive_translated_results(
             version_id,
             {file_task.file_path or file_task.filename: archive_values},
             all_files_content,
-            target_lang.get("code")
+            target_lang.get("code"),
+            **options,
         )
 
     if not is_failed:

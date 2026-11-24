@@ -9,7 +9,7 @@ from scripts.app_settings import GAME_PROFILES_BY_ID, LANGUAGE_BY_CODE
 from scripts.core import archive_manager as archive_module
 from scripts.core.archive_result_persistence import ArchivePersistenceError
 from scripts.core.parallel_processor import ParallelProcessor
-from scripts.core.services import incremental_package_service
+from scripts.core.services import agent_incremental_preview_service, incremental_package_service
 from scripts.core.services.incremental_archive_service import IncrementalArchiveService
 from scripts.core.services.incremental_translation_service import IncrementalTranslationService
 from scripts.workflows import update_translate
@@ -127,7 +127,8 @@ async def test_shell_retry_only_submits_untranslated_entries(tmp_path, monkeypat
     monkeypatch.setattr(update_translate, "IncrementalArchiveService", lambda: IncrementalArchiveService(archive))
     monkeypatch.setattr(incremental_package_service, "DEST_DIR", str(tmp_path / "output"))
     monkeypatch.setattr(update_translate.project_manager, "get_project", AsyncMock(
-        return_value={"name": "Shell fixture", "source_path": str(source)},
+        return_value={"name": "Shell fixture", "source_path": str(source),
+                      "game_id": "victoria3", "source_language": "en"},
     ))
     monkeypatch.setattr(update_translate.project_manager, "add_translation_path", AsyncMock())
     monkeypatch.setattr(update_translate.project_manager, "log_history_event", AsyncMock())
@@ -154,7 +155,18 @@ async def test_shell_retry_only_submits_untranslated_entries(tmp_path, monkeypat
     try:
         service.archive_language_result(
             "project", "Shell fixture", "custom", seed, {SOURCE: ["Conserva"], failed_file: ["Valido"]},
+            shell_config=SHELL,
         )
+        monkeypatch.setattr(agent_incremental_preview_service, "IncrementalArchiveService", lambda: service)
+        preview_args = {"project_manager": update_translate.project_manager, "target_lang_codes": ["custom"]}
+        preview = await agent_incremental_preview_service.build_incremental_preview(
+            "project", custom_lang_config=SHELL, **preview_args,
+        )
+        assert preview["summary"]["model_submitted"] == 2
+        with pytest.raises(ValueError, match="different shell-language"):
+            await agent_incremental_preview_service.build_incremental_preview(
+                "project", custom_lang_config={**SHELL, "name": "Dutch"}, **preview_args,
+            )
         first = await update_translate.run_incremental_update(**args)
         assert first["status"] == "success"
         assert [(item["code"], item["filename"]) for item in first["warnings"]] == [

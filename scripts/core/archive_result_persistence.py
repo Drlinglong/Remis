@@ -3,6 +3,7 @@ import logging
 from typing import Any, Dict, List
 
 from scripts.core.archive_operation import archive_operation
+from scripts.core.archive_shell_identity import bind_shell_identity
 from scripts.utils import i18n
 
 
@@ -11,7 +12,7 @@ class ArchivePersistenceError(RuntimeError):
 
 
 @archive_operation
-def persist_archive_results(manager, version_id: int, file_results: Dict[str, Any], all_files_data: List[Dict], target_lang_code: str):
+def persist_archive_results(manager, version_id: int, file_results: Dict[str, Any], all_files_data: List[Dict], target_lang_code: str, *, shell_config=None):
     """阶段三: 将指定语言的翻译结果存入或更新到数据库"""
     if not manager.connection or not version_id:
         raise ArchivePersistenceError("Translation archive database or source version is unavailable")
@@ -70,6 +71,8 @@ def persist_archive_results(manager, version_id: int, file_results: Dict[str, An
         if not upsert_data:
             return 0
 
+        if target_lang_code == "custom":
+            bind_shell_identity(cursor, version_id, shell_config)
         cursor.executemany("""
             INSERT INTO translated_entries (source_entry_id, language_code, translated_text)
             VALUES (?, ?, ?)

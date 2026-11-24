@@ -10,7 +10,7 @@ async def preview_for_request(request):
     preview = await build_incremental_preview(
         request.project_id, request.custom_source_path,
         [getattr(code, "value", code) for code in request.target_lang_codes],
-        project_manager=project_manager,
+        project_manager=project_manager, custom_lang_config=request.custom_lang_config,
     )
     if (request.expected_preview_fingerprint
             and request.expected_preview_fingerprint != preview["fingerprint"]):
@@ -52,7 +52,7 @@ async def require_current_preview(args):
     try:
         actual = await build_incremental_preview(
             args["project_id"], args.get("custom_source_path"), args["target_lang_codes"],
-            project_manager=project_manager,
+            project_manager=project_manager, custom_lang_config=args.get("custom_lang_config"),
         )
     except (ValueError, FileNotFoundError) as exc:
         raise HTTPException(409, detail={"code": "incremental_preview_stale", "message": str(exc)}) from exc

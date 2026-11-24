@@ -9,6 +9,7 @@ import pytest
 from scripts.core.archive_manager import ArchiveManager
 from scripts.core.archive_result_persistence import ArchivePersistenceError
 from scripts.core.services.translation_archive_service import TranslationArchiveService
+from scripts.core.services.incremental_archive_service import IncrementalArchiveService
 from scripts.core.services.incremental_snapshot_service import IncrementalSnapshotService
 
 
@@ -499,3 +500,38 @@ def test_missing_opening_quote_blocks_archive_baseline(temp_archive_db, tmp_path
     assert result["code"] == "source_scan_failed"
     assert result["issues"][0]["code"] == "missing_opening_quote"
     assert temp_archive_db.connection.execute("SELECT COUNT(*) FROM source_versions").fetchone()[0] == 0
+
+
+def test_custom_archive_rejects_mismatched_and_unidentified_baselines(temp_archive_db):
+    service = IncrementalArchiveService(temp_archive_db)
+    italian = {"name": "Italian", "key": "l_english"}
+    dutch = {"name": "Dutch", "key": "l_english"}
+    files = [{"filename": "a.yml", "texts_to_translate": ["Source"]}]
+    translations = {"a.yml": ["Italian text"]}
+    version = service.archive_language_result("p", "Tagged", "custom", files, translations, shell_config=italian)
+
+    with pytest.raises(ValueError, match="different shell-language"):
+        service.get_language_entries("p", "custom", shell_config=dutch)
+    with pytest.raises(ArchivePersistenceError):
+        temp_archive_db.archive_translated_results(
+            version, {"a.yml": ["Dutch text"]}, files, "custom", shell_config=dutch,
+        )
+    temp_archive_db.close()
+    assert service.get_language_entries("p", "custom", shell_config=italian)[0]["translation"] == "Italian text"
+
+    legacy_version = service.archive_language_result("old", "Legacy", "custom", files, translations)
+    with pytest.raises(ValueError, match="no verified shell-language identity"):
+        service.get_language_entries("old", "custom", shell_config=italian)
+    with pytest.raises(ArchivePersistenceError):
+        temp_archive_db.archive_translated_results(
+            legacy_version, {"a.yml": ["Dutch text"]}, files, "custom", shell_config=dutch,
+        )
+    replacement = service.archive_language_result(
+        "old", "Legacy", "custom", files, {"a.yml": ["Verified text"]}, shell_config=italian,
+    )
+    assert replacement != legacy_version
+    assert service.get_language_entries("old", "custom", shell_config=italian)[0]["translation"] == "Verified text"
+    assert temp_archive_db.connection.execute("""
+        SELECT translated_text FROM translated_entries JOIN source_entries USING (source_entry_id)
+        WHERE version_id = ?
+    """, (legacy_version,)).fetchone()[0] == "Italian text"

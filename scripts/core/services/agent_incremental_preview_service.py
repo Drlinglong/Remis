@@ -14,6 +14,7 @@ from scripts.core.services.incremental_diff_service import IncrementalDiffServic
 from scripts.core.services.incremental_preparation_service import _prepare_file_entries
 from scripts.core.services.incremental_snapshot_service import IncrementalSnapshotService
 from scripts.core.services.game_language_policy import supports_incremental_shell, validate_target_language_codes
+from scripts.schemas.agent_language import validate_shell_targets
 from scripts.core.services.incremental_source_paths import checked_source_path, source_root
 
 
@@ -40,6 +41,7 @@ def _fingerprint(
     *, project_id: str, game_id: str, source_language: str,
     review_states: dict[str, dict[str, list[str]]],
     game_profile: dict[str, Any],
+    shell_config: dict[str, Any] | None = None,
 ) -> str:
     source = []
     for file_data in source_files:
@@ -55,6 +57,7 @@ def _fingerprint(
         "project_id": project_id, "game_id": game_id,
         "source_language": source_language, "source": source, "baselines": baselines,
         "review_states": review_states,
+        **({"shell_config": shell_config} if shell_config else {}),
         "game_profile": {
             "id": game_profile.get("id"),
             "format_adapter_id": game_profile.get("format_adapter_id"),
@@ -144,6 +147,7 @@ async def build_incremental_preview(
     target_lang_codes: list[str] | None = None,
     *,
     project_manager: Any,
+    custom_lang_config: Any = None,
 ) -> dict[str, Any]:
     """Classify pending incremental work without creating outputs or invoking providers."""
     project = await project_manager.get_project(project_id)
@@ -155,6 +159,7 @@ async def build_incremental_preview(
         raise ValueError("Project has no configured source path")
     if not target_lang_codes:
         raise ValueError("At least one target language is required")
+    shell = validate_shell_targets(target_lang_codes, custom_lang_config)
     source_path = source_root(selected_source)
     if not source_path.is_dir():
         raise FileNotFoundError(f"Source directory not found: {source_path}")
@@ -206,7 +211,9 @@ async def build_incremental_preview(
             code == "custom" and supports_incremental_shell(game_profile["id"])
         ):
             raise ValueError(f"Unsupported target language: {code}")
-        archived = archive_service.get_language_entries(project_id, code)
+        archived = archive_service.get_language_entries(
+            project_id, code, **({"shell_config": shell} if shell else {}),
+        )
         fingerprint_baselines[code] = sorted(
             (dict(entry) for entry in archived),
             key=lambda entry: (
@@ -235,7 +242,7 @@ async def build_incremental_preview(
         "fingerprint": _fingerprint(
             source_files, fingerprint_baselines, project_id=project_id,
             game_id=game_id, source_language=source_lang["code"],
-            review_states=review_states,
+            review_states=review_states, shell_config=shell,
             game_profile=game_profile,
         ),
     }

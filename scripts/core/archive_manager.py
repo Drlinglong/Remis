@@ -11,6 +11,7 @@ from scripts.utils import i18n
 from scripts.app_settings import PROJECT_ROOT, MODS_CACHE_DB_PATH
 from scripts.core.archive_operation import archive_operation
 from scripts.core.archive_result_persistence import source_entry_rows
+from scripts.core.archive_shell_identity import create_shell_identity_table, shell_snapshot_hash
 from scripts.core.archive_translation_updates import update_archive_translations
 
 class ArchiveManager:
@@ -76,6 +77,7 @@ class ArchiveManager:
         
         self._migrate_legacy_schema(conn)
         self._normalize_legacy_file_paths(conn)
+        create_shell_identity_table(conn)
         conn.commit()
 
     def _migrate_legacy_schema(self, conn: sqlite3.Connection):
@@ -361,7 +363,7 @@ class ArchiveManager:
         return cursor.fetchone()
 
     @archive_operation
-    def create_source_version(self, mod_id: int, all_files_data: List[Dict]) -> Optional[int]:
+    def create_source_version(self, mod_id: int, all_files_data: List[Dict], *, shell_config=None) -> Optional[int]:
         """阶段二: 计算哈希，如果不存在则创建源版本快照"""
         if not self.connection: return None
 
@@ -373,6 +375,8 @@ class ArchiveManager:
             for recovered in file_data.get('recovered_entries', []):
                 hasher.update(f"\0recovered:{recovered.get('key_part')}:{recovered.get('code')}".encode('utf-8'))
         snapshot_hash = hasher.hexdigest()
+        if shell_config is not None:
+            snapshot_hash = shell_snapshot_hash(snapshot_hash, shell_config)
         cursor = self.connection.cursor()
         try:
             cursor.execute("SELECT version_id FROM source_versions WHERE mod_id = ? AND snapshot_hash = ?", (mod_id, snapshot_hash))
@@ -400,11 +404,12 @@ class ArchiveManager:
             return None
 
     @archive_operation
-    def archive_translated_results(self, version_id: int, file_results: Dict[str, Any], all_files_data: List[Dict], target_lang_code: str) -> int:
+    def archive_translated_results(self, version_id: int, file_results: Dict[str, Any], all_files_data: List[Dict], target_lang_code: str, *, shell_config=None) -> int:
         """Persist one language or raise; return the committed row count."""
         from scripts.core.archive_result_persistence import persist_archive_results
 
-        return persist_archive_results(self, version_id, file_results, all_files_data, target_lang_code)
+        return persist_archive_results(self, version_id, file_results, all_files_data, target_lang_code,
+                                       shell_config=shell_config)
 
     # --- New Methods for Project/Proofreading Flow ---
 

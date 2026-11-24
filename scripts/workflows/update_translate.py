@@ -240,7 +240,6 @@ async def run_incremental_update(
                 lang_telemetry["package_prepare_ms"] = round((perf_counter() - package_started_at) * 1000, 1)
                 logger.info(f"Prepared incremental package root for {project_name} ({target_lang_code}): {lang_output_dir}")
         
-        logger.info(f"Pre-fetching archive for {project_name} ({target_lang_code})...")
         if progress_callback:
             progress_callback(_build_aggregated_progress({
                 "stage": "Preparing",
@@ -253,6 +252,7 @@ async def run_incremental_update(
         all_entries = incremental_archive_service.get_language_entries(
             project_id=project_id,
             language_code=target_lang_code,
+            **({"shell_config": target_lang_info} if target_lang_code == "custom" else {}),
         )
         baseline_info = incremental_archive_service.get_language_baseline(
             project_id=project_id,
@@ -447,7 +447,7 @@ async def run_incremental_update(
 
         archive_write_started_at = perf_counter()
         new_version_id = incremental_archive_service.archive_built_output(
-            project_id, project_name, target_lang_code, build_result, overall_warnings,
+            project_id, project_name, target_lang_info, build_result, overall_warnings,
         )
         if new_version_id:
             export_result = {
