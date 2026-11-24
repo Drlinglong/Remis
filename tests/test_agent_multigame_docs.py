@@ -40,7 +40,9 @@ def test_api_reference_documents_supported_formats_and_incremental_safety():
     ):
         assert contract in reference
     assert "Paradox initial translation" in reference
-    assert 'workflow: "incremental"` rejects' in reference
+    assert "For Victoria 3 incremental" in reference
+    assert "same target language name and shell key" in reference
+    assert "Legacy archives without recorded" in reference
 
 
 def test_incremental_preview_is_read_only_and_fingerprint_bound():
