@@ -83,7 +83,8 @@ class IncrementalTranslationService:
             rate_limiter.update_rpm(int(rpm_limit))
 
         try:
-            return processor.process_files_parallel(file_tasks_for_ai, translate_batch, internal_progress)
+            options = {"skip_source_fallback": True} if target_lang_code == "custom" else {}
+            return processor.process_files_parallel(file_tasks_for_ai, translate_batch, internal_progress, **options)
         finally:
             if rpm_limit and previous_rpm != rate_limiter.rpm:
                 rate_limiter.update_rpm(previous_rpm)

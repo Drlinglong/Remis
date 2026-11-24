@@ -33,15 +33,18 @@ def validate_target_language_codes(game_id: str, target_codes: list[str]) -> Non
         )
 
 
+def supports_incremental_shell(game_id: str) -> bool:
+    return GAME_ID_ALIASES.get(str(game_id).casefold(), game_id) == "victoria3"
+
+
 def incremental_target_languages(game_profile, codes, custom_config):
     from scripts.app_settings import LANGUAGE_BY_CODE
-    from scripts.core.services.game_support_service import get_game_support
     from scripts.schemas.agent_language import validate_shell_targets
 
     target_codes = [code.value for code in codes]
     shell = validate_shell_targets(target_codes, custom_config)
     if shell is not None:
-        if not get_game_support(game_profile["id"])["shell_languages_supported"]:
-            raise ValueError("This game does not support Paradox shell languages")
+        if not supports_incremental_shell(game_profile["id"]):
+            raise ValueError("Only Victoria 3 supports Paradox shell incremental updates")
         return [shell]
     return [LANGUAGE_BY_CODE[code] for code in target_codes if code in LANGUAGE_BY_CODE]

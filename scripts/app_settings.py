@@ -23,9 +23,8 @@ def get_appdata_config_path():
 def get_api_key(provider_id: str, env_var_name: str) -> str:
     """
     Retrieves the API key for a given provider.
-    Priority:
-    1. AppData Config (config.json)
-    2. Environment Variable (os.environ)
+    An explicitly selected development OpenAI profile is authoritative.
+    Other requests use AppData config, then the provider environment variable.
     """
     shared_openai_config = (
         os.getenv("REMIS_DEV_OPENAI_CONFIG")
@@ -34,6 +33,8 @@ def get_api_key(provider_id: str, env_var_name: str) -> str:
     )
     try:
         config_path = shared_openai_config or get_appdata_config_path()
+        if shared_openai_config and not os.path.isabs(config_path):
+            return None
         if os.path.exists(config_path):
             with open(config_path, 'r', encoding='utf-8') as f:
                 config = json.load(f)

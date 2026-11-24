@@ -1,10 +1,14 @@
 import json
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
 import pytest
 
 from scripts.app_settings import GAME_PROFILES_BY_ID, LANGUAGE_BY_CODE
+from scripts.core import archive_manager as archive_module
+from scripts.core.archive_result_persistence import ArchivePersistenceError
+from scripts.core.parallel_processor import ParallelProcessor
 from scripts.core.services import incremental_package_service
 from scripts.core.services.incremental_archive_service import IncrementalArchiveService
 from scripts.core.services.incremental_translation_service import IncrementalTranslationService
@@ -72,12 +76,17 @@ async def test_shell_only_translates_delta_and_keeps_an_english_package(tmp_path
     assert persist.call_args.kwargs["target_lang_code"] == "custom"
     assert persist.call_args.kwargs["archive_results"] == {SOURCE: ["Conserva", "Aggiungi il testo [concept_new]"]}
     handler.assert_not_called()
+    persist.side_effect = ArchivePersistenceError("Injected archive rejection")
+    unarchived = await update_translate.run_incremental_update(**args)
+    assert unarchived["status"] == "success"
+    assert [warning["code"] for warning in unarchived["warnings"]] == ["incremental_archive_write_failed"]
+    assert (Path(unarchived["output_dir"]) / SOURCE).read_bytes() == translated
     failure = Mock(side_effect=RuntimeError("Injected translation failure"))
     monkeypatch.setattr(IncrementalTranslationService, "translate_dirty_files", failure)
     failed = await update_translate.run_incremental_update(**args)
     assert failed["status"] == "error"
     failure.assert_called_once()
-    assert persist.call_count == 2
+    assert persist.call_count == 3
     for folder in (root, other_root):
         assert (folder / SOURCE).read_bytes() == translated
         assert (folder / ".metadata/metadata.json").is_file()
@@ -97,3 +106,82 @@ def test_invalid_shell_metadata_fails_before_allocating_output(tmp_path, monkeyp
             "Fixture", str(source), SHELL, GAME_PROFILES_BY_ID["victoria3"],
         )
     assert not output_root.exists()
+
+
+@pytest.mark.asyncio
+async def test_shell_retry_only_submits_untranslated_entries(tmp_path, monkeypatch):
+    source = tmp_path / "source"
+    (source / ".metadata").mkdir(parents=True)
+    failed_file = "localization/english/failed_l_english.yml"
+    for file, lines in {
+        SOURCE: ' keep:0 "Keep"\n success:0 "New good"\n',
+        failed_file: ' keep_failed:0 "Still valid"\n missing:0 "Retry me"\n',
+    }.items():
+        path = source / file
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("l_english:\n" + lines, encoding="utf-8-sig")
+
+    monkeypatch.setattr(archive_module, "MODS_CACHE_DB_PATH", str(tmp_path / "archive.sqlite"))
+    archive = archive_module.ArchiveManager()
+    archive.initialize_database()
+    monkeypatch.setattr(update_translate, "IncrementalArchiveService", lambda: IncrementalArchiveService(archive))
+    monkeypatch.setattr(incremental_package_service, "DEST_DIR", str(tmp_path / "output"))
+    monkeypatch.setattr(update_translate.project_manager, "get_project", AsyncMock(
+        return_value={"name": "Shell fixture", "source_path": str(source)},
+    ))
+    monkeypatch.setattr(update_translate.project_manager, "add_translation_path", AsyncMock())
+    monkeypatch.setattr(update_translate.project_manager, "log_history_event", AsyncMock())
+    service = IncrementalArchiveService(archive)
+    seed = [
+        {"filename": Path(file).name, "file_path": file, "texts_to_translate": [text],
+         "key_map": [{"key_part": key}]}
+        for file, key, text in [(SOURCE, "keep:0", "Keep"), (failed_file, "keep_failed:0", "Still valid")]
+    ]
+    submissions = []
+
+    def translate(self, file_tasks_for_ai, **kwargs):
+        submissions.append({task.filename: task.texts_to_translate for task in file_tasks_for_ai})
+        if len(submissions) == 1:
+            return {Path(SOURCE).name: ["Nuovo"]}, []
+        return {Path(failed_file).name: ["Riprovato"]}, []
+
+    monkeypatch.setattr(IncrementalTranslationService, "translate_dirty_files", translate)
+    args = {
+        "project_id": "project", "target_lang_infos": [SHELL],
+        "source_lang_info": LANGUAGE_BY_CODE["en"], "game_profile": GAME_PROFILES_BY_ID["victoria3"],
+        "translation_context_mode": "none", "use_resume": False,
+    }
+    try:
+        service.archive_language_result(
+            "project", "Shell fixture", "custom", seed, {SOURCE: ["Conserva"], failed_file: ["Valido"]},
+        )
+        first = await update_translate.run_incremental_update(**args)
+        assert first["status"] == "success"
+        assert [(item["code"], item["filename"]) for item in first["warnings"]] == [
+            ("shell_incremental_file_failed", failed_file),
+        ]
+        assert (Path(first["output_dir"]) / SOURCE).is_file()
+        assert not (Path(first["output_dir"]) / failed_file).exists()
+        second = await update_translate.run_incremental_update(**args)
+        assert second["warning_count"] == 0
+        assert submissions == [
+            {Path(SOURCE).name: ["New good"], Path(failed_file).name: ["Retry me"]},
+            {Path(failed_file).name: ["Retry me"]},
+        ]
+        assert "Valido" in (Path(second["output_dir"]) / failed_file).read_text(encoding="utf-8-sig")
+    finally:
+        archive.close()
+
+
+def test_shell_fallback_cannot_reach_the_archive(monkeypatch):
+    processor = ParallelProcessor()
+    monkeypatch.setattr(processor, "_create_batch_tasks", Mock(return_value=[object()]))
+    file_task = SimpleNamespace(filename="english.yml", texts_to_translate=["Source"])
+    good_file = SimpleNamespace(filename="other.yml", texts_to_translate=["Other"])
+    batch = SimpleNamespace(failed=False, fell_back_to_source=True)
+    good_batch = SimpleNamespace(failed=False, fell_back_to_source=False, translated_texts=["Altro"])
+    monkeypatch.setattr(processor, "_process_batches_parallel", Mock(
+        return_value=({("english.yml", 0): batch, ("other.yml", 0): good_batch}, []),
+    ))
+    results, _ = processor.process_files_parallel([file_task, good_file], Mock(), skip_source_fallback=True)
+    assert results == {"other.yml": ["Altro"]}

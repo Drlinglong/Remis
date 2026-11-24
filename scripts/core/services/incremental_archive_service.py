@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Optional
 
 from scripts.core.archive_manager import archive_manager
+from scripts.core.archive_result_persistence import ArchivePersistenceError
 
 
 class IncrementalArchiveService:
@@ -8,7 +9,10 @@ class IncrementalArchiveService:
         self.archive_manager = am or archive_manager
 
     def get_language_entries(self, project_id: str, language_code: str) -> List[Dict[str, Any]]:
-        return self.archive_manager.get_entries(project_id=project_id, language=language_code)
+        entries = self.archive_manager.get_entries(project_id=project_id, language=language_code)
+        if language_code == "custom" and not any((entry.get("translation") or "").strip() for entry in entries):
+            raise ValueError("Shell incremental updates require an existing custom-language baseline")
+        return entries
 
     def get_language_baseline(self, project_id: str, language_code: str) -> Optional[Dict[str, Any]]:
         return self.archive_manager.get_latest_version(project_id=project_id, language=language_code)
@@ -36,3 +40,24 @@ class IncrementalArchiveService:
             target_lang_code,
         )
         return version_id
+
+    def archive_built_output(self, project_id, project_name, language_code, build_result, warnings):
+        try:
+            version = self.archive_language_result(
+                project_id=project_id,
+                project_name=project_name,
+                target_lang_code=language_code,
+                archive_files_data=build_result["archive_files_data"],
+                archive_results=build_result["archive_results"],
+            )
+        except ArchivePersistenceError:
+            if language_code != "custom":
+                raise
+            version = None
+        if language_code == "custom" and version is None:
+            warnings.append({
+                "code": "incremental_archive_write_failed",
+                "target_lang": language_code,
+                "message": "Saved shell output, but could not update its archive baseline.",
+            })
+        return version

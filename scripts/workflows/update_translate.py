@@ -312,8 +312,7 @@ async def run_incremental_update(
         telemetry["languages"].append(lang_telemetry)
 
         if dry_run:
-            continue # Skip translation for this language
-
+            continue
         if not use_resume:
             from scripts.core.checkpoint_manager import CheckpointManager
             checkpoint_mgr = CheckpointManager(str(lang_output_dir))
@@ -353,6 +352,7 @@ async def run_incremental_update(
         )
         lang_telemetry["build_ms"] = round((perf_counter() - build_started_at) * 1000, 1)
         written_files = build_result["written_files"]
+        build_service.collect_output_warnings(build_result, overall_warnings)
         all_written_files.extend(written_files)
         dynamic_valid_tags = resolve_dynamic_valid_tags(game_profile, source_path)
 
@@ -446,12 +446,8 @@ async def run_incremental_update(
             lang_telemetry["metadata_ms"] = round((perf_counter() - metadata_started_at) * 1000, 1)
 
         archive_write_started_at = perf_counter()
-        new_version_id = incremental_archive_service.archive_language_result(
-            project_id=project_id,
-            project_name=project_name,
-            target_lang_code=target_lang_code,
-            archive_files_data=build_result["archive_files_data"],
-            archive_results=build_result["archive_results"],
+        new_version_id = incremental_archive_service.archive_built_output(
+            project_id, project_name, target_lang_code, build_result, overall_warnings,
         )
         if new_version_id:
             export_result = {

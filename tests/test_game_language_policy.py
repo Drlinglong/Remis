@@ -16,8 +16,9 @@ def test_incremental_shell_uses_custom_identity_and_english_output():
     config = {"name": "Italian", "key": "l_english", "code": "custom", "folder_prefix": "it-"}
     targets = [LanguageCode.CUSTOM]
     assert incremental_target_languages({"id": "victoria3"}, targets, config) == [config]
-    with pytest.raises(ValueError, match="does not support Paradox shell"):
-        incremental_target_languages({"id": "surviving_mars"}, targets, config)
+    for game_id in ("surviving_mars", "stellaris"):
+        with pytest.raises(ValueError, match="Only Victoria 3"):
+            incremental_target_languages({"id": game_id}, targets, config)
     with pytest.raises(ValueError, match="requires only target"):
         incremental_target_languages({"id": "victoria3"}, targets, None)
 
