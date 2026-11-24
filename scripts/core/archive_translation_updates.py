@@ -1,7 +1,10 @@
 import logging
 from typing import Any, Dict, List
 
+from scripts.core.archive_operation import archive_operation
 
+
+@archive_operation
 def update_archive_translations(
     archive_manager,
     mod_name: str,

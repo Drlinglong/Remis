@@ -31,3 +31,20 @@ def validate_target_language_codes(game_id: str, target_codes: list[str]) -> Non
             "Unsupported Surviving Mars target language(s): " + ", ".join(unsupported)
             + ". Supported: " + ", ".join(supported_language_codes(normalized))
         )
+
+
+def supports_incremental_shell(game_id: str) -> bool:
+    return GAME_ID_ALIASES.get(str(game_id).casefold(), game_id) == "victoria3"
+
+
+def incremental_target_languages(game_profile, codes, custom_config):
+    from scripts.app_settings import LANGUAGE_BY_CODE
+    from scripts.schemas.agent_language import validate_shell_targets
+
+    target_codes = [code.value for code in codes]
+    shell = validate_shell_targets(target_codes, custom_config)
+    if shell is not None:
+        if not supports_incremental_shell(game_profile["id"]):
+            raise ValueError("Only Victoria 3 supports Paradox shell incremental updates")
+        return [shell]
+    return [LANGUAGE_BY_CODE[code] for code in target_codes if code in LANGUAGE_BY_CODE]

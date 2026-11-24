@@ -75,11 +75,15 @@ async def _resolve_agent_context(request, execution_args, plan, readiness_servic
 
 
 def _game_plan_support(request, plan):
+    from scripts.core.services.game_language_policy import supports_incremental_shell
     from scripts.core.services.game_support_service import get_game_support, inspect_game_support
     inspection = plan.get("inspection") or {}
     game_id = inspection.get("game_id")
     support = get_game_support(game_id) if game_id else {}
-    if request.custom_lang_config and (request.workflow == "incremental" or support.get("shell_languages_supported") is False):
+    if request.custom_lang_config and (
+        support.get("shell_languages_supported") is False
+        or (request.workflow == "incremental" and not supports_incremental_shell(game_id))
+    ):
         raise AgentTranslationPlanError(400, "unsupported_shell_language", "This game/workflow does not support Paradox shell-language configuration.")
     if request.workflow == "incremental" and request.use_resume:
         raise AgentTranslationPlanError(409, "incremental_resume_unsupported", "Create a fresh incremental plan; task-owned checkpoint resume is unavailable.")

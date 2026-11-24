@@ -56,6 +56,8 @@ class IncrementalBuildService:
         written_files: List[str] = []
         archive_files_data: List[Dict[str, Any]] = []
         archive_results: Dict[str, List[str]] = {}
+        warnings = []
+        shell = target_lang_info["code"] == "custom"
         from scripts.core.game_adapters.registry import resource_adapter
         structured = resource_adapter(game_profile)
 
@@ -70,6 +72,11 @@ class IncrementalBuildService:
             ai_results = translated_results.get(fd["file_path"] if structured else filename, [])
             if (structured or is_surviving_mars) and len(ai_results) != len(delta_indices):
                 raise ValueError(f"Incomplete incremental translations for {fd['file_path']}")
+            baseline = [entry["translation"] or "" for entry in full_entries] if shell else None
+            if shell and (len(ai_results) != len(delta_indices) or any(not text.strip() for text in ai_results)):
+                warnings.append(self._shell_warning(fd, "incomplete_translation"))
+                self._record_archive_file(fd, full_entries, baseline, archive_files_data, archive_results)
+                continue
             for delta_idx, trans_text in zip(delta_indices, ai_results):
                 full_entries[delta_idx]["translation"] = trans_text
 
@@ -129,17 +136,38 @@ class IncrementalBuildService:
                 logger.error(f"Failed to rebuild file {filename}: {e}")
                 if structured or is_surviving_mars:
                     raise
+                if shell:
+                    warnings.append(self._shell_warning(fd, "output_write_failed"))
+                    all_translations = baseline
 
-            archive_files_data.append({
-                "filename": filename,
-                "file_path": fd["file_path"],
-                "texts_to_translate": all_texts,
-                "key_map": [{"key_part": entry["key"]} for entry in full_entries],
-            })
-            archive_results[fd["file_path"]] = all_translations
+            self._record_archive_file(fd, full_entries, all_translations, archive_files_data, archive_results)
 
         return {
             "written_files": written_files,
             "archive_files_data": archive_files_data,
             "archive_results": archive_results,
+            "warnings": warnings,
         }
+
+    @staticmethod
+    def _record_archive_file(file_data, entries, translations, files, results):
+        files.append({
+            "filename": file_data["filename"],
+            "file_path": file_data["file_path"],
+            "texts_to_translate": [entry["source"] for entry in entries],
+            "key_map": [{"key_part": entry["key"]} for entry in entries],
+        })
+        results[file_data["file_path"]] = translations
+
+    @staticmethod
+    def _shell_warning(file_data, reason):
+        filename = file_data["file_path"]
+        return {"code": "shell_incremental_file_failed", "filename": filename,
+                "reason": reason, "message": f"Shell file requires retry ({reason}): {filename}"}
+
+    @staticmethod
+    def collect_output_warnings(build_result, warnings):
+        issues = build_result.get("warnings", [])
+        if issues and not build_result["written_files"]:
+            raise RuntimeError("No shell localization files were written")
+        warnings.extend(issues)

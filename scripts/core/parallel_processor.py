@@ -43,7 +43,9 @@ class ParallelProcessor:
         self,
         file_tasks: List[FileTask],
         translation_function: Callable,
-        progress_callback: Optional[Callable[[int, int], None]] = None
+        progress_callback: Optional[Callable[[int, int], None]] = None,
+        *,
+        skip_source_fallback: bool = False,
     ) -> Tuple[Dict[str, List[str]], List[Dict[str, Any]]]:
         if not file_tasks:
             return {}, []
@@ -53,7 +55,8 @@ class ParallelProcessor:
         
         batch_results, all_warnings = self._process_batches_parallel(batch_tasks, translation_function, progress_callback)
         
-        file_results = self._collect_file_results(file_tasks, batch_results)
+        options = {"skip_source_fallback": True} if skip_source_fallback else {}
+        file_results = self._collect_file_results(file_tasks, batch_results, **options)
         
         self.logger.info(i18n.t("all_files_processing_completed", count=len(file_results)))
         return file_results, all_warnings
@@ -586,7 +589,9 @@ class ParallelProcessor:
     def _collect_file_results(
         self,
         file_tasks: List[FileTask],
-        batch_results: Dict[Tuple[str, int], BatchTask]
+        batch_results: Dict[Tuple[str, int], BatchTask],
+        *,
+        skip_source_fallback: bool = False,
     ) -> Dict[str, List[str]]:
         file_results = {}
         
@@ -620,6 +625,8 @@ class ParallelProcessor:
                 file_translated_texts.extend(task.translated_texts)
 
             if file_failed or len(file_translated_texts) != len(file_task.texts_to_translate):
+                if skip_source_fallback:
+                    continue
                 from scripts.core.game_adapters.registry import resource_adapter
                 if resource_adapter(file_task.game_profile):
                     raise RuntimeError(f"Incomplete game resource translation: {file_task.filename}")

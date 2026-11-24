@@ -664,9 +664,13 @@ Pass this configuration to `POST /api/agent/jobs/plan` alongside the project,
 provider/model and explicit context mode. `name` is the language shown to the
 translation model; `key` is the supported game language used in output files.
 `folder_prefix` must be a safe, distinct output prefix ending in a hyphen.
-This example is for Paradox initial translation. Multi-game adapters do not
-support shell languages, and `workflow: "incremental"` rejects
-`custom_lang_config` for every game.
+Use this payload for Paradox initial translation. For Victoria 3 incremental
+translation, send the same `custom_lang_config` in both the incremental preview
+and the incremental plan. The archive must contain a verified baseline with
+the same target language name and shell key. Legacy archives without recorded
+identity are preserved. Start with a verified initial shell translation before
+using incremental reuse on these projects. Multi-game adapters do not support
+shell languages.
 
 ```json
 {

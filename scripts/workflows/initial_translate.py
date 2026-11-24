@@ -208,7 +208,7 @@ def _prepare_translation_run(
     use_glossary, clean_source, override_path, progress_callback, project_id,
     use_project_context, translation_context_mode, context_release_id,
     context_character_budget, context_service, snapshot_service, batch_size_limit,
-    stale_choice=None, stale_acknowledgement=None,
+    stale_choice=None, stale_acknowledgement=None, shell_config=None,
 ) -> PreparedTranslationRun:
     load_glossaries_for_run(game_profile.get("id", ""), use_glossary, selected_glossary_ids)
     output_dir_path = prepare_output_workspace(mod_name, output_folder_name, game_profile)
@@ -237,7 +237,7 @@ def _prepare_translation_run(
     total_batches = calculate_total_batches(all_files_content, effective_chunk_size)
     _, version_id = create_source_snapshot(
         mod_name, all_files_content, total_files, total_batches,
-        progress_callback, project_id,
+        progress_callback, project_id, **({"shell_config": shell_config} if shell_config is not None else {}),
     )
     if not version_id:
         raise RuntimeError("Failed to create the source archive snapshot.")
@@ -386,6 +386,7 @@ def run(
         context_service=context_service,
         snapshot_service=snapshot_service,
         batch_size_limit=batch_size_limit,
+        shell_config=primary_target_lang if primary_target_lang["code"] == "custom" else None,
         stale_choice=stale_choice,
         stale_acknowledgement=stale_acknowledgement,
     )

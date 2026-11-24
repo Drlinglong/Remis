@@ -195,9 +195,14 @@ def create_source_snapshot(
     total_batches: int,
     progress_callback: Optional[Any] = None,
     project_id: Optional[str] = None,
+    *, shell_config=None,
 ):
     archive_mod_name = resolve_archive_mod_name(mod_name, project_id)
-    mod_id = archive_manager.get_or_create_mod_entry(archive_mod_name, f"local_{mod_name}")
+    mod_id = (
+        archive_manager.resolve_mod_entry(archive_mod_name, remote_file_id=project_id)
+        if shell_config is not None and project_id
+        else archive_manager.get_or_create_mod_entry(archive_mod_name, f"local_{mod_name}")
+    )
     if not mod_id:
         logging.error("Failed to get/create mod entry in database. Aborting.")
         return None, None
@@ -206,7 +211,8 @@ def create_source_snapshot(
     if progress_callback:
         progress_callback(0, total_files, "", "Creating Backup", total_batches=total_batches)
 
-    version_id = archive_manager.create_source_version(mod_id, all_files_content)
+    options = {"shell_config": shell_config} if shell_config is not None else {}
+    version_id = archive_manager.create_source_version(mod_id, all_files_content, **options)
     if not version_id:
         logging.error("Failed to create source version snapshot. Aborting workflow to prevent data loss.")
         return mod_id, None

@@ -131,6 +131,12 @@ model-submitted, and review-required counts distinct. Incremental checkpoint
 resume and custom shell languages are unsupported for Project Zomboid and
 RimWorld; create a new incremental plan instead of requesting resume.
 
+For a Victoria 3 shell update, use `target_lang_codes: ["custom"]` and the same
+`custom_lang_config` in the preview and plan. Incremental reuse requires an
+archive with a verified matching target language and shell key. Older
+archives without identity are preserved and need a new verified baseline
+before incremental reuse.
+
 Project Zomboid supports JSON string maps and restricted literal Lua-table TXT.
 RimWorld supports Keyed, DefInjected, Strings, known translatable Def fields,
 and `rulesStrings`. These are recognized formats, not proof of complete Mod

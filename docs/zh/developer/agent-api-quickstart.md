@@ -83,6 +83,8 @@ flowchart TD
 `POST /api/agent/jobs/plan` 支持 `workflow: "initial"`（默认）和
 `workflow: "incremental"`。增量流程比较已识别的条目；仅版本号或路径变化不会触发整批重译。原文变化时保留已有译文并标记待复核，`needs_review` 在人工确认前不算已解决。Agent 可先调用 `POST /api/agent/projects/{project_id}/incremental-preview`，传入可选 `custom_source_path` 和 `target_lang_codes`（如 `["zh-CN"]`）查看无费用预览；无需 Provider/API Key，也不写项目、归档或输出。将预览 `fingerprint` 通过 `expected_preview_fingerprint` 传给 `/api/agent/jobs/plan` 以绑定审核结果，执行时若预览已过期会拒绝。增量 `dry_run: true` 现在会实际计算差异但不调用 Provider；初次翻译 dry-run 仍只检查就绪状态。优先使用作者原始 `Text` 并确认其语言；只有用户明确选择时，才使用 `Translation` 列作为翻译源。不得从英文切到西班牙语 `Text`，造成全量变更。通过 `GET /api/agent/jobs/{job_id}` 的 `result.metadata` 可查看 `entry_summary`、`file_summaries`；dry-run 结果含 `incremental_preview` 和 `diff_executed: true`。分别统计原文变更、提交模型和待人工复核的条目。Project Zomboid 和 RimWorld 当前不支持增量 checkpoint 恢复或自定义套壳语言；请重新创建增量计划。
 
+维多利亚 3 套壳增量需在预览和计划中都传入 `target_lang_codes: ["custom"]` 和相同的 `custom_lang_config`。增量复用要求归档已记录相同的目标语言名和套壳键。旧归档会保留，开始增量复用前需建立已验证的基线。
+
 Project Zomboid 支持 JSON 字符串映射及受限的字面量 Lua 表 TXT。RimWorld 支持 Keyed、DefInjected、Strings、规则目录明确列出的 Def 可翻译字段和 `rulesStrings`。这表示适配器能识别这些格式，不代表覆盖 Mod 的所有文件；未知字段及依赖运行时的内容会产生诊断或交由人工复核。源文件只读；每个目标语言生成独立包，导出预览只列出现有本地产物供手动安装。预览的 `validation_scope` 是 `artifact_presence_only`，不代表游戏运行时已验证。对于以明确批准方式调用的 Paradox 导出请求，这三款游戏均返回 `409 unsupported_game_deployment`。Surviving Mars 沿用现有 ModItemLocTable CSV 初次翻译、增量更新和校对流程；另可用 translation-package options/plan/export API 把已有 CSV 译文生成本地独立轻量包，须审批且不会自动安装、发布或复制原 Mod 资产。硬编码 `Untranslated(...)` 文本不在 CSV 覆盖范围内，包的 `runtime_verified` 为 false。
 
 详细响应字段见 [Agent API 技术参考](../../../.agents/skills/remis-agent/references/api-workflow.md)，玩家说明见[多游戏本地化指南](../user-guides/multi-game-localization.md)。
