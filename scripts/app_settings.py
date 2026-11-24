@@ -27,9 +27,13 @@ def get_api_key(provider_id: str, env_var_name: str) -> str:
     1. AppData Config (config.json)
     2. Environment Variable (os.environ)
     """
-    # 1. Try AppData config
+    shared_openai_config = (
+        os.getenv("REMIS_DEV_OPENAI_CONFIG")
+        if provider_id == "openai" and not getattr(sys, "frozen", False)
+        else None
+    )
     try:
-        config_path = get_appdata_config_path()
+        config_path = shared_openai_config or get_appdata_config_path()
         if os.path.exists(config_path):
             with open(config_path, 'r', encoding='utf-8') as f:
                 config = json.load(f)
@@ -40,7 +44,7 @@ def get_api_key(provider_id: str, env_var_name: str) -> str:
         pass
     
     # 2. Fallback to environment variable
-    return os.environ.get(env_var_name)
+    return None if shared_openai_config else os.environ.get(env_var_name)
 
 def load_api_keys_to_env():
     """

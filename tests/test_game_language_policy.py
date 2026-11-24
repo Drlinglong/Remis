@@ -1,13 +1,25 @@
 import pytest
 
 from scripts.app_settings import LANGUAGES
+from scripts.schemas.common import LanguageCode
 from scripts.core.services.game_language_policy import (
+    incremental_target_languages,
     supported_language_codes,
     validate_target_language_codes,
 )
 
 
 EXPECTED_MARS_CODES = ["zh-CN", "en", "fr", "de", "es", "pl", "pt-BR", "ru", "tr"]
+
+
+def test_incremental_shell_uses_custom_identity_and_english_output():
+    config = {"name": "Italian", "key": "l_english", "code": "custom", "folder_prefix": "it-"}
+    targets = [LanguageCode.CUSTOM]
+    assert incremental_target_languages({"id": "victoria3"}, targets, config) == [config]
+    with pytest.raises(ValueError, match="does not support Paradox shell"):
+        incremental_target_languages({"id": "surviving_mars"}, targets, config)
+    with pytest.raises(ValueError, match="requires only target"):
+        incremental_target_languages({"id": "victoria3"}, targets, None)
 
 
 def test_surviving_mars_has_exact_nine_catalog_languages():

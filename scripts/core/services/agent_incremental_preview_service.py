@@ -14,6 +14,7 @@ from scripts.core.services.incremental_diff_service import IncrementalDiffServic
 from scripts.core.services.incremental_preparation_service import _prepare_file_entries
 from scripts.core.services.incremental_snapshot_service import IncrementalSnapshotService
 from scripts.core.services.game_language_policy import validate_target_language_codes
+from scripts.core.services.game_support_service import get_game_support
 from scripts.core.services.incremental_source_paths import checked_source_path, source_root
 
 
@@ -202,10 +203,13 @@ async def build_incremental_preview(
     review_states: dict[str, dict[str, list[str]]] = {}
 
     for code in target_lang_codes:
-        target_lang = LANGUAGE_BY_CODE.get(code)
-        if target_lang is None:
+        if code not in LANGUAGE_BY_CODE and not (
+            code == "custom" and get_game_support(game_profile["id"])["shell_languages_supported"]
+        ):
             raise ValueError(f"Unsupported target language: {code}")
         archived = archive_service.get_language_entries(project_id, code)
+        if code == "custom" and not archived:
+            raise ValueError("Shell incremental updates require an existing custom-language baseline")
         fingerprint_baselines[code] = sorted(
             (dict(entry) for entry in archived),
             key=lambda entry: (

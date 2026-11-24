@@ -115,16 +115,12 @@ def test_non_paradox_games_reject_paradox_shell_languages(game_id: str):
     assert (caught.value.status_code, caught.value.code) == (400, "unsupported_shell_language")
 
 
-def test_paradox_initial_shell_is_preserved_and_incremental_shell_is_rejected():
-    initial = _game_plan_support(_request("victoria3", shell=True), _plan("victoria3"))
-    assert initial["output_kind"] == "paradox_mod"
-
-    with pytest.raises(AgentTranslationPlanError) as caught:
-        _game_plan_support(
-            _request("victoria3", workflow="incremental", shell=True), _plan("victoria3"),
-        )
-
-    assert (caught.value.status_code, caught.value.code) == (400, "unsupported_shell_language")
+@pytest.mark.parametrize("workflow", ["initial", "incremental"])
+def test_paradox_shell_is_supported(workflow):
+    support = _game_plan_support(
+        _request("victoria3", workflow=workflow, shell=True), _plan("victoria3"),
+    )
+    assert support["output_kind"] == "paradox_mod"
 
 
 def test_game_version_from_project_plan_is_used_for_resource_approval(monkeypatch, tmp_path):

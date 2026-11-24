@@ -1,5 +1,7 @@
 import json
 import sqlite3
+from concurrent.futures import ThreadPoolExecutor
+from threading import Event
 from pathlib import Path
 
 import pytest
@@ -94,6 +96,47 @@ def test_archive_batch_rolls_back_partial_inserts_and_raises(temp_archive_db):
     with pytest.raises(ArchivePersistenceError):
         temp_archive_db.archive_translated_results(version, {"x.yml": ["Good", "reject"]}, files, "zh-CN")
     assert temp_archive_db.connection.execute("SELECT COUNT(*) FROM translated_entries").fetchone()[0] == 0
+
+
+def test_archive_rollback_does_not_undo_another_threads_snapshot(temp_archive_db, monkeypatch):
+    manager = temp_archive_db
+    mod = manager.get_or_create_mod_entry("Probe", "probe")
+    files = [{"filename": "snapshot.yml", "texts_to_translate": ["Source"]}]
+    snapshot_inserted = Event()
+    allow_snapshot_to_finish = Event()
+    failure_attempted = Event()
+    normalize = manager._normalize_archive_file_path
+
+    def pause_snapshot(path):
+        if path == "snapshot.yml":
+            snapshot_inserted.set()
+            assert allow_snapshot_to_finish.wait(5)
+        return normalize(path)
+
+    def fail_archive():
+        failure_attempted.set()
+        with pytest.raises(ArchivePersistenceError):
+            manager.archive_translated_results(1, {"missing.yml": ["Translation"]}, [], "fr")
+
+    monkeypatch.setattr(manager, "_normalize_archive_file_path", pause_snapshot)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        snapshot = pool.submit(manager.create_source_version, mod, files)
+        try:
+            assert snapshot_inserted.wait(5)
+            failure = pool.submit(fail_archive)
+            assert failure_attempted.wait(5)
+            with pytest.raises(TimeoutError):
+                failure.result(timeout=0.25)
+        finally:
+            allow_snapshot_to_finish.set()
+        version = snapshot.result(timeout=5)
+        failure.result(timeout=5)
+
+    assert manager.connection.execute(
+        "SELECT version_id FROM source_versions WHERE version_id = ?", (version,),
+    ).fetchone()[0] == version
+    assert manager.connection.execute("PRAGMA foreign_keys").fetchone()[0] == 1
+    assert manager.connection.execute("PRAGMA foreign_key_check").fetchall() == []
 
 
 def test_archive_persistence_requires_source_entry_match(temp_archive_db):

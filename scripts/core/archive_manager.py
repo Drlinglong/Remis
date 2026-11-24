@@ -3,11 +3,14 @@ import sqlite3
 import os
 import logging
 import hashlib
+from threading import RLock
 from typing import Dict, List, Optional, Tuple, Any
 import json
 
 from scripts.utils import i18n
 from scripts.app_settings import PROJECT_ROOT, MODS_CACHE_DB_PATH
+from scripts.core.archive_operation import archive_operation
+from scripts.core.archive_result_persistence import source_entry_rows
 from scripts.core.archive_translation_updates import update_archive_translations
 
 class ArchiveManager:
@@ -16,14 +19,17 @@ class ArchiveManager:
     """
     def __init__(self):
         self._conn: Optional[sqlite3.Connection] = None
+        self._operation_lock = RLock()
 
     @property
+    @archive_operation
     def connection(self) -> Optional[sqlite3.Connection]:
         """Lazy load database connection."""
         if self._conn is None:
             self.initialize_database()
         return self._conn
 
+    @archive_operation
     def initialize_database(self) -> bool:
         """Initializes the database connection. Returns True on success, False on failure."""
         if self._conn:
@@ -33,6 +39,7 @@ class ArchiveManager:
             self._conn = sqlite3.connect(MODS_CACHE_DB_PATH, check_same_thread=False)
             self._conn.row_factory = sqlite3.Row
             self._create_tables(self._conn)
+            self._conn.execute("PRAGMA foreign_keys = ON")
             logging.info(i18n.t("log_info_db_connected", path=MODS_CACHE_DB_PATH))
             return True
         except Exception as e:
@@ -172,6 +179,7 @@ class ArchiveManager:
             """
         )
 
+    @archive_operation
     def get_or_create_mod_entry(self, mod_name: str, remote_file_id: str) -> Optional[int]:
         """阶段一: 根据 remote_file_id 查询或创建 mod 记录，返回内部 mod_id"""
         if not self.connection: return None
@@ -201,6 +209,7 @@ class ArchiveManager:
             logging.error(i18n.t("log_error_db_get_create_mod_id", error=e))
             self.connection.rollback()
             return None
+    @archive_operation
     def get_mod_id_by_remote_id(self, remote_file_id: str) -> Optional[int]:
         """Looks up a mod_id using the remote_file_id (project_id)."""
         if not self.connection: return None
@@ -209,6 +218,7 @@ class ArchiveManager:
         result = cursor.fetchone()
         return result['mod_id'] if result else None
 
+    @archive_operation
     def resolve_mod_entry(self, mod_name: str, remote_file_id: Optional[str] = None) -> Optional[int]:
         """Resolve the correct mod bucket and ensure the project identity is attached to it."""
         if not self.connection:
@@ -251,6 +261,7 @@ class ArchiveManager:
             self.connection.rollback()
             return None
 
+    @archive_operation
     def get_latest_version(
         self,
         mod_name: str = None,
@@ -349,13 +360,12 @@ class ArchiveManager:
         )
         return cursor.fetchone()
 
+    @archive_operation
     def create_source_version(self, mod_id: int, all_files_data: List[Dict]) -> Optional[int]:
         """阶段二: 计算哈希，如果不存在则创建源版本快照"""
         if not self.connection: return None
 
-        # 1. 计算总哈希
         hasher = hashlib.sha256()
-        # Sort by filename to ensure consistent hash
         sorted_files = sorted(all_files_data, key=lambda x: x['filename'])
         for file_data in sorted_files:
             for text in file_data.get('archive_texts', file_data.get('texts_to_translate', [])):
@@ -365,54 +375,21 @@ class ArchiveManager:
         snapshot_hash = hasher.hexdigest()
         cursor = self.connection.cursor()
         try:
-            # 2. 检查哈希是否存在 (FOR THIS MOD)
             cursor.execute("SELECT version_id FROM source_versions WHERE mod_id = ? AND snapshot_hash = ?", (mod_id, snapshot_hash))
             result = cursor.fetchone()
             if result:
                 logging.info(i18n.t("log_info_source_version_exists", hash=snapshot_hash[:7], version_id=result['version_id']))
                 return result['version_id']
 
-            # 3. 创建新版本
             cursor.execute("INSERT INTO source_versions (mod_id, snapshot_hash) VALUES (?, ?)", (mod_id, snapshot_hash))
             version_id = cursor.lastrowid
             logging.info(i18n.t("log_info_created_source_version", version_id=version_id, mod_id=mod_id, hash=snapshot_hash[:7]))
+            source_entries = source_entry_rows(version_id, all_files_data, self._normalize_archive_file_path)
 
-            # 4. 插入所有源条目
-            source_entries = []
-            for file_data in all_files_data:
-                # key_map is a dict from QuoteExtractor where keys are indices
-                # file_data['texts_to_translate'] is a list of same length
-                km = file_data.get('archive_key_map', file_data.get('key_map', {}))
-                texts = file_data.get('archive_texts', file_data.get('texts_to_translate', []))
-                
-                for idx, text in enumerate(texts):
-                    if isinstance(km, dict):
-                        key_info = km.get(idx)
-                    elif isinstance(km, list) and idx < len(km):
-                        key_info = km[idx]
-                    else:
-                        key_info = None
-                    
-                    if isinstance(key_info, dict):
-                        entry_key = key_info.get('key_part', '').strip()
-                    else:
-                        entry_key = str(key_info) if key_info else str(idx)
-                    
-                    # Normalize: ensure no trailing colon (consistency)
-                    if entry_key.endswith(":"):
-                        entry_key = entry_key[:-1].strip()
-                    
-                    entry_file_path = self._normalize_archive_file_path(
-                        file_data.get('file_path') or file_data.get('filename', 'unknown')
-                    )
-                    source_entries.append((version_id, entry_key, text, entry_file_path))
-
-            # Ensure file_path column exists
             cursor.execute("PRAGMA table_info(source_entries)")
             columns = [col['name'] for col in cursor.fetchall()]
             if 'file_path' not in columns:
                 cursor.execute("ALTER TABLE source_entries ADD COLUMN file_path TEXT DEFAULT ''")
-
             cursor.executemany("INSERT OR IGNORE INTO source_entries (version_id, entry_key, source_text, file_path) VALUES (?, ?, ?, ?)", source_entries)
             self.connection.commit()
             logging.info(i18n.t("log_info_archived_source_entries", count=len(source_entries), version_id=version_id))
@@ -422,6 +399,7 @@ class ArchiveManager:
             self.connection.rollback()
             return None
 
+    @archive_operation
     def archive_translated_results(self, version_id: int, file_results: Dict[str, Any], all_files_data: List[Dict], target_lang_code: str) -> int:
         """Persist one language or raise; return the committed row count."""
         from scripts.core.archive_result_persistence import persist_archive_results
@@ -430,6 +408,7 @@ class ArchiveManager:
 
     # --- New Methods for Project/Proofreading Flow ---
 
+    @archive_operation
     def get_all_mod_names(self) -> List[str]:
         """Returns a list of all mod names in the archive."""
         if not self.connection: return []
@@ -440,6 +419,7 @@ class ArchiveManager:
         except Exception:
             return []
 
+    @archive_operation
     def detect_target_language(self, version_id: int) -> Optional[str]:
         """Detects the most common target language for a given version in the archive."""
         if not self.connection: return None
@@ -462,6 +442,7 @@ class ArchiveManager:
             logging.error(f"Failed to detect target language: {e}")
             return None
 
+    @archive_operation
     def get_archived_languages(self, version_id: int) -> List[str]:
         """Returns a list of all target languages available for a given version in the archive."""
         if not self.connection: return []
@@ -480,6 +461,7 @@ class ArchiveManager:
             logging.error(f"Failed to get archived languages: {e}")
             return []
 
+    @archive_operation
     def get_source_entry_count(self, version_id: int) -> int:
         if not self.connection:
             return 0
@@ -492,6 +474,7 @@ class ArchiveManager:
             logging.error(f"Failed to get source entry count for version {version_id}: {e}")
             return 0
 
+    @archive_operation
     def get_source_file_count(self, version_id: int) -> int:
         if not self.connection:
             return 0
@@ -511,6 +494,7 @@ class ArchiveManager:
             logging.error(f"Failed to get source file count for version {version_id}: {e}")
             return 0
 
+    @archive_operation
     def get_total_translated_entry_count(self, version_id: int) -> int:
         if not self.connection:
             return 0
@@ -531,6 +515,7 @@ class ArchiveManager:
             logging.error(f"Failed to get translated entry count for version {version_id}: {e}")
             return 0
 
+    @archive_operation
     def get_entries(self, mod_name: str = None, project_id: str = None, file_path: str = None, language: str = "zh-CN", limit: int = None) -> List[Dict[str, Any]]:
         """
         Retrieves merged source and translation entries. 
@@ -630,6 +615,7 @@ class ArchiveManager:
             
         return results
 
+    @archive_operation
     def get_source_entry(
         self,
         mod_name: str = None,
@@ -709,6 +695,7 @@ class ArchiveManager:
             logging.error(f"Archive source lookup failed for key={entry_key}, file_path={file_path}: {e}")
             return None
 
+    @archive_operation
     def find_global_translation(self, entry_key: str, source_text: str, language: str) -> Optional[str]:
         """
         Searches for a translation in the entire database (cross-mod) matching exactly the key and source text.
@@ -735,6 +722,7 @@ class ArchiveManager:
         except Exception as e:
             logging.error(f"Global archive lookup failed: {e}")
             return None
+    @archive_operation
     def update_translations(
         self, mod_name: str, file_path: str, entries: List[Dict[str, Any]],
         language: str = "zh-CN", project_id: str = None, allow_missing: bool = False
@@ -794,9 +782,11 @@ class ArchiveManager:
         cursor.execute(query, params)
         return cursor.fetchone()
 
+    @archive_operation
     def close(self):
         if self._conn:
             self._conn.close()
+            self._conn = None
             logging.info(i18n.t("log_info_db_connection_closed"))
 
 # 延迟初始化的全局实例

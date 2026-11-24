@@ -1,6 +1,8 @@
 """Persist matched translations atomically and surface archive failures."""
 import logging
 from typing import Any, Dict, List
+
+from scripts.core.archive_operation import archive_operation
 from scripts.utils import i18n
 
 
@@ -8,6 +10,7 @@ class ArchivePersistenceError(RuntimeError):
     """Raised when translation results cannot be committed to the archive."""
 
 
+@archive_operation
 def persist_archive_results(manager, version_id: int, file_results: Dict[str, Any], all_files_data: List[Dict], target_lang_code: str):
     """阶段三: 将指定语言的翻译结果存入或更新到数据库"""
     if not manager.connection or not version_id:
@@ -83,3 +86,29 @@ def persist_archive_results(manager, version_id: int, file_results: Dict[str, An
         logging.error(i18n.t("log_error_db_archive_results", lang_code=target_lang_code, error=e))
         manager.connection.rollback()
         raise ArchivePersistenceError("Translation archive write failed") from e
+
+
+def source_entry_rows(version_id, all_files_data, normalize_file_path):
+    """Map parsed source entries to SQLite rows without changing their text."""
+    source_entries = []
+    for file_data in all_files_data:
+        km = file_data.get('archive_key_map', file_data.get('key_map', {}))
+        texts = file_data.get('archive_texts', file_data.get('texts_to_translate', []))
+        for idx, text in enumerate(texts):
+            if isinstance(km, dict):
+                key_info = km.get(idx)
+            elif isinstance(km, list) and idx < len(km):
+                key_info = km[idx]
+            else:
+                key_info = None
+            if isinstance(key_info, dict):
+                entry_key = key_info.get('key_part', '').strip()
+            else:
+                entry_key = str(key_info) if key_info else str(idx)
+            if entry_key.endswith(":"):
+                entry_key = entry_key[:-1].strip()
+            entry_file_path = normalize_file_path(
+                file_data.get('file_path') or file_data.get('filename', 'unknown')
+            )
+            source_entries.append((version_id, entry_key, text, entry_file_path))
+    return source_entries

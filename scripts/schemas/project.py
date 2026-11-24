@@ -2,6 +2,7 @@ from typing import Any, Dict, Optional, List, Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from scripts.schemas.common import LanguageCode
 from scripts.schemas.reference import ReferenceReuseConfig
+from scripts.schemas.translation import CustomLangConfig
 
 class CreateProjectRequest(BaseModel):
     name: str
@@ -153,6 +154,7 @@ class EmbeddedWorkshopConfig(BaseModel):
 class IncrementalUpdateRequest(BaseModel):
     project_id: Optional[str] = None
     target_lang_codes: List[LanguageCode] = [LanguageCode.ZH_CN]
+    custom_lang_config: Optional[CustomLangConfig] = None
     api_provider: str = "gemini"
     provider: Optional[str] = None # Alias for api_provider (for legacy/frontend compatibility)
     model: str = "gemini-3.8-flash"
