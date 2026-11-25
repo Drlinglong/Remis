@@ -16,7 +16,7 @@ try:
     from scripts.build_profile import PROFILES, write_profile_manifest
     from scripts.build_game_smoke import REQUIRED_FROZEN_GAME_ADAPTER_MODULES, verify_frozen_game_adapter_modules
     from scripts.build_fpk_smoke import PYINSTALLER_FPK_ARGS, verify_frozen_fpk_support
-    from scripts.build_glossary_resources import package_glossaries, read_resources
+    from scripts.build_glossary_resources import bundled_glossary_add_data_args, package_glossaries, read_resources
     PYINSTALLER_GAME_ADAPTER_ARGS = "--collect-submodules scripts.core.game_adapters"
     PYINSTALLER_GAME_ADAPTER_FACTORY_ARGS = (
         "--hidden-import scripts.core.game_adapters.project_zomboid "
@@ -27,7 +27,7 @@ except ModuleNotFoundError:
     from build_profile import PROFILES, write_profile_manifest
     from build_game_smoke import REQUIRED_FROZEN_GAME_ADAPTER_MODULES, verify_frozen_game_adapter_modules
     from build_fpk_smoke import PYINSTALLER_FPK_ARGS, verify_frozen_fpk_support
-    from build_glossary_resources import package_glossaries, read_resources
+    from build_glossary_resources import bundled_glossary_add_data_args, package_glossaries, read_resources
     PYINSTALLER_GAME_ADAPTER_ARGS = "--collect-submodules scripts.core.game_adapters"
     PYINSTALLER_GAME_ADAPTER_FACTORY_ARGS = (
         "--hidden-import scripts.core.game_adapters.project_zomboid "
@@ -196,7 +196,7 @@ def backend_seed_add_data_args(project_root, seed_main, seed_projects):
     """Build the required PyInstaller arguments for database and demo seeds."""
     return (
         f'--add-data "{seed_main};data" --add-data "{seed_projects};data" '
-        f'{steam_workshop_demo_add_data_arg(project_root)}'
+        f'{steam_workshop_demo_add_data_arg(project_root)} {bundled_glossary_add_data_args(project_root)}'
     )
 
 def print_step(step_name):

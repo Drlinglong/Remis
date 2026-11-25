@@ -33,6 +33,14 @@ data/glossary/
     └── glossary.json          # Crusader Kings III main glossary
 ```
 
+### Bundled game reference glossaries
+
+The desktop installer includes separate Simplified and Traditional Chinese
+reference glossaries for Surviving Mars and one multilingual reference glossary
+for Probably Stolen. Open Glossary Manager and choose the game's library.
+These glossaries are editable and opt-in. Upgrades preserve existing copies
+of the same resource, local edits, and project bindings.
+
 ### Auxiliary Glossaries
 ```
 data/glossary/
