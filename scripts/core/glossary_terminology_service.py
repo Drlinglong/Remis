@@ -3,7 +3,6 @@
 No separate editable term store. Imports create isolated standard glossaries;
 the existing UI and CRUD API own subsequent edits. Snapshots never rewrite them.
 """
-import uuid
 from collections import Counter
 from copy import deepcopy
 
@@ -14,6 +13,7 @@ from .batch_artifacts import fingerprint
 from .batch_repository import BatchConflict
 from .db_models import Glossary, GlossaryEntry
 from .glossary_health_service import entry_source_text
+from .glossary_terminology_entry import terminology_entry, terminology_import_fingerprint
 from .glossary_terminology_review import apply_review_change, review_basis
 from scripts.schemas.agent_batch import TermDefinition, TermReleaseRequest
 
@@ -30,24 +30,6 @@ class GlossaryTerminologyService:
     def __init__(self, db_manager, releases):
         self.db_manager, self.releases = db_manager, releases
 
-    @staticmethod
-    def _entry(glossary_id, locale, term):
-        data = term.model_dump(exclude={"historical_reference"} if term.historical_reference is None else set())
-        translation, references = data.pop("translation"), data.pop("reference_translations")
-        source = data.pop("source")
-        if data["review_state"] in {"reviewed", "approved"}:
-            data["review_basis"] = review_basis(source, translation, data)
-        data.update({"schema_version": "glossary-terminology/1", "locale": locale})
-        data["alias_review_basis"] = list(term.aliases)
-        return GlossaryEntry(
-            entry_id=str(uuid.uuid5(uuid.NAMESPACE_URL, f"remis:{glossary_id}:{term.concept_id}")),
-            glossary_id=glossary_id,
-            translations={**references, "en": source, locale: translation},
-            variants={"en": term.aliases},
-            raw_metadata={"source_lang": "en", "source_text": source, "target_lang": locale,
-                          "remarks": term.sense, "terminology": data},
-        )
-
     async def import_glossary(self, request):
         if not request.approved:
             raise BatchConflict("approval_required", "Importing terminology requires authorization.")
@@ -56,11 +38,7 @@ class GlossaryTerminologyService:
         ids = [term.concept_id for term in request.terms]
         if len(ids) != len(set(ids)):
             raise BatchConflict("duplicate_concept_id", "Preserve distinct concept identities.", 400)
-        import_payload = request.model_dump(exclude={"approved"})
-        for item in import_payload["terms"]:
-            if item.get("historical_reference") is None:
-                item.pop("historical_reference", None)
-        digest = fingerprint(import_payload)
+        digest = terminology_import_fingerprint(request)
         async with self.db_manager.async_session_scope() as session:
             # Serialize create-only imports across requests/processes on the main SQLite DB.
             await (await session.connection()).exec_driver_sql("BEGIN IMMEDIATE")
@@ -78,7 +56,7 @@ class GlossaryTerminologyService:
                         "terminology_import_fingerprint": digest})
                 session.add(glossary)
                 await session.flush()
-                session.add_all([self._entry(glossary.glossary_id, request.locale, term) for term in request.terms])
+                session.add_all([terminology_entry(glossary.glossary_id, request.locale, term) for term in request.terms])
                 await session.flush()
             glossary_id = glossary.glossary_id
         return await self.preview(glossary_id, request.locale)
@@ -188,7 +166,7 @@ class GlossaryTerminologyService:
             existing = {row.raw_metadata.get("terminology", {}).get("concept_id") for row in rows}
             if existing.intersection(ids):
                 raise BatchConflict("duplicate_concept_id", "Use review to edit existing concepts; append never overwrites.", 400)
-            session.add_all([self._entry(glossary_id, request.locale, term) for term in request.terms])
+            session.add_all([terminology_entry(glossary_id, request.locale, term) for term in request.terms])
             await session.flush()
         return await self.preview(glossary_id, request.locale)
 

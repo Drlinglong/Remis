@@ -10,6 +10,7 @@ from scripts.core.bundled_seed_service import (
     bundled_main_seed_applied,
     seed_main_database,
 )
+from scripts.core.bundled_glossary_service import install_bundled_glossaries, try_install_bundled_glossaries
 from scripts.core.db_migrations import migrate_main_database
 from scripts.core.demo_config_hydration import hydrate_json_configs
 
@@ -244,6 +245,7 @@ def reset_database_without_file_changes(
 
     run_projects_db_migrations(remis_db_path)
     seed_main_database(remis_db_path, resource_dir)
+    install_bundled_glossaries(remis_db_path, resource_dir)
     with sqlite3.connect(remis_db_path) as conn:
         fix_demo_paths(
             conn,
@@ -466,4 +468,5 @@ def initialize_database():
         except Exception as e:
             init_logger.error("[INIT] Failed during path hydration: %s", e)
 
+    try_install_bundled_glossaries(remis_db_path, resource_dir)
     _install_steam_workshop_demo(remis_db_path, resource_dir, app_data_dir)

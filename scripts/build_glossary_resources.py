@@ -17,6 +17,22 @@ from pathlib import Path
 RESOURCE_PATH = Path("assets/release_glossaries/surviving_mars")
 JSON_FILES = ("surviving-mars.en-zh-CN.json", "surviving-mars.en-zh-CN-zh-TW.json")
 REQUIRED_FILES = {*JSON_FILES, "README.zh-CN.md", "SOURCES.json"}
+PROBABLY_STOLEN_RESOURCE = RESOURCE_PATH.parent / "probably_stolen" / "glossary_candidate.json"
+BUNDLED_GLOSSARY_ASSETS = (
+    *(RESOURCE_PATH / name for name in (*JSON_FILES, "manifest.json", "SOURCES.json", "README.zh-CN.md")),
+    PROBABLY_STOLEN_RESOURCE,
+)
+
+
+def bundled_glossary_add_data_args(project_root):
+    """Include only the selected glossary inputs in the desktop backend."""
+    arguments = []
+    for resource in BUNDLED_GLOSSARY_ASSETS:
+        source = Path(project_root) / resource
+        if not source.is_file():
+            raise FileNotFoundError(f"Required bundled glossary resource not found: {source}")
+        arguments.append(f'--add-data "{source};{resource.parent.as_posix()}"')
+    return " ".join(arguments)
 
 
 def read_resources(project_root):
