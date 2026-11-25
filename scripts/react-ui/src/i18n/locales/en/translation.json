@@ -3002,6 +3002,7 @@
   "deploy_detect_failed_message": "No linked original mod path was found. Select the folder manually.",
   "page_title_project_tracking": "Project Tracking",
   "project_tracking": {
+    "interval_whole_minutes": "The scan interval must be a whole number of minutes (at least 1).",
     "title": "Project Tracking",
     "subtitle": "Track mod folders on disk, link them to Remis projects, and jump into incremental update when localization files change.",
     "add_new_project": "Add new project to track",
@@ -3240,6 +3241,7 @@
     "status_abandoned": "Abandoned"
   },
   "archive_ab_review": {
+    "note_too_long": "The note must be 4000 characters or fewer.",
     "nav_label": "Archive A/B review",
     "page_title": "Archive A/B human review",
     "page_description": "Developer-only local review queue for complete event chains and reference batches.",

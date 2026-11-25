@@ -101,7 +101,9 @@ export default function ArchiveABReviewPanel({ t, cases: rawCases, activeIndex, 
     if (target) target.focus();
   }, [batchRevealed, item?.case_id, item?.revealed]);
 
-  const canSubmit = Boolean(item && selection);
+  const trimmedNote = note.trim();
+  const noteTooLong = [...trimmedNote].length > 4000;
+  const canSubmit = Boolean(item && selection && !noteTooLong);
   const sourceCount = item?.source_entries?.length || 0;
   const progress = cases.length ? ((activeIndex + 1) / cases.length) * 100 : 0;
   const reveal = batchRevealed && item?.revealed ? item.reveal : null;
@@ -115,31 +117,29 @@ export default function ArchiveABReviewPanel({ t, cases: rawCases, activeIndex, 
   }
 
   const submit = async (nextSelection = selection) => {
-    if (!nextSelection) return;
-    if (sameReview(item, nextSelection, errorTags, confidence, note)) return item;
-    return onSubmit({
+    if (!nextSelection || noteTooLong) return false;
+    if (sameReview(item, nextSelection, errorTags, confidence, note)) return true;
+    const saved = await onSubmit({
       manifest_id: item.manifest_id,
       case_id: item.case_id,
       selection: nextSelection,
       error_tags: errorTags,
       confidence,
-      note: note.trim(),
+      note: trimmedNote,
     });
+    return Boolean(saved);
   };
 
   const saveAndContinue = async () => {
-    await submit();
-    onChangeCase(activeIndex + 1);
+    if (await submit()) onChangeCase(activeIndex + 1);
   };
 
   const saveAndGoBack = async () => {
-    if (selection) await submit();
-    onChangeCase(activeIndex - 1);
+    if (!selection || await submit()) onChangeCase(activeIndex - 1);
   };
 
   const finishAndReveal = async () => {
-    await submit();
-    setBatchRevealed(true);
+    if (await submit()) setBatchRevealed(true);
   };
 
   return (
@@ -270,7 +270,7 @@ export default function ArchiveABReviewPanel({ t, cases: rawCases, activeIndex, 
             </div>
             <NumberInput value={Math.round(confidence * 100)} onChange={(value) => setConfidence(Math.max(0, Math.min(100, Number(value) || 0)) / 100)} min={0} max={100} suffix="%" w={90} aria-label={label(t, 'confidence', '置信度')} />
           </Group>
-          <Textarea value={note} onChange={(event) => setNote(event.currentTarget.value)} label={label(t, 'note', '备注')} placeholder={label(t, 'note_placeholder', '记录整链级判断依据')} autosize minRows={3} />
+          <Textarea value={note} onChange={(event) => setNote(event.currentTarget.value)} label={label(t, 'note', '备注')} placeholder={label(t, 'note_placeholder', '记录整链级判断依据')} error={noteTooLong && label(t, 'note_too_long', 'The note must be 4000 characters or fewer.')} autosize minRows={3} />
         </Stack>
       </Card>
 
@@ -301,7 +301,7 @@ export default function ArchiveABReviewPanel({ t, cases: rawCases, activeIndex, 
       )}
 
       <Group justify="space-between">
-        <Button variant="default" leftSection={<IconArrowLeft size={17} />} disabled={activeIndex === 0 || saving} onClick={saveAndGoBack}>
+        <Button variant="default" leftSection={<IconArrowLeft size={17} />} disabled={activeIndex === 0 || saving || (selection && noteTooLong)} onClick={saveAndGoBack}>
           {label(t, 'previous', '上一条')}
         </Button>
         <Group>

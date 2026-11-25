@@ -2885,6 +2885,7 @@
   "deploy_detect_failed_message": "No se encontró una ruta vinculada al mod original. Seleccione la carpeta manualmente.",
   "page_title_project_tracking": "Seguimiento de proyectos",
   "project_tracking": {
+    "interval_whole_minutes": "El intervalo de escaneo debe ser un número entero de minutos (al menos 1).",
     "title": "Seguimiento de proyectos",
     "subtitle": "Supervisa carpetas de mods en el disco, vincúlalas con proyectos de Remis y salta a la actualización incremental cuando cambien archivos de localización.",
     "add_new_project": "Añadir nuevo proyecto a seguir",
@@ -3213,6 +3214,7 @@
     "status_abandoned": "Abandonada"
   },
   "archive_ab_review": {
+    "note_too_long": "La nota no puede superar los 4000 caracteres.",
     "nav_label": "Archive A/B review",
     "page_title": "Archive A/B human review",
     "page_description": "Developer-only local review queue for complete event chains and reference batches.",

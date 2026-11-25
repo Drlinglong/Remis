@@ -36,6 +36,8 @@ import { PROJECT_WATCHES_UPDATED_EVENT } from '../components/ProjectWatchSchedul
 import { useTutorial } from '../context/TutorialContextCore';
 import projectService from '../services/projectService';
 import projectWatchService from '../services/projectWatchService';
+import { apiErrorDetail } from '../utils/apiErrorDetail';
+import { fromScanIntervalMinutes, toScanIntervalMinutes } from '../utils/projectWatchInterval';
 import { taskDetailRoute } from '../utils/taskRoutes';
 import { formatLocalizedDateTime, getResolvedInterfaceLocale } from '../utils/localizedDateTime';
 import styles from './ProjectTrackingPage.module.css';
@@ -70,27 +72,6 @@ const readCheckedValue = (valueOrEvent) => {
     return Boolean(valueOrEvent.currentTarget?.checked);
   }
   return Boolean(valueOrEvent);
-};
-
-const intervalUnitToMinutes = {
-  minutes: 1,
-  hours: 60,
-  days: 60 * 24,
-};
-
-const toScanIntervalMinutes = (value, unit) => {
-  const numericValue = Number(value) || 1;
-  return numericValue * (intervalUnitToMinutes[unit] || 1);
-};
-
-const fromScanIntervalMinutes = (minutes = 30) => {
-  if (minutes % intervalUnitToMinutes.days === 0) {
-    return { scan_interval_value: minutes / intervalUnitToMinutes.days, scan_interval_unit: 'days' };
-  }
-  if (minutes % intervalUnitToMinutes.hours === 0) {
-    return { scan_interval_value: minutes / intervalUnitToMinutes.hours, scan_interval_unit: 'hours' };
-  }
-  return { scan_interval_value: minutes, scan_interval_unit: 'minutes' };
 };
 
 const ProjectTrackingPage = () => {
@@ -206,7 +187,7 @@ const ProjectTrackingPage = () => {
   useEffect(() => {
     loadData().catch((error) => {
       console.error('Failed to load project tracking data:', error);
-      setMessage(error.response?.data?.detail || error.message);
+      setMessage(apiErrorDetail(error));
     });
   }, []);
 
@@ -225,12 +206,14 @@ const ProjectTrackingPage = () => {
   }, []);
 
   const openCreateModal = () => {
+    setMessage('');
     setEditingWatch(null);
     setForm(emptyForm);
     setModalOpen(true);
   };
 
   const openEditModal = (watch) => {
+    setMessage('');
     setEditingWatch(watch);
     setForm({
       name: watch.name || '',
@@ -249,7 +232,12 @@ const ProjectTrackingPage = () => {
     }
   };
 
+  const scanIntervalMinutes = toScanIntervalMinutes(form.scan_interval_value, form.scan_interval_unit);
+  const invalidInterval = form.enabled && (
+    !Number.isSafeInteger(scanIntervalMinutes) || scanIntervalMinutes < 1
+  );
   const saveWatch = async () => {
+    if (invalidInterval) return;
     setBusy(true);
     setMessage('');
     const payload = {
@@ -257,9 +245,7 @@ const ProjectTrackingPage = () => {
       path: form.path,
       project_id: form.project_id || null,
       enabled: form.enabled,
-      scan_interval_minutes: form.enabled
-        ? toScanIntervalMinutes(form.scan_interval_value, form.scan_interval_unit)
-        : null,
+      scan_interval_minutes: form.enabled ? scanIntervalMinutes : null,
     };
     try {
       if (editingWatch) {
@@ -270,7 +256,7 @@ const ProjectTrackingPage = () => {
       setModalOpen(false);
       await loadData();
     } catch (error) {
-      setMessage(error.response?.data?.detail || error.message);
+      setMessage(apiErrorDetail(error));
     } finally {
       setBusy(false);
     }
@@ -283,7 +269,7 @@ const ProjectTrackingPage = () => {
       setSelectedIds((ids) => ids.filter((id) => id !== watchId));
       await loadData();
     } catch (error) {
-      setMessage(error.response?.data?.detail || error.message);
+      setMessage(apiErrorDetail(error));
     } finally {
       setBusy(false);
     }
@@ -319,7 +305,7 @@ const ProjectTrackingPage = () => {
       }
       await loadData();
     } catch (error) {
-      setMessage(error.response?.data?.detail || error.message);
+      setMessage(apiErrorDetail(error));
     } finally {
       setBusy(false);
     }
@@ -370,6 +356,9 @@ const ProjectTrackingPage = () => {
     );
   };
 
+  const feedback = message && (
+    <Alert color="orange" icon={<IconAlertTriangle size={16} />} data-remis-surface="paper">{message}</Alert>
+  );
   return (
     <Container fluid p="lg" h="100%" style={{ overflow: 'auto' }}>
       <Stack gap="md">
@@ -388,11 +377,7 @@ const ProjectTrackingPage = () => {
           </Group>
         </Group>
 
-        {message && (
-          <Alert color="orange" icon={<IconAlertTriangle size={16} />} data-remis-surface="paper">
-            {message}
-          </Alert>
-        )}
+        {!modalOpen && feedback}
         {scanFeedback && (
           <Paper withBorder radius="md" p="md" data-remis-surface="paper">
             <Stack gap="xs">
@@ -541,6 +526,7 @@ const ProjectTrackingPage = () => {
 
       <Modal opened={modalOpen} onClose={() => setModalOpen(false)} title={editingWatch ? text.edit : text.add} size="lg">
         <Stack>
+          {feedback}
           <TextInput
             label={text.name}
             aria-label={text.name}
@@ -585,7 +571,8 @@ const ProjectTrackingPage = () => {
                   label={text.interval}
                   min={1}
                   value={form.scan_interval_value}
-                  onChange={(value) => setForm((current) => ({ ...current, scan_interval_value: value || 1 }))}
+                  error={invalidInterval && t('project_tracking.interval_whole_minutes')}
+                  onChange={(value) => setForm((current) => ({ ...current, scan_interval_value: value }))}
                 />
                 <Select
                   label={text.intervalUnit}
@@ -598,7 +585,7 @@ const ProjectTrackingPage = () => {
           </Stack>
           <Group justify="flex-end">
             <Button variant="default" onClick={() => setModalOpen(false)}>{text.cancel}</Button>
-            <Button onClick={saveWatch} loading={busy} disabled={!form.name || !form.path}>{text.save}</Button>
+            <Button onClick={saveWatch} loading={busy} disabled={!form.name || !form.path || invalidInterval}>{text.save}</Button>
           </Group>
         </Stack>
       </Modal>

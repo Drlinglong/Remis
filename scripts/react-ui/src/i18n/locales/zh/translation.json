@@ -3017,6 +3017,7 @@
   "deploy_detect_failed_message": "未找到关联的原始模组路径，请手动选择目录。",
   "page_title_project_tracking": "项目追踪",
   "project_tracking": {
+    "interval_whole_minutes": "扫描间隔换算为分钟后必须是大于或等于 1 的整数。",
     "title": "项目追踪",
     "subtitle": "给 Remis 添加需要持续监控的 Mod 本地路径，并在本地化文件发生变化后，一键跳转到增量更新。",
     "add_new_project": "添加需要追踪的新项目",
@@ -3255,6 +3256,7 @@
     "status_abandoned": "已放弃"
   },
   "archive_ab_review": {
+    "note_too_long": "备注不能超过 4000 个字符。",
     "nav_label": "档案 A/B 抽检",
     "page_title": "档案 A/B 人工复核",
     "page_description": "开发者专属本地复核队列，按完整事件链或 reference batch 判断。",

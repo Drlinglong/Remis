@@ -2884,6 +2884,7 @@
   "deploy_detect_failed_message": "Aucun chemin de mod original lié n’a été trouvé. Sélectionnez le dossier manuellement.",
   "page_title_project_tracking": "Suivi de projet",
   "project_tracking": {
+    "interval_whole_minutes": "L’intervalle d’analyse doit être un nombre entier de minutes (au moins 1).",
     "title": "Suivi de projet",
     "subtitle": "Surveille les dossiers de mods sur le disque, associe-les à des projets Remis et ouvre la mise à jour incrémentielle quand des fichiers de localisation changent.",
     "add_new_project": "Ajouter un nouveau projet à suivre",
@@ -3212,6 +3213,7 @@
     "status_abandoned": "Abandonnée"
   },
   "archive_ab_review": {
+    "note_too_long": "La note ne doit pas dépasser 4000 caractères.",
     "nav_label": "Archive A/B review",
     "page_title": "Archive A/B human review",
     "page_description": "Developer-only local review queue for complete event chains and reference batches.",

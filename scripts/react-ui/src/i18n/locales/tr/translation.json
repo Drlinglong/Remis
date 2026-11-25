@@ -2883,6 +2883,7 @@
   "deploy_detect_failed_message": "Bağlı bir orijinal mod yolu bulunamadı. Klasörü elle seçin.",
   "page_title_project_tracking": "Proje izleme",
   "project_tracking": {
+    "interval_whole_minutes": "Tarama aralığı dakika cinsinden en az 1 olan bir tam sayı olmalıdır.",
     "title": "Proje izleme",
     "subtitle": "Diskteki mod klasörlerini izle, Remis projeleriyle bağla ve yerelleştirme dosyaları değiştiğinde artımlı güncellemeye geç.",
     "add_new_project": "İzlenecek yeni proje ekle",
@@ -3211,6 +3212,7 @@
     "status_abandoned": "Terk edildi"
   },
   "archive_ab_review": {
+    "note_too_long": "Not en fazla 4000 karakter olabilir.",
     "nav_label": "Archive A/B review",
     "page_title": "Archive A/B human review",
     "page_description": "Developer-only local review queue for complete event chains and reference batches.",

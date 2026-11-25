@@ -2906,6 +2906,7 @@
   "deploy_detect_failed_message": "Связанный путь исходного мода не найден. Выберите папку вручную.",
   "page_title_project_tracking": "Отслеживание проектов",
   "project_tracking": {
+    "interval_whole_minutes": "Интервал сканирования должен составлять целое число минут (не менее 1).",
     "title": "Отслеживание проектов",
     "subtitle": "Следите за папками модов на диске, связывайте их с проектами Remis и переходите к инкрементальному обновлению, когда меняются файлы локализации.",
     "add_new_project": "Добавить новый проект для отслеживания",
@@ -3234,6 +3235,7 @@
     "status_abandoned": "Отменено"
   },
   "archive_ab_review": {
+    "note_too_long": "В заметке должно быть не более 4000 символов.",
     "nav_label": "Archive A/B review",
     "page_title": "Archive A/B human review",
     "page_description": "Developer-only local review queue for complete event chains and reference batches.",

@@ -2883,6 +2883,7 @@
   "deploy_detect_failed_message": "Nie znaleziono powiązanej ścieżki oryginalnego moda. Wybierz folder ręcznie.",
   "page_title_project_tracking": "Śledzenie projektów",
   "project_tracking": {
+    "interval_whole_minutes": "Odstęp między skanami musi być całkowitą liczbą minut (co najmniej 1).",
     "title": "Śledzenie projektów",
     "subtitle": "Monitoruj foldery modów na dysku, łącz je z projektami Remis i przechodź do aktualizacji przyrostowej, gdy zmienią się pliki lokalizacji.",
     "add_new_project": "Dodaj nowy projekt do śledzenia",
@@ -3211,6 +3212,7 @@
     "status_abandoned": "Porzucone"
   },
   "archive_ab_review": {
+    "note_too_long": "Notatka może mieć najwyżej 4000 znaków.",
     "nav_label": "Archive A/B review",
     "page_title": "Archive A/B human review",
     "page_description": "Developer-only local review queue for complete event chains and reference batches.",
