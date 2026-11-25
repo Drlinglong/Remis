@@ -2884,6 +2884,7 @@
   "deploy_detect_failed_message": "Nenhum caminho vinculado ao mod original foi encontrado. Selecione a pasta manualmente.",
   "page_title_project_tracking": "Rastreamento de projetos",
   "project_tracking": {
+    "interval_whole_minutes": "O intervalo de verificação deve ser um número inteiro de minutos (pelo menos 1).",
     "title": "Rastreamento de projetos",
     "subtitle": "Monitore pastas de mods no disco, vincule-as a projetos do Remis e vá para a atualização incremental quando arquivos de localização mudarem.",
     "add_new_project": "Adicionar novo projeto para rastrear",
@@ -3212,6 +3213,7 @@
     "status_abandoned": "Interrompida"
   },
   "archive_ab_review": {
+    "note_too_long": "A nota deve ter no máximo 4000 caracteres.",
     "nav_label": "Archive A/B review",
     "page_title": "Archive A/B human review",
     "page_description": "Developer-only local review queue for complete event chains and reference batches.",

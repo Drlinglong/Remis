@@ -28,6 +28,7 @@ const zhTranslations = {
   'project_tracking.last_scan': '最后扫描',
   'project_tracking.changes': '变更',
   'project_tracking.interval': '扫描间隔',
+  'project_tracking.interval_whole_minutes': '扫描间隔换算为分钟后必须是大于或等于 1 的整数。',
   'project_tracking.interval_unit': '单位',
   'project_tracking.actions': '操作',
   'project_tracking.name': '名称',
@@ -262,6 +263,43 @@ describe('ProjectTrackingPage', () => {
     fireEvent.click(within(dialog).getByRole('switch'));
 
     expect(within(dialog).queryByText('扫描间隔')).not.toBeInTheDocument();
+  });
+
+  it.each(['create', 'edit'])('validates whole minutes and preserves the form after a %s 422', async (operation) => {
+    const save = operation === 'create' ? projectWatchService.createWatch : projectWatchService.updateWatch;
+    save.mockRejectedValueOnce({ response: { data: { detail: [
+      { loc: ['body', 'scan_interval_minutes'], msg: 'Scan interval rejected' },
+    ] } } }).mockResolvedValueOnce({ data: {} });
+    renderWithProvider(<ProjectTrackingPage />);
+    await screen.findByText('Steam Vic3');
+    const title = operation === 'create' ? '添加需要追踪的新项目' : '编辑需要追踪的项目';
+    fireEvent.click(screen.getByRole('button', { name: title }));
+    const dialog = screen.getByRole('dialog', { name: title });
+    const name = within(dialog).getByLabelText('名称');
+    const path = within(dialog).getByLabelText('路径');
+    const interval = within(dialog).getByLabelText('扫描间隔');
+    const submit = within(dialog).getByRole('button', { name: '保存' });
+    fireEvent.change(name, { target: { value: 'Watch draft' } });
+    fireEvent.change(path, { target: { value: 'J:/Steam/workshop/draft' } });
+    fireEvent.change(interval, { target: { value: '1.5' } });
+    fireEvent.blur(interval);
+    expect(within(dialog).getByText(zhTranslations['project_tracking.interval_whole_minutes'])).toBeInTheDocument();
+    expect(submit).toBeDisabled();
+    expect(save).not.toHaveBeenCalled();
+
+    fireEvent.change(interval, { target: { value: '1' } });
+    fireEvent.click(submit);
+    expect(await within(dialog).findByText('scan_interval_minutes: Scan interval rejected')).toBeInTheDocument();
+    expect(name).toHaveValue('Watch draft');
+    expect(path).toHaveValue('J:/Steam/workshop/draft');
+    expect(interval).toHaveValue('1');
+
+    fireEvent.click(submit);
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    const expected = expect.objectContaining({ name: 'Watch draft', scan_interval_minutes: 1 });
+    expect(save).toHaveBeenCalledTimes(2);
+    expect(save).toHaveBeenLastCalledWith(...(operation === 'create' ? [expected] : ['w1', expected]));
+    expect(screen.queryByText('scan_interval_minutes: Scan interval rejected')).not.toBeInTheDocument();
   });
 
   it('blocks incremental update when a watched path is not linked to a project', async () => {

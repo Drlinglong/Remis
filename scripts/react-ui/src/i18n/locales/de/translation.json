@@ -2884,6 +2884,7 @@
   "deploy_detect_failed_message": "Es wurde kein verknüpfter Original-Mod-Pfad gefunden. Bitte wählen Sie den Ordner manuell aus.",
   "page_title_project_tracking": "Projektverfolgung",
   "project_tracking": {
+    "interval_whole_minutes": "Das Scanintervall muss eine ganze Anzahl von Minuten betragen (mindestens 1).",
     "title": "Projektverfolgung",
     "subtitle": "Überwache Mod-Ordner auf der Festplatte, verknüpfe sie mit Remis-Projekten und springe bei geänderten Lokalisierungsdateien direkt zur inkrementellen Aktualisierung.",
     "add_new_project": "Neues zu verfolgendes Projekt hinzufügen",
@@ -3212,6 +3213,7 @@
     "status_abandoned": "Aufgegeben"
   },
   "archive_ab_review": {
+    "note_too_long": "Die Notiz darf höchstens 4000 Zeichen enthalten.",
     "nav_label": "Archive A/B review",
     "page_title": "Archive A/B human review",
     "page_description": "Developer-only local review queue for complete event chains and reference batches.",

@@ -2888,6 +2888,7 @@
   "deploy_detect_failed_message": "関連付けられた元Modパスが見つかりませんでした。フォルダーを手動で選択してください。",
   "page_title_project_tracking": "プロジェクト追跡",
   "project_tracking": {
+    "interval_whole_minutes": "スキャン間隔は分に換算して 1 以上の整数にしてください。",
     "title": "プロジェクト追跡",
     "subtitle": "ディスク上のModフォルダーを監視し、Remisのプロジェクトに関連付け、ローカライズファイルが変わったら増分更新へすぐ移動します。",
     "add_new_project": "追跡する新しいプロジェクトを追加",
@@ -3216,6 +3217,7 @@
     "status_abandoned": "中止済み"
   },
   "archive_ab_review": {
+    "note_too_long": "メモは 4000 文字以内で入力してください。",
     "nav_label": "Archive A/B review",
     "page_title": "Archive A/B human review",
     "page_description": "Developer-only local review queue for complete event chains and reference batches.",

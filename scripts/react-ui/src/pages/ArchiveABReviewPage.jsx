@@ -6,10 +6,10 @@ import { useTranslation } from 'react-i18next';
 import { FEATURES } from '../config/features';
 import ArchiveABReviewPanel from '../components/archiveABReview/ArchiveABReviewPanel';
 import archiveABReviewService from '../services/archiveABReviewService';
+import { apiErrorDetail } from '../utils/apiErrorDetail';
 import styles from './ModelArenaPage.module.css';
 
 const text = (t, key, fallback) => t(`archive_ab_review.${key}`, { defaultValue: fallback });
-const errorMessage = (error, fallback) => error?.response?.data?.detail || error?.message || fallback;
 const DEFAULT_FILTERS = { manifest_id: '', dataset_id: '', case_kind: '', status: 'all' };
 
 export default function ArchiveABReviewPage() {
@@ -37,7 +37,7 @@ export default function ArchiveABReviewPage() {
       setError('');
     } catch (loadError) {
       if (controller.signal.aborted || requestRef.current.id !== requestId) return;
-      setError(errorMessage(loadError, text(t, 'load_error', '无法读取 benchmark review batch。')));
+      setError(apiErrorDetail(loadError, text(t, 'load_error', '无法读取 benchmark review batch。')));
     } finally {
       if (requestRef.current.id === requestId) setLoading(false);
     }
@@ -59,7 +59,7 @@ export default function ArchiveABReviewPage() {
       })
       .catch((loadError) => {
         if (!cancelled) {
-          setError(errorMessage(loadError, text(t, 'unavailable', '开发者抽检入口不可用。')));
+          setError(apiErrorDetail(loadError, text(t, 'unavailable', '开发者抽检入口不可用。')));
           setLoading(false);
         }
       });
@@ -90,8 +90,8 @@ export default function ArchiveABReviewPage() {
       setError('');
       return result.case;
     } catch (submitError) {
-      setError(errorMessage(submitError, text(t, 'submit_error', '提交抽检记录失败。')));
-      throw submitError;
+      setError(apiErrorDetail(submitError, text(t, 'submit_error', '提交抽检记录失败。')));
+      return null;
     } finally {
       setSaving(false);
     }

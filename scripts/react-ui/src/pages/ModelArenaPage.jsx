@@ -37,6 +37,9 @@ import ArenaResults from '../components/modelArena/ArenaResults';
 import ArenaRunStatus from '../components/modelArena/ArenaRunStatus';
 import ArenaSetup from '../components/modelArena/ArenaSetup';
 import ArenaVoting from '../components/modelArena/ArenaVoting';
+import { useModelArenaExport } from '../hooks/useModelArenaExport';
+import { useModelArenaRunRefresh } from '../hooks/useModelArenaRunRefresh';
+import { apiErrorDetail } from '../utils/apiErrorDetail';
 import modelArenaService from '../services/modelArenaService';
 import styles from './ModelArenaPage.module.css';
 
@@ -66,10 +69,6 @@ const runStage = (run) => {
   return 3;
 };
 
-const errorMessage = (error, fallback) => (
-  error?.response?.data?.detail || error?.message || fallback
-);
-
 export default function ModelArenaPage() {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -89,11 +88,21 @@ export default function ModelArenaPage() {
   const [approvalAction, setApprovalAction] = useState('start');
   const [approved, setApproved] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
-  const [previewTarget, setPreviewTarget] = useState(null);
-  const [previewMode, setPreviewMode] = useState('evidence');
-  const [preview, setPreview] = useState(null);
-  const [previewLoading, setPreviewLoading] = useState(false);
   const suppressedRunIdRef = useRef(null);
+  const errorFallback = t('model_arena.error_generic');
+  const { session: preview, closePreview, loadPreview, exportRun } = useModelArenaExport(errorFallback);
+
+  const applyRun = useCallback((detail) => {
+    setRun(detail);
+    setVotes(Object.fromEntries(
+      (detail.samples || [])
+        .filter((sample) => sample.vote)
+        .map((sample) => [sample.sample_id, sample.vote]),
+    ));
+  }, []);
+  const { refreshRun, invalidateRefresh } = useModelArenaRunRefresh({
+    run, requestedRunId, applyRun, setError, errorFallback,
+  });
 
   const stage = runStage(run);
 
@@ -114,6 +123,7 @@ export default function ModelArenaPage() {
   }, []);
 
   const clearActiveRun = useCallback(() => {
+    invalidateRefresh();
     suppressedRunIdRef.current = run?.run_id || requestedRunId || null;
     setSearchParams({}, { replace: true });
     setRun(null);
@@ -121,7 +131,7 @@ export default function ModelArenaPage() {
     setActiveTab('arena');
     setApprovalOpen(false);
     setApproved(false);
-  }, [requestedRunId, run?.run_id, setSearchParams]);
+  }, [invalidateRefresh, requestedRunId, run?.run_id, setSearchParams]);
 
   const loadHistory = useCallback(async () => {
     setHistoryLoading(true);
@@ -130,7 +140,7 @@ export default function ModelArenaPage() {
       setHistory(result.runs);
       setError('');
     } catch (loadError) {
-      setError(errorMessage(loadError, t('model_arena.error_generic')));
+      setError(apiErrorDetail(loadError, t('model_arena.error_generic')));
     } finally {
       setHistoryLoading(false);
     }
@@ -161,7 +171,7 @@ export default function ModelArenaPage() {
         });
       })
       .catch((loadError) => {
-        if (!cancelled) setError(errorMessage(loadError, t('model_arena.error_generic')));
+        if (!cancelled) setError(apiErrorDetail(loadError, t('model_arena.error_generic')));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -180,49 +190,22 @@ export default function ModelArenaPage() {
     modelArenaService.getRun(requestedRunId)
       .then((detail) => {
         if (cancelled) return;
-        setRun(detail);
+        invalidateRefresh();
+        applyRun(detail);
         restoreDraftValues(detail);
-        setVotes(Object.fromEntries(
-          (detail.samples || [])
-            .filter((sample) => sample.vote)
-            .map((sample) => [sample.sample_id, sample.vote]),
-        ));
       })
       .catch((loadError) => {
-        if (!cancelled) setError(errorMessage(loadError, t('model_arena.error_generic')));
+        if (!cancelled) setError(apiErrorDetail(loadError, t('model_arena.error_generic')));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
-  }, [requestedRunId, restoreDraftValues, run?.run_id, t]);
+  }, [applyRun, invalidateRefresh, requestedRunId, restoreDraftValues, run?.run_id, t]);
 
   useEffect(() => {
     if (activeTab === 'history') loadHistory();
   }, [activeTab, loadHistory]);
-
-  const refreshRun = useCallback(async () => {
-    if (!run?.run_id) return;
-    try {
-      const nextRun = await modelArenaService.getRun(run.run_id);
-      if (suppressedRunIdRef.current === nextRun.run_id) return;
-      setRun(nextRun);
-      setVotes(Object.fromEntries(
-        (nextRun.samples || [])
-          .filter((sample) => sample.vote)
-          .map((sample) => [sample.sample_id, sample.vote]),
-      ));
-      setError('');
-    } catch (refreshError) {
-      setError(errorMessage(refreshError, t('model_arena.error_generic')));
-    }
-  }, [run?.run_id, t]);
-
-  useEffect(() => {
-    if (!run?.run_id || !['queued', 'running'].includes(run.status)) return undefined;
-    const intervalId = window.setInterval(refreshRun, 1500);
-    return () => window.clearInterval(intervalId);
-  }, [refreshRun, run?.run_id, run?.status]);
 
   const createDraft = async () => {
     setLoading(true);
@@ -242,7 +225,7 @@ export default function ModelArenaPage() {
       setVotes({});
       setError('');
     } catch (createError) {
-      setError(errorMessage(createError, t('model_arena.error_generic')));
+      setError(apiErrorDetail(createError, t('model_arena.error_generic')));
     } finally {
       setLoading(false);
     }
@@ -251,10 +234,12 @@ export default function ModelArenaPage() {
   const resample = async () => {
     setLoading(true);
     try {
-      setRun(await modelArenaService.resample(run.run_id));
+      const nextRun = await modelArenaService.resample(run.run_id);
+      invalidateRefresh();
+      setRun(nextRun);
       setError('');
     } catch (resampleError) {
-      setError(errorMessage(resampleError, t('model_arena.error_generic')));
+      setError(apiErrorDetail(resampleError, t('model_arena.error_generic')));
     } finally {
       setLoading(false);
     }
@@ -268,7 +253,7 @@ export default function ModelArenaPage() {
       clearActiveRun();
       setError('');
     } catch (editError) {
-      setError(errorMessage(editError, t('model_arena.error_generic')));
+      setError(apiErrorDetail(editError, t('model_arena.error_generic')));
     } finally {
       setLoading(false);
     }
@@ -277,12 +262,14 @@ export default function ModelArenaPage() {
   const startRun = async () => {
     setLoading(true);
     try {
-      setRun(await modelArenaService.startRun(run.run_id));
+      const nextRun = await modelArenaService.startRun(run.run_id);
+      invalidateRefresh();
+      setRun(nextRun);
       setApprovalOpen(false);
       setApproved(false);
       setError('');
     } catch (startError) {
-      setError(errorMessage(startError, t('model_arena.error_generic')));
+      setError(apiErrorDetail(startError, t('model_arena.error_generic')));
     } finally {
       setLoading(false);
     }
@@ -295,7 +282,7 @@ export default function ModelArenaPage() {
       setVotes((current) => ({ ...current, [sampleId]: saved || payload }));
       setError('');
     } catch (voteError) {
-      setError(errorMessage(voteError, t('model_arena.error_generic')));
+      setError(apiErrorDetail(voteError, t('model_arena.error_generic')));
       throw voteError;
     } finally {
       setSavingVote(false);
@@ -305,10 +292,12 @@ export default function ModelArenaPage() {
   const completeRun = async () => {
     setLoading(true);
     try {
-      setRun(await modelArenaService.completeRun(run.run_id));
+      const nextRun = await modelArenaService.completeRun(run.run_id);
+      invalidateRefresh();
+      setRun(nextRun);
       setError('');
     } catch (completeError) {
-      setError(errorMessage(completeError, t('model_arena.error_generic')));
+      setError(apiErrorDetail(completeError, t('model_arena.error_generic')));
     } finally {
       setLoading(false);
     }
@@ -317,12 +306,14 @@ export default function ModelArenaPage() {
   const retryFailures = async () => {
     setRetrying(true);
     try {
-      setRun(await modelArenaService.retryFailures(run.run_id));
+      const nextRun = await modelArenaService.retryFailures(run.run_id);
+      invalidateRefresh();
+      setRun(nextRun);
       setApprovalOpen(false);
       setApproved(false);
       setError('');
     } catch (retryError) {
-      setError(errorMessage(retryError, t('model_arena.error_generic')));
+      setError(apiErrorDetail(retryError, t('model_arena.error_generic')));
     } finally {
       setRetrying(false);
     }
@@ -332,61 +323,16 @@ export default function ModelArenaPage() {
     setLoading(true);
     try {
       const detail = await modelArenaService.getRun(summary.run_id);
+      invalidateRefresh();
       suppressedRunIdRef.current = null;
-      setRun(detail);
+      applyRun(detail);
       restoreDraftValues(detail);
       setSearchParams({ run: detail.run_id });
       setActiveTab('arena');
-      setVotes(Object.fromEntries(
-        (detail.samples || [])
-          .filter((sample) => sample.vote)
-          .map((sample) => [sample.sample_id, sample.vote]),
-      ));
     } catch (openError) {
-      setError(errorMessage(openError, t('model_arena.error_generic')));
+      setError(apiErrorDetail(openError, t('model_arena.error_generic')));
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadPreview = useCallback(async (target, mode = previewMode) => {
-    if (!target?.run_id) return;
-    setPreviewTarget(target);
-    setPreviewMode(mode);
-    setPreviewLoading(true);
-    try {
-      setPreview(await modelArenaService.getExportPreview(target.run_id, mode));
-    } catch (previewError) {
-      setError(errorMessage(previewError, t('model_arena.error_generic')));
-      setPreview(null);
-    } finally {
-      setPreviewLoading(false);
-    }
-  }, [previewMode, t]);
-
-  const exportRun = async () => {
-    setPreviewLoading(true);
-    try {
-      const response = await modelArenaService.exportRun(previewTarget.run_id, previewMode);
-      const blob = response.data instanceof Blob
-        ? response.data
-        : new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `remis-model-arena-${previewTarget.run_id}.json`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
-      const encodedExportPath = response.headers?.['x-remis-export-path'];
-      if (encodedExportPath) {
-        await modelArenaService.openExportPath(decodeURIComponent(encodedExportPath));
-      }
-    } catch (exportError) {
-      setError(errorMessage(exportError, t('model_arena.error_generic')));
-    } finally {
-      setPreviewLoading(false);
     }
   };
 
@@ -400,7 +346,7 @@ export default function ModelArenaPage() {
       setDeleteTarget(null);
       await loadHistory();
     } catch (deleteError) {
-      setError(errorMessage(deleteError, t('model_arena.error_generic')));
+      setError(apiErrorDetail(deleteError, t('model_arena.error_generic')));
     } finally {
       setLoading(false);
     }
@@ -646,8 +592,8 @@ export default function ModelArenaPage() {
       </Modal>
 
       <Modal
-        opened={Boolean(previewTarget)}
-        onClose={() => { setPreviewTarget(null); setPreview(null); }}
+        opened={Boolean(preview.runId)}
+        onClose={closePreview}
         title={t('model_arena.preview_title')}
         size="xl"
         data-remis-surface="elevated"
@@ -656,28 +602,31 @@ export default function ModelArenaPage() {
         <Stack>
           <SegmentedControl
             fullWidth
-            value={previewMode}
-            onChange={(mode) => loadPreview(previewTarget, mode)}
+            value={preview.mode}
+            onChange={(mode) => loadPreview({ run_id: preview.runId }, mode)}
+            disabled={preview.exporting}
             data={[
               { value: 'evidence', label: t('model_arena.evidence') },
               { value: 'summary-only', label: t('model_arena.summary_only') },
             ]}
           />
-          <Alert color="blue">{previewMode === 'evidence'
+          <Alert color="blue">{preview.mode === 'evidence'
             ? t('model_arena.evidence_description')
             : t('model_arena.summary_description')}</Alert>
-          {previewLoading ? (
+          {preview.error && <Alert color="red">{preview.error}</Alert>}
+          {preview.loading ? (
             <Group justify="center" py="xl"><Loader /></Group>
           ) : (
             <Code block className={styles.jsonPreview}>
-              {JSON.stringify(preview, null, 2)}
+              {JSON.stringify(preview.artifact, null, 2)}
             </Code>
           )}
           <Group justify="flex-end">
-            <Button variant="default" onClick={() => setPreviewTarget(null)}>{t('model_arena.close')}</Button>
+            <Button variant="default" onClick={closePreview}>{t('model_arena.close')}</Button>
             <Button
               leftSection={<IconShieldCheck size={17} />}
-              disabled={!preview || previewLoading}
+              disabled={!preview.artifact || preview.loading}
+              loading={preview.exporting}
               onClick={exportRun}
             >
               {t('model_arena.export_confirmed')}
