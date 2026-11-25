@@ -39,7 +39,7 @@
     "dayjs": "^1.11.21",
     "driver.js": "^1.7.0",
     "html2canvas": "^1.4.1",
-    "i18next": "^25.5.3",
+    "i18next": "^27.2.9",
     "i18next-browser-languagedetector": "^8.2.1",
     "konva": "^10.3.0",
     "react": "^19.2.7",
