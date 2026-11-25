@@ -27,14 +27,14 @@ vi.mock('./usePublishingWorkspaceCatalog', () => ({
 
 const germanI18n = i18next.createInstance();
 germanI18n.init({
-  initImmediate: false,
+  initAsync: false,
   lng: 'de',
   resources: { de: { translation: deLocale } },
 });
 
 const russianI18n = i18next.createInstance();
 russianI18n.init({
-  initImmediate: false,
+  initAsync: false,
   lng: 'ru',
   resources: { ru: { translation: ruLocale } },
 });
